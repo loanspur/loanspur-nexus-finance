@@ -9,7 +9,193 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          address: Json | null
+          client_number: string
+          created_at: string
+          date_of_birth: string | null
+          email: string | null
+          first_name: string
+          gender: string | null
+          id: string
+          is_active: boolean
+          last_name: string
+          mifos_client_id: number | null
+          monthly_income: number | null
+          national_id: string | null
+          occupation: string | null
+          phone: string | null
+          profile_picture_url: string | null
+          tenant_id: string
+          timely_repayment_rate: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: Json | null
+          client_number: string
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name: string
+          gender?: string | null
+          id?: string
+          is_active?: boolean
+          last_name: string
+          mifos_client_id?: number | null
+          monthly_income?: number | null
+          national_id?: string | null
+          occupation?: string | null
+          phone?: string | null
+          profile_picture_url?: string | null
+          tenant_id: string
+          timely_repayment_rate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: Json | null
+          client_number?: string
+          created_at?: string
+          date_of_birth?: string | null
+          email?: string | null
+          first_name?: string
+          gender?: string | null
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          mifos_client_id?: number | null
+          monthly_income?: number | null
+          national_id?: string | null
+          occupation?: string | null
+          phone?: string | null
+          profile_picture_url?: string | null
+          tenant_id?: string
+          timely_repayment_rate?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          last_name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          tenant_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          last_name?: string | null
+          phone?: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          tenant_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          last_name?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          tenant_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          domain: string | null
+          id: string
+          logo_url: string | null
+          mifos_base_url: string | null
+          mifos_password: string | null
+          mifos_tenant_identifier: string | null
+          mifos_username: string | null
+          name: string
+          pricing_tier: Database["public"]["Enums"]["pricing_tier"]
+          slug: string
+          status: Database["public"]["Enums"]["tenant_status"]
+          subscription_ends_at: string | null
+          theme_colors: Json | null
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          logo_url?: string | null
+          mifos_base_url?: string | null
+          mifos_password?: string | null
+          mifos_tenant_identifier?: string | null
+          mifos_username?: string | null
+          name: string
+          pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
+          slug: string
+          status?: Database["public"]["Enums"]["tenant_status"]
+          subscription_ends_at?: string | null
+          theme_colors?: Json | null
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          id?: string
+          logo_url?: string | null
+          mifos_base_url?: string | null
+          mifos_password?: string | null
+          mifos_tenant_identifier?: string | null
+          mifos_username?: string | null
+          name?: string
+          pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
+          slug?: string
+          status?: Database["public"]["Enums"]["tenant_status"]
+          subscription_ends_at?: string | null
+          theme_colors?: Json | null
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
