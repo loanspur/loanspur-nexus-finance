@@ -92,7 +92,7 @@ export const useAuthState = () => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setState(prev => ({ ...prev, session, user: session?.user ?? null }));
+      setState(prev => ({ ...prev, session, user: session?.user ?? null, loading: false }));
     });
 
     return () => subscription.unsubscribe();
