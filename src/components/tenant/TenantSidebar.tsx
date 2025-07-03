@@ -23,6 +23,10 @@ const TenantSidebar = () => {
       path: "/tenant/savings"
     },
     {
+      title: "Transactions",
+      path: "/tenant/transactions"
+    },
+    {
       title: "Groups",
       path: "/tenant/groups"
     },
