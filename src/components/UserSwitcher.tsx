@@ -129,8 +129,8 @@ export const UserSwitcher = () => {
     ).join(' ');
   };
 
-  // Enable for all users in development mode
-  const canSwitch = true; // Changed from profile?.role === 'super_admin' for testing
+  // Only allow super admins to switch user profiles
+  const canSwitch = profile?.role === 'super_admin';
 
   if (!canSwitch) return null;
 
