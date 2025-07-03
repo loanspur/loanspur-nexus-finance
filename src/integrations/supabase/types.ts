@@ -331,6 +331,207 @@ export type Database = {
           },
         ]
       }
+      loan_applications: {
+        Row: {
+          application_number: string
+          approval_notes: string | null
+          client_id: string
+          created_at: string
+          id: string
+          loan_product_id: string
+          purpose: string | null
+          requested_amount: number
+          requested_term: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          application_number: string
+          approval_notes?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          loan_product_id: string
+          purpose?: string | null
+          requested_amount: number
+          requested_term: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          application_number?: string
+          approval_notes?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          loan_product_id?: string
+          purpose?: string | null
+          requested_amount?: number
+          requested_term?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_applications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_loan_product_id_fkey"
+            columns: ["loan_product_id"]
+            isOneToOne: false
+            referencedRelation: "loan_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_approvals: {
+        Row: {
+          approval_level: number
+          approved_amount: number | null
+          approved_term: number | null
+          approver_id: string
+          created_at: string
+          decision_notes: string | null
+          id: string
+          loan_application_id: string
+          status: string
+        }
+        Insert: {
+          approval_level?: number
+          approved_amount?: number | null
+          approved_term?: number | null
+          approver_id: string
+          created_at?: string
+          decision_notes?: string | null
+          id?: string
+          loan_application_id: string
+          status: string
+        }
+        Update: {
+          approval_level?: number
+          approved_amount?: number | null
+          approved_term?: number | null
+          approver_id?: string
+          created_at?: string
+          decision_notes?: string | null
+          id?: string
+          loan_application_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_approvals_loan_application_id_fkey"
+            columns: ["loan_application_id"]
+            isOneToOne: false
+            referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_collections: {
+        Row: {
+          assigned_to: string | null
+          collection_notes: string | null
+          collection_status: string
+          created_at: string
+          days_overdue: number
+          id: string
+          last_contact_date: string | null
+          loan_id: string
+          next_action_date: string | null
+          overdue_amount: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          collection_notes?: string | null
+          collection_status?: string
+          created_at?: string
+          days_overdue?: number
+          id?: string
+          last_contact_date?: string | null
+          loan_id: string
+          next_action_date?: string | null
+          overdue_amount?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          collection_notes?: string | null
+          collection_status?: string
+          created_at?: string
+          days_overdue?: number
+          id?: string
+          last_contact_date?: string | null
+          loan_id?: string
+          next_action_date?: string | null
+          overdue_amount?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_collections_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_collections_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_collections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_guarantors: {
         Row: {
           created_at: string
@@ -375,6 +576,83 @@ export type Database = {
             columns: ["loan_id"]
             isOneToOne: false
             referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_payments: {
+        Row: {
+          created_at: string
+          fee_amount: number
+          id: string
+          interest_amount: number
+          loan_id: string
+          payment_amount: number
+          payment_date: string
+          payment_method: string
+          principal_amount: number
+          processed_by: string | null
+          reference_number: string | null
+          schedule_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          interest_amount?: number
+          loan_id: string
+          payment_amount: number
+          payment_date?: string
+          payment_method?: string
+          principal_amount?: number
+          processed_by?: string | null
+          reference_number?: string | null
+          schedule_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          interest_amount?: number
+          loan_id?: string
+          payment_amount?: number
+          payment_date?: string
+          payment_method?: string
+          principal_amount?: number
+          processed_by?: string | null
+          reference_number?: string | null
+          schedule_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_payments_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_payments_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "loan_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -452,6 +730,59 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_schedules: {
+        Row: {
+          created_at: string
+          due_date: string
+          fee_amount: number
+          id: string
+          installment_number: number
+          interest_amount: number
+          loan_id: string
+          outstanding_amount: number
+          paid_amount: number
+          payment_status: string
+          principal_amount: number
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          fee_amount?: number
+          id?: string
+          installment_number: number
+          interest_amount?: number
+          loan_id: string
+          outstanding_amount: number
+          paid_amount?: number
+          payment_status?: string
+          principal_amount?: number
+          total_amount: number
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          fee_amount?: number
+          id?: string
+          installment_number?: number
+          interest_amount?: number
+          loan_id?: string
+          outstanding_amount?: number
+          paid_amount?: number
+          payment_status?: string
+          principal_amount?: number
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_schedules_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
             referencedColumns: ["id"]
           },
         ]
@@ -746,6 +1077,63 @@ export type Database = {
           },
         ]
       }
+      savings_interest_postings: {
+        Row: {
+          average_balance: number
+          created_at: string
+          id: string
+          interest_amount: number
+          interest_rate: number
+          period_end: string
+          period_start: string
+          posting_date: string
+          savings_account_id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          average_balance: number
+          created_at?: string
+          id?: string
+          interest_amount: number
+          interest_rate: number
+          period_end: string
+          period_start: string
+          posting_date?: string
+          savings_account_id: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          average_balance?: number
+          created_at?: string
+          id?: string
+          interest_amount?: number
+          interest_rate?: number
+          period_end?: string
+          period_start?: string
+          posting_date?: string
+          savings_account_id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_interest_postings_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_interest_postings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       savings_products: {
         Row: {
           created_at: string
@@ -795,6 +1183,70 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "savings_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      savings_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          processed_by: string | null
+          reference_number: string | null
+          savings_account_id: string
+          tenant_id: string
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          processed_by?: string | null
+          reference_number?: string | null
+          savings_account_id: string
+          tenant_id: string
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          processed_by?: string | null
+          reference_number?: string | null
+          savings_account_id?: string
+          tenant_id?: string
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_transactions_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_transactions_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_transactions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
