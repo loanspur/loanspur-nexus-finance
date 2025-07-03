@@ -63,8 +63,36 @@ export const useAuthState = () => {
           // Fetch user profile with timeout to avoid blocking
           setTimeout(async () => {
             try {
-              // Remove any leftover dev profile data
-              localStorage.removeItem('dev_target_profile');
+              // Check if current user is super admin and has dev profile set
+              const { data: currentProfile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              const devProfile = localStorage.getItem('dev_target_profile');
+              if (devProfile && currentProfile?.role === 'super_admin') {
+                try {
+                  const parsedDevProfile = JSON.parse(devProfile);
+                  // Fetch the full profile for the development user
+                  const { data: fullProfile, error: devError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', parsedDevProfile.profile_id)
+                    .single();
+                  
+                  if (!devError && fullProfile) {
+                    setState(prev => ({ ...prev, profile: fullProfile, loading: false }));
+                    return;
+                  }
+                } catch (e) {
+                  console.error('Error loading dev profile:', e);
+                  localStorage.removeItem('dev_target_profile');
+                }
+              } else if (devProfile && currentProfile?.role !== 'super_admin') {
+                // Remove dev profile data if not super admin
+                localStorage.removeItem('dev_target_profile');
+              }
               
               // Normal profile loading
               const { data: profile, error } = await supabase
