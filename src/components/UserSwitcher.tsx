@@ -124,9 +124,20 @@ export const UserSwitcher = () => {
   };
 
   const formatRole = (role: string) => {
-    return role.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    switch (role) {
+      case 'loan_officer':
+        return 'MFI User';
+      case 'super_admin':
+        return 'Super Admin';
+      case 'tenant_admin':
+        return 'Tenant Admin';
+      case 'client':
+        return 'Client';
+      default:
+        return role.split('_').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    }
   };
 
   // Only allow super admins to switch user profiles

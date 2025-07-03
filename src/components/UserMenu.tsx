@@ -55,7 +55,7 @@ export const UserMenu = () => {
       case 'tenant_admin':
         return 'Tenant Admin';
       case 'loan_officer':
-        return 'Loan Officer';
+        return 'MFI User';
       case 'client':
         return 'Client';
       default:
