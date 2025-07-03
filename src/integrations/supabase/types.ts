@@ -9,6 +9,136 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      billing_invoices: {
+        Row: {
+          addon_charges: Json | null
+          base_amount: number
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          due_date: string
+          id: string
+          invoice_number: string
+          paid_at: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          tenant_id: string
+          total_amount: number
+        }
+        Insert: {
+          addon_charges?: Json | null
+          base_amount: number
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          due_date: string
+          id?: string
+          invoice_number: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          tenant_id: string
+          total_amount: number
+        }
+        Update: {
+          addon_charges?: Json | null
+          base_amount?: number
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+          tenant_id?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_documents: {
+        Row: {
+          client_id: string
+          created_at: string
+          document_name: string
+          document_type: string
+          file_size: number | null
+          file_url: string
+          id: string
+          is_verified: boolean
+          mime_type: string | null
+          tenant_id: string
+          uploaded_by: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          document_name: string
+          document_type: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_verified?: boolean
+          mime_type?: string | null
+          tenant_id: string
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          document_name?: string
+          document_type?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_verified?: boolean
+          mime_type?: string | null
+          tenant_id?: string
+          uploaded_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: Json | null
@@ -448,6 +578,75 @@ export type Database = {
           },
         ]
       }
+      reconciliation_reports: {
+        Row: {
+          created_at: string
+          id: string
+          matched_amount: number | null
+          period_end: string
+          period_start: string
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciliation_status: string
+          report_name: string
+          statement_file_url: string
+          statement_type: string
+          tenant_id: string
+          total_statement_amount: number | null
+          total_system_amount: number | null
+          unmatched_amount: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matched_amount?: number | null
+          period_end: string
+          period_start: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciliation_status?: string
+          report_name: string
+          statement_file_url: string
+          statement_type: string
+          tenant_id: string
+          total_statement_amount?: number | null
+          total_system_amount?: number | null
+          unmatched_amount?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matched_amount?: number | null
+          period_end?: string
+          period_start?: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciliation_status?: string
+          report_name?: string
+          statement_file_url?: string
+          statement_type?: string
+          tenant_id?: string
+          total_statement_amount?: number | null
+          total_system_amount?: number | null
+          unmatched_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_reports_reconciled_by_fkey"
+            columns: ["reconciled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       savings_accounts: {
         Row: {
           account_balance: number | null
@@ -723,6 +922,89 @@ export type Database = {
           },
           {
             foreignKeyName: "transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unallocated_payments: {
+        Row: {
+          allocated_at: string | null
+          allocated_by: string | null
+          allocated_to_loan_id: string | null
+          allocated_to_savings_id: string | null
+          amount: number
+          created_at: string
+          id: string
+          is_allocated: boolean
+          notes: string | null
+          payer_name: string | null
+          payer_phone: string | null
+          payment_date: string
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          reference_number: string | null
+          tenant_id: string
+        }
+        Insert: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          allocated_to_loan_id?: string | null
+          allocated_to_savings_id?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          is_allocated?: boolean
+          notes?: string | null
+          payer_name?: string | null
+          payer_phone?: string | null
+          payment_date: string
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          reference_number?: string | null
+          tenant_id: string
+        }
+        Update: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          allocated_to_loan_id?: string | null
+          allocated_to_savings_id?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          is_allocated?: boolean
+          notes?: string | null
+          payer_name?: string | null
+          payer_phone?: string | null
+          payment_date?: string
+          payment_type?: Database["public"]["Enums"]["payment_type"]
+          reference_number?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unallocated_payments_allocated_by_fkey"
+            columns: ["allocated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unallocated_payments_allocated_to_loan_id_fkey"
+            columns: ["allocated_to_loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unallocated_payments_allocated_to_savings_id_fkey"
+            columns: ["allocated_to_savings_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unallocated_payments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
