@@ -172,6 +172,54 @@ export type Database = {
           },
         ]
       }
+      loan_guarantors: {
+        Row: {
+          created_at: string
+          guarantee_amount: number
+          guarantor_client_id: string | null
+          guarantor_name: string
+          guarantor_national_id: string | null
+          guarantor_phone: string | null
+          id: string
+          loan_id: string
+        }
+        Insert: {
+          created_at?: string
+          guarantee_amount: number
+          guarantor_client_id?: string | null
+          guarantor_name: string
+          guarantor_national_id?: string | null
+          guarantor_phone?: string | null
+          id?: string
+          loan_id: string
+        }
+        Update: {
+          created_at?: string
+          guarantee_amount?: number
+          guarantor_client_id?: string | null
+          guarantor_name?: string
+          guarantor_national_id?: string | null
+          guarantor_phone?: string | null
+          id?: string
+          loan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_guarantors_guarantor_client_id_fkey"
+            columns: ["guarantor_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_guarantors_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loan_products: {
         Row: {
           created_at: string
@@ -249,6 +297,101 @@ export type Database = {
           },
         ]
       }
+      loans: {
+        Row: {
+          client_id: string
+          created_at: string
+          disbursement_date: string | null
+          expected_maturity_date: string | null
+          id: string
+          interest_rate: number
+          loan_number: string
+          loan_officer_id: string | null
+          loan_product_id: string
+          mifos_loan_id: number | null
+          next_repayment_amount: number | null
+          next_repayment_date: string | null
+          outstanding_balance: number | null
+          principal_amount: number
+          status: Database["public"]["Enums"]["loan_status"]
+          tenant_id: string
+          term_months: number
+          total_overdue_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          disbursement_date?: string | null
+          expected_maturity_date?: string | null
+          id?: string
+          interest_rate: number
+          loan_number: string
+          loan_officer_id?: string | null
+          loan_product_id: string
+          mifos_loan_id?: number | null
+          next_repayment_amount?: number | null
+          next_repayment_date?: string | null
+          outstanding_balance?: number | null
+          principal_amount: number
+          status?: Database["public"]["Enums"]["loan_status"]
+          tenant_id: string
+          term_months: number
+          total_overdue_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          disbursement_date?: string | null
+          expected_maturity_date?: string | null
+          id?: string
+          interest_rate?: number
+          loan_number?: string
+          loan_officer_id?: string | null
+          loan_product_id?: string
+          mifos_loan_id?: number | null
+          next_repayment_amount?: number | null
+          next_repayment_date?: string | null
+          outstanding_balance?: number | null
+          principal_amount?: number
+          status?: Database["public"]["Enums"]["loan_status"]
+          tenant_id?: string
+          term_months?: number
+          total_overdue_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_loan_officer_id_fkey"
+            columns: ["loan_officer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_loan_product_id_fkey"
+            columns: ["loan_product_id"]
+            isOneToOne: false
+            referencedRelation: "loan_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -298,6 +441,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      savings_products: {
+        Row: {
+          created_at: string
+          currency_code: string
+          description: string | null
+          id: string
+          is_active: boolean
+          mifos_product_id: number | null
+          min_balance_for_interest_calculation: number | null
+          min_required_opening_balance: number | null
+          name: string
+          nominal_annual_interest_rate: number | null
+          short_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mifos_product_id?: number | null
+          min_balance_for_interest_calculation?: number | null
+          min_required_opening_balance?: number | null
+          name: string
+          nominal_annual_interest_rate?: number | null
+          short_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mifos_product_id?: number | null
+          min_balance_for_interest_calculation?: number | null
+          min_required_opening_balance?: number | null
+          name?: string
+          nominal_annual_interest_rate?: number | null
+          short_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_products_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
