@@ -1,9 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { ClientsTable } from "@/components/tables/ClientsTable";
+import { ClientForm } from "@/components/forms/ClientForm";
 
 const ClientsPage = () => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const clients = [
     {
       id: "CLT-001",
