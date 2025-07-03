@@ -59,29 +59,27 @@ export const UserSwitcher = () => {
   };
 
   const switchToUser = async (targetProfile: UserProfile) => {
-    if (!targetProfile.user_id) {
-      toast({
-        title: "Cannot Switch",
-        description: "This profile is not linked to an auth user",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (targetProfile.id === profile?.id) return; // Already current user
+    
     setIsSwitching(true);
     try {
-      // For development/testing purposes, we'll update the current auth session
-      // to simulate switching users. In production, this would be handled differently.
-      
-      // Sign out current user
-      await supabase.auth.signOut();
-      
-      // Note: In a real implementation, you'd need proper authentication
-      // This is just for development/testing
-      toast({
-        title: "User Switch",
-        description: `Signed out. Please sign in as ${targetProfile.email}`,
+      // Call the development function to get profile info
+      const { data, error } = await supabase.rpc('dev_switch_user_context', {
+        target_profile_id: targetProfile.id
       });
+      
+      if (error) throw error;
+      
+      // Store the target profile info in localStorage for development
+      localStorage.setItem('dev_target_profile', JSON.stringify(data));
+      
+      toast({
+        title: "Profile Switched",
+        description: `Switched to ${targetProfile.first_name} ${targetProfile.last_name} (${targetProfile.role})`,
+      });
+      
+      // Reload to apply the new context
+      window.location.reload();
       
       setIsOpen(false);
     } catch (error: any) {
@@ -136,8 +134,29 @@ export const UserSwitcher = () => {
 
   if (!canSwitch) return null;
 
+  // Check if we're in development mode with a target profile
+  const hasDevProfile = typeof window !== 'undefined' && localStorage.getItem('dev_target_profile');
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <>
+      {hasDevProfile && (
+        <div className="mb-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start text-orange-600 border-orange-200"
+            onClick={() => {
+              localStorage.removeItem('dev_target_profile');
+              window.location.reload();
+            }}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Exit Dev Mode
+          </Button>
+        </div>
+      )}
+      
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button 
           variant="ghost" 
@@ -214,10 +233,11 @@ export const UserSwitcher = () => {
         <div className="mt-4 p-3 bg-muted/50 rounded-lg">
           <p className="text-xs text-muted-foreground">
             <strong>Development Feature:</strong> This allows switching between user profiles for testing purposes. 
-            Clicking a profile will sign you out and require you to sign in as that user.
+            The switch is temporary and will simulate the selected user's context until you exit dev mode.
           </p>
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 };

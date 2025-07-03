@@ -63,6 +63,29 @@ export const useAuthState = () => {
           // Fetch user profile with timeout to avoid blocking
           setTimeout(async () => {
             try {
+              // Check for development profile override
+              const devProfile = localStorage.getItem('dev_target_profile');
+              if (devProfile) {
+                try {
+                  const parsedDevProfile = JSON.parse(devProfile);
+                  // Fetch the full profile for the development user
+                  const { data: fullProfile, error: devError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', parsedDevProfile.profile_id)
+                    .single();
+                  
+                  if (!devError && fullProfile) {
+                    setState(prev => ({ ...prev, profile: fullProfile, loading: false }));
+                    return;
+                  }
+                } catch (e) {
+                  console.error('Error loading dev profile:', e);
+                  localStorage.removeItem('dev_target_profile');
+                }
+              }
+              
+              // Normal profile loading
               const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')

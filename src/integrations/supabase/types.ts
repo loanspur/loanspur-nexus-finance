@@ -213,6 +213,35 @@ export type Database = {
           },
         ]
       }
+      dev_user_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          profile_id: string
+          session_token: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          profile_id: string
+          session_token: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          profile_id?: string
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dev_user_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           client_id: string
@@ -1017,6 +1046,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dev_switch_user_context: {
+        Args: { target_profile_id: string }
+        Returns: Json
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
