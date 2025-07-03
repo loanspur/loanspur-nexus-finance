@@ -448,6 +448,76 @@ export type Database = {
           },
         ]
       }
+      savings_accounts: {
+        Row: {
+          account_balance: number | null
+          account_number: string
+          available_balance: number | null
+          client_id: string
+          created_at: string
+          id: string
+          interest_earned: number | null
+          is_active: boolean
+          mifos_account_id: number | null
+          opened_date: string
+          savings_product_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_balance?: number | null
+          account_number: string
+          available_balance?: number | null
+          client_id: string
+          created_at?: string
+          id?: string
+          interest_earned?: number | null
+          is_active?: boolean
+          mifos_account_id?: number | null
+          opened_date?: string
+          savings_product_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_balance?: number | null
+          account_number?: string
+          available_balance?: number | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          interest_earned?: number | null
+          is_active?: boolean
+          mifos_account_id?: number | null
+          opened_date?: string
+          savings_product_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_accounts_savings_product_id_fkey"
+            columns: ["savings_product_id"]
+            isOneToOne: false
+            referencedRelation: "savings_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       savings_products: {
         Row: {
           created_at: string
@@ -560,6 +630,105 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          client_id: string | null
+          created_at: string
+          description: string | null
+          external_transaction_id: string | null
+          id: string
+          loan_id: string | null
+          mpesa_receipt_number: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          processed_by: string | null
+          reconciliation_status: string | null
+          savings_account_id: string | null
+          tenant_id: string
+          transaction_date: string
+          transaction_id: string
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_transaction_id?: string | null
+          id?: string
+          loan_id?: string | null
+          mpesa_receipt_number?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          processed_by?: string | null
+          reconciliation_status?: string | null
+          savings_account_id?: string | null
+          tenant_id: string
+          transaction_date?: string
+          transaction_id: string
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_transaction_id?: string | null
+          id?: string
+          loan_id?: string | null
+          mpesa_receipt_number?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_type?: Database["public"]["Enums"]["payment_type"]
+          processed_by?: string | null
+          reconciliation_status?: string | null
+          savings_account_id?: string | null
+          tenant_id?: string
+          transaction_date?: string
+          transaction_id?: string
+          transaction_type?: Database["public"]["Enums"]["transaction_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
