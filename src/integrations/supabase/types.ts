@@ -882,6 +882,208 @@ export type Database = {
           },
         ]
       }
+      notification_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          failed_sends: number | null
+          id: string
+          message: string
+          name: string
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          successful_sends: number | null
+          target_audience: string
+          tenant_id: string
+          total_recipients: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          failed_sends?: number | null
+          id?: string
+          message: string
+          name: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          successful_sends?: number | null
+          target_audience: string
+          tenant_id: string
+          total_recipients?: number | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          failed_sends?: number | null
+          id?: string
+          message?: string
+          name?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          successful_sends?: number | null
+          target_audience?: string
+          tenant_id?: string
+          total_recipients?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_history: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          message: string
+          recipient_contact: string
+          recipient_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message: string
+          recipient_contact: string
+          recipient_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          message?: string
+          recipient_contact?: string
+          recipient_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_history_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_history_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          message: string
+          name: string
+          subject: string | null
+          tenant_id: string
+          trigger_event: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          name: string
+          subject?: string | null
+          tenant_id: string
+          trigger_event: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          name?: string
+          subject?: string | null
+          tenant_id?: string
+          trigger_event?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

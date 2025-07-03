@@ -9,7 +9,8 @@ import {
   Users2, 
   Settings,
   Building2,
-  TrendingUp
+  TrendingUp,
+  Bell
 } from "lucide-react";
 
 const TenantSidebar = () => {
@@ -52,6 +53,12 @@ const TenantSidebar = () => {
       path: "/tenant/groups",
       icon: Users2,
       description: "Group Banking"
+    },
+    {
+      title: "Notifications",
+      path: "/tenant/notifications",
+      icon: Bell,
+      description: "Communication Hub"
     },
     {
       title: "Settings",
