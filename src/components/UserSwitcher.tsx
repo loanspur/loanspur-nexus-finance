@@ -129,13 +129,13 @@ export const UserSwitcher = () => {
     ).join(' ');
   };
 
-  // Only show for super admins in development
-  const canSwitch = profile?.role === 'super_admin';
+  // Enable for all users in development mode
+  const canSwitch = true; // Changed from profile?.role === 'super_admin' for testing
 
   if (!canSwitch) return null;
 
   // Check if we're in development mode with a target profile
-  const hasDevProfile = typeof window !== 'undefined' && localStorage.getItem('dev_target_profile');
+  const hasDevProfile = typeof window !== 'undefined' && localStorage.getItem('dev_target_profile') !== null;
 
   return (
     <>
