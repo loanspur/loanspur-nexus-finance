@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +25,9 @@ const signUpSchema = z.object({
   confirmPassword: z.string(),
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  role: z.enum(['client', 'loan_officer', 'tenant_admin'], {
+    required_error: "Please select a role",
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -63,6 +67,7 @@ const AuthPage = () => {
       confirmPassword: "",
       firstName: "",
       lastName: "",
+      role: "client",
     },
   });
 
@@ -106,6 +111,7 @@ const AuthPage = () => {
     const { error } = await signUp(data.email, data.password, {
       first_name: data.firstName,
       last_name: data.lastName,
+      role: data.role,
     });
     if (!error) {
       setIsSignUpOpen(false);
@@ -366,7 +372,29 @@ const AuthPage = () => {
                         </div>
                       </FormControl>
                       <FormMessage />
-                    </FormItem>
+                     </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={signUpForm.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Role</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select your role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="client">Client</SelectItem>
+                              <SelectItem value="loan_officer">Loan Officer</SelectItem>
+                              <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
                       )}
                     />
                     <Button 
