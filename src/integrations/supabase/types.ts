@@ -181,6 +181,66 @@ export type Database = {
           },
         ]
       }
+      chart_of_accounts: {
+        Row: {
+          account_category: string
+          account_code: string
+          account_name: string
+          account_type: string
+          balance: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          parent_account_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_category: string
+          account_code: string
+          account_name: string
+          account_type: string
+          balance?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          parent_account_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_category?: string
+          account_code?: string
+          account_name?: string
+          account_type?: string
+          balance?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          parent_account_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_of_accounts_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_of_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_documents: {
         Row: {
           client_id: string
@@ -325,6 +385,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_report_templates: {
+        Row: {
+          chart_config: Json | null
+          columns_config: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          filters_config: Json | null
+          id: string
+          is_public: boolean
+          report_query: Json
+          template_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          chart_config?: Json | null
+          columns_config: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filters_config?: Json | null
+          id?: string
+          is_public?: boolean
+          report_query: Json
+          template_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          chart_config?: Json | null
+          columns_config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filters_config?: Json | null
+          id?: string
+          is_public?: boolean
+          report_query?: Json
+          template_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_report_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_report_templates_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -772,6 +892,69 @@ export type Database = {
           },
         ]
       }
+      financial_reports: {
+        Row: {
+          created_at: string
+          file_url: string | null
+          generated_by: string | null
+          id: string
+          report_config: Json
+          report_data: Json | null
+          report_name: string
+          report_period_end: string
+          report_period_start: string
+          report_type: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          report_config?: Json
+          report_data?: Json | null
+          report_name: string
+          report_period_end: string
+          report_period_start: string
+          report_type: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string | null
+          generated_by?: string | null
+          id?: string
+          report_config?: Json
+          report_data?: Json | null
+          report_name?: string
+          report_period_end?: string
+          report_period_start?: string
+          report_type?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "financial_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           client_id: string
@@ -857,6 +1040,124 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          entry_number: string
+          id: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          tenant_id: string
+          total_amount: number
+          transaction_date: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          entry_number: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          tenant_id: string
+          total_amount: number
+          transaction_date: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          entry_number?: string
+          id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          tenant_id?: string
+          total_amount?: number
+          transaction_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entry_lines: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit_amount: number | null
+          debit_amount: number | null
+          description: string | null
+          id: string
+          journal_entry_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string | null
+          id?: string
+          journal_entry_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string | null
+          id?: string
+          journal_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -1691,6 +1992,62 @@ export type Database = {
           },
           {
             foreignKeyName: "notification_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_analysis: {
+        Row: {
+          active_loans: number
+          analysis_data: Json | null
+          analysis_date: string
+          average_loan_size: number
+          created_at: string
+          id: string
+          overdue_loans: number
+          par_30: number
+          par_90: number
+          tenant_id: string
+          total_portfolio_value: number
+          write_off_ratio: number
+          yield_on_portfolio: number
+        }
+        Insert: {
+          active_loans?: number
+          analysis_data?: Json | null
+          analysis_date: string
+          average_loan_size?: number
+          created_at?: string
+          id?: string
+          overdue_loans?: number
+          par_30?: number
+          par_90?: number
+          tenant_id: string
+          total_portfolio_value?: number
+          write_off_ratio?: number
+          yield_on_portfolio?: number
+        }
+        Update: {
+          active_loans?: number
+          analysis_data?: Json | null
+          analysis_date?: string
+          average_loan_size?: number
+          created_at?: string
+          id?: string
+          overdue_loans?: number
+          par_30?: number
+          par_90?: number
+          tenant_id?: string
+          total_portfolio_value?: number
+          write_off_ratio?: number
+          yield_on_portfolio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_analysis_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

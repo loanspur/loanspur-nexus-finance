@@ -57,6 +57,12 @@ const TenantSidebar = () => {
       description: "Group Banking"
     },
     {
+      title: "Reports",
+      path: "/tenant/reports",
+      icon: TrendingUp,
+      description: "Financial Reports"
+    },
+    {
       title: "Notifications",
       path: "/tenant/notifications",
       icon: Bell,
