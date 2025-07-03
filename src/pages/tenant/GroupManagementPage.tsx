@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useGroupManagement, GroupMeeting, GroupLoanApplication, GroupSavingsAccount, GroupPerformanceMetrics } from "@/hooks/useGroupManagement";
+import { useGroupManagement, GroupMeeting, GroupLoanApplication, GroupSavingsAccount, GroupPerformanceMetrics, GroupMeetingType } from "@/hooks/useGroupManagement";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Calendar, Users, CreditCard, PiggyBank, TrendingUp, Plus, Clock, MapPin, User } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const GroupManagementPage = () => {
   const {
@@ -29,6 +30,8 @@ const GroupManagementPage = () => {
   const [savingsAccounts, setSavingsAccounts] = useState<GroupSavingsAccount[]>([]);
   const [performanceMetrics, setPerformanceMetrics] = useState<GroupPerformanceMetrics[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [groups, setGroups] = useState<any[]>([]);
+  const [meetingTypes, setMeetingTypes] = useState<GroupMeetingType[]>([]);
   
   // Dialog states
   const [isMeetingDialogOpen, setIsMeetingDialogOpen] = useState(false);
@@ -42,10 +45,44 @@ const GroupManagementPage = () => {
   const [meetingAgenda, setMeetingAgenda] = useState('');
 
   useEffect(() => {
-    loadData();
+    loadInitialData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedGroup) {
+      loadGroupData();
+    }
   }, [selectedGroup]);
 
-  const loadData = async () => {
+  const loadInitialData = async () => {
+    try {
+      // Load groups
+      const { data: groupsData } = await supabase
+        .from('groups')
+        .select('id, name, group_number')
+        .eq('is_active', true)
+        .order('name');
+      
+      // Load meeting types
+      const { data: meetingTypesData } = await supabase
+        .from('group_meeting_types')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      setGroups(groupsData || []);
+      setMeetingTypes(meetingTypesData || []);
+      
+      // If we have groups and none is selected, show data for all groups
+      if (!selectedGroup && groupsData && groupsData.length > 0) {
+        loadGroupData();
+      }
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    }
+  };
+
+  const loadGroupData = async () => {
     const [meetingsData, loansData, savingsData, metricsData] = await Promise.all([
       fetchGroupMeetings(selectedGroup || undefined),
       fetchGroupLoanApplications(selectedGroup || undefined),
@@ -60,10 +97,10 @@ const GroupManagementPage = () => {
   };
 
   const handleCreateMeeting = async () => {
-    if (!meetingTitle || !meetingDate || !meetingTime || !selectedGroup) return;
+    if (!meetingTitle || !meetingDate || !meetingTime || !selectedGroup || meetingTypes.length === 0) return;
 
-    // Using default meeting type ID - in real implementation, this would be selected
-    const defaultMeetingTypeId = "default-meeting-type-id";
+    // Use the first available meeting type as default
+    const defaultMeetingTypeId = meetingTypes[0]?.id;
     
     const meeting = await createGroupMeeting(
       selectedGroup,
@@ -208,8 +245,11 @@ const GroupManagementPage = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Groups</SelectItem>
-              <SelectItem value="group-1">Sample Group 1</SelectItem>
-              <SelectItem value="group-2">Sample Group 2</SelectItem>
+              {groups.map((group) => (
+                <SelectItem key={group.id} value={group.id}>
+                  {group.name} ({group.group_number})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {selectedGroup && (
