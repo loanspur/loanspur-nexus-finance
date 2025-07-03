@@ -7,7 +7,7 @@ import ClientsPage from "@/pages/tenant/ClientsPage";
 import LoansPage from "@/pages/tenant/LoansPage";
 import SavingsPage from "@/pages/tenant/SavingsPage";
 import TransactionsPage from "@/pages/tenant/TransactionsPage";
-import GroupManagementPage from "@/pages/tenant/GroupManagementPage";
+import GroupsPage from "@/pages/tenant/GroupsPage";
 import SettingsPage from "@/pages/tenant/SettingsPage";
 import NotificationsPage from "@/pages/tenant/NotificationsPage";
 import DocumentManagementPage from "@/pages/tenant/DocumentManagementPage";
@@ -42,7 +42,7 @@ const TenantLayout = () => {
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/savings" element={<SavingsPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
-              <Route path="/groups" element={<GroupManagementPage />} />
+              <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/documents" element={<DocumentManagementPage />} />
               <Route path="/reconciliation" element={<ReconciliationPage />} />
