@@ -955,6 +955,402 @@ export type Database = {
           },
         ]
       }
+      group_leadership: {
+        Row: {
+          created_at: string
+          elected_date: string | null
+          election_notes: string | null
+          end_date: string | null
+          group_id: string
+          id: string
+          is_active: boolean
+          member_id: string
+          role_description: string | null
+          role_title: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          elected_date?: string | null
+          election_notes?: string | null
+          end_date?: string | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          member_id: string
+          role_description?: string | null
+          role_title: string
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          elected_date?: string | null
+          election_notes?: string | null
+          end_date?: string | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          member_id?: string
+          role_description?: string | null
+          role_title?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_leadership_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_leadership_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_loan_applications: {
+        Row: {
+          application_number: string
+          applied_at: string
+          applied_by: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          disbursement_date: string | null
+          group_id: string
+          group_resolution: string | null
+          id: string
+          loan_purpose: string
+          product_id: string
+          repayment_plan: string | null
+          requested_amount: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_number: string
+          applied_at?: string
+          applied_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          disbursement_date?: string | null
+          group_id: string
+          group_resolution?: string | null
+          id?: string
+          loan_purpose: string
+          product_id: string
+          repayment_plan?: string | null
+          requested_amount: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_number?: string
+          applied_at?: string
+          applied_by?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          disbursement_date?: string | null
+          group_id?: string
+          group_resolution?: string | null
+          id?: string
+          loan_purpose?: string
+          product_id?: string
+          repayment_plan?: string | null
+          requested_amount?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_loan_applications_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_loan_applications_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_loan_applications_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_loan_applications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "group_loan_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_loan_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_loan_member_allocations: {
+        Row: {
+          allocated_amount: number
+          approval_status: string
+          created_at: string
+          group_loan_application_id: string
+          guarantee_amount: number
+          id: string
+          individual_purpose: string | null
+          member_id: string
+        }
+        Insert: {
+          allocated_amount: number
+          approval_status?: string
+          created_at?: string
+          group_loan_application_id: string
+          guarantee_amount?: number
+          id?: string
+          individual_purpose?: string | null
+          member_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          approval_status?: string
+          created_at?: string
+          group_loan_application_id?: string
+          guarantee_amount?: number
+          id?: string
+          individual_purpose?: string | null
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_loan_member_allocations_group_loan_application_id_fkey"
+            columns: ["group_loan_application_id"]
+            isOneToOne: false
+            referencedRelation: "group_loan_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_loan_member_allocations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_loan_products: {
+        Row: {
+          created_at: string
+          description: string | null
+          group_guarantee_required: boolean
+          id: string
+          individual_guarantee_amount: number | null
+          interest_rate: number
+          is_active: boolean
+          max_group_size: number
+          max_loan_amount: number
+          meeting_frequency_required: string | null
+          min_group_size: number
+          min_loan_amount: number
+          product_name: string
+          tenant_id: string
+          term_months: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          group_guarantee_required?: boolean
+          id?: string
+          individual_guarantee_amount?: number | null
+          interest_rate: number
+          is_active?: boolean
+          max_group_size?: number
+          max_loan_amount: number
+          meeting_frequency_required?: string | null
+          min_group_size?: number
+          min_loan_amount: number
+          product_name: string
+          tenant_id: string
+          term_months: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          group_guarantee_required?: boolean
+          id?: string
+          individual_guarantee_amount?: number | null
+          interest_rate?: number
+          is_active?: boolean
+          max_group_size?: number
+          max_loan_amount?: number
+          meeting_frequency_required?: string | null
+          min_group_size?: number
+          min_loan_amount?: number
+          product_name?: string
+          tenant_id?: string
+          term_months?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_loan_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_meeting_types: {
+        Row: {
+          created_at: string
+          default_duration_minutes: number
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          required_attendance_percentage: number | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_duration_minutes?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          required_attendance_percentage?: number | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          default_duration_minutes?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          required_attendance_percentage?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_meeting_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_meetings: {
+        Row: {
+          agenda: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number
+          facilitator_id: string | null
+          group_id: string
+          id: string
+          location: string | null
+          meeting_date: string
+          meeting_time: string
+          meeting_title: string
+          meeting_type_id: string
+          minutes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number
+          facilitator_id?: string | null
+          group_id: string
+          id?: string
+          location?: string | null
+          meeting_date: string
+          meeting_time: string
+          meeting_title: string
+          meeting_type_id: string
+          minutes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agenda?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number
+          facilitator_id?: string | null
+          group_id?: string
+          id?: string
+          location?: string | null
+          meeting_date?: string
+          meeting_time?: string
+          meeting_title?: string
+          meeting_type_id?: string
+          minutes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_meetings_facilitator_id_fkey"
+            columns: ["facilitator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_meetings_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_meetings_meeting_type_id_fkey"
+            columns: ["meeting_type_id"]
+            isOneToOne: false
+            referencedRelation: "group_meeting_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           client_id: string
@@ -990,6 +1386,334 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_performance_metrics: {
+        Row: {
+          active_members: number
+          created_at: string
+          group_id: string
+          group_solidarity_score: number
+          id: string
+          loan_repayment_rate: number
+          meeting_attendance_rate: number
+          metric_date: string
+          performance_data: Json | null
+          savings_target_achievement: number
+          total_loans_outstanding: number
+          total_members: number
+          total_savings_balance: number
+        }
+        Insert: {
+          active_members?: number
+          created_at?: string
+          group_id: string
+          group_solidarity_score?: number
+          id?: string
+          loan_repayment_rate?: number
+          meeting_attendance_rate?: number
+          metric_date: string
+          performance_data?: Json | null
+          savings_target_achievement?: number
+          total_loans_outstanding?: number
+          total_members?: number
+          total_savings_balance?: number
+        }
+        Update: {
+          active_members?: number
+          created_at?: string
+          group_id?: string
+          group_solidarity_score?: number
+          id?: string
+          loan_repayment_rate?: number
+          meeting_attendance_rate?: number
+          metric_date?: string
+          performance_data?: Json | null
+          savings_target_achievement?: number
+          total_loans_outstanding?: number
+          total_members?: number
+          total_savings_balance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_performance_metrics_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_rules: {
+        Row: {
+          approval_date: string | null
+          approved_by_group: boolean
+          created_at: string
+          created_by: string | null
+          effective_date: string
+          group_id: string
+          id: string
+          is_active: boolean
+          penalty_amount: number | null
+          penalty_type: string | null
+          rule_category: string
+          rule_description: string
+          rule_title: string
+          updated_at: string
+        }
+        Insert: {
+          approval_date?: string | null
+          approved_by_group?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          penalty_amount?: number | null
+          penalty_type?: string | null
+          rule_category: string
+          rule_description: string
+          rule_title: string
+          updated_at?: string
+        }
+        Update: {
+          approval_date?: string | null
+          approved_by_group?: boolean
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          penalty_amount?: number | null
+          penalty_type?: string | null
+          rule_category?: string
+          rule_description?: string
+          rule_title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_rules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_savings_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          account_type: string
+          contribution_frequency: string | null
+          created_at: string
+          current_balance: number
+          group_id: string
+          id: string
+          interest_rate: number | null
+          is_active: boolean
+          maturity_date: string | null
+          minimum_contribution: number | null
+          opened_date: string
+          target_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          account_type: string
+          contribution_frequency?: string | null
+          created_at?: string
+          current_balance?: number
+          group_id: string
+          id?: string
+          interest_rate?: number | null
+          is_active?: boolean
+          maturity_date?: string | null
+          minimum_contribution?: number | null
+          opened_date?: string
+          target_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          account_type?: string
+          contribution_frequency?: string | null
+          created_at?: string
+          current_balance?: number
+          group_id?: string
+          id?: string
+          interest_rate?: number | null
+          is_active?: boolean
+          maturity_date?: string | null
+          minimum_contribution?: number | null
+          opened_date?: string
+          target_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_savings_accounts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_savings_contributions: {
+        Row: {
+          contribution_amount: number
+          contribution_date: string
+          contribution_type: string
+          created_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          payment_method: string
+          recorded_by: string | null
+          reference_number: string | null
+          savings_account_id: string
+        }
+        Insert: {
+          contribution_amount: number
+          contribution_date?: string
+          contribution_type: string
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          payment_method?: string
+          recorded_by?: string | null
+          reference_number?: string | null
+          savings_account_id: string
+        }
+        Update: {
+          contribution_amount?: number
+          contribution_date?: string
+          contribution_type?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          payment_method?: string
+          recorded_by?: string | null
+          reference_number?: string | null
+          savings_account_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_savings_contributions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_savings_contributions_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_savings_contributions_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "group_savings_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_savings_withdrawals: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          savings_account_id: string
+          updated_at: string
+          withdrawal_amount: number
+          withdrawal_date: string
+          withdrawal_reason: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          savings_account_id: string
+          updated_at?: string
+          withdrawal_amount: number
+          withdrawal_date?: string
+          withdrawal_reason: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          savings_account_id?: string
+          updated_at?: string
+          withdrawal_amount?: number
+          withdrawal_date?: string
+          withdrawal_reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_savings_withdrawals_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_savings_withdrawals_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_savings_withdrawals_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_savings_withdrawals_savings_account_id_fkey"
+            columns: ["savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "group_savings_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1709,6 +2433,61 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_attendance: {
+        Row: {
+          attendance_status: string
+          check_in_time: string | null
+          created_at: string
+          id: string
+          meeting_id: string
+          member_id: string
+          notes: string | null
+          recorded_by: string | null
+        }
+        Insert: {
+          attendance_status?: string
+          check_in_time?: string | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          member_id: string
+          notes?: string | null
+          recorded_by?: string | null
+        }
+        Update: {
+          attendance_status?: string
+          check_in_time?: string | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          member_id?: string
+          notes?: string | null
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendance_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "group_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendance_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_attendance_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
