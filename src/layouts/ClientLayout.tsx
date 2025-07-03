@@ -6,6 +6,7 @@ import ClientDashboard from "@/pages/client/ClientDashboard";
 import ClientLoansPage from "@/pages/client/ClientLoansPage";
 import ClientSavingsPage from "@/pages/client/ClientSavingsPage";
 import ClientPaymentsPage from "@/pages/client/ClientPaymentsPage";
+import SettingsPage from "@/pages/client/SettingsPage";
 
 const ClientLayout = () => {
   return (
@@ -24,6 +25,7 @@ const ClientLayout = () => {
               <Route path="/loans" element={<ClientLoansPage />} />
               <Route path="/savings" element={<ClientSavingsPage />} />
               <Route path="/payments" element={<ClientPaymentsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
         </main>

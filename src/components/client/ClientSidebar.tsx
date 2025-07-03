@@ -21,6 +21,10 @@ const ClientSidebar = () => {
     {
       title: "Payments",
       path: "/client/payments"
+    },
+    {
+      title: "Settings",
+      path: "/client/settings"
     }
   ];
 

@@ -17,6 +17,10 @@ const SuperAdminSidebar = () => {
     {
       title: "Billing",
       path: "/super-admin/billing"
+    },
+    {
+      title: "Settings",
+      path: "/super-admin/settings"
     }
   ];
 

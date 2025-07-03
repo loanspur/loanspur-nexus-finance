@@ -25,6 +25,10 @@ const TenantSidebar = () => {
     {
       title: "Groups",
       path: "/tenant/groups"
+    },
+    {
+      title: "Settings",
+      path: "/tenant/settings"
     }
   ];
 

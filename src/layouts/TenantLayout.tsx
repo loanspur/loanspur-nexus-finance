@@ -7,6 +7,7 @@ import ClientsPage from "@/pages/tenant/ClientsPage";
 import LoansPage from "@/pages/tenant/LoansPage";
 import SavingsPage from "@/pages/tenant/SavingsPage";
 import GroupsPage from "@/pages/tenant/GroupsPage";
+import SettingsPage from "@/pages/tenant/SettingsPage";
 
 const TenantLayout = () => {
   return (
@@ -26,6 +27,7 @@ const TenantLayout = () => {
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/savings" element={<SavingsPage />} />
               <Route path="/groups" element={<GroupsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
         </main>
