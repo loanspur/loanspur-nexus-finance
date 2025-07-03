@@ -10,7 +10,8 @@ import {
   Settings,
   Building2,
   TrendingUp,
-  Bell
+  Bell,
+  FileText
 } from "lucide-react";
 
 const TenantSidebar = () => {
@@ -59,6 +60,12 @@ const TenantSidebar = () => {
       path: "/tenant/notifications",
       icon: Bell,
       description: "Communication Hub"
+    },
+    {
+      title: "Documents",
+      path: "/tenant/documents",
+      icon: FileText,
+      description: "Document Management"
     },
     {
       title: "Settings",

@@ -10,6 +10,7 @@ import TransactionsPage from "@/pages/tenant/TransactionsPage";
 import GroupsPage from "@/pages/tenant/GroupsPage";
 import SettingsPage from "@/pages/tenant/SettingsPage";
 import NotificationsPage from "@/pages/tenant/NotificationsPage";
+import DocumentManagementPage from "@/pages/tenant/DocumentManagementPage";
 
 const TenantLayout = () => {
   return (
@@ -41,6 +42,7 @@ const TenantLayout = () => {
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/documents" element={<DocumentManagementPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
