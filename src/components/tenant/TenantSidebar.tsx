@@ -11,7 +11,8 @@ import {
   Building2,
   TrendingUp,
   Bell,
-  FileText
+  FileText,
+  RefreshCw
 } from "lucide-react";
 
 const TenantSidebar = () => {
@@ -66,6 +67,12 @@ const TenantSidebar = () => {
       path: "/tenant/documents",
       icon: FileText,
       description: "Document Management"
+    },
+    {
+      title: "Reconciliation",
+      path: "/tenant/reconciliation",
+      icon: RefreshCw,
+      description: "Bank & MPESA Reconciliation"
     },
     {
       title: "Settings",

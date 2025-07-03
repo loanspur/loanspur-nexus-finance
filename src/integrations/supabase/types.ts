@@ -9,6 +9,125 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bank_statement_transactions: {
+        Row: {
+          balance: number | null
+          bank_statement_id: string
+          created_at: string
+          credit_amount: number | null
+          debit_amount: number | null
+          description: string
+          id: string
+          raw_data: Json | null
+          reference_number: string | null
+          transaction_code: string | null
+          transaction_date: string
+        }
+        Insert: {
+          balance?: number | null
+          bank_statement_id: string
+          created_at?: string
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description: string
+          id?: string
+          raw_data?: Json | null
+          reference_number?: string | null
+          transaction_code?: string | null
+          transaction_date: string
+        }
+        Update: {
+          balance?: number | null
+          bank_statement_id?: string
+          created_at?: string
+          credit_amount?: number | null
+          debit_amount?: number | null
+          description?: string
+          id?: string
+          raw_data?: Json | null
+          reference_number?: string | null
+          transaction_code?: string | null
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_statement_transactions_bank_statement_id_fkey"
+            columns: ["bank_statement_id"]
+            isOneToOne: false
+            referencedRelation: "bank_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_statements: {
+        Row: {
+          bank_account_name: string
+          bank_account_number: string
+          closing_balance: number
+          created_at: string
+          id: string
+          is_processed: boolean
+          opening_balance: number
+          statement_file_url: string | null
+          statement_period_end: string
+          statement_period_start: string
+          statement_type: string
+          tenant_id: string
+          updated_at: string
+          upload_date: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bank_account_name: string
+          bank_account_number: string
+          closing_balance?: number
+          created_at?: string
+          id?: string
+          is_processed?: boolean
+          opening_balance?: number
+          statement_file_url?: string | null
+          statement_period_end: string
+          statement_period_start: string
+          statement_type?: string
+          tenant_id: string
+          updated_at?: string
+          upload_date?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bank_account_name?: string
+          bank_account_number?: string
+          closing_balance?: number
+          created_at?: string
+          id?: string
+          is_processed?: boolean
+          opening_balance?: number
+          statement_file_url?: string | null
+          statement_period_end?: string
+          statement_period_start?: string
+          statement_type?: string
+          tenant_id?: string
+          updated_at?: string
+          upload_date?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_statements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_statements_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_invoices: {
         Row: {
           addon_charges: Json | null
@@ -1293,6 +1412,90 @@ export type Database = {
           },
         ]
       }
+      mpesa_transactions: {
+        Row: {
+          account_reference: string | null
+          amount: number
+          bill_ref_number: string | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          matched_transaction_id: string | null
+          middle_name: string | null
+          mpesa_receipt_number: string
+          msisdn: string | null
+          org_account_balance: number | null
+          phone_number: string
+          raw_callback_data: Json | null
+          reconciliation_status: string
+          tenant_id: string
+          third_party_trans_id: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          account_reference?: string | null
+          amount: number
+          bill_ref_number?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          matched_transaction_id?: string | null
+          middle_name?: string | null
+          mpesa_receipt_number: string
+          msisdn?: string | null
+          org_account_balance?: number | null
+          phone_number: string
+          raw_callback_data?: Json | null
+          reconciliation_status?: string
+          tenant_id: string
+          third_party_trans_id?: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          account_reference?: string | null
+          amount?: number
+          bill_ref_number?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          matched_transaction_id?: string | null
+          middle_name?: string | null
+          mpesa_receipt_number?: string
+          msisdn?: string | null
+          org_account_balance?: number | null
+          phone_number?: string
+          raw_callback_data?: Json | null
+          reconciliation_status?: string
+          tenant_id?: string
+          third_party_trans_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mpesa_transactions_matched_transaction_id_fkey"
+            columns: ["matched_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_campaigns: {
         Row: {
           created_at: string
@@ -1551,6 +1754,77 @@ export type Database = {
           },
         ]
       }
+      reconciliation_matches: {
+        Row: {
+          amount_difference: number | null
+          bank_transaction_id: string
+          created_at: string
+          id: string
+          match_confidence: number | null
+          match_type: string
+          matched_at: string
+          matched_by: string | null
+          notes: string | null
+          system_transaction_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_difference?: number | null
+          bank_transaction_id: string
+          created_at?: string
+          id?: string
+          match_confidence?: number | null
+          match_type: string
+          matched_at?: string
+          matched_by?: string | null
+          notes?: string | null
+          system_transaction_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_difference?: number | null
+          bank_transaction_id?: string
+          created_at?: string
+          id?: string
+          match_confidence?: number | null
+          match_type?: string
+          matched_at?: string
+          matched_by?: string | null
+          notes?: string | null
+          system_transaction_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_matches_bank_transaction_id_fkey"
+            columns: ["bank_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "bank_statement_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_matches_matched_by_fkey"
+            columns: ["matched_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_matches_system_transaction_id_fkey"
+            columns: ["system_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_matches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reconciliation_reports: {
         Row: {
           created_at: string
@@ -1613,6 +1887,93 @@ export type Database = {
           },
           {
             foreignKeyName: "reconciliation_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_summary_reports: {
+        Row: {
+          created_at: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          matched_transactions: number | null
+          mpesa_matched: number | null
+          mpesa_transactions: number | null
+          mpesa_unmatched: number | null
+          report_data: Json | null
+          report_period_end: string
+          report_period_start: string
+          suspense_balance: number | null
+          suspense_entries: number | null
+          tenant_id: string
+          total_bank_amount: number | null
+          total_bank_transactions: number | null
+          total_system_amount: number | null
+          total_system_transactions: number | null
+          unmatched_bank_transactions: number | null
+          unmatched_system_transactions: number | null
+          variance_amount: number | null
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          matched_transactions?: number | null
+          mpesa_matched?: number | null
+          mpesa_transactions?: number | null
+          mpesa_unmatched?: number | null
+          report_data?: Json | null
+          report_period_end: string
+          report_period_start: string
+          suspense_balance?: number | null
+          suspense_entries?: number | null
+          tenant_id: string
+          total_bank_amount?: number | null
+          total_bank_transactions?: number | null
+          total_system_amount?: number | null
+          total_system_transactions?: number | null
+          unmatched_bank_transactions?: number | null
+          unmatched_system_transactions?: number | null
+          variance_amount?: number | null
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          matched_transactions?: number | null
+          mpesa_matched?: number | null
+          mpesa_transactions?: number | null
+          mpesa_unmatched?: number | null
+          report_data?: Json | null
+          report_period_end?: string
+          report_period_start?: string
+          suspense_balance?: number | null
+          suspense_entries?: number | null
+          tenant_id?: string
+          total_bank_amount?: number | null
+          total_bank_transactions?: number | null
+          total_system_amount?: number | null
+          total_system_transactions?: number | null
+          unmatched_bank_transactions?: number | null
+          unmatched_system_transactions?: number | null
+          variance_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_summary_reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reconciliation_summary_reports_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1863,6 +2224,123 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suspense_accounts: {
+        Row: {
+          account_name: string
+          account_type: string
+          created_at: string
+          created_by: string | null
+          current_balance: number
+          description: string | null
+          id: string
+          is_active: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_type: string
+          created_at?: string
+          created_by?: string | null
+          current_balance?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_type?: string
+          created_at?: string
+          created_by?: string | null
+          current_balance?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suspense_accounts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspense_accounts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suspense_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          entry_date: string
+          id: string
+          reference_transaction_id: string | null
+          reference_type: string
+          resolution_notes: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          suspense_account_id: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          entry_date?: string
+          id?: string
+          reference_transaction_id?: string | null
+          reference_type: string
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          suspense_account_id: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          entry_date?: string
+          id?: string
+          reference_transaction_id?: string | null
+          reference_type?: string
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          suspense_account_id?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suspense_entries_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspense_entries_suspense_account_id_fkey"
+            columns: ["suspense_account_id"]
+            isOneToOne: false
+            referencedRelation: "suspense_accounts"
             referencedColumns: ["id"]
           },
         ]

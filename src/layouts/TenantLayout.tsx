@@ -11,6 +11,7 @@ import GroupsPage from "@/pages/tenant/GroupsPage";
 import SettingsPage from "@/pages/tenant/SettingsPage";
 import NotificationsPage from "@/pages/tenant/NotificationsPage";
 import DocumentManagementPage from "@/pages/tenant/DocumentManagementPage";
+import ReconciliationPage from "@/pages/tenant/ReconciliationPage";
 
 const TenantLayout = () => {
   return (
@@ -43,6 +44,7 @@ const TenantLayout = () => {
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/documents" element={<DocumentManagementPage />} />
+              <Route path="/reconciliation" element={<ReconciliationPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
