@@ -83,6 +83,172 @@ export type Database = {
           },
         ]
       }
+      group_members: {
+        Row: {
+          client_id: string
+          group_id: string
+          id: string
+          is_active: boolean
+          joined_at: string
+        }
+        Insert: {
+          client_id: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+        }
+        Update: {
+          client_id?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          created_at: string
+          group_number: string
+          id: string
+          is_active: boolean
+          meeting_day: string | null
+          meeting_frequency: string | null
+          meeting_time: string | null
+          mifos_group_id: number | null
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_number: string
+          id?: string
+          is_active?: boolean
+          meeting_day?: string | null
+          meeting_frequency?: string | null
+          meeting_time?: string | null
+          mifos_group_id?: number | null
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_number?: string
+          id?: string
+          is_active?: boolean
+          meeting_day?: string | null
+          meeting_frequency?: string | null
+          meeting_time?: string | null
+          mifos_group_id?: number | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_products: {
+        Row: {
+          created_at: string
+          currency_code: string
+          default_nominal_interest_rate: number | null
+          default_principal: number | null
+          default_term: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          max_nominal_interest_rate: number
+          max_principal: number
+          max_term: number
+          mifos_product_id: number | null
+          min_nominal_interest_rate: number
+          min_principal: number
+          min_term: number
+          name: string
+          repayment_frequency: string
+          short_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string
+          default_nominal_interest_rate?: number | null
+          default_principal?: number | null
+          default_term?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_nominal_interest_rate: number
+          max_principal: number
+          max_term: number
+          mifos_product_id?: number | null
+          min_nominal_interest_rate: number
+          min_principal: number
+          min_term: number
+          name: string
+          repayment_frequency?: string
+          short_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          default_nominal_interest_rate?: number | null
+          default_principal?: number | null
+          default_term?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_nominal_interest_rate?: number
+          max_principal?: number
+          max_term?: number
+          mifos_product_id?: number | null
+          min_nominal_interest_rate?: number
+          min_principal?: number
+          min_term?: number
+          name?: string
+          repayment_frequency?: string
+          short_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
