@@ -13,6 +13,8 @@ import NotificationsPage from "@/pages/tenant/NotificationsPage";
 import DocumentManagementPage from "@/pages/tenant/DocumentManagementPage";
 import ReconciliationPage from "@/pages/tenant/ReconciliationPage";
 import FinancialReportsPage from "@/pages/tenant/FinancialReportsPage";
+import AuditCompliancePage from "@/pages/tenant/AuditCompliancePage";
+import ActivityTracker from "@/components/audit/ActivityTracker";
 
 const TenantLayout = () => {
   return (
@@ -35,6 +37,7 @@ const TenantLayout = () => {
           
           {/* Enhanced content area */}
           <div className="p-6 space-y-6 min-h-full bg-gradient-to-br from-background via-background to-muted/20">
+            <ActivityTracker />
             <Routes>
               <Route path="/" element={<TenantDashboard />} />
               <Route path="/dashboard" element={<TenantDashboard />} />
@@ -47,6 +50,7 @@ const TenantLayout = () => {
               <Route path="/documents" element={<DocumentManagementPage />} />
               <Route path="/reconciliation" element={<ReconciliationPage />} />
               <Route path="/reports" element={<FinancialReportsPage />} />
+              <Route path="/audit" element={<AuditCompliancePage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>

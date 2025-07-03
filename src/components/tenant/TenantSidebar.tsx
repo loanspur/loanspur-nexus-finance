@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Bell,
   FileText,
-  RefreshCw
+  RefreshCw,
+  Shield
 } from "lucide-react";
 
 const TenantSidebar = () => {
@@ -79,6 +80,12 @@ const TenantSidebar = () => {
       path: "/tenant/reconciliation",
       icon: RefreshCw,
       description: "Bank & MPESA Reconciliation"
+    },
+    {
+      title: "Audit & Compliance",
+      path: "/tenant/audit",
+      icon: Shield,
+      description: "Security & Compliance Monitoring"
     },
     {
       title: "Settings",

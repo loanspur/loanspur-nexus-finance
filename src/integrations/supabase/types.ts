@@ -9,6 +9,72 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      audit_trails: {
+        Row: {
+          action: Database["public"]["Enums"]["audit_action"]
+          compliance_flags: Json | null
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          risk_level: string | null
+          session_id: string | null
+          table_name: string
+          tenant_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["audit_action"]
+          compliance_flags?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          risk_level?: string | null
+          session_id?: string | null
+          table_name: string
+          tenant_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["audit_action"]
+          compliance_flags?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          risk_level?: string | null
+          session_id?: string | null
+          table_name?: string
+          tenant_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_trails_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_trails_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_statement_transactions: {
         Row: {
           balance: number | null
@@ -392,6 +458,208 @@ export type Database = {
           },
         ]
       }
+      compliance_reports: {
+        Row: {
+          created_at: string
+          file_url: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          report_data: Json
+          report_name: string
+          report_period_end: string
+          report_period_start: string
+          report_status: string
+          report_type: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          report_data: Json
+          report_name: string
+          report_period_end: string
+          report_period_start: string
+          report_status?: string
+          report_type: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          report_data?: Json
+          report_name?: string
+          report_period_end?: string
+          report_period_start?: string
+          report_status?: string
+          report_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_rules: {
+        Row: {
+          auto_remediation: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          remediation_config: Json | null
+          rule_config: Json
+          rule_description: string | null
+          rule_name: string
+          rule_type: string
+          severity: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          auto_remediation?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          remediation_config?: Json | null
+          rule_config?: Json
+          rule_description?: string | null
+          rule_name: string
+          rule_type: string
+          severity?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          auto_remediation?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          remediation_config?: Json | null
+          rule_config?: Json
+          rule_description?: string | null
+          rule_name?: string
+          rule_type?: string
+          severity?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_violations: {
+        Row: {
+          affected_record_id: string | null
+          affected_table: string | null
+          auto_detected: boolean
+          created_at: string
+          detection_details: Json | null
+          id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          rule_id: string
+          severity: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          violation_description: string
+          violation_type: string
+        }
+        Insert: {
+          affected_record_id?: string | null
+          affected_table?: string | null
+          auto_detected?: boolean
+          created_at?: string
+          detection_details?: Json | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id: string
+          severity: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          violation_description: string
+          violation_type: string
+        }
+        Update: {
+          affected_record_id?: string | null
+          affected_table?: string | null
+          auto_detected?: boolean
+          created_at?: string
+          detection_details?: Json | null
+          id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          rule_id?: string
+          severity?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          violation_description?: string
+          violation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_violations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_report_templates: {
         Row: {
           chart_config: Json | null
@@ -445,6 +713,81 @@ export type Database = {
           },
           {
             foreignKeyName: "custom_report_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_backups: {
+        Row: {
+          backup_config: Json | null
+          backup_metadata: Json | null
+          backup_name: string
+          backup_scope: string
+          backup_status: string
+          backup_type: string
+          checksum: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          retention_until: string | null
+          started_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          backup_config?: Json | null
+          backup_metadata?: Json | null
+          backup_name: string
+          backup_scope: string
+          backup_status?: string
+          backup_type: string
+          checksum?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          retention_until?: string | null
+          started_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          backup_config?: Json | null
+          backup_metadata?: Json | null
+          backup_name?: string
+          backup_scope?: string
+          backup_status?: string
+          backup_type?: string
+          checksum?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          retention_until?: string | null
+          started_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_backups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_backups_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3481,6 +3824,59 @@ export type Database = {
           },
         ]
       }
+      system_health_metrics: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          metric_name: string
+          metric_type: string
+          metric_unit: string | null
+          metric_value: number
+          recorded_at: string
+          status: string | null
+          tenant_id: string | null
+          threshold_critical: number | null
+          threshold_warning: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_name: string
+          metric_type: string
+          metric_unit?: string | null
+          metric_value: number
+          recorded_at?: string
+          status?: string | null
+          tenant_id?: string | null
+          threshold_critical?: number | null
+          threshold_warning?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          metric_name?: string
+          metric_type?: string
+          metric_unit?: string | null
+          metric_value?: number
+          recorded_at?: string
+          status?: string | null
+          tenant_id?: string | null
+          threshold_critical?: number | null
+          threshold_warning?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_health_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string
@@ -3720,6 +4116,139 @@ export type Database = {
           },
         ]
       }
+      user_activity_logs: {
+        Row: {
+          activity_description: string | null
+          activity_type: string
+          api_endpoint: string | null
+          created_at: string
+          duration_ms: number | null
+          id: string
+          metadata: Json | null
+          page_url: string | null
+          request_method: string | null
+          response_status: number | null
+          session_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          activity_description?: string | null
+          activity_type: string
+          api_endpoint?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          request_method?: string | null
+          response_status?: number | null
+          session_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          activity_description?: string | null
+          activity_type?: string
+          api_endpoint?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          request_method?: string | null
+          response_status?: number | null
+          session_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_activity_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activity_sessions: {
+        Row: {
+          created_at: string
+          device_fingerprint: string | null
+          id: string
+          ip_address: unknown | null
+          is_active: boolean
+          last_activity: string
+          location_data: Json | null
+          login_time: string
+          logout_time: string | null
+          session_token: string
+          tenant_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_activity?: string
+          location_data?: Json | null
+          login_time?: string
+          logout_time?: string | null
+          session_token: string
+          tenant_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string | null
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean
+          last_activity?: string
+          location_data?: Json | null
+          login_time?: string
+          logout_time?: string | null
+          session_token?: string
+          tenant_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3743,6 +4272,17 @@ export type Database = {
       }
     }
     Enums: {
+      audit_action:
+        | "CREATE"
+        | "UPDATE"
+        | "DELETE"
+        | "LOGIN"
+        | "LOGOUT"
+        | "EXPORT"
+        | "IMPORT"
+        | "BACKUP"
+        | "RESTORE"
+        | "VIEW"
       loan_status:
         | "pending"
         | "approved"
@@ -3881,6 +4421,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      audit_action: [
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+        "LOGIN",
+        "LOGOUT",
+        "EXPORT",
+        "IMPORT",
+        "BACKUP",
+        "RESTORE",
+        "VIEW",
+      ],
       loan_status: [
         "pending",
         "approved",
