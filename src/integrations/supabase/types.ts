@@ -18,7 +18,29 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      loan_status:
+        | "pending"
+        | "approved"
+        | "active"
+        | "closed"
+        | "overdue"
+        | "written_off"
+      payment_status: "pending" | "completed" | "failed" | "cancelled"
+      payment_type:
+        | "cash"
+        | "bank_transfer"
+        | "mpesa"
+        | "mobile_money"
+        | "cheque"
+      pricing_tier: "starter" | "professional" | "enterprise" | "scale"
+      tenant_status: "active" | "suspended" | "cancelled"
+      transaction_type:
+        | "loan_repayment"
+        | "savings_deposit"
+        | "loan_disbursement"
+        | "savings_withdrawal"
+        | "fee_payment"
+      user_role: "super_admin" | "tenant_admin" | "loan_officer" | "client"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +155,33 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      loan_status: [
+        "pending",
+        "approved",
+        "active",
+        "closed",
+        "overdue",
+        "written_off",
+      ],
+      payment_status: ["pending", "completed", "failed", "cancelled"],
+      payment_type: [
+        "cash",
+        "bank_transfer",
+        "mpesa",
+        "mobile_money",
+        "cheque",
+      ],
+      pricing_tier: ["starter", "professional", "enterprise", "scale"],
+      tenant_status: ["active", "suspended", "cancelled"],
+      transaction_type: [
+        "loan_repayment",
+        "savings_deposit",
+        "loan_disbursement",
+        "savings_withdrawal",
+        "fee_payment",
+      ],
+      user_role: ["super_admin", "tenant_admin", "loan_officer", "client"],
+    },
   },
 } as const
