@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TenantSidebar } from "@/components/tenant/TenantSidebar";
+import { UserMenu } from "@/components/UserMenu";
 import TenantDashboard from "@/pages/tenant/TenantDashboard";
 import ClientsPage from "@/pages/tenant/ClientsPage";
 import LoansPage from "@/pages/tenant/LoansPage";
@@ -13,8 +14,11 @@ const TenantLayout = () => {
       <div className="flex h-screen w-full">
         <TenantSidebar />
         <main className="flex-1 overflow-auto">
+          <div className="flex items-center justify-between p-6 border-b">
+            <SidebarTrigger />
+            <UserMenu />
+          </div>
           <div className="p-6">
-            <SidebarTrigger className="mb-4" />
             <Routes>
               <Route path="/" element={<TenantDashboard />} />
               <Route path="/dashboard" element={<TenantDashboard />} />

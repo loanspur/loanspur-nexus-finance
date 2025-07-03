@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/ClientSidebar";
+import { UserMenu } from "@/components/UserMenu";
 import ClientDashboard from "@/pages/client/ClientDashboard";
 import ClientLoansPage from "@/pages/client/ClientLoansPage";
 import ClientSavingsPage from "@/pages/client/ClientSavingsPage";
@@ -12,8 +13,11 @@ const ClientLayout = () => {
       <div className="flex h-screen w-full">
         <ClientSidebar />
         <main className="flex-1 overflow-auto">
+          <div className="flex items-center justify-between p-6 border-b">
+            <SidebarTrigger />
+            <UserMenu />
+          </div>
           <div className="p-6">
-            <SidebarTrigger className="mb-4" />
             <Routes>
               <Route path="/" element={<ClientDashboard />} />
               <Route path="/dashboard" element={<ClientDashboard />} />
