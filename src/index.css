@@ -8,57 +8,77 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* Enhanced color palette for modern banking */
     --background: 250 100% 99%;
-    --foreground: 224 71% 4%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 220 90% 56%;
+    --primary: 214 84% 56%;
     --primary-foreground: 210 40% 98%;
+    --primary-hover: 214 84% 50%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
+    --secondary: 215 16% 96%;
+    --secondary-foreground: 215 15% 25%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 215 16% 96%;
+    --muted-foreground: 215 10% 46%;
 
-    --accent: 216 87% 65%;
+    --accent: 197 94% 48%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 220 90% 56%;
+    --border: 215 14% 91%;
+    --input: 215 14% 91%;
+    --ring: 214 84% 56%;
 
-    --success: 142 71% 45%;
+    --success: 142 69% 58%;
     --success-foreground: 210 40% 98%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 88% 55%;
     --warning-foreground: 210 40% 98%;
 
-    --banking-primary: 220 90% 56%;
-    --banking-secondary: 216 87% 65%;
-    --banking-accent: 142 71% 45%;
-    --banking-neutral: 220 9% 46%;
+    --info: 204 94% 94%;
+    --info-foreground: 214 84% 56%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220 90% 56%), hsl(216 87% 65%));
-    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 55%));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 99%));
+    /* Enhanced banking theme colors */
+    --banking-primary: 214 84% 56%;
+    --banking-secondary: 197 94% 48%;
+    --banking-accent: 142 69% 58%;
+    --banking-neutral: 215 10% 46%;
+    --banking-gold: 45 93% 47%;
+    --banking-emerald: 160 84% 39%;
 
-    --shadow-card: 0 4px 6px -1px hsl(220 9% 46% / 0.1), 0 2px 4px -1px hsl(220 9% 46% / 0.06);
-    --shadow-elevated: 0 10px 15px -3px hsl(220 9% 46% / 0.1), 0 4px 6px -2px hsl(220 9% 46% / 0.05);
-    --shadow-floating: 0 20px 25px -5px hsl(220 9% 46% / 0.1), 0 10px 10px -5px hsl(220 9% 46% / 0.04);
+    /* Rich gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(214 84% 56%), hsl(197 94% 48%));
+    --gradient-success: linear-gradient(135deg, hsl(142 69% 58%), hsl(160 84% 39%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 88% 55%), hsl(45 93% 47%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(215 16% 98%));
+    --gradient-hero: linear-gradient(135deg, hsl(214 84% 56% / 0.05), hsl(197 94% 48% / 0.05));
 
+    /* Enhanced shadows */
+    --shadow-card: 0 1px 3px hsl(215 25% 15% / 0.05), 0 1px 2px hsl(215 25% 15% / 0.1);
+    --shadow-elevated: 0 4px 6px -1px hsl(215 25% 15% / 0.1), 0 2px 4px -1px hsl(215 25% 15% / 0.06);
+    --shadow-floating: 0 10px 15px -3px hsl(215 25% 15% / 0.1), 0 4px 6px -2px hsl(215 25% 15% / 0.05);
+    --shadow-glow: 0 0 20px hsl(214 84% 56% / 0.15);
+
+    /* Enhanced transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-spring: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-    --radius: 0.5rem;
+    /* Typography scale */
+    --font-heading: 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -78,41 +98,70 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 215 30% 6%;
+    --foreground: 210 40% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 215 28% 8%;
+    --card-foreground: 210 40% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 215 28% 8%;
+    --popover-foreground: 210 40% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 214 84% 60%;
+    --primary-foreground: 215 30% 6%;
+    --primary-hover: 214 84% 65%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 215 20% 15%;
+    --secondary-foreground: 210 40% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 20% 15%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 197 94% 52%;
+    --accent-foreground: 215 30% 6%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 215 20% 20%;
+    --input: 215 20% 20%;
+    --ring: 214 84% 60%;
+
+    --success: 142 69% 62%;
+    --success-foreground: 215 30% 6%;
+
+    --warning: 38 88% 60%;
+    --warning-foreground: 215 30% 6%;
+
+    --info: 214 84% 60%;
+    --info-foreground: 215 30% 6%;
+
+    --banking-primary: 214 84% 60%;
+    --banking-secondary: 197 94% 52%;
+    --banking-accent: 142 69% 62%;
+    --banking-neutral: 215 20% 65%;
+    --banking-gold: 45 93% 52%;
+    --banking-emerald: 160 84% 45%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(214 84% 60%), hsl(197 94% 52%));
+    --gradient-success: linear-gradient(135deg, hsl(142 69% 62%), hsl(160 84% 45%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 88% 60%), hsl(45 93% 52%));
+    --gradient-card: linear-gradient(145deg, hsl(215 28% 8%), hsl(215 20% 12%));
+    --gradient-hero: linear-gradient(135deg, hsl(214 84% 60% / 0.1), hsl(197 94% 52% / 0.1));
+
+    --shadow-card: 0 1px 3px hsl(215 30% 0% / 0.3), 0 1px 2px hsl(215 30% 0% / 0.2);
+    --shadow-elevated: 0 4px 6px -1px hsl(215 30% 0% / 0.3), 0 2px 4px -1px hsl(215 30% 0% / 0.2);
+    --shadow-floating: 0 10px 15px -3px hsl(215 30% 0% / 0.3), 0 4px 6px -2px hsl(215 30% 0% / 0.2);
+    --shadow-glow: 0 0 20px hsl(214 84% 60% / 0.25);
+
+    --sidebar-background: 215 28% 8%;
+    --sidebar-foreground: 210 40% 95%;
+    --sidebar-primary: 214 84% 60%;
+    --sidebar-primary-foreground: 215 30% 6%;
+    --sidebar-accent: 215 20% 15%;
+    --sidebar-accent-foreground: 210 40% 95%;
+    --sidebar-border: 215 20% 20%;
+    --sidebar-ring: 214 84% 60%;
   }
 }
 
@@ -122,6 +171,80 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+@layer components {
+  /* Enhanced button animations */
+  .btn-primary {
+    @apply bg-gradient-to-r from-banking-primary to-banking-secondary text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105;
+  }
+
+  .btn-success {
+    @apply bg-gradient-to-r from-banking-accent to-banking-emerald text-white shadow-md hover:shadow-lg transition-all duration-300;
+  }
+
+  /* Card enhancements */
+  .card-enhanced {
+    @apply bg-gradient-to-br from-card to-card/80 backdrop-blur-sm border shadow-card hover:shadow-elevated transition-all duration-300;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-lg;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/10 shadow-lg;
+  }
+
+  /* Interactive elements */
+  .interactive {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-elevated;
+  }
+
+  /* Status indicators */
+  .status-success {
+    @apply bg-gradient-to-r from-success/10 to-banking-emerald/10 text-success border border-success/20;
+  }
+
+  .status-warning {
+    @apply bg-gradient-to-r from-warning/10 to-banking-gold/10 text-warning border border-warning/20;
+  }
+
+  .status-error {
+    @apply bg-gradient-to-r from-destructive/10 to-red-500/10 text-destructive border border-destructive/20;
+  }
+
+  .status-info {
+    @apply bg-gradient-to-r from-info/10 to-banking-secondary/10 text-banking-primary border border-banking-primary/20;
   }
 }
