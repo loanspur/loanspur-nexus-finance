@@ -1,289 +1,243 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "./use-toast";
 
-export interface NotificationTemplate {
+export interface Notification {
   id: string;
   tenant_id: string;
-  name: string;
-  type: 'sms' | 'email' | 'whatsapp' | 'in_app';
-  trigger_event: string;
-  subject?: string;
-  message: string;
-  is_active: boolean;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface NotificationHistory {
-  id: string;
-  tenant_id: string;
-  template_id?: string;
   recipient_id?: string;
-  recipient_contact: string;
-  type: 'sms' | 'email' | 'whatsapp' | 'in_app';
-  subject?: string;
+  sender_id?: string;
+  title: string;
   message: string;
-  status: 'pending' | 'sent' | 'failed' | 'delivered';
-  sent_at?: string;
-  delivered_at?: string;
-  error_message?: string;
-  campaign_id?: string;
-  created_at: string;
-}
-
-export interface NotificationCampaign {
-  id: string;
-  tenant_id: string;
-  name: string;
-  type: 'sms' | 'email' | 'whatsapp' | 'in_app';
-  target_audience: string;
-  subject?: string;
-  message: string;
-  scheduled_at?: string;
-  sent_at?: string;
-  total_recipients: number;
-  successful_sends: number;
-  failed_sends: number;
-  status: 'draft' | 'scheduled' | 'sending' | 'completed' | 'failed';
-  created_by?: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'announcement';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  is_read: boolean;
+  is_global: boolean;
+  action_url?: string;
+  action_label?: string;
+  metadata?: any;
+  expires_at?: string;
+  read_at?: string;
   created_at: string;
   updated_at: string;
+  sender?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
 }
 
 export const useNotifications = () => {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const { profile } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Template Management
-  const fetchTemplates = async (): Promise<NotificationTemplate[]> => {
-    if (!profile?.tenant_id) return [];
-    
-    const { data, error } = await supabase
-      .from('notification_templates')
-      .select('*')
-      .eq('tenant_id', profile.tenant_id)
-      .order('created_at', { ascending: false });
+  const fetchNotifications = async () => {
+    if (!profile) return;
 
-    if (error) {
-      console.error('Error fetching templates:', error);
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .or(`is_global.eq.true,recipient_id.eq.${profile.id}`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const validNotifications = (data || []).filter(notification => {
+        // Filter out expired notifications
+        if (notification.expires_at) {
+          return new Date(notification.expires_at) > new Date();
+        }
+        return true;
+      }).map(notification => ({
+        ...notification,
+        type: notification.type as Notification['type'],
+        priority: notification.priority as Notification['priority'],
+      }));
+
+      setNotifications(validNotifications);
+      setUnreadCount(validNotifications.filter(n => !n.is_read).length);
+    } catch (error: any) {
+      console.error('Error fetching notifications:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch notification templates",
+        description: "Failed to load notifications",
         variant: "destructive",
       });
-      return [];
+    } finally {
+      setLoading(false);
     }
-
-    return (data || []) as NotificationTemplate[];
   };
 
-  const createTemplate = async (template: Omit<NotificationTemplate, 'id' | 'tenant_id' | 'created_at' | 'updated_at' | 'created_by'>): Promise<NotificationTemplate | null> => {
-    if (!profile?.tenant_id || !profile?.id) return null;
-    
-    setLoading(true);
-    
-    const { data, error } = await supabase
-      .from('notification_templates')
-      .insert({
-        ...template,
-        tenant_id: profile.tenant_id,
-        created_by: profile.id
-      })
-      .select()
-      .single();
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ 
+          is_read: true,
+          read_at: new Date().toISOString()
+        })
+        .eq('id', notificationId);
 
-    setLoading(false);
+      if (error) throw error;
 
-    if (error) {
-      console.error('Error creating template:', error);
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, is_read: true, read_at: new Date().toISOString() }
+            : notification
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
       toast({
         title: "Error",
-        description: "Failed to create notification template",
+        description: "Failed to mark notification as read",
         variant: "destructive",
       });
-      return null;
     }
-
-    toast({
-      title: "Success",
-      description: "Notification template created successfully",
-    });
-
-    return data as NotificationTemplate;
   };
 
-  const updateTemplate = async (id: string, updates: Partial<NotificationTemplate>): Promise<boolean> => {
-    setLoading(true);
-    
-    const { error } = await supabase
-      .from('notification_templates')
-      .update(updates)
-      .eq('id', id);
+  const markAllAsRead = async () => {
+    if (!profile) return;
 
-    setLoading(false);
+    try {
+      const unreadNotifications = notifications.filter(n => !n.is_read);
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ 
+          is_read: true,
+          read_at: new Date().toISOString()
+        })
+        .in('id', unreadNotifications.map(n => n.id));
 
-    if (error) {
-      console.error('Error updating template:', error);
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(notification => ({ 
+          ...notification, 
+          is_read: true,
+          read_at: notification.read_at || new Date().toISOString()
+        }))
+      );
+      setUnreadCount(0);
+    } catch (error: any) {
+      console.error('Error marking all notifications as read:', error);
       toast({
         title: "Error",
-        description: "Failed to update notification template",
+        description: "Failed to mark all notifications as read",
         variant: "destructive",
       });
-      return false;
     }
-
-    toast({
-      title: "Success",
-      description: "Notification template updated successfully",
-    });
-
-    return true;
   };
 
-  // Campaign Management
-  const fetchCampaigns = async (): Promise<NotificationCampaign[]> => {
-    if (!profile?.tenant_id) return [];
-    
-    const { data, error } = await supabase
-      .from('notification_campaigns')
-      .select('*')
-      .eq('tenant_id', profile.tenant_id)
-      .order('created_at', { ascending: false });
+  const createNotification = async (notification: {
+    title: string;
+    message: string;
+    type?: Notification['type'];
+    priority?: Notification['priority'];
+    recipient_id?: string;
+    is_global?: boolean;
+    action_url?: string;
+    action_label?: string;
+    expires_at?: string;
+  }) => {
+    if (!profile?.tenant_id) return;
 
-    if (error) {
-      console.error('Error fetching campaigns:', error);
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          tenant_id: profile.tenant_id,
+          sender_id: profile.id,
+          ...notification,
+        });
+
+      if (error) throw error;
+
       toast({
-        title: "Error",
-        description: "Failed to fetch notification campaigns",
-        variant: "destructive",
+        title: "Success",
+        description: "Notification sent successfully",
       });
-      return [];
-    }
-
-    return (data || []) as NotificationCampaign[];
-  };
-
-  const createCampaign = async (campaign: Omit<NotificationCampaign, 'id' | 'tenant_id' | 'created_at' | 'updated_at' | 'created_by' | 'total_recipients' | 'successful_sends' | 'failed_sends'>): Promise<NotificationCampaign | null> => {
-    if (!profile?.tenant_id || !profile?.id) return null;
-    
-    setLoading(true);
-    
-    const { data, error } = await supabase
-      .from('notification_campaigns')
-      .insert({
-        ...campaign,
-        tenant_id: profile.tenant_id,
-        created_by: profile.id
-      })
-      .select()
-      .single();
-
-    setLoading(false);
-
-    if (error) {
-      console.error('Error creating campaign:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create notification campaign",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    toast({
-      title: "Success",
-      description: "Notification campaign created successfully",
-    });
-
-    return data as NotificationCampaign;
-  };
-
-  // History Management
-  const fetchHistory = async (): Promise<NotificationHistory[]> => {
-    if (!profile?.tenant_id) return [];
-    
-    const { data, error } = await supabase
-      .from('notification_history')
-      .select(`
-        *,
-        notification_templates(name),
-        clients(first_name, last_name)
-      `)
-      .eq('tenant_id', profile.tenant_id)
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (error) {
-      console.error('Error fetching history:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch notification history",
-        variant: "destructive",
-      });
-      return [];
-    }
-
-    return (data || []) as NotificationHistory[];
-  };
-
-  const sendNotification = async (
-    type: 'sms' | 'email' | 'whatsapp' | 'in_app',
-    recipient: string,
-    message: string,
-    subject?: string,
-    recipientId?: string,
-    templateId?: string
-  ): Promise<boolean> => {
-    if (!profile?.tenant_id) return false;
-    
-    setLoading(true);
-    
-    // Create notification history entry
-    const { error } = await supabase
-      .from('notification_history')
-      .insert({
-        tenant_id: profile.tenant_id,
-        template_id: templateId,
-        recipient_id: recipientId,
-        recipient_contact: recipient,
-        type,
-        subject,
-        message,
-        status: 'sent',
-        sent_at: new Date().toISOString()
-      });
-
-    setLoading(false);
-
-    if (error) {
-      console.error('Error sending notification:', error);
+    } catch (error: any) {
+      console.error('Error creating notification:', error);
       toast({
         title: "Error",
         description: "Failed to send notification",
         variant: "destructive",
       });
-      return false;
     }
-
-    toast({
-      title: "Success",
-      description: "Notification sent successfully",
-    });
-
-    return true;
   };
 
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setUnreadCount(prev => {
+        const notification = notifications.find(n => n.id === notificationId);
+        return notification && !notification.is_read ? Math.max(0, prev - 1) : prev;
+      });
+    } catch (error: any) {
+      console.error('Error deleting notification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (profile) {
+      fetchNotifications();
+    }
+  }, [profile]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!profile) return;
+
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          console.log('Notification update:', payload);
+          fetchNotifications(); // Refetch to get the latest data
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile]);
+
   return {
+    notifications,
+    unreadCount,
     loading,
-    fetchTemplates,
-    createTemplate,
-    updateTemplate,
-    fetchCampaigns,
-    createCampaign,
-    fetchHistory,
-    sendNotification
+    markAsRead,
+    markAllAsRead,
+    createNotification,
+    deleteNotification,
+    refetch: fetchNotifications,
   };
 };

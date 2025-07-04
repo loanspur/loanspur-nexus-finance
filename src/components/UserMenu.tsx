@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LogOut, User, Settings } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,7 +65,9 @@ export const UserMenu = () => {
   };
 
   return (
-    <DropdownMenu>
+    <div className="flex items-center gap-4">
+      <NotificationBell />
+      <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
@@ -108,8 +111,9 @@ export const UserMenu = () => {
         >
           <LogOut className="mr-2 h-4 w-4" />
           {isLoading ? 'Signing out...' : 'Sign out'}
-        </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   );
 };

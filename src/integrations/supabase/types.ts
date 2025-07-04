@@ -3232,6 +3232,47 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean
+          id: string
+          in_app_enabled: boolean
+          notification_type: string
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          notification_type: string
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          notification_type?: string
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_templates: {
         Row: {
           created_at: string
@@ -3282,6 +3323,88 @@ export type Database = {
           },
           {
             foreignKeyName: "notification_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_global: boolean
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          priority: string
+          read_at: string | null
+          recipient_id: string | null
+          sender_id: string | null
+          tenant_id: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_global?: boolean
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          tenant_id: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_global?: boolean
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          priority?: string
+          read_at?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          tenant_id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
