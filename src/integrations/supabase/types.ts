@@ -2916,6 +2916,93 @@ export type Database = {
           },
         ]
       }
+      mpesa_credentials: {
+        Row: {
+          account_balance_callback_url: string | null
+          business_short_code: string
+          callback_url: string | null
+          confirmation_url: string | null
+          consumer_key: string
+          consumer_secret: string
+          created_at: string
+          created_by: string | null
+          environment: string
+          id: string
+          initiator_name: string | null
+          is_active: boolean
+          passkey: string
+          paybill_number: string | null
+          result_url: string | null
+          security_credential: string | null
+          tenant_id: string
+          till_number: string | null
+          timeout_url: string | null
+          updated_at: string
+          validation_url: string | null
+        }
+        Insert: {
+          account_balance_callback_url?: string | null
+          business_short_code: string
+          callback_url?: string | null
+          confirmation_url?: string | null
+          consumer_key: string
+          consumer_secret: string
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          initiator_name?: string | null
+          is_active?: boolean
+          passkey: string
+          paybill_number?: string | null
+          result_url?: string | null
+          security_credential?: string | null
+          tenant_id: string
+          till_number?: string | null
+          timeout_url?: string | null
+          updated_at?: string
+          validation_url?: string | null
+        }
+        Update: {
+          account_balance_callback_url?: string | null
+          business_short_code?: string
+          callback_url?: string | null
+          confirmation_url?: string | null
+          consumer_key?: string
+          consumer_secret?: string
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          initiator_name?: string | null
+          is_active?: boolean
+          passkey?: string
+          paybill_number?: string | null
+          result_url?: string | null
+          security_credential?: string | null
+          tenant_id?: string
+          till_number?: string | null
+          timeout_url?: string | null
+          updated_at?: string
+          validation_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mpesa_credentials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mpesa_credentials_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mpesa_transactions: {
         Row: {
           account_reference: string | null
