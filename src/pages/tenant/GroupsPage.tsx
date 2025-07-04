@@ -28,62 +28,77 @@ const GroupsPage = () => {
     queryFn: async () => {
       if (!profile?.tenant_id) return [];
       
-      // Get groups with member counts
-      const { data: groupsData, error: groupsError } = await supabase
-        .from('groups')
-        .select(`
-          *,
-          group_members!inner (
-            id,
-            is_active,
-            clients (
+      try {
+        // Get groups with member information
+        const { data: groupsData, error: groupsError } = await supabase
+          .from('groups')
+          .select(`
+            *,
+            group_members (
               id,
-              first_name,
-              last_name,
-              client_number
+              is_active,
+              clients (
+                id,
+                first_name,
+                last_name,
+                client_number,
+                loans (
+                  outstanding_balance,
+                  status
+                ),
+                savings_accounts (
+                  account_balance
+                )
+              )
             )
-          )
-        `)
-        .eq('tenant_id', profile.tenant_id)
-        .order('created_at', { ascending: false });
+          `)
+          .eq('tenant_id', profile.tenant_id)
+          .order('created_at', { ascending: false });
 
-      if (groupsError) throw groupsError;
+        if (groupsError) {
+          console.error('Error fetching groups:', groupsError);
+          return [];
+        }
 
-      // Get savings accounts for each group
-      const { data: savingsData } = await supabase
-        .from('group_savings_accounts')
-        .select(`
-          group_id,
-          current_balance
-        `)
-        .in('group_id', groupsData?.map(g => g.id) || []);
-
-      // Get loan applications for each group
-      const { data: loansData } = await supabase
-        .from('group_loan_applications')
-        .select(`
-          group_id,
-          requested_amount,
-          status
-        `)
-        .in('group_id', groupsData?.map(g => g.id) || []);
-
-      // Combine data
-      return groupsData?.map(group => {
-        const activeMembers = group.group_members?.filter(m => m.is_active) || [];
-        const groupSavings = savingsData?.filter(s => s.group_id === group.id) || [];
-        const groupLoans = loansData?.filter(l => l.group_id === group.id) || [];
-        
-        return {
-          ...group,
-          memberCount: activeMembers.length,
-          totalSavings: groupSavings.reduce((sum, s) => sum + (s.current_balance || 0), 0),
-          totalLoans: groupLoans
-            .filter(l => ['approved', 'disbursed'].includes(l.status))
-            .reduce((sum, l) => sum + (l.requested_amount || 0), 0),
-          activeLoans: groupLoans.filter(l => ['approved', 'disbursed'].includes(l.status)).length,
-        };
-      }) || [];
+        // Process and calculate statistics for each group
+        return groupsData?.map(group => {
+          const activeMembers = group.group_members?.filter(m => m.is_active) || [];
+          
+          // Calculate total loans and savings from member data
+          let totalLoans = 0;
+          let totalSavings = 0;
+          let activeLoansCount = 0;
+          
+          activeMembers.forEach(member => {
+            if (member.clients) {
+              // Sum up member loans (check for approved status)
+              const memberLoans = member.clients.loans?.filter(loan => 
+                loan.status === 'approved'
+              ) || [];
+              totalLoans += memberLoans.reduce((sum, loan) => sum + (loan.outstanding_balance || 0), 0);
+              activeLoansCount += memberLoans.length;
+              
+              // Sum up member savings
+              const memberSavings = member.clients.savings_accounts || [];
+              totalSavings += memberSavings.reduce((sum, account) => sum + (account.account_balance || 0), 0);
+            }
+          });
+          
+          return {
+            ...group,
+            memberCount: activeMembers.length,
+            totalSavings,
+            totalLoans,
+            activeLoans: activeLoansCount,
+            office: 'Main Branch', // Default office - you can modify this based on your data structure
+            loanOfficer: 'Jane Wanjiku', // Default loan officer - you can modify this based on your data structure
+            members: activeMembers,
+          };
+        }) || [];
+      } catch (error) {
+        console.error('Error in groups query:', error);
+        return [];
+      }
     },
     enabled: !!profile?.tenant_id,
   });
@@ -276,6 +291,16 @@ const GroupsPage = () => {
                             <span> • Meets {group.meeting_frequency.replace('_', '-')} on {group.meeting_day}s</span>
                           )}
                         </CardDescription>
+                        <div className="flex items-center gap-4 mt-2">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <span className="font-medium">Office:</span>
+                            <span>{group.office}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <span className="font-medium">Loan Officer:</span>
+                            <span>{group.loanOfficer}</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <Badge variant={group.is_active ? "default" : "secondary"}>
@@ -288,7 +313,7 @@ const GroupsPage = () => {
                           className="flex items-center gap-1"
                         >
                           <Eye className="w-3 h-3" />
-                          View Details
+                          View Group
                         </Button>
                       </div>
                     </div>
