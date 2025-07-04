@@ -275,37 +275,50 @@ const GroupsPage = () => {
               <p className="text-sm text-muted-foreground">Create your first group to get started</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredGroups.map((group) => (
-                <Card key={group.id} className="border hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl flex items-center gap-2">
-                          <Users className="w-5 h-5" />
-                          {group.name}
-                        </CardTitle>
-                        <CardDescription className="mt-1">
-                          {group.group_number} • Created: {format(new Date(group.created_at), 'MMM dd, yyyy')}
-                          {group.meeting_frequency && (
-                            <span> • Meets {group.meeting_frequency.replace('_', '-')} on {group.meeting_day}s</span>
-                          )}
-                        </CardDescription>
-                        <div className="flex items-center gap-4 mt-2">
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <span className="font-medium">Office:</span>
-                            <span>{group.office}</span>
-                          </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <span className="font-medium">Loan Officer:</span>
-                            <span>{group.loanOfficer}</span>
-                          </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-4 font-medium">Group Name</th>
+                    <th className="text-left p-4 font-medium">Group Number</th>
+                    <th className="text-left p-4 font-medium">Office</th>
+                    <th className="text-left p-4 font-medium">Loan Officer</th>
+                    <th className="text-center p-4 font-medium">Members</th>
+                    <th className="text-right p-4 font-medium">Total Loans</th>
+                    <th className="text-right p-4 font-medium">Total Savings</th>
+                    <th className="text-center p-4 font-medium">Status</th>
+                    <th className="text-center p-4 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredGroups.map((group) => (
+                    <tr key={group.id} className="border-b hover:bg-muted/50 transition-colors">
+                      <td className="p-4">
+                        <div className="font-medium">{group.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Created: {format(new Date(group.created_at), 'MMM dd, yyyy')}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
+                      </td>
+                      <td className="p-4 text-sm">{group.group_number}</td>
+                      <td className="p-4 text-sm">{group.office}</td>
+                      <td className="p-4 text-sm">{group.loanOfficer}</td>
+                      <td className="p-4 text-center">
+                        <Badge variant="outline" className="font-medium">
+                          {group.memberCount}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-right font-medium">
+                        USD {group.totalLoans.toLocaleString()}
+                      </td>
+                      <td className="p-4 text-right font-medium text-success">
+                        USD {group.totalSavings.toLocaleString()}
+                      </td>
+                      <td className="p-4 text-center">
                         <Badge variant={group.is_active ? "default" : "secondary"}>
                           {group.is_active ? "Active" : "Inactive"}
                         </Badge>
+                      </td>
+                      <td className="p-4 text-center">
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -313,79 +326,13 @@ const GroupsPage = () => {
                           className="flex items-center gap-1"
                         >
                           <Eye className="w-3 h-3" />
-                          View Group
+                          View
                         </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                      <div className="text-center p-3 bg-primary/10 rounded-lg">
-                        <div className="text-lg font-bold text-primary flex items-center justify-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {group.memberCount}
-                        </div>
-                        <div className="text-sm text-muted-foreground">Members</div>
-                      </div>
-                      <div className="text-center p-3 bg-success/10 rounded-lg">
-                        <div className="text-lg font-bold text-success flex items-center justify-center gap-1">
-                          <PiggyBank className="w-4 h-4" />
-                          USD {group.totalSavings.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-muted-foreground">Total Savings</div>
-                      </div>
-                      <div className="text-center p-3 bg-blue-500/10 rounded-lg">
-                        <div className="text-lg font-bold text-blue-600 flex items-center justify-center gap-1">
-                          <CreditCard className="w-4 h-4" />
-                          USD {group.totalLoans.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-muted-foreground">Active Loans</div>
-                      </div>
-                      <div className="text-center p-3 bg-orange-500/10 rounded-lg">
-                        <div className="text-lg font-bold text-orange-600 flex items-center justify-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {group.activeLoans}
-                        </div>
-                        <div className="text-sm text-muted-foreground">Loan Applications</div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-lg">Recent Members</h4>
-                      {group.group_members && group.group_members.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {group.group_members
-                            .filter((member: any) => member.is_active)
-                            .slice(0, 6)
-                            .map((member: any, index: number) => (
-                              <div key={index} className="flex items-center p-2 border rounded-lg">
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm">
-                                    {member.clients?.first_name} {member.clients?.last_name}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {member.clients?.client_number}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          {group.memberCount > 6 && (
-                            <div className="flex items-center justify-center p-2 border rounded-lg text-muted-foreground">
-                              <span className="text-sm">+{group.memberCount - 6} more</span>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          <Users className="w-8 h-8 mx-auto mb-2" />
-                          <p className="text-sm">No members yet</p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
