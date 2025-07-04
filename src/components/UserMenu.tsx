@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LogOut, User, Settings } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { ChatButton } from '@/components/chat/ChatButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,6 +67,7 @@ export const UserMenu = () => {
 
   return (
     <div className="flex items-center gap-4">
+      <ChatButton />
       <NotificationBell />
       <DropdownMenu>
       <DropdownMenuTrigger asChild>
