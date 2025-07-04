@@ -90,6 +90,7 @@ export const CreateApprovalWorkflowDialog = ({ open, onOpenChange, onSuccess }: 
   const addRole = () => {
     setWorkflowRoles([...workflowRoles, {
       role: "",
+      custom_role_id: undefined,
       approval_level: workflowRoles.length + 1,
       can_approve: true,
       can_reject: true,
