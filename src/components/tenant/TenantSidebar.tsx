@@ -97,8 +97,61 @@ const TenantSidebar = () => {
       ]
     },
     {
+      label: "System Configuration",
+      items: [
+        {
+          title: "User Management",
+          path: "/tenant/user-management",
+          icon: Users,
+          description: "Manage Users & Access"
+        },
+        {
+          title: "Roles & Permissions",
+          path: "/tenant/roles-permissions",
+          icon: Shield,
+          description: "Role-Based Access Control"
+        },
+        {
+          title: "Office Management",
+          path: "/tenant/office-management",
+          icon: Building2,
+          description: "Office & Branch Setup"
+        },
+        {
+          title: "Currency Configuration",
+          path: "/tenant/currency-config",
+          icon: CreditCard,
+          description: "Multi-Currency Setup"
+        },
+        {
+          title: "Funds Management",
+          path: "/tenant/funds-management",
+          icon: PiggyBank,
+          description: "Fund Allocation & Control"
+        },
+        {
+          title: "Product & Fee Management",
+          path: "/tenant/product-fee-management",
+          icon: TrendingUp,
+          description: "Products & Fee Structure"
+        }
+      ]
+    },
+    {
       label: "Management",
       items: [
+        {
+          title: "Audit Trail",
+          path: "/tenant/audit-trail",
+          icon: Shield,
+          description: "System Activity Logs"
+        },
+        {
+          title: "Schedule Jobs",
+          path: "/tenant/schedule-jobs",
+          icon: RefreshCw,
+          description: "Automated Task Management"
+        },
         {
           title: "Documents",
           path: "/tenant/documents",
