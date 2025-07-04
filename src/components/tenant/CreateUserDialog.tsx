@@ -36,6 +36,11 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     try {
       console.log('Creating user with data:', formData);
       
+      // Check if profile and tenant_id are available
+      if (!profile?.tenant_id) {
+        throw new Error('User profile or tenant information not available. Please refresh and try again.');
+      }
+      
       // Create the user in Supabase auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
