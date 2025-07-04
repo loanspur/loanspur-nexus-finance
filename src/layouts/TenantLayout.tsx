@@ -18,6 +18,7 @@ import UserManagementPage from "@/pages/tenant/UserManagementPage";
 import OfficeManagementPage from "@/pages/tenant/OfficeManagementPage";
 import CurrencyConfigPage from "@/pages/tenant/CurrencyConfigPage";
 import FundsManagementPage from "@/pages/tenant/FundsManagementPage";
+import ProductFeeManagementPage from "@/pages/tenant/ProductFeeManagementPage";
 import ActivityTracker from "@/components/audit/ActivityTracker";
 
 const TenantLayout = () => {
@@ -59,6 +60,7 @@ const TenantLayout = () => {
               <Route path="/office-management" element={<OfficeManagementPage />} />
               <Route path="/currency-config" element={<CurrencyConfigPage />} />
               <Route path="/funds-management" element={<FundsManagementPage />} />
+              <Route path="/product-fee-management" element={<ProductFeeManagementPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
