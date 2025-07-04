@@ -1310,6 +1310,39 @@ export type Database = {
           },
         ]
       }
+      currencies: {
+        Row: {
+          code: string
+          created_at: string
+          decimal_places: number
+          id: string
+          is_active: boolean
+          name: string
+          symbol: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          decimal_places?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          symbol: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          decimal_places?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          symbol?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_report_templates: {
         Row: {
           chart_config: Json | null
@@ -5171,6 +5204,57 @@ export type Database = {
             foreignKeyName: "tenant_addons_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_currency_settings: {
+        Row: {
+          created_at: string
+          decimal_separator: string
+          default_currency_id: string
+          display_format: string
+          id: string
+          show_decimals: boolean
+          tenant_id: string
+          thousand_separator: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decimal_separator?: string
+          default_currency_id: string
+          display_format?: string
+          id?: string
+          show_decimals?: boolean
+          tenant_id: string
+          thousand_separator?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decimal_separator?: string
+          default_currency_id?: string
+          display_format?: string
+          id?: string
+          show_decimals?: boolean
+          tenant_id?: string
+          thousand_separator?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_currency_settings_default_currency_id_fkey"
+            columns: ["default_currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_currency_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
