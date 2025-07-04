@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, Shield, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreateUserDialog } from "@/components/tenant/CreateUserDialog";
 import { EditUserDialog } from "@/components/tenant/EditUserDialog";
 import { DeleteUserDialog } from "@/components/tenant/DeleteUserDialog";
+import { RolePermissionManagement } from "@/components/tenant/RolePermissionManagement";
 
 const UserManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,11 +79,23 @@ const UserManagementPage = () => {
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="text-muted-foreground">Manage tenant users, roles, and permissions</p>
         </div>
-        <Button onClick={() => setCreateUserOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add User
-        </Button>
       </div>
+
+      {/* Tabs for User Management and Role/Permission Management */}
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users">User Directory</TabsTrigger>
+          <TabsTrigger value="permissions">Roles & Permissions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-6">
+          {/* Add User Button */}
+          <div className="flex justify-end">
+            <Button onClick={() => setCreateUserOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add User
+            </Button>
+          </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -207,6 +221,12 @@ const UserManagementPage = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="permissions">
+          <RolePermissionManagement />
+        </TabsContent>
+      </Tabs>
 
       {/* Dialogs */}
       <CreateUserDialog 
