@@ -20,84 +20,104 @@ const TenantSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuItems = [
+  const menuGroups = [
     {
-      title: "Dashboard",
-      path: "/tenant/dashboard",
-      icon: LayoutDashboard,
-      description: "Overview & Analytics"
+      label: "Core Banking",
+      items: [
+        {
+          title: "Dashboard",
+          path: "/tenant/dashboard",
+          icon: LayoutDashboard,
+          description: "Overview & Analytics"
+        },
+        {
+          title: "Clients",
+          path: "/tenant/clients", 
+          icon: Users,
+          description: "Client Management"
+        },
+        {
+          title: "Loans",
+          path: "/tenant/loans",
+          icon: CreditCard,
+          description: "Loan Portfolio"
+        },
+        {
+          title: "Savings",
+          path: "/tenant/savings",
+          icon: PiggyBank,
+          description: "Savings Accounts"
+        }
+      ]
     },
     {
-      title: "Clients",
-      path: "/tenant/clients",
-      icon: Users,
-      description: "Client Management"
+      label: "Operations",
+      items: [
+        {
+          title: "Transactions",
+          path: "/tenant/transactions",
+          icon: ArrowLeftRight,
+          description: "Payment History"
+        },
+        {
+          title: "M-Pesa Integration",
+          path: "/tenant/mpesa",
+          icon: CreditCard,
+          description: "C2B & B2C Payments"
+        },
+        {
+          title: "Groups",
+          path: "/tenant/groups",
+          icon: Users2,
+          description: "Group Banking"
+        }
+      ]
     },
     {
-      title: "Loans",
-      path: "/tenant/loans",
-      icon: CreditCard,
-      description: "Loan Portfolio"
+      label: "Reports & Analytics",
+      items: [
+        {
+          title: "Reports",
+          path: "/tenant/reports",
+          icon: TrendingUp,
+          description: "Financial Reports"
+        },
+        {
+          title: "Reconciliation",
+          path: "/tenant/reconciliation",
+          icon: RefreshCw,
+          description: "Bank & MPESA Reconciliation"
+        },
+        {
+          title: "Audit & Compliance",
+          path: "/tenant/audit",
+          icon: Shield,
+          description: "Security & Compliance Monitoring"
+        }
+      ]
     },
     {
-      title: "Savings",
-      path: "/tenant/savings",
-      icon: PiggyBank,
-      description: "Savings Accounts"
-    },
-    {
-      title: "Transactions",
-      path: "/tenant/transactions",
-      icon: ArrowLeftRight,
-      description: "Payment History"
-    },
-    {
-      title: "M-Pesa Integration",
-      path: "/tenant/mpesa",
-      icon: CreditCard,
-      description: "C2B & B2C Payments"
-    },
-    {
-      title: "Groups",
-      path: "/tenant/groups",
-      icon: Users2,
-      description: "Group Banking"
-    },
-    {
-      title: "Reports",
-      path: "/tenant/reports",
-      icon: TrendingUp,
-      description: "Financial Reports"
-    },
-    {
-      title: "Notifications",
-      path: "/tenant/notifications",
-      icon: Bell,
-      description: "Communication Hub"
-    },
-    {
-      title: "Documents",
-      path: "/tenant/documents",
-      icon: FileText,
-      description: "Document Management"
-    },
-    {
-      title: "Reconciliation",
-      path: "/tenant/reconciliation",
-      icon: RefreshCw,
-      description: "Bank & MPESA Reconciliation"
-    },
-    {
-      title: "Audit & Compliance",
-      path: "/tenant/audit",
-      icon: Shield,
-      description: "Security & Compliance Monitoring"
-    },
-    {
-      title: "Settings",
-      path: "/tenant/settings",
-      icon: Settings,
-      description: "System Configuration"
+      label: "Management",
+      items: [
+        {
+          title: "Documents",
+          path: "/tenant/documents",
+          icon: FileText,
+          description: "Document Management"
+        },
+        {
+          title: "Notifications",
+          path: "/tenant/notifications",
+          icon: Bell,
+          description: "Communication Hub"
+        },
+        {
+          title: "Settings",
+          path: "/tenant/settings",
+          icon: Settings,
+          description: "System Configuration"
+        }
+      ]
     }
   ];
 
@@ -128,53 +148,60 @@ const TenantSidebar = () => {
           </div>
         </div>
         
-        <SidebarGroup className="mt-6">
-          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6">
-            Core Banking
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="px-4">
-            <SidebarMenu className="space-y-1">
-              {menuItems.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton 
-                      onClick={() => navigate(item.path)}
-                      isActive={isActive}
-                      className={`
-                        group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-card
-                        ${isActive 
-                          ? 'bg-gradient-primary text-white shadow-glow' 
-                          : 'hover:bg-accent/50 hover:scale-105'
-                        }
-                      `}
-                    >
-                      <div className="flex items-center space-x-3 w-full">
-                        <div className={`
-                          flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300
-                          ${isActive 
-                            ? 'bg-white/20' 
-                            : 'bg-accent/30 group-hover:bg-accent/50'
-                          }
-                        `}>
-                          <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-foreground'}`}>
-                            {item.title}
-                          </p>
-                          <p className={`text-xs ${isActive ? 'text-white/80' : 'text-muted-foreground'}`}>
-                            {item.description}
-                          </p>
-                        </div>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuGroups.map((group) => {
+          // Check if any item in this group is active to keep group expanded
+          const hasActiveItem = group.items.some(item => location.pathname === item.path);
+          
+          return (
+            <SidebarGroup key={group.label} className="mt-6">
+              <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6">
+                {group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="px-4">
+                <SidebarMenu className="space-y-1">
+                  {group.items.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton 
+                          onClick={() => navigate(item.path)}
+                          isActive={isActive}
+                          className={`
+                            group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-card
+                            ${isActive 
+                              ? 'bg-gradient-primary text-white shadow-glow' 
+                              : 'hover:bg-accent/50 hover:scale-105'
+                            }
+                          `}
+                        >
+                          <div className="flex items-center space-x-3 w-full">
+                            <div className={`
+                              flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300
+                              ${isActive 
+                                ? 'bg-white/20' 
+                                : 'bg-accent/30 group-hover:bg-accent/50'
+                              }
+                            `}>
+                              <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-foreground'}`}>
+                                {item.title}
+                              </p>
+                              <p className={`text-xs ${isActive ? 'text-white/80' : 'text-muted-foreground'}`}>
+                                {item.description}
+                              </p>
+                            </div>
+                          </div>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
     </Sidebar>
   );
