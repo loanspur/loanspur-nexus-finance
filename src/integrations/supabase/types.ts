@@ -4258,12 +4258,15 @@ export type Database = {
       tenants: {
         Row: {
           addons: Json | null
+          address: Json | null
           auto_billing: boolean | null
           billing_address: Json | null
           billing_cycle: string | null
+          city: string | null
           contact_person_email: string | null
           contact_person_name: string | null
           contact_person_phone: string | null
+          country: string | null
           created_at: string
           dns_settings: Json | null
           domain: string | null
@@ -4276,22 +4279,28 @@ export type Database = {
           mpesa_settings: Json | null
           name: string
           payment_terms: number | null
+          postal_code: string | null
           pricing_tier: Database["public"]["Enums"]["pricing_tier"]
           slug: string
+          state_province: string | null
           status: Database["public"]["Enums"]["tenant_status"]
           subscription_ends_at: string | null
           theme_colors: Json | null
+          timezone: string | null
           trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
           addons?: Json | null
+          address?: Json | null
           auto_billing?: boolean | null
           billing_address?: Json | null
           billing_cycle?: string | null
+          city?: string | null
           contact_person_email?: string | null
           contact_person_name?: string | null
           contact_person_phone?: string | null
+          country?: string | null
           created_at?: string
           dns_settings?: Json | null
           domain?: string | null
@@ -4304,22 +4313,28 @@ export type Database = {
           mpesa_settings?: Json | null
           name: string
           payment_terms?: number | null
+          postal_code?: string | null
           pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
           slug: string
+          state_province?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
           subscription_ends_at?: string | null
           theme_colors?: Json | null
+          timezone?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
           addons?: Json | null
+          address?: Json | null
           auto_billing?: boolean | null
           billing_address?: Json | null
           billing_cycle?: string | null
+          city?: string | null
           contact_person_email?: string | null
           contact_person_name?: string | null
           contact_person_phone?: string | null
+          country?: string | null
           created_at?: string
           dns_settings?: Json | null
           domain?: string | null
@@ -4332,11 +4347,14 @@ export type Database = {
           mpesa_settings?: Json | null
           name?: string
           payment_terms?: number | null
+          postal_code?: string | null
           pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
           slug?: string
+          state_province?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
           subscription_ends_at?: string | null
           theme_colors?: Json | null
+          timezone?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }

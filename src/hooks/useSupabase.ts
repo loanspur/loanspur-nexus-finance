@@ -28,6 +28,11 @@ export interface Tenant {
   billing_cycle?: string | null;
   auto_billing?: boolean;
   payment_terms?: number | null;
+  country?: string | null;
+  timezone?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
   created_at: string;
   updated_at: string;
 }

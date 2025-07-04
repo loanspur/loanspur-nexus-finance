@@ -19,6 +19,11 @@ const tenantSchema = z.object({
   contact_person_email: z.string().email().optional().or(z.literal("")),
   contact_person_phone: z.string().optional(),
   billing_cycle: z.enum(["monthly", "quarterly", "annually"]).optional(),
+  country: z.string().optional(),
+  timezone: z.string().optional(),
+  city: z.string().optional(),
+  state_province: z.string().optional(),
+  postal_code: z.string().optional(),
 });
 
 type TenantFormData = z.infer<typeof tenantSchema>;
@@ -44,6 +49,11 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
       contact_person_email: "",
       contact_person_phone: "",
       billing_cycle: "monthly",
+      country: "",
+      timezone: "UTC",
+      city: "",
+      state_province: "",
+      postal_code: "",
     },
   });
 
@@ -74,6 +84,11 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
         dns_settings: {},
         mpesa_settings: {},
         addons: [],
+        country: data.country || null,
+        timezone: data.timezone || 'UTC',
+        city: data.city || null,
+        state_province: data.state_province || null,
+        postal_code: data.postal_code || null,
       });
       form.reset();
       onOpenChange(false);
@@ -223,28 +238,139 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="billing_cycle"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Billing Cycle</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select billing cycle" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="annually">Annually</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="billing_cycle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Billing Cycle</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select billing cycle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="annually">Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="US">United States</SelectItem>
+                          <SelectItem value="CA">Canada</SelectItem>
+                          <SelectItem value="GB">United Kingdom</SelectItem>
+                          <SelectItem value="KE">Kenya</SelectItem>
+                          <SelectItem value="UG">Uganda</SelectItem>
+                          <SelectItem value="TZ">Tanzania</SelectItem>
+                          <SelectItem value="NG">Nigeria</SelectItem>
+                          <SelectItem value="GH">Ghana</SelectItem>
+                          <SelectItem value="ZA">South Africa</SelectItem>
+                          <SelectItem value="IN">India</SelectItem>
+                          <SelectItem value="AU">Australia</SelectItem>
+                          <SelectItem value="DE">Germany</SelectItem>
+                          <SelectItem value="FR">France</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="timezone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Timezone</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select timezone" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="UTC">UTC</SelectItem>
+                          <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                          <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                          <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                          <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                          <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                          <SelectItem value="Europe/Berlin">Berlin (CET)</SelectItem>
+                          <SelectItem value="Africa/Nairobi">Nairobi (EAT)</SelectItem>
+                          <SelectItem value="Africa/Lagos">Lagos (WAT)</SelectItem>
+                          <SelectItem value="Asia/Kolkata">India (IST)</SelectItem>
+                          <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
+                          <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter city" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state_province"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State/Province</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter state/province" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="postal_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Postal Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter postal code" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
