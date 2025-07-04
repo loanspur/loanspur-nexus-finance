@@ -2075,6 +2075,242 @@ export type Database = {
           },
         ]
       }
+      fund_allocations: {
+        Row: {
+          allocated_amount: number
+          allocation_name: string
+          allocation_period: string
+          created_at: string
+          created_by: string | null
+          end_date: string
+          fund_id: string
+          id: string
+          is_active: boolean
+          start_date: string
+          tenant_id: string
+          updated_at: string
+          used_amount: number
+        }
+        Insert: {
+          allocated_amount: number
+          allocation_name: string
+          allocation_period?: string
+          created_at?: string
+          created_by?: string | null
+          end_date: string
+          fund_id: string
+          id?: string
+          is_active?: boolean
+          start_date: string
+          tenant_id: string
+          updated_at?: string
+          used_amount?: number
+        }
+        Update: {
+          allocated_amount?: number
+          allocation_name?: string
+          allocation_period?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string
+          fund_id?: string
+          id?: string
+          is_active?: boolean
+          start_date?: string
+          tenant_id?: string
+          updated_at?: string
+          used_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fund_allocations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_allocations_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_allocations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fund_transactions: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          created_at: string
+          description: string
+          fund_id: string
+          id: string
+          metadata: Json | null
+          processed_by: string | null
+          reference_number: string | null
+          related_fund_id: string | null
+          status: string
+          tenant_id: string
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          created_at?: string
+          description: string
+          fund_id: string
+          id?: string
+          metadata?: Json | null
+          processed_by?: string | null
+          reference_number?: string | null
+          related_fund_id?: string | null
+          status?: string
+          tenant_id: string
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          created_at?: string
+          description?: string
+          fund_id?: string
+          id?: string
+          metadata?: Json | null
+          processed_by?: string | null
+          reference_number?: string | null
+          related_fund_id?: string | null
+          status?: string
+          tenant_id?: string
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fund_transactions_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_transactions_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_transactions_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_transactions_related_fund_id_fkey"
+            columns: ["related_fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fund_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funds: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency_id: string | null
+          current_balance: number
+          description: string | null
+          fund_code: string
+          fund_name: string
+          fund_type: string
+          id: string
+          initial_balance: number
+          is_active: boolean
+          maximum_balance: number | null
+          minimum_balance: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string | null
+          current_balance?: number
+          description?: string | null
+          fund_code: string
+          fund_name: string
+          fund_type?: string
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          maximum_balance?: number | null
+          minimum_balance?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency_id?: string | null
+          current_balance?: number
+          description?: string | null
+          fund_code?: string
+          fund_name?: string
+          fund_type?: string
+          id?: string
+          initial_balance?: number
+          is_active?: boolean
+          maximum_balance?: number | null
+          minimum_balance?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funds_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funds_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funds_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       global_integrations: {
         Row: {
           configuration: Json
