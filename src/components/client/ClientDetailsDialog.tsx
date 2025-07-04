@@ -32,11 +32,13 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Plus
+  Plus,
+  ArrowRightLeft
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
 import { AddLoanAccountDialog } from "./AddLoanAccountDialog";
+import { TransferClientDialog } from "./TransferClientDialog";
 
 interface Client {
   id: string;
@@ -75,6 +77,7 @@ interface ClientDetailsDialogProps {
 export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetailsDialogProps) => {
   const [showAddSavingsDialog, setShowAddSavingsDialog] = useState(false);
   const [showAddLoanDialog, setShowAddLoanDialog] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
   
   if (!client) return null;
 
@@ -328,8 +331,18 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
               {/* Client Assignment Information */}
               <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Assignment & Membership</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Assignment & Membership</CardTitle>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setShowTransferDialog(true)}
+                  >
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Transfer
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -622,6 +635,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           clientName={`${client.first_name} ${client.last_name}`}
           open={showAddLoanDialog}
           onOpenChange={setShowAddLoanDialog}
+        />
+
+        <TransferClientDialog
+          clientId={client.id}
+          clientName={`${client.first_name} ${client.last_name}`}
+          currentBranch="Main Branch"
+          currentLoanOfficer="Jane Wanjiku"
+          open={showTransferDialog}
+          onOpenChange={setShowTransferDialog}
         />
       </DialogContent>
     </Dialog>
