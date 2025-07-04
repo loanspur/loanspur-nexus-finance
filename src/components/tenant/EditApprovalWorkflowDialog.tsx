@@ -121,17 +121,13 @@ export const EditApprovalWorkflowDialog = ({
   };
 
   const addRole = () => {
-    console.log('Adding role, current roles:', workflowRoles);
-    console.log('Custom roles data:', customRoles);
-    const newRole = {
+    setWorkflowRoles([...workflowRoles, {
       role: "",
       custom_role_id: undefined,
       approval_level: workflowRoles.length + 1,
       can_approve: true,
       can_reject: true,
-    };
-    console.log('New role object:', newRole);
-    setWorkflowRoles([...workflowRoles, newRole]);
+    }]);
   };
 
   const removeRole = (index: number) => {
@@ -330,14 +326,13 @@ export const EditApprovalWorkflowDialog = ({
                     <div className="space-y-2">
                       <Label>Custom Role (Optional)</Label>
                       <Select 
-                        value={role.custom_role_id || ""} 
+                        value={role.custom_role_id} 
                         onValueChange={(value) => updateRole(index, { custom_role_id: value || undefined })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select custom role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No custom role</SelectItem>
                           {customRoles
                             .filter(customRole => customRole.is_active)
                             .map((customRole) => (
