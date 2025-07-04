@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Calendar, DollarSign, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus, Building2, Calendar, DollarSign, Eye, Edit, Trash2, CreditCard } from "lucide-react";
 import { useTenants, type Tenant } from "@/hooks/useSupabase";
+import { useMPesaCredentials } from "@/hooks/useIntegrations";
 import { format } from "date-fns";
 import { TenantDetailsDialog } from "@/components/super-admin/TenantDetailsDialog";
+import { TenantMPesaDialog } from "@/components/super-admin/TenantMPesaDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +20,32 @@ interface TenantsTableProps {
 export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [mpesaDialogTenantId, setMpesaDialogTenantId] = useState<string | null>(null);
   const { data: tenants, isLoading, error } = useTenants();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Component to show M-Pesa status per tenant
+  const MPesaStatusCell = ({ tenantId }: { tenantId: string }) => {
+    const { data: credentials } = useMPesaCredentials(tenantId);
+    const hasCredentials = credentials && credentials.length > 0;
+    const hasActiveCredentials = credentials?.some((cred: any) => cred.is_active);
+
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant={hasActiveCredentials ? "default" : "secondary"}>
+          {hasActiveCredentials ? "Active" : hasCredentials ? "Inactive" : "Not Setup"}
+        </Badge>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMpesaDialogTenantId(tenantId)}
+        >
+          <CreditCard className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,6 +151,7 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                 <TableHead>Trial Ends</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
+                <TableHead>M-Pesa</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -191,6 +217,9 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                       </Button>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <MPesaStatusCell tenantId={tenant.id} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -212,6 +241,12 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
         tenantId={selectedTenantId}
         open={showDetailsDialog}
         onOpenChange={setShowDetailsDialog}
+      />
+
+      <TenantMPesaDialog
+        tenantId={mpesaDialogTenantId}
+        open={!!mpesaDialogTenantId}
+        onOpenChange={(open) => !open && setMpesaDialogTenantId(null)}
       />
     </Card>
   );
