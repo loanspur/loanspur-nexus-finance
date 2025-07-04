@@ -37,6 +37,12 @@ const TenantSidebar = () => {
           description: "Client Management"
         },
         {
+          title: "Groups",
+          path: "/tenant/groups",
+          icon: Users2,
+          description: "Group Banking"
+        },
+        {
           title: "Loans",
           path: "/tenant/loans",
           icon: CreditCard,
@@ -64,12 +70,6 @@ const TenantSidebar = () => {
           path: "/tenant/mpesa",
           icon: CreditCard,
           description: "C2B & B2C Payments"
-        },
-        {
-          title: "Groups",
-          path: "/tenant/groups",
-          icon: Users2,
-          description: "Group Banking"
         }
       ]
     },
