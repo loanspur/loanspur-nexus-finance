@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search } from "lucide-react";
+import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search, Eye } from "lucide-react";
 import { useClients, type Client } from "@/hooks/useSupabase";
+import { ClientDetailsDialog } from "@/components/client/ClientDetailsDialog";
 import { format } from "date-fns";
 
 interface ClientsTableProps {
@@ -17,6 +18,8 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const { data: clients, isLoading, error } = useClients();
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState("10");
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
 
   // Filter and limit clients
   const filteredClients = clients?.filter((client: any) => {
@@ -31,6 +34,11 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   });
 
   const displayedClients = filteredClients?.slice(0, parseInt(itemsPerPage)) || [];
+
+  const handleViewClient = (client: any) => {
+    setSelectedClient(client);
+    setIsDetailsDialogOpen(true);
+  };
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "KES 0";
@@ -128,6 +136,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                 <TableHead>Status</TableHead>
                 <TableHead>Loan Balance</TableHead>
                 <TableHead>Savings Balance</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -172,6 +181,16 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                       {formatCurrency(calculateTotalSavingsBalance(client))}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewClient(client)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -199,6 +218,12 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
           </div>
         )}
       </CardContent>
+
+      <ClientDetailsDialog
+        client={selectedClient}
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+      />
     </Card>
   );
 };
