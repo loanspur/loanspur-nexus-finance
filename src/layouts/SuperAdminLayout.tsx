@@ -5,6 +5,7 @@ import { UserMenu } from "@/components/UserMenu";
 import SuperAdminDashboard from "@/pages/super-admin/SuperAdminDashboard";
 import TenantsPage from "@/pages/super-admin/TenantsPage";
 import BillingPage from "@/pages/super-admin/BillingPage";
+import IntegrationsPage from "@/pages/super-admin/IntegrationsPage";
 import SettingsPage from "@/pages/super-admin/SettingsPage";
 
 const SuperAdminLayout = () => {
@@ -23,6 +24,7 @@ const SuperAdminLayout = () => {
               <Route path="/dashboard" element={<SuperAdminDashboard />} />
               <Route path="/tenants" element={<TenantsPage />} />
               <Route path="/billing" element={<BillingPage />} />
+              <Route path="/integrations" element={<IntegrationsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>

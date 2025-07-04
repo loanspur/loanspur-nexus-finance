@@ -1335,6 +1335,50 @@ export type Database = {
           },
         ]
       }
+      global_integrations: {
+        Row: {
+          configuration: Json
+          created_at: string
+          created_by: string | null
+          display_name: string
+          id: string
+          integration_type: string
+          is_active: boolean
+          provider_name: string
+          updated_at: string
+        }
+        Insert: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          id?: string
+          integration_type: string
+          is_active?: boolean
+          provider_name: string
+          updated_at?: string
+        }
+        Update: {
+          configuration?: Json
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          id?: string
+          integration_type?: string
+          is_active?: boolean
+          provider_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "global_integrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_leadership: {
         Row: {
           created_at: string
@@ -4019,6 +4063,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_integration_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          integration_id: string
+          integration_type: string
+          is_primary: boolean
+          tenant_id: string
+          tenant_specific_config: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integration_id: string
+          integration_type: string
+          is_primary?: boolean
+          tenant_id: string
+          tenant_specific_config?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integration_id?: string
+          integration_type?: string
+          is_primary?: boolean
+          tenant_id?: string
+          tenant_specific_config?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_integration_preferences_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "global_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_integration_preferences_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
