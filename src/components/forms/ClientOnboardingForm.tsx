@@ -262,7 +262,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-4">
           <DialogTitle className="text-2xl">Client Onboarding</DialogTitle>
           
