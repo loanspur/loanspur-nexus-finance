@@ -49,7 +49,13 @@ const TenantSidebar = () => {
       title: "Transactions",
       path: "/tenant/transactions",
       icon: ArrowLeftRight,
-      description: "Payment Processing"
+      description: "Payment History"
+    },
+    {
+      title: "M-Pesa Integration",
+      path: "/tenant/mpesa",
+      icon: CreditCard,
+      description: "C2B & B2C Payments"
     },
     {
       title: "Groups",
