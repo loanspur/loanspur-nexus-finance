@@ -136,12 +136,11 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
 
           <div className="space-y-2">
             <Label htmlFor="customRole">Custom Role (Optional)</Label>
-            <Select value={formData.customRoleId} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value }))}>
+            <Select value={formData.customRoleId || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a custom role (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No custom role</SelectItem>
                 {customRoles
                   .filter(role => role.is_active)
                   .map((role) => (

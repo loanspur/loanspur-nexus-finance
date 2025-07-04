@@ -34,8 +34,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     setLoading(true);
 
     try {
-      console.log('Creating user with data:', formData);
-      
       // Check if profile and tenant_id are available
       if (!profile?.tenant_id) {
         throw new Error('User profile or tenant information not available. Please refresh and try again.');
@@ -55,18 +53,13 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         }
       });
 
-      console.log('SignUp result:', { data, error: signUpError });
-
       if (signUpError) {
-        console.error('SignUp error:', signUpError);
         throw signUpError;
       }
 
       if (!data.user) {
         throw new Error('User creation failed - no user returned');
       }
-
-      console.log('User created, updating profile...');
 
       // Insert/update the profile with tenant info
       const profileData = {
@@ -80,8 +73,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         is_active: true
       };
 
-      console.log('Profile data:', profileData);
-
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert(profileData, {
@@ -89,11 +80,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         });
 
       if (upsertError) {
-        console.error('Profile upsert error:', upsertError);
         throw upsertError;
       }
-
-      console.log('User created successfully');
 
       toast({
         title: "Success",
@@ -111,7 +99,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
       
       onSuccess();
     } catch (error: any) {
-      console.error('User creation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create user",
@@ -190,12 +177,11 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
 
           <div className="space-y-2">
             <Label htmlFor="customRole">Custom Role (Optional)</Label>
-            <Select value={formData.customRoleId} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value }))}>
+            <Select value={formData.customRoleId || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a custom role (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No custom role</SelectItem>
                 {customRoles
                   .filter(role => role.is_active)
                   .map((role) => (
