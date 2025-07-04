@@ -72,10 +72,7 @@ export const useChat = () => {
         .from('chat_rooms')
         .select(`
           *,
-          participants:chat_participants(
-            *,
-            profile:user_id(first_name, last_name, email, avatar_url)
-          )
+          participants:chat_participants(*)
         `)
         .eq('is_active', true)
         .order('last_message_at', { ascending: false, nullsFirst: false });
@@ -88,12 +85,6 @@ export const useChat = () => {
         participants: room.participants?.map((p: any) => ({
           ...p,
           role: p.role as ChatParticipant['role'],
-          profile: p.profile ? {
-            first_name: p.profile.first_name || '',
-            last_name: p.profile.last_name || '',
-            email: p.profile.email || '',
-            avatar_url: p.profile.avatar_url || undefined,
-          } : undefined,
         })),
       }));
 
@@ -116,10 +107,7 @@ export const useChat = () => {
     try {
       const { data, error } = await supabase
         .from('chat_messages')
-        .select(`
-          *,
-          sender:sender_id(first_name, last_name, email, avatar_url)
-        `)
+        .select('*')
         .eq('chat_room_id', roomId)
         .order('created_at', { ascending: true });
 
@@ -128,12 +116,6 @@ export const useChat = () => {
       const messagesWithTyping = (data || []).map(message => ({
         ...message,
         message_type: message.message_type as ChatMessage['message_type'],
-        sender: message.sender ? {
-          first_name: message.sender.first_name || '',
-          last_name: message.sender.last_name || '',
-          email: message.sender.email || '',
-          avatar_url: message.sender.avatar_url || undefined,
-        } : undefined,
       }));
 
       setMessages(messagesWithTyping);
