@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ClientsTable } from "@/components/tables/ClientsTable";
-import { ClientForm } from "@/components/forms/ClientForm";
+import { ClientOnboardingForm } from "@/components/forms/ClientOnboardingForm";
 
 const ClientsPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -13,10 +13,9 @@ const ClientsPage = () => {
       
       <ClientsTable onCreateClient={() => setShowCreateForm(true)} />
       
-      <ClientForm 
+      <ClientOnboardingForm 
         open={showCreateForm} 
         onOpenChange={setShowCreateForm}
-        tenantId="dummy-tenant-id" // TODO: Get from context
       />
     </div>
   );

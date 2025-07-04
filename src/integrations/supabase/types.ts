@@ -513,6 +513,54 @@ export type Database = {
           },
         ]
       }
+      client_approvals: {
+        Row: {
+          approval_type: string
+          approver_id: string
+          client_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          approval_type: string
+          approver_id: string
+          client_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          approval_type?: string
+          approver_id?: string
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_approvals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_documents: {
         Row: {
           client_id: string
@@ -593,20 +641,45 @@ export type Database = {
       clients: {
         Row: {
           address: Json | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          bank_account_number: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          business_address: string | null
+          business_name: string | null
+          business_registration_number: string | null
+          business_type: string | null
           client_number: string
           created_at: string
           date_of_birth: string | null
+          driving_license_number: string | null
           email: string | null
+          employer_address: string | null
+          employer_name: string | null
+          employment_start_date: string | null
           first_name: string
           gender: string | null
           id: string
           is_active: boolean
+          job_title: string | null
+          kyc_completed_at: string | null
+          kyc_status: string | null
           last_name: string
           mifos_client_id: number | null
           monthly_income: number | null
           national_id: string | null
+          nationality: string | null
+          next_of_kin_address: string | null
+          next_of_kin_email: string | null
+          next_of_kin_name: string | null
+          next_of_kin_phone: string | null
+          next_of_kin_relationship: string | null
           occupation: string | null
+          passport_number: string | null
           phone: string | null
+          place_of_birth: string | null
           profile_picture_url: string | null
           tenant_id: string
           timely_repayment_rate: number | null
@@ -614,20 +687,45 @@ export type Database = {
         }
         Insert: {
           address?: Json | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          business_address?: string | null
+          business_name?: string | null
+          business_registration_number?: string | null
+          business_type?: string | null
           client_number: string
           created_at?: string
           date_of_birth?: string | null
+          driving_license_number?: string | null
           email?: string | null
+          employer_address?: string | null
+          employer_name?: string | null
+          employment_start_date?: string | null
           first_name: string
           gender?: string | null
           id?: string
           is_active?: boolean
+          job_title?: string | null
+          kyc_completed_at?: string | null
+          kyc_status?: string | null
           last_name: string
           mifos_client_id?: number | null
           monthly_income?: number | null
           national_id?: string | null
+          nationality?: string | null
+          next_of_kin_address?: string | null
+          next_of_kin_email?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           occupation?: string | null
+          passport_number?: string | null
           phone?: string | null
+          place_of_birth?: string | null
           profile_picture_url?: string | null
           tenant_id: string
           timely_repayment_rate?: number | null
@@ -635,26 +733,58 @@ export type Database = {
         }
         Update: {
           address?: Json | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bank_account_number?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          business_address?: string | null
+          business_name?: string | null
+          business_registration_number?: string | null
+          business_type?: string | null
           client_number?: string
           created_at?: string
           date_of_birth?: string | null
+          driving_license_number?: string | null
           email?: string | null
+          employer_address?: string | null
+          employer_name?: string | null
+          employment_start_date?: string | null
           first_name?: string
           gender?: string | null
           id?: string
           is_active?: boolean
+          job_title?: string | null
+          kyc_completed_at?: string | null
+          kyc_status?: string | null
           last_name?: string
           mifos_client_id?: number | null
           monthly_income?: number | null
           national_id?: string | null
+          nationality?: string | null
+          next_of_kin_address?: string | null
+          next_of_kin_email?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
+          next_of_kin_relationship?: string | null
           occupation?: string | null
+          passport_number?: string | null
           phone?: string | null
+          place_of_birth?: string | null
           profile_picture_url?: string | null
           tenant_id?: string
           timely_repayment_rate?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_tenant_id_fkey"
             columns: ["tenant_id"]
