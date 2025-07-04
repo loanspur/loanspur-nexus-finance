@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search } from "lucide-react";
 import { useClients, type Client } from "@/hooks/useSupabase";
 import { format } from "date-fns";
 
@@ -12,6 +15,22 @@ interface ClientsTableProps {
 
 export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const { data: clients, isLoading, error } = useClients();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [itemsPerPage, setItemsPerPage] = useState("10");
+
+  // Filter and limit clients
+  const filteredClients = clients?.filter((client: any) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      client.first_name?.toLowerCase().includes(searchLower) ||
+      client.last_name?.toLowerCase().includes(searchLower) ||
+      client.client_number?.toLowerCase().includes(searchLower) ||
+      client.phone?.toLowerCase().includes(searchLower) ||
+      client.email?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const displayedClients = filteredClients?.slice(0, parseInt(itemsPerPage)) || [];
 
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "KES 0";
@@ -69,11 +88,36 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Search and Filter Controls */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search clients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={itemsPerPage} onValueChange={setItemsPerPage}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Items per page" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5 clients</SelectItem>
+              <SelectItem value="10">10 clients</SelectItem>
+              <SelectItem value="25">25 clients</SelectItem>
+              <SelectItem value="50">50 clients</SelectItem>
+              <SelectItem value="100">100 clients</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center p-8">
             <div className="text-muted-foreground">Loading clients...</div>
           </div>
-        ) : clients && clients.length > 0 ? (
+        ) : displayedClients && displayedClients.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -87,7 +131,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client: any) => (
+              {displayedClients.map((client: any) => (
                 <TableRow key={client.id}>
                   <TableCell>
                     <div className="font-medium">
@@ -135,12 +179,23 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
         ) : (
           <div className="text-center py-8">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No clients yet</h3>
-            <p className="text-muted-foreground mb-4">Start building your client base by adding your first client.</p>
-            <Button onClick={onCreateClient}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add First Client
-            </Button>
+            {searchTerm ? (
+              <>
+                <h3 className="text-lg font-medium mb-2">No clients found</h3>
+                <p className="text-muted-foreground mb-4">
+                  No clients match your search "{searchTerm}". Try adjusting your search terms.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium mb-2">No clients yet</h3>
+                <p className="text-muted-foreground mb-4">Start building your client base by adding your first client.</p>
+                <Button onClick={onCreateClient}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Client
+                </Button>
+              </>
+            )}
           </div>
         )}
       </CardContent>
