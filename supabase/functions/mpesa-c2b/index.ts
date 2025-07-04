@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface MPesaPaymentRequest {
+interface MPesaC2BRequest {
   phone_number: string;
   amount: number;
   account_reference: string;
@@ -16,15 +16,6 @@ interface MPesaPaymentRequest {
   client_id?: string;
   loan_id?: string;
   savings_account_id?: string;
-}
-
-interface MPesaDisbursementRequest {
-  phone_number: string;
-  amount: number;
-  account_reference: string;
-  transaction_desc: string;
-  tenant_id: string;
-  loan_id: string;
 }
 
 interface MPesaCallbackRequest {
@@ -49,18 +40,22 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Get M-Pesa access token
-async function getMPesaToken() {
-  const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY');
-  const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET');
-  const isSandbox = Deno.env.get('MPESA_ENVIRONMENT') === 'sandbox';
-  
-  if (!consumerKey || !consumerSecret) {
-    throw new Error('M-Pesa credentials not configured');
+// Get M-Pesa access token using tenant credentials
+async function getMPesaToken(tenantId: string) {
+  // Get tenant-specific M-Pesa credentials
+  const { data: credentials, error } = await supabase
+    .from('mpesa_credentials')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .single();
+
+  if (error || !credentials) {
+    throw new Error('M-Pesa credentials not found for tenant');
   }
 
-  const auth = btoa(`${consumerKey}:${consumerSecret}`);
-  const baseUrl = isSandbox 
+  const auth = btoa(`${credentials.consumer_key}:${credentials.consumer_secret}`);
+  const baseUrl = credentials.environment === 'sandbox' 
     ? 'https://sandbox.safaricom.co.ke' 
     : 'https://api.safaricom.co.ke';
 
@@ -72,39 +67,34 @@ async function getMPesaToken() {
   });
 
   const data = await response.json();
-  return data.access_token;
+  return { token: data.access_token, credentials };
 }
 
-// Initiate STK Push (Customer to Business)
-async function initiateSTKPush(request: MPesaPaymentRequest) {
-  const token = await getMPesaToken();
-  const isSandbox = Deno.env.get('MPESA_ENVIRONMENT') === 'sandbox';
-  const baseUrl = isSandbox 
+// Initiate STK Push (Customer to Business - Incoming Payments)
+async function initiateSTKPush(request: MPesaC2BRequest) {
+  const { token, credentials } = await getMPesaToken(request.tenant_id);
+  const baseUrl = credentials.environment === 'sandbox' 
     ? 'https://sandbox.safaricom.co.ke' 
     : 'https://api.safaricom.co.ke';
 
-  const shortCode = Deno.env.get('MPESA_SHORTCODE') || '174379';
-  const passkey = Deno.env.get('MPESA_PASSKEY') || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
-  const callbackUrl = Deno.env.get('MPESA_CALLBACK_URL') || `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-integration`;
-
   const timestamp = new Date().toISOString().replace(/[T\-:\.Z]/g, '').slice(0, 14);
-  const password = btoa(`${shortCode}${passkey}${timestamp}`);
+  const password = btoa(`${credentials.business_short_code}${credentials.passkey}${timestamp}`);
 
   const stkPushRequest = {
-    BusinessShortCode: shortCode,
+    BusinessShortCode: credentials.business_short_code,
     Password: password,
     Timestamp: timestamp,
     TransactionType: 'CustomerPayBillOnline',
     Amount: request.amount,
     PartyA: request.phone_number,
-    PartyB: shortCode,
+    PartyB: credentials.business_short_code,
     PhoneNumber: request.phone_number,
-    CallBackURL: `${callbackUrl}/callback`,
+    CallBackURL: credentials.c2b_callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-c2b/callback`,
     AccountReference: request.account_reference,
     TransactionDesc: request.transaction_desc
   };
 
-  console.log('Initiating STK Push:', stkPushRequest);
+  console.log('Initiating C2B STK Push:', stkPushRequest);
 
   const response = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
     method: 'POST',
@@ -116,10 +106,23 @@ async function initiateSTKPush(request: MPesaPaymentRequest) {
   });
 
   const data = await response.json();
-  console.log('STK Push Response:', data);
+  console.log('C2B STK Push Response:', data);
 
-  // Store the payment request in database
+  // Store the payment request in M-Pesa transactions table
   if (data.ResponseCode === '0') {
+    await supabase.from('mpesa_transactions').insert({
+      tenant_id: request.tenant_id,
+      transaction_type: 'c2b',
+      transaction_id: data.CheckoutRequestID,
+      originator_conversation_id: data.MerchantRequestID,
+      amount: request.amount,
+      phone_number: request.phone_number,
+      account_reference: request.account_reference,
+      raw_callback_data: { request: stkPushRequest, response: data },
+      reconciliation_status: 'unmatched'
+    });
+
+    // Also store in main transactions table for business logic
     await supabase.from('transactions').insert({
       tenant_id: request.tenant_id,
       client_id: request.client_id,
@@ -139,68 +142,9 @@ async function initiateSTKPush(request: MPesaPaymentRequest) {
   return data;
 }
 
-// Business to Customer (Loan Disbursement)
-async function initiateB2C(request: MPesaDisbursementRequest) {
-  const token = await getMPesaToken();
-  const isSandbox = Deno.env.get('MPESA_ENVIRONMENT') === 'sandbox';
-  const baseUrl = isSandbox 
-    ? 'https://sandbox.safaricom.co.ke' 
-    : 'https://api.safaricom.co.ke';
-
-  const shortCode = Deno.env.get('MPESA_SHORTCODE') || '600000';
-  const securityCredential = Deno.env.get('MPESA_SECURITY_CREDENTIAL') || '';
-  const queueTimeoutUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-integration/timeout`;
-  const resultUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-integration/result`;
-
-  const b2cRequest = {
-    InitiatorName: Deno.env.get('MPESA_INITIATOR_NAME') || 'testapi',
-    SecurityCredential: securityCredential,
-    CommandID: 'BusinessPayment',
-    Amount: request.amount,
-    PartyA: shortCode,
-    PartyB: request.phone_number,
-    Remarks: request.transaction_desc,
-    QueueTimeOutURL: queueTimeoutUrl,
-    ResultURL: resultUrl,
-    Occasion: request.account_reference
-  };
-
-  console.log('Initiating B2C:', b2cRequest);
-
-  const response = await fetch(`${baseUrl}/mpesa/b2c/v1/paymentrequest`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(b2cRequest),
-  });
-
-  const data = await response.json();
-  console.log('B2C Response:', data);
-
-  // Store the disbursement request in database
-  if (data.ResponseCode === '0') {
-    await supabase.from('transactions').insert({
-      tenant_id: request.tenant_id,
-      loan_id: request.loan_id,
-      transaction_id: data.ConversationID,
-      external_transaction_id: data.OriginatorConversationID,
-      amount: request.amount,
-      transaction_type: 'loan_disbursement',
-      payment_type: 'mpesa',
-      payment_status: 'pending',
-      description: request.transaction_desc,
-      transaction_date: new Date().toISOString(),
-    });
-  }
-
-  return data;
-}
-
-// Handle M-Pesa callbacks
-async function handleCallback(callback: MPesaCallbackRequest) {
-  console.log('Received M-Pesa callback:', JSON.stringify(callback, null, 2));
+// Handle M-Pesa C2B callbacks
+async function handleC2BCallback(callback: MPesaCallbackRequest) {
+  console.log('Received M-Pesa C2B callback:', JSON.stringify(callback, null, 2));
 
   const stkCallback = callback.Body.stkCallback;
   const checkoutRequestID = stkCallback.CheckoutRequestID;
@@ -208,6 +152,7 @@ async function handleCallback(callback: MPesaCallbackRequest) {
 
   let mpesaReceiptNumber = null;
   let actualAmount = null;
+  let phoneNumber = null;
 
   if (resultCode === 0 && stkCallback.CallbackMetadata) {
     // Payment successful, extract details
@@ -218,10 +163,27 @@ async function handleCallback(callback: MPesaCallbackRequest) {
       if (item.Name === 'Amount') {
         actualAmount = item.Value;
       }
+      if (item.Name === 'PhoneNumber') {
+        phoneNumber = item.Value;
+      }
     }
   }
 
-  // Update transaction status in database
+  // Update M-Pesa transaction
+  const { error: mpesaUpdateError } = await supabase
+    .from('mpesa_transactions')
+    .update({
+      mpesa_receipt_number: mpesaReceiptNumber,
+      raw_callback_data: callback,
+      reconciliation_status: resultCode === 0 ? 'matched' : 'unmatched'
+    })
+    .eq('transaction_id', checkoutRequestID);
+
+  if (mpesaUpdateError) {
+    console.error('Error updating M-Pesa transaction:', mpesaUpdateError);
+  }
+
+  // Update main transaction status
   const { data: transaction, error: fetchError } = await supabase
     .from('transactions')
     .select('*')
@@ -296,7 +258,7 @@ async function handleCallback(callback: MPesaCallbackRequest) {
     }
   }
 
-  console.log('Transaction updated successfully');
+  console.log('C2B transaction processed successfully');
 }
 
 serve(async (req) => {
@@ -310,49 +272,28 @@ serve(async (req) => {
     const path = url.pathname;
 
     if (path.endsWith('/callback')) {
-      // Handle M-Pesa callback
+      // Handle M-Pesa C2B callback
       const callback = await req.json();
-      await handleCallback(callback);
+      await handleC2BCallback(callback);
       return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    if (path.endsWith('/timeout') || path.endsWith('/result')) {
-      // Handle M-Pesa timeout and result callbacks
-      const data = await req.json();
-      console.log(`Received ${path}:`, JSON.stringify(data, null, 2));
-      return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Main endpoint for payment requests
+    // Main endpoint for C2B payment requests
     if (req.method !== 'POST') {
       throw new Error('Method not allowed');
     }
 
     const body = await req.json();
-    const { action } = body;
-
-    let result;
-    switch (action) {
-      case 'stk_push':
-        result = await initiateSTKPush(body);
-        break;
-      case 'b2c_disbursement':
-        result = await initiateB2C(body);
-        break;
-      default:
-        throw new Error('Invalid action');
-    }
+    const result = await initiateSTKPush(body);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: any) {
-    console.error('Error in M-Pesa integration:', error);
+    console.error('Error in M-Pesa C2B integration:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

@@ -254,24 +254,21 @@ export const useUpdateTenantIntegrationPreference = () => {
   });
 };
 
-// M-Pesa Credentials hooks
+// M-Pesa Credentials hooks (using generic queries until types are updated)
 export const useMPesaCredentials = (tenantId?: string) => {
   return useQuery({
     queryKey: ['mpesa-credentials', tenantId],
     queryFn: async () => {
-      const query = supabase
-        .from('tenant_mpesa_config')
-        .select('*')
-        .order('environment', { ascending: true });
-
-      if (tenantId) {
-        query.eq('tenant_id', tenantId);
-      }
+      if (!tenantId) return [];
       
-      const { data, error } = await query;
+      const { data, error } = await (supabase as any)
+        .from('mpesa_credentials')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('environment', { ascending: true });
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!tenantId,
   });
@@ -283,8 +280,8 @@ export const useCreateMPesaCredentials = () => {
 
   return useMutation({
     mutationFn: async (credentials: any) => {
-      const { data, error } = await supabase
-        .from('tenant_mpesa_config')
+      const { data, error } = await (supabase as any)
+        .from('mpesa_credentials')
         .insert([credentials])
         .select()
         .single();
@@ -315,8 +312,8 @@ export const useUpdateMPesaCredentials = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: any) => {
-      const { data, error } = await supabase
-        .from('tenant_mpesa_config')
+      const { data, error } = await (supabase as any)
+        .from('mpesa_credentials')
         .update(updates)
         .eq('id', id)
         .select()
@@ -339,5 +336,99 @@ export const useUpdateMPesaCredentials = () => {
         variant: "destructive",
       });
     },
+  });
+};
+
+// M-Pesa C2B Functions
+export const useInitiateC2BPayment = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (paymentData: {
+      phone_number: string;
+      amount: number;
+      account_reference: string;
+      transaction_desc: string;
+      tenant_id: string;
+      client_id?: string;
+      loan_id?: string;
+      savings_account_id?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('mpesa-c2b', {
+        body: paymentData
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Payment Initiated",
+        description: "M-Pesa payment request sent successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Payment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// M-Pesa B2C Functions
+export const useInitiateB2CDisbursement = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (disbursementData: {
+      phone_number: string;
+      amount: number;
+      account_reference: string;
+      transaction_desc: string;
+      tenant_id: string;
+      loan_id: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('mpesa-b2c', {
+        body: disbursementData
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disbursement Initiated",
+        description: "M-Pesa disbursement request sent successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Disbursement Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// M-Pesa Transactions Query (using generic query until types are updated)
+export const useMPesaTransactions = (tenantId?: string) => {
+  return useQuery({
+    queryKey: ['mpesa-transactions', tenantId],
+    queryFn: async () => {
+      if (!tenantId) return [];
+      
+      const { data, error } = await (supabase as any)
+        .from('mpesa_transactions')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tenantId,
   });
 };
