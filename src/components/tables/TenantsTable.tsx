@@ -1,17 +1,26 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Calendar, DollarSign } from "lucide-react";
+import { Plus, Building2, Calendar, DollarSign, Eye, Edit, Trash2 } from "lucide-react";
 import { useTenants, type Tenant } from "@/hooks/useSupabase";
 import { format } from "date-fns";
+import { TenantDetailsDialog } from "@/components/super-admin/TenantDetailsDialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface TenantsTableProps {
   onCreateTenant: () => void;
 }
 
 export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const { data: tenants, isLoading, error } = useTenants();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -38,6 +47,35 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
         return 'bg-gold-100 text-gold-800';
       default:
         return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  // Delete tenant mutation
+  const deleteTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const { error } = await supabase
+        .from('tenants')
+        .delete()
+        .eq('id', tenantId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      toast({ title: "Success", description: "Tenant deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleViewDetails = (tenantId: string) => {
+    setSelectedTenantId(tenantId);
+    setShowDetailsDialog(true);
+  };
+
+  const handleDeleteTenant = (tenantId: string, tenantName: string) => {
+    if (window.confirm(`Are you sure you want to delete tenant "${tenantName}"? This action cannot be undone.`)) {
+      deleteTenantMutation.mutate(tenantId);
     }
   };
 
@@ -87,6 +125,7 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                 <TableHead>Domain</TableHead>
                 <TableHead>Trial Ends</TableHead>
                 <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -133,6 +172,25 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                       {format(new Date(tenant.created_at), 'MMM dd, yyyy')}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(tenant.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
+                        disabled={deleteTenantMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -149,6 +207,12 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
           </div>
         )}
       </CardContent>
+
+      <TenantDetailsDialog
+        tenantId={selectedTenantId}
+        open={showDetailsDialog}
+        onOpenChange={setShowDetailsDialog}
+      />
     </Card>
   );
 };

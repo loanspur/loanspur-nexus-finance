@@ -15,6 +15,10 @@ const tenantSchema = z.object({
   domain: z.string().optional(),
   pricing_tier: z.enum(["starter", "professional", "enterprise", "scale"]),
   status: z.enum(["active", "suspended", "cancelled"]),
+  contact_person_name: z.string().optional(),
+  contact_person_email: z.string().email().optional().or(z.literal("")),
+  contact_person_phone: z.string().optional(),
+  billing_cycle: z.enum(["monthly", "quarterly", "annually"]).optional(),
 });
 
 type TenantFormData = z.infer<typeof tenantSchema>;
@@ -36,6 +40,10 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
       domain: "",
       pricing_tier: "starter",
       status: "active",
+      contact_person_name: "",
+      contact_person_email: "",
+      contact_person_phone: "",
+      billing_cycle: "monthly",
     },
   });
 
@@ -56,6 +64,16 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
         mifos_tenant_identifier: null,
         mifos_username: null,
         mifos_password: null,
+        contact_person_name: data.contact_person_name || null,
+        contact_person_email: data.contact_person_email || null,
+        contact_person_phone: data.contact_person_phone || null,
+        billing_cycle: data.billing_cycle || 'monthly',
+        auto_billing: true,
+        payment_terms: 30,
+        billing_address: {},
+        dns_settings: {},
+        mpesa_settings: {},
+        addons: [],
       });
       form.reset();
       onOpenChange(false);
@@ -68,7 +86,7 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Tenant</DialogTitle>
         </DialogHeader>
@@ -156,6 +174,71 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="suspended">Suspended</SelectItem>
                       <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_person_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Person Name (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter contact person name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_person_email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Person Email (Optional)</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="Enter contact email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_person_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Person Phone (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter contact phone" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="billing_cycle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Billing Cycle</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select billing cycle" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="annually">Annually</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

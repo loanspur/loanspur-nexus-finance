@@ -201,11 +201,21 @@ export type Database = {
           billing_period_end: string
           billing_period_start: string
           created_at: string
+          discount_amount: number | null
           due_date: string
           id: string
           invoice_number: string
+          invoice_pdf_url: string | null
+          line_items: Json | null
+          notes: string | null
           paid_at: string | null
+          payment_attempts: number | null
+          payment_method_id: string | null
+          payment_provider: string | null
+          payment_reference: string | null
+          sent_at: string | null
           status: Database["public"]["Enums"]["payment_status"]
+          tax_amount: number | null
           tenant_id: string
           total_amount: number
         }
@@ -215,11 +225,21 @@ export type Database = {
           billing_period_end: string
           billing_period_start: string
           created_at?: string
+          discount_amount?: number | null
           due_date: string
           id?: string
           invoice_number: string
+          invoice_pdf_url?: string | null
+          line_items?: Json | null
+          notes?: string | null
           paid_at?: string | null
+          payment_attempts?: number | null
+          payment_method_id?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          sent_at?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          tax_amount?: number | null
           tenant_id: string
           total_amount: number
         }
@@ -229,15 +249,32 @@ export type Database = {
           billing_period_end?: string
           billing_period_start?: string
           created_at?: string
+          discount_amount?: number | null
           due_date?: string
           id?: string
           invoice_number?: string
+          invoice_pdf_url?: string | null
+          line_items?: Json | null
+          notes?: string | null
           paid_at?: string | null
+          payment_attempts?: number | null
+          payment_method_id?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          sent_at?: string | null
           status?: Database["public"]["Enums"]["payment_status"]
+          tax_amount?: number | null
           tenant_id?: string
           total_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "billing_invoices_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_payment_methods"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "billing_invoices_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -3877,9 +3914,358 @@ export type Database = {
           },
         ]
       }
+      tenant_addons: {
+        Row: {
+          activated_at: string | null
+          addon_name: string
+          addon_type: string
+          billing_cycle: string | null
+          created_at: string | null
+          deactivated_at: string | null
+          id: string
+          is_active: boolean | null
+          quantity: number | null
+          tenant_id: string
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          addon_name: string
+          addon_type: string
+          billing_cycle?: string | null
+          created_at?: string | null
+          deactivated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          quantity?: number | null
+          tenant_id: string
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          addon_name?: string
+          addon_type?: string
+          billing_cycle?: string | null
+          created_at?: string | null
+          deactivated_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          quantity?: number | null
+          tenant_id?: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_addons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_domains: {
+        Row: {
+          created_at: string | null
+          dns_records: Json | null
+          domain_name: string
+          domain_type: string
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          ssl_status: string | null
+          tenant_id: string
+          updated_at: string | null
+          verification_status: string | null
+          verification_token: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dns_records?: Json | null
+          domain_name: string
+          domain_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          ssl_status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          verification_status?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dns_records?: Json | null
+          domain_name?: string
+          domain_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          ssl_status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          verification_status?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_mpesa_config: {
+        Row: {
+          business_short_code: string | null
+          callback_url: string | null
+          config_type: string
+          confirmation_url: string | null
+          consumer_key: string | null
+          consumer_secret: string | null
+          created_at: string | null
+          environment: string | null
+          id: string
+          is_active: boolean | null
+          passkey: string | null
+          result_url: string | null
+          tenant_id: string
+          timeout_url: string | null
+          updated_at: string | null
+          validation_url: string | null
+        }
+        Insert: {
+          business_short_code?: string | null
+          callback_url?: string | null
+          config_type: string
+          confirmation_url?: string | null
+          consumer_key?: string | null
+          consumer_secret?: string | null
+          created_at?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean | null
+          passkey?: string | null
+          result_url?: string | null
+          tenant_id: string
+          timeout_url?: string | null
+          updated_at?: string | null
+          validation_url?: string | null
+        }
+        Update: {
+          business_short_code?: string | null
+          callback_url?: string | null
+          config_type?: string
+          confirmation_url?: string | null
+          consumer_key?: string | null
+          consumer_secret?: string | null
+          created_at?: string | null
+          environment?: string | null
+          id?: string
+          is_active?: boolean | null
+          passkey?: string | null
+          result_url?: string | null
+          tenant_id?: string
+          timeout_url?: string | null
+          updated_at?: string | null
+          validation_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_mpesa_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_payment_history: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          invoice_id: string | null
+          metadata: Json | null
+          payment_method_id: string | null
+          payment_provider: string | null
+          payment_reference: string | null
+          payment_status: string
+          payment_type: string
+          processed_at: string | null
+          processing_fee: number | null
+          provider_transaction_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          payment_method_id?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          payment_type: string
+          processed_at?: string | null
+          processing_fee?: number | null
+          provider_transaction_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json | null
+          payment_method_id?: string | null
+          payment_provider?: string | null
+          payment_reference?: string | null
+          payment_status?: string
+          payment_type?: string
+          processed_at?: string | null
+          processing_fee?: number | null
+          provider_transaction_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_payment_history_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "billing_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_payment_history_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_payment_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_payment_methods: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          metadata: Json | null
+          payment_type: string
+          provider: string | null
+          provider_payment_method_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          metadata?: Json | null
+          payment_type: string
+          provider?: string | null
+          provider_payment_method_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          metadata?: Json | null
+          payment_type?: string
+          provider?: string | null
+          provider_payment_method_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_payment_methods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_subscription_history: {
+        Row: {
+          billing_amount: number | null
+          billing_frequency: string | null
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          pricing_tier: string
+          started_at: string
+          tenant_id: string
+        }
+        Insert: {
+          billing_amount?: number | null
+          billing_frequency?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          pricing_tier: string
+          started_at: string
+          tenant_id: string
+        }
+        Update: {
+          billing_amount?: number | null
+          billing_frequency?: string | null
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          pricing_tier?: string
+          started_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_subscription_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
+          addons: Json | null
+          auto_billing: boolean | null
+          billing_address: Json | null
+          billing_cycle: string | null
+          contact_person_email: string | null
+          contact_person_name: string | null
+          contact_person_phone: string | null
           created_at: string
+          dns_settings: Json | null
           domain: string | null
           id: string
           logo_url: string | null
@@ -3887,7 +4273,9 @@ export type Database = {
           mifos_password: string | null
           mifos_tenant_identifier: string | null
           mifos_username: string | null
+          mpesa_settings: Json | null
           name: string
+          payment_terms: number | null
           pricing_tier: Database["public"]["Enums"]["pricing_tier"]
           slug: string
           status: Database["public"]["Enums"]["tenant_status"]
@@ -3897,7 +4285,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          addons?: Json | null
+          auto_billing?: boolean | null
+          billing_address?: Json | null
+          billing_cycle?: string | null
+          contact_person_email?: string | null
+          contact_person_name?: string | null
+          contact_person_phone?: string | null
           created_at?: string
+          dns_settings?: Json | null
           domain?: string | null
           id?: string
           logo_url?: string | null
@@ -3905,7 +4301,9 @@ export type Database = {
           mifos_password?: string | null
           mifos_tenant_identifier?: string | null
           mifos_username?: string | null
+          mpesa_settings?: Json | null
           name: string
+          payment_terms?: number | null
           pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
           slug: string
           status?: Database["public"]["Enums"]["tenant_status"]
@@ -3915,7 +4313,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          addons?: Json | null
+          auto_billing?: boolean | null
+          billing_address?: Json | null
+          billing_cycle?: string | null
+          contact_person_email?: string | null
+          contact_person_name?: string | null
+          contact_person_phone?: string | null
           created_at?: string
+          dns_settings?: Json | null
           domain?: string | null
           id?: string
           logo_url?: string | null
@@ -3923,7 +4329,9 @@ export type Database = {
           mifos_password?: string | null
           mifos_tenant_identifier?: string | null
           mifos_username?: string | null
+          mpesa_settings?: Json | null
           name?: string
+          payment_terms?: number | null
           pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
           slug?: string
           status?: Database["public"]["Enums"]["tenant_status"]

@@ -18,6 +18,16 @@ export interface Tenant {
   mifos_tenant_identifier?: string | null;
   mifos_username?: string | null;
   mifos_password?: string | null;
+  contact_person_name?: string | null;
+  contact_person_email?: string | null;
+  contact_person_phone?: string | null;
+  billing_address?: any; // JSON field
+  dns_settings?: any; // JSON field
+  mpesa_settings?: any; // JSON field
+  addons?: any; // JSON field
+  billing_cycle?: string | null;
+  auto_billing?: boolean;
+  payment_terms?: number | null;
   created_at: string;
   updated_at: string;
 }
