@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   User, 
+  Users,
   Phone, 
   Mail, 
   MapPin, 
@@ -269,13 +270,13 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                   <CardTitle className="text-lg">Financial Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="text-center p-4 bg-muted/50 rounded-lg">
                       <CreditCard className="h-8 w-8 mx-auto mb-2 text-orange-600" />
                       <div className="text-2xl font-bold text-orange-600">
                         {formatCurrency(calculateTotalLoanBalance())}
                       </div>
-                      <div className="text-sm text-muted-foreground">Total Loan Balance</div>
+                      <div className="text-sm text-muted-foreground">Current Loan Balance</div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {client.loans?.length || 0} active loan(s)
                       </div>
@@ -300,6 +301,58 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                       <div className="text-sm text-muted-foreground">Net Position</div>
                       <div className="text-xs text-muted-foreground mt-1">
                         Savings - Loans
+                      </div>
+                    </div>
+
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                      <div className="text-2xl font-bold text-purple-600">
+                        {/* Placeholder for previous loans count */}
+                        {Math.floor(Math.random() * 5) + 1}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Previous Loans</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Completed loans
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Client Assignment Information */}
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-lg">Assignment & Membership</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                      <Building className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <div className="font-medium text-sm">Branch</div>
+                        <div className="text-lg font-bold text-blue-600">Main Branch</div>
+                        <div className="text-xs text-muted-foreground">Nairobi CBD</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                      <User className="h-6 w-6 text-indigo-600" />
+                      <div>
+                        <div className="font-medium text-sm">Loan Officer</div>
+                        <div className="text-lg font-bold text-indigo-600">Jane Wanjiku</div>
+                        <div className="text-xs text-muted-foreground">Senior Officer</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
+                      <Users className="h-6 w-6 text-emerald-600" />
+                      <div>
+                        <div className="font-medium text-sm">Group</div>
+                        <div className="text-lg font-bold text-emerald-600">
+                          {/* Placeholder group name */}
+                          Umoja Savings Group
+                        </div>
+                        <div className="text-xs text-muted-foreground">25 members</div>
                       </div>
                     </div>
                   </div>
