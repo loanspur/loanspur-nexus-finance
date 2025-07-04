@@ -9,6 +9,320 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      approval_actions: {
+        Row: {
+          action: string
+          approval_level: number
+          approval_request_id: string
+          approver_id: string
+          comments: string | null
+          created_at: string
+          delegated_to: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          approval_level: number
+          approval_request_id: string
+          approver_id: string
+          comments?: string | null
+          created_at?: string
+          delegated_to?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          approval_level?: number
+          approval_request_id?: string
+          approver_id?: string
+          comments?: string | null
+          created_at?: string
+          delegated_to?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_actions_approval_request_id_fkey"
+            columns: ["approval_request_id"]
+            isOneToOne: false
+            referencedRelation: "approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_delegated_to_fkey"
+            columns: ["delegated_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_level: number
+          expires_at: string | null
+          id: string
+          priority: string
+          reason: string | null
+          record_data: Json | null
+          record_id: string
+          requested_by: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_level?: number
+          expires_at?: string | null
+          id?: string
+          priority?: string
+          reason?: string | null
+          record_data?: Json | null
+          record_id: string
+          requested_by: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_level?: number
+          expires_at?: string | null
+          id?: string
+          priority?: string
+          reason?: string | null
+          record_data?: Json | null
+          record_id?: string
+          requested_by?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflow_roles: {
+        Row: {
+          approval_level: number
+          can_approve: boolean
+          can_reject: boolean
+          created_at: string
+          custom_role_id: string | null
+          id: string
+          role: string
+          tenant_id: string
+          workflow_id: string
+        }
+        Insert: {
+          approval_level?: number
+          can_approve?: boolean
+          can_reject?: boolean
+          created_at?: string
+          custom_role_id?: string | null
+          id?: string
+          role: string
+          tenant_id: string
+          workflow_id: string
+        }
+        Update: {
+          approval_level?: number
+          can_approve?: boolean
+          can_reject?: boolean
+          created_at?: string
+          custom_role_id?: string | null
+          id?: string
+          role?: string
+          tenant_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflow_roles_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflow_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflow_roles_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflow_types: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflow_types_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflow_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_workflows: {
+        Row: {
+          action_type: string
+          approval_order: string
+          auto_approve_threshold: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          maximum_approvers: number | null
+          minimum_approvers: number
+          table_name: string
+          tenant_id: string
+          updated_at: string
+          workflow_type_id: string
+        }
+        Insert: {
+          action_type: string
+          approval_order?: string
+          auto_approve_threshold?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          maximum_approvers?: number | null
+          minimum_approvers?: number
+          table_name: string
+          tenant_id: string
+          updated_at?: string
+          workflow_type_id: string
+        }
+        Update: {
+          action_type?: string
+          approval_order?: string
+          auto_approve_threshold?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          maximum_approvers?: number | null
+          minimum_approvers?: number
+          table_name?: string
+          tenant_id?: string
+          updated_at?: string
+          workflow_type_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_workflow_type_id_fkey"
+            columns: ["workflow_type_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_trails: {
         Row: {
           action: Database["public"]["Enums"]["audit_action"]
