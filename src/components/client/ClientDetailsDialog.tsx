@@ -133,6 +133,82 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   const handleCloseClient = async () => {
     try {
+      // Check for active loans and savings accounts before closing
+      const hasActiveLoans = client.loans?.some(loan => loan.status === 'active') || false;
+      const hasActiveSavings = client.savings_accounts?.some(account => account.account_balance > 0) || false;
+      
+      // Mock check for active accounts using placeholder data
+      const mockActiveLoans = [
+        { 
+          id: "L001", 
+          type: "Personal Loan", 
+          amount: 150000, 
+          outstanding: 75000, 
+          status: "active",
+          nextPayment: "2024-02-15",
+          monthlyPayment: 12500
+        },
+        { 
+          id: "L002", 
+          type: "Business Loan", 
+          amount: 300000, 
+          outstanding: 200000, 
+          status: "active",
+          nextPayment: "2024-02-20",
+          monthlyPayment: 25000
+        }
+      ].filter(loan => loan.status === 'active');
+
+      const mockActiveSavings = [
+        { 
+          id: "S001", 
+          type: "Regular Savings", 
+          balance: 45000, 
+          interestRate: 3.5,
+          status: "active",
+          lastTransaction: "2024-01-28",
+          monthlyContribution: 5000
+        },
+        { 
+          id: "S002", 
+          type: "Fixed Deposit", 
+          balance: 100000, 
+          interestRate: 8.0,
+          status: "active",
+          maturityDate: "2024-12-31",
+          monthlyContribution: 0
+        }
+      ].filter(savings => savings.status === 'active');
+
+      if (mockActiveLoans.length > 0 || mockActiveSavings.length > 0) {
+        let errorMessage = "Cannot close client account. The following accounts are still active:\n";
+        
+        if (mockActiveLoans.length > 0) {
+          errorMessage += `\nActive Loans (${mockActiveLoans.length}):`;
+          mockActiveLoans.forEach(loan => {
+            errorMessage += `\n• ${loan.type} (${loan.id})`;
+          });
+        }
+        
+        if (mockActiveSavings.length > 0) {
+          errorMessage += `\nActive Savings (${mockActiveSavings.length}):`;
+          mockActiveSavings.forEach(savings => {
+            errorMessage += `\n• ${savings.type} (${savings.id})`;
+          });
+        }
+        
+        errorMessage += "\n\nPlease close all accounts before closing the client account.";
+        
+        toast({
+          title: "Cannot Close Client Account",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        setShowCloseClientDialog(false);
+        return;
+      }
+      
       // Here you would call your API to deactivate the client
       console.log('Closing client:', client.id);
       
