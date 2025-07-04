@@ -147,22 +147,6 @@ const GroupsPage = () => {
           <p className="text-muted-foreground">Manage community groups and their activities</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={memberFormOpen} onOpenChange={setMemberFormOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Add Members
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl">
-              <GroupMemberForm 
-                open={memberFormOpen} 
-                onOpenChange={setMemberFormOpen}
-                onSuccess={handleMembersAdded}
-              />
-            </DialogContent>
-          </Dialog>
-          
           <Dialog open={groupFormOpen} onOpenChange={setGroupFormOpen}>
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
