@@ -14,11 +14,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Settings, Trash2, MessageSquare, Smartphone } from "lucide-react";
+import { Plus, Settings, Trash2, MessageSquare, Smartphone, CreditCard } from "lucide-react";
 import { useGlobalIntegrations, useCreateGlobalIntegration, useUpdateGlobalIntegration, useDeleteGlobalIntegration, GlobalIntegration } from "@/hooks/useIntegrations";
 
 const integrationSchema = z.object({
-  integration_type: z.enum(['sms', 'whatsapp']),
+  integration_type: z.enum(['sms', 'whatsapp', 'mpesa']),
   provider_name: z.string().min(1, "Provider name is required"),
   display_name: z.string().min(1, "Display name is required"),
   configuration: z.string().min(1, "Configuration is required"),
@@ -105,6 +105,7 @@ const GlobalIntegrationsManagement = () => {
 
   const smsIntegrations = integrations?.filter(i => i.integration_type === 'sms') || [];
   const whatsappIntegrations = integrations?.filter(i => i.integration_type === 'whatsapp') || [];
+  const mpesaIntegrations = integrations?.filter(i => i.integration_type === 'mpesa') || [];
 
   const IntegrationCard = ({ integration }: { integration: GlobalIntegration }) => (
     <Card className="relative">
@@ -112,8 +113,10 @@ const GlobalIntegrationsManagement = () => {
         <div className="flex items-center space-x-2">
           {integration.integration_type === 'sms' ? (
             <Smartphone className="h-4 w-4 text-muted-foreground" />
-          ) : (
+          ) : integration.integration_type === 'whatsapp' ? (
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
           )}
           <CardTitle className="text-sm font-medium">
             {integration.display_name}
@@ -179,7 +182,7 @@ const GlobalIntegrationsManagement = () => {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Global Integrations</h2>
           <p className="text-muted-foreground">
-            Manage SMS and WhatsApp gateway integrations for all tenants
+            Manage SMS, WhatsApp, and M-Pesa gateway integrations for all tenants
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -213,6 +216,7 @@ const GlobalIntegrationsManagement = () => {
                         <SelectContent>
                           <SelectItem value="sms">SMS</SelectItem>
                           <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="mpesa">M-Pesa</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -307,6 +311,10 @@ const GlobalIntegrationsManagement = () => {
             <MessageSquare className="h-4 w-4" />
             <span>WhatsApp Integrations</span>
           </TabsTrigger>
+          <TabsTrigger value="mpesa" className="flex items-center space-x-2">
+            <CreditCard className="h-4 w-4" />
+            <span>M-Pesa Integrations</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sms" className="space-y-4">
@@ -346,6 +354,25 @@ const GlobalIntegrationsManagement = () => {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="mpesa" className="space-y-4">
+          {mpesaIntegrations.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-6">
+                <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  No M-Pesa integrations configured yet.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {mpesaIntegrations.map((integration) => (
+                <IntegrationCard key={integration.id} integration={integration} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Edit Dialog */}
@@ -374,6 +401,7 @@ const GlobalIntegrationsManagement = () => {
                       <SelectContent>
                         <SelectItem value="sms">SMS</SelectItem>
                         <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="mpesa">M-Pesa</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
