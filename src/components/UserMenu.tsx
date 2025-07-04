@@ -111,7 +111,7 @@ export const UserMenu = () => {
         >
           <LogOut className="mr-2 h-4 w-4" />
           {isLoading ? 'Signing out...' : 'Sign out'}
-        </div>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
     </div>
