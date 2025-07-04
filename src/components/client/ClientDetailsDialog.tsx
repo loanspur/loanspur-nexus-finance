@@ -33,13 +33,25 @@ import {
   XCircle,
   Clock,
   Plus,
-  ArrowRightLeft
+  ArrowRightLeft,
+  UserMinus
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
 import { AddLoanAccountDialog } from "./AddLoanAccountDialog";
 import { TransferClientDialog } from "./TransferClientDialog";
 import { UpdateLoanOfficerDialog } from "./UpdateLoanOfficerDialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Client {
   id: string;
@@ -80,6 +92,8 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showAddLoanDialog, setShowAddLoanDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showUpdateOfficerDialog, setShowUpdateOfficerDialog] = useState(false);
+  const [showCloseClientDialog, setShowCloseClientDialog] = useState(false);
+  const { toast } = useToast();
   
   if (!client) return null;
 
@@ -114,6 +128,28 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         return 'destructive';
       default:
         return 'secondary';
+    }
+  };
+
+  const handleCloseClient = async () => {
+    try {
+      // Here you would call your API to deactivate the client
+      console.log('Closing client:', client.id);
+      
+      toast({
+        title: "Client Closed",
+        description: `${client.first_name} ${client.last_name}'s account has been deactivated`,
+      });
+      
+      setShowCloseClientDialog(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error closing client:", error);
+      toast({
+        title: "Error",
+        description: "Failed to close client account. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -624,14 +660,24 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
         <Separator />
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+        <div className="flex justify-between">
+          <Button 
+            variant="destructive" 
+            onClick={() => setShowCloseClientDialog(true)}
+            disabled={!client.is_active}
+          >
+            <UserMinus className="h-4 w-4 mr-2" />
+            Close Client
           </Button>
-          <Button>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Client
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            <Button>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Client
+            </Button>
+          </div>
         </div>
 
         {/* Add Account Dialogs */}
@@ -670,6 +716,26 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           open={showUpdateOfficerDialog}
           onOpenChange={setShowUpdateOfficerDialog}
         />
+
+        {/* Close Client Confirmation Dialog */}
+        <AlertDialog open={showCloseClientDialog} onOpenChange={setShowCloseClientDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Close Client Account</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to close {client.first_name} {client.last_name}'s account? 
+                This will deactivate their account and they will no longer be able to access services.
+                This action can be reversed later if needed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleCloseClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Close Client Account
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
