@@ -54,8 +54,8 @@ const AuthPage = () => {
   const signInForm = useForm<SignInForm>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: import.meta.env.DEV ? "justmurenga@gmail.com" : "",
+      password: import.meta.env.DEV ? "password123" : "",
     },
   });
 
