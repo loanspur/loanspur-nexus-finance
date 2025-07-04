@@ -14,6 +14,7 @@ import DocumentManagementPage from "@/pages/tenant/DocumentManagementPage";
 import ReconciliationPage from "@/pages/tenant/ReconciliationPage";
 import FinancialReportsPage from "@/pages/tenant/FinancialReportsPage";
 import AuditCompliancePage from "@/pages/tenant/AuditCompliancePage";
+import UserManagementPage from "@/pages/tenant/UserManagementPage";
 import ActivityTracker from "@/components/audit/ActivityTracker";
 
 const TenantLayout = () => {
@@ -51,6 +52,7 @@ const TenantLayout = () => {
               <Route path="/reconciliation" element={<ReconciliationPage />} />
               <Route path="/reports" element={<FinancialReportsPage />} />
               <Route path="/audit" element={<AuditCompliancePage />} />
+              <Route path="/user-management" element={<UserManagementPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
