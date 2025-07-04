@@ -262,8 +262,8 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-4">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+        <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl">Client Onboarding</DialogTitle>
           
           {/* Progress Indicator */}
@@ -274,89 +274,118 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
             </div>
             <Progress value={progress} className="h-2" />
           </div>
+        </DialogHeader>
 
-          {/* Step Navigation */}
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+        <div className="flex gap-6 overflow-hidden">
+          {/* Left Sidebar - Step Navigation */}
+          <div className="w-80 flex-shrink-0 space-y-2 overflow-y-auto">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
               const isActive = index === currentStep;
               const isCompleted = index < currentStep;
               
               return (
-                <div
+                <button
                   key={step.id}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-colors ${
+                  type="button"
+                  onClick={() => setCurrentStep(index)}
+                  className={`w-full flex items-start gap-3 p-4 rounded-lg text-left transition-all duration-200 ${
                     isActive 
-                      ? 'bg-primary text-primary-foreground' 
+                      ? 'bg-primary text-primary-foreground shadow-md' 
                       : isCompleted 
-                        ? 'bg-success/10 text-success' 
-                        : 'bg-muted text-muted-foreground'
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200' 
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  <StepIcon className="h-4 w-4" />
-                  <span className="font-medium">{step.title}</span>
-                  {isCompleted && <CheckCircle className="h-4 w-4" />}
-                </div>
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    isActive 
+                      ? 'bg-primary-foreground/20' 
+                      : isCompleted 
+                        ? 'bg-green-100' 
+                        : 'bg-background'
+                  }`}>
+                    {isCompleted ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <StepIcon className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium text-sm mb-1 ${
+                      isActive ? 'text-primary-foreground' : isCompleted ? 'text-green-700' : 'text-foreground'
+                    }`}>
+                      {step.title}
+                    </div>
+                    <div className={`text-xs leading-relaxed ${
+                      isActive ? 'text-primary-foreground/80' : isCompleted ? 'text-green-600' : 'text-muted-foreground'
+                    }`}>
+                      {step.description}
+                    </div>
+                  </div>
+                </button>
               );
             })}
           </div>
-        </DialogHeader>
 
-        <Form {...form}>
-          <div className="space-y-6">
-            {/* Current Step */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {React.createElement(steps[currentStep].icon, { className: "h-5 w-5" })}
-                  {steps[currentStep].title}
-                </CardTitle>
-                <CardDescription>
-                  {steps[currentStep].description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {renderStep()}
-              </CardContent>
-            </Card>
-
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 0}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline">
-                  {currentStep + 1} / {steps.length}
-                </Badge>
+          {/* Right Content Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Form {...form}>
+              <div className="flex-1 overflow-y-auto">
+                {/* Current Step */}
+                <Card className="border-0 shadow-none">
+                  <CardHeader className="px-0 pt-0">
+                    <CardTitle className="flex items-center gap-2">
+                      {React.createElement(steps[currentStep].icon, { className: "h-5 w-5" })}
+                      {steps[currentStep].title}
+                    </CardTitle>
+                    <CardDescription>
+                      {steps[currentStep].description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="px-0">
+                    {renderStep()}
+                  </CardContent>
+                </Card>
               </div>
 
-              {currentStep === steps.length - 1 ? (
+              {/* Navigation Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t bg-background">
                 <Button
                   type="button"
-                  onClick={form.handleSubmit(onSubmit)}
-                  disabled={isSubmitting}
-                  className="bg-success hover:bg-success/90"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={currentStep === 0}
                 >
-                  {isSubmitting ? "Submitting..." : "Complete Onboarding"}
-                  <CheckCircle className="h-4 w-4 ml-2" />
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
                 </Button>
-              ) : (
-                <Button type="button" onClick={nextStep}>
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
-            </div>
+
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline">
+                    {currentStep + 1} / {steps.length}
+                  </Badge>
+                </div>
+
+                {currentStep === steps.length - 1 ? (
+                  <Button
+                    type="button"
+                    onClick={form.handleSubmit(onSubmit)}
+                    disabled={isSubmitting}
+                    className="bg-success hover:bg-success/90"
+                  >
+                    {isSubmitting ? "Submitting..." : "Complete Onboarding"}
+                    <CheckCircle className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={nextStep}>
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
+              </div>
+            </Form>
           </div>
-        </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
