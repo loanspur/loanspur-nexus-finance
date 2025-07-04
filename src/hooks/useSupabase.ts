@@ -33,6 +33,7 @@ export interface Tenant {
   city?: string | null;
   state_province?: string | null;
   postal_code?: string | null;
+  currency_code?: string | null;
   created_at: string;
   updated_at: string;
 }

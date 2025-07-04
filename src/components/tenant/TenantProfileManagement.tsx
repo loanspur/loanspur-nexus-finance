@@ -21,6 +21,7 @@ const tenantProfileSchema = z.object({
   contact_person_phone: z.string().optional(),
   country: z.string().optional(),
   timezone: z.string().min(1, "Timezone is required"),
+  currency_code: z.string().min(1, "Currency is required"),
   city: z.string().optional(),
   state_province: z.string().optional(),
   postal_code: z.string().optional(),
@@ -59,6 +60,21 @@ const timezones = [
   { value: "Australia/Sydney", label: "Sydney (AEDT)" },
 ];
 
+const currencies = [
+  { code: "USD", name: "US Dollar" },
+  { code: "EUR", name: "Euro" },
+  { code: "GBP", name: "British Pound" },
+  { code: "KES", name: "Kenyan Shilling" },
+  { code: "UGX", name: "Ugandan Shilling" },
+  { code: "TZS", name: "Tanzanian Shilling" },
+  { code: "NGN", name: "Nigerian Naira" },
+  { code: "GHS", name: "Ghanaian Cedi" },
+  { code: "ZAR", name: "South African Rand" },
+  { code: "INR", name: "Indian Rupee" },
+  { code: "AUD", name: "Australian Dollar" },
+  { code: "CAD", name: "Canadian Dollar" },
+];
+
 export const TenantProfileManagement = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -89,6 +105,7 @@ export const TenantProfileManagement = () => {
       contact_person_phone: "",
       country: "",
       timezone: "UTC",
+      currency_code: "USD",
       city: "",
       state_province: "",
       postal_code: "",
@@ -105,6 +122,7 @@ export const TenantProfileManagement = () => {
         contact_person_phone: tenant.contact_person_phone || "",
         country: tenant.country || "",
         timezone: tenant.timezone || "UTC",
+        currency_code: tenant.currency_code || "USD",
         city: tenant.city || "",
         state_province: tenant.state_province || "",
         postal_code: tenant.postal_code || "",
@@ -126,6 +144,7 @@ export const TenantProfileManagement = () => {
           contact_person_phone: data.contact_person_phone || null,
           country: data.country || null,
           timezone: data.timezone,
+          currency_code: data.currency_code,
           city: data.city || null,
           state_province: data.state_province || null,
           postal_code: data.postal_code || null,
@@ -296,6 +315,31 @@ export const TenantProfileManagement = () => {
                   />
                 </div>
 
+                <FormField
+                  control={form.control}
+                  name="currency_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.code} - {currency.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                 />
+                
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}

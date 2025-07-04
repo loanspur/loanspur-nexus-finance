@@ -4268,6 +4268,7 @@ export type Database = {
           contact_person_phone: string | null
           country: string | null
           created_at: string
+          currency_code: string | null
           dns_settings: Json | null
           domain: string | null
           id: string
@@ -4302,6 +4303,7 @@ export type Database = {
           contact_person_phone?: string | null
           country?: string | null
           created_at?: string
+          currency_code?: string | null
           dns_settings?: Json | null
           domain?: string | null
           id?: string
@@ -4336,6 +4338,7 @@ export type Database = {
           contact_person_phone?: string | null
           country?: string | null
           created_at?: string
+          currency_code?: string | null
           dns_settings?: Json | null
           domain?: string | null
           id?: string

@@ -21,6 +21,7 @@ const tenantSchema = z.object({
   billing_cycle: z.enum(["monthly", "quarterly", "annually"]).optional(),
   country: z.string().optional(),
   timezone: z.string().optional(),
+  currency_code: z.string().optional(),
   city: z.string().optional(),
   state_province: z.string().optional(),
   postal_code: z.string().optional(),
@@ -51,6 +52,7 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
       billing_cycle: "monthly",
       country: "",
       timezone: "UTC",
+      currency_code: "USD",
       city: "",
       state_province: "",
       postal_code: "",
@@ -86,6 +88,7 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
         addons: [],
         country: data.country || null,
         timezone: data.timezone || 'UTC',
+        currency_code: data.currency_code || 'USD',
         city: data.city || null,
         state_province: data.state_province || null,
         postal_code: data.postal_code || null,
@@ -327,6 +330,38 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
                   )}
                 />
               </div>
+
+              <FormField
+                control={form.control}
+                name="currency_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                        <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
+                        <SelectItem value="UGX">UGX - Ugandan Shilling</SelectItem>
+                        <SelectItem value="TZS">TZS - Tanzanian Shilling</SelectItem>
+                        <SelectItem value="NGN">NGN - Nigerian Naira</SelectItem>
+                        <SelectItem value="GHS">GHS - Ghanaian Cedi</SelectItem>
+                        <SelectItem value="ZAR">ZAR - South African Rand</SelectItem>
+                        <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+                        <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                        <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-3 gap-4">
                 <FormField
