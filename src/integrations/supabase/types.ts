@@ -4155,6 +4155,136 @@ export type Database = {
           },
         ]
       }
+      office_staff: {
+        Row: {
+          assigned_date: string
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          office_id: string
+          role_in_office: string
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_date?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          office_id: string
+          role_in_office?: string
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_date?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          office_id?: string
+          role_in_office?: string
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "office_staff_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "office_staff_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offices: {
+        Row: {
+          address: Json | null
+          branch_manager_id: string | null
+          closing_date: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          office_code: string
+          office_hours: Json | null
+          office_name: string
+          office_type: string
+          opening_date: string | null
+          parent_office_id: string | null
+          phone: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: Json | null
+          branch_manager_id?: string | null
+          closing_date?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          office_code: string
+          office_hours?: Json | null
+          office_name: string
+          office_type?: string
+          opening_date?: string | null
+          parent_office_id?: string | null
+          phone?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: Json | null
+          branch_manager_id?: string | null
+          closing_date?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          office_code?: string
+          office_hours?: Json | null
+          office_name?: string
+          office_type?: string
+          opening_date?: string | null
+          parent_office_id?: string | null
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offices_branch_manager_id_fkey"
+            columns: ["branch_manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offices_parent_office_id_fkey"
+            columns: ["parent_office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           action: string
