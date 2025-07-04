@@ -526,8 +526,17 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                           status: "active",
                           nextPayment: "2024-02-20",
                           monthlyPayment: 25000
+                        },
+                        { 
+                          id: "L003", 
+                          type: "Emergency Loan", 
+                          amount: 50000, 
+                          outstanding: 0, 
+                          status: "closed",
+                          nextPayment: "2024-01-15",
+                          monthlyPayment: 5000
                         }
-                      ].map((loan, index) => (
+                      ].filter(loan => loan.status !== 'closed' && loan.status !== 'inactive').map((loan, index) => (
                         <div key={index} className="p-4 border rounded-lg space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="font-medium">{loan.type}</div>
@@ -608,8 +617,17 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                           status: "active",
                           maturityDate: "2024-12-31",
                           monthlyContribution: 0
+                        },
+                        { 
+                          id: "S003", 
+                          type: "Emergency Fund", 
+                          balance: 25000, 
+                          interestRate: 2.0,
+                          status: "closed",
+                          lastTransaction: "2023-12-15",
+                          monthlyContribution: 2500
                         }
-                      ].map((savings, index) => (
+                      ].filter(savings => savings.status !== 'closed' && savings.status !== 'inactive').map((savings, index) => (
                         <div key={index} className="p-4 border rounded-lg space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="font-medium">{savings.type}</div>
