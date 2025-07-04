@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ClientsTable } from "@/components/tables/ClientsTable";
 import { ClientOnboardingForm } from "@/components/forms/ClientOnboardingForm";
+import { ClientDataUpload } from "@/components/client/ClientDataUpload";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ClientsPage = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -11,7 +13,20 @@ const ClientsPage = () => {
         <p className="text-muted-foreground">Manage client accounts and information.</p>
       </div>
       
-      <ClientsTable onCreateClient={() => setShowCreateForm(true)} />
+      <Tabs defaultValue="clients" className="w-full">
+        <TabsList>
+          <TabsTrigger value="clients">Client List</TabsTrigger>
+          <TabsTrigger value="import">Data Import</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="clients" className="space-y-6">
+          <ClientsTable onCreateClient={() => setShowCreateForm(true)} />
+        </TabsContent>
+        
+        <TabsContent value="import" className="space-y-6">
+          <ClientDataUpload />
+        </TabsContent>
+      </Tabs>
       
       <ClientOnboardingForm 
         open={showCreateForm} 
