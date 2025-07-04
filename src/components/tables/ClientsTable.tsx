@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Phone, Mail, TrendingUp } from "lucide-react";
+import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank } from "lucide-react";
 import { useClients, type Client } from "@/hooks/useSupabase";
 import { format } from "date-fns";
 
@@ -14,11 +14,21 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const { data: clients, isLoading, error } = useClients();
 
   const formatCurrency = (amount: number | null) => {
-    if (!amount) return "-";
-    return new Intl.NumberFormat('en-US', {
+    if (!amount) return "KES 0";
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KES',
     }).format(amount);
+  };
+
+  const calculateTotalLoanBalance = (client: any) => {
+    if (!client.loans || client.loans.length === 0) return 0;
+    return client.loans.reduce((total: number, loan: any) => total + (loan.outstanding_balance || 0), 0);
+  };
+
+  const calculateTotalSavingsBalance = (client: any) => {
+    if (!client.savings_accounts || client.savings_accounts.length === 0) return 0;
+    return client.savings_accounts.reduce((total: number, account: any) => total + (account.account_balance || 0), 0);
   };
 
   const getRepaymentRateColor = (rate: number) => {
@@ -67,46 +77,38 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Monthly Income</TableHead>
-                <TableHead>Repayment Rate</TableHead>
+                <TableHead>Full Name</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Office</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
+                <TableHead>Loan Balance</TableHead>
+                <TableHead>Savings Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client: Client) => (
+              {clients.map((client: any) => (
                 <TableRow key={client.id}>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{client.first_name} {client.last_name}</div>
-                      <div className="text-sm text-muted-foreground">#{client.client_number}</div>
+                    <div className="font-medium">
+                      {client.first_name} {client.last_name}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      {client.email && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Mail className="h-3 w-3" />
-                          {client.email}
-                        </div>
-                      )}
-                      {client.phone && (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="h-3 w-3" />
-                          {client.phone}
-                        </div>
-                      )}
+                    <div className="text-sm text-muted-foreground">
+                      #{client.client_number}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {formatCurrency(client.monthly_income)}
+                    <div className="flex items-center gap-1 text-sm">
+                      <Phone className="h-3 w-3" />
+                      {client.phone || "-"}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <div className={`flex items-center gap-1 ${getRepaymentRateColor(client.timely_repayment_rate)}`}>
-                      <TrendingUp className="h-3 w-3" />
-                      {client.timely_repayment_rate}%
+                    <div className="flex items-center gap-1 text-sm">
+                      <Building className="h-3 w-3" />
+                      Main Branch
                     </div>
                   </TableCell>
                   <TableCell>
@@ -115,9 +117,16 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">
-                      {format(new Date(client.created_at), 'MMM dd, yyyy')}
-                    </span>
+                    <div className="flex items-center gap-1 text-sm">
+                      <CreditCard className="h-3 w-3" />
+                      {formatCurrency(calculateTotalLoanBalance(client))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-sm">
+                      <PiggyBank className="h-3 w-3" />
+                      {formatCurrency(calculateTotalSavingsBalance(client))}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

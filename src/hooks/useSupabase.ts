@@ -217,11 +217,28 @@ export const useClients = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(`
+          *,
+          loans(
+            outstanding_balance,
+            status
+          ),
+          savings_accounts(
+            account_balance
+          )
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Client[];
+      return data as (Client & {
+        loans?: Array<{
+          outstanding_balance: number;
+          status: string;
+        }>;
+        savings_accounts?: Array<{
+          account_balance: number;
+        }>;
+      })[];
     },
   });
 };
