@@ -39,6 +39,7 @@ import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
 import { AddLoanAccountDialog } from "./AddLoanAccountDialog";
 import { TransferClientDialog } from "./TransferClientDialog";
+import { UpdateLoanOfficerDialog } from "./UpdateLoanOfficerDialog";
 
 interface Client {
   id: string;
@@ -78,6 +79,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showAddSavingsDialog, setShowAddSavingsDialog] = useState(false);
   const [showAddLoanDialog, setShowAddLoanDialog] = useState(false);
   const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [showUpdateOfficerDialog, setShowUpdateOfficerDialog] = useState(false);
   
   if (!client) return null;
 
@@ -355,13 +357,23 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                      <User className="h-6 w-6 text-indigo-600" />
-                      <div>
-                        <div className="font-medium text-sm">Loan Officer</div>
-                        <div className="text-lg font-bold text-indigo-600">Jane Wanjiku</div>
-                        <div className="text-xs text-muted-foreground">Senior Officer</div>
+                    <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <User className="h-6 w-6 text-indigo-600" />
+                        <div>
+                          <div className="font-medium text-sm">Loan Officer</div>
+                          <div className="text-lg font-bold text-indigo-600">Jane Wanjiku</div>
+                          <div className="text-xs text-muted-foreground">Senior Officer</div>
+                        </div>
                       </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setShowUpdateOfficerDialog(true)}
+                        className="shrink-0"
+                      >
+                        Change
+                      </Button>
                     </div>
                     
                     <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
@@ -644,6 +656,19 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           currentLoanOfficer="Jane Wanjiku"
           open={showTransferDialog}
           onOpenChange={setShowTransferDialog}
+        />
+
+        <UpdateLoanOfficerDialog
+          clientId={client.id}
+          clientName={`${client.first_name} ${client.last_name}`}
+          currentLoanOfficer={{
+            id: "jane",
+            name: "Jane Wanjiku",
+            title: "Senior Loan Officer",
+            branch: "Main Branch"
+          }}
+          open={showUpdateOfficerDialog}
+          onOpenChange={setShowUpdateOfficerDialog}
         />
       </DialogContent>
     </Dialog>
