@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useCustomRoles } from "@/hooks/useCustomRoles";
 
 interface EditUserDialogProps {
   open: boolean;
@@ -22,9 +23,11 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
     lastName: "",
     email: "",
     role: "loan_officer",
+    customRoleId: "",
     isActive: true
   });
   const { toast } = useToast();
+  const { data: customRoles = [] } = useCustomRoles();
 
   useEffect(() => {
     if (user) {
@@ -33,6 +36,7 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
         lastName: user.last_name || "",
         email: user.email || "",
         role: user.role || "loan_officer",
+        customRoleId: user.custom_role_id || "",
         isActive: user.is_active ?? true
       });
     }
@@ -52,6 +56,7 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
           last_name: formData.lastName,
           email: formData.email,
           role: formData.role as any,
+          custom_role_id: formData.customRoleId || null,
           is_active: formData.isActive
         })
         .eq('id', user.id);
@@ -116,15 +121,35 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">System Role</Label>
             <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
+                <SelectValue placeholder="Select a system role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
                 <SelectItem value="loan_officer">Loan Officer</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="customRole">Custom Role (Optional)</Label>
+            <Select value={formData.customRoleId} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a custom role (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No custom role</SelectItem>
+                {customRoles
+                  .filter(role => role.is_active)
+                  .map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
           </div>

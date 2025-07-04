@@ -14,6 +14,7 @@ import { CreateUserDialog } from "@/components/tenant/CreateUserDialog";
 import { EditUserDialog } from "@/components/tenant/EditUserDialog";
 import { DeleteUserDialog } from "@/components/tenant/DeleteUserDialog";
 import { RolePermissionManagement } from "@/components/tenant/RolePermissionManagement";
+import { CustomRoleManagement } from "@/components/tenant/CustomRoleManagement";
 
 const UserManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,6 +87,7 @@ const UserManagementPage = () => {
         <TabsList>
           <TabsTrigger value="users">User Directory</TabsTrigger>
           <TabsTrigger value="permissions">Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="custom-roles">Custom Roles</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
@@ -225,6 +227,10 @@ const UserManagementPage = () => {
 
         <TabsContent value="permissions">
           <RolePermissionManagement />
+        </TabsContent>
+
+        <TabsContent value="custom-roles">
+          <CustomRoleManagement />
         </TabsContent>
       </Tabs>
 

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useCustomRoles } from "@/hooks/useCustomRoles";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -21,10 +22,12 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     password: "",
     firstName: "",
     lastName: "",
-    role: "loan_officer"
+    role: "loan_officer",
+    customRoleId: ""
   });
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { data: customRoles = [] } = useCustomRoles();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +57,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
             tenant_id: profile?.tenant_id,
             first_name: formData.firstName,
             last_name: formData.lastName,
-            role: formData.role as any
+            role: formData.role as any,
+            custom_role_id: formData.customRoleId || null
           })
           .eq('user_id', data.user.id);
 
@@ -71,7 +75,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         password: "",
         firstName: "",
         lastName: "",
-        role: "loan_officer"
+        role: "loan_officer",
+        customRoleId: ""
       });
       
       onSuccess();
@@ -139,15 +144,35 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
+            <Label htmlFor="role">System Role</Label>
             <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
+                <SelectValue placeholder="Select a system role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
                 <SelectItem value="loan_officer">Loan Officer</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="customRole">Custom Role (Optional)</Label>
+            <Select value={formData.customRoleId} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a custom role (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No custom role</SelectItem>
+                {customRoles
+                  .filter(role => role.is_active)
+                  .map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
           </div>
