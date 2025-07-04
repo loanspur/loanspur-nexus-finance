@@ -34,11 +34,14 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     setLoading(true);
 
     try {
+      console.log('Creating user with data:', formData);
+      
       // Create the user in Supabase auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: undefined, // Disable email confirmation redirect
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
@@ -47,23 +50,45 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         }
       });
 
-      if (signUpError) throw signUpError;
+      console.log('SignUp result:', { data, error: signUpError });
 
-      // Update the profile with tenant info
-      if (data.user) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
-            tenant_id: profile?.tenant_id,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            role: formData.role as any,
-            custom_role_id: formData.customRoleId || null
-          })
-          .eq('user_id', data.user.id);
-
-        if (updateError) throw updateError;
+      if (signUpError) {
+        console.error('SignUp error:', signUpError);
+        throw signUpError;
       }
+
+      if (!data.user) {
+        throw new Error('User creation failed - no user returned');
+      }
+
+      console.log('User created, updating profile...');
+
+      // Insert/update the profile with tenant info
+      const profileData = {
+        user_id: data.user.id,
+        tenant_id: profile?.tenant_id,
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        role: formData.role as any,
+        custom_role_id: formData.customRoleId || null,
+        is_active: true
+      };
+
+      console.log('Profile data:', profileData);
+
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert(profileData, {
+          onConflict: 'user_id'
+        });
+
+      if (upsertError) {
+        console.error('Profile upsert error:', upsertError);
+        throw upsertError;
+      }
+
+      console.log('User created successfully');
 
       toast({
         title: "Success",
@@ -81,9 +106,10 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
       
       onSuccess();
     } catch (error: any) {
+      console.error('User creation error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create user",
         variant: "destructive",
       });
     } finally {
