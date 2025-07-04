@@ -1,16 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, PiggyBank, RefreshCw } from "lucide-react";
+import { TrendingUp, PiggyBank, RefreshCw, Settings } from "lucide-react";
 import { LoanProductManagement } from "@/components/loan/LoanProductManagement";
 import { SavingsProductManagement } from "@/components/savings/SavingsProductManagement";
+import { FeeManagementForm } from "@/components/forms/FeeManagementForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const ProductFeeManagementPage = () => {
   const { profile } = useAuth();
+  const [feeFormOpen, setFeeFormOpen] = useState(false);
 
   // Fetch loan products for summary
   const { data: loanProducts = [] } = useQuery({
@@ -191,6 +193,10 @@ const ProductFeeManagementPage = () => {
             <PiggyBank className="h-4 w-4 mr-2" />  
             Savings Products
           </TabsTrigger>
+          <TabsTrigger value="fee-management" className="flex-1">
+            <Settings className="h-4 w-4 mr-2" />
+            Fee Management
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="loan-products" className="space-y-4">
@@ -200,7 +206,76 @@ const ProductFeeManagementPage = () => {
         <TabsContent value="savings-products" className="space-y-4">
           <SavingsProductManagement />
         </TabsContent>
+
+        <TabsContent value="fee-management" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fee & Charge Management</CardTitle>
+              <p className="text-muted-foreground">Create and manage fees and charges for loan and savings products</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Total Fees</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">12</div>
+                      <p className="text-xs text-muted-foreground">Active fee structures</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Loan Fees</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">7</div>
+                      <p className="text-xs text-muted-foreground">Processing & maintenance</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Savings Fees</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">5</div>
+                      <p className="text-xs text-muted-foreground">Withdrawal & maintenance</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">$2,450</div>
+                      <p className="text-xs text-muted-foreground">From all fees</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setFeeFormOpen(true)}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                  >
+                    Manage Fees & Charges
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+      
+      {/* Fee Management Dialog */}
+      <FeeManagementForm
+        open={feeFormOpen}
+        onOpenChange={setFeeFormOpen}
+      />
     </div>
   );
 };
