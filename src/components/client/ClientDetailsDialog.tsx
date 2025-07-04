@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,9 +31,12 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Plus
 } from "lucide-react";
 import { format } from "date-fns";
+import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
+import { AddLoanAccountDialog } from "./AddLoanAccountDialog";
 
 interface Client {
   id: string;
@@ -69,6 +73,9 @@ interface ClientDetailsDialogProps {
 }
 
 export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetailsDialogProps) => {
+  const [showAddSavingsDialog, setShowAddSavingsDialog] = useState(false);
+  const [showAddLoanDialog, setShowAddLoanDialog] = useState(false);
+  
   if (!client) return null;
 
   const formatCurrency = (amount: number | null) => {
@@ -427,6 +434,14 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     Loan Accounts
                   </CardTitle>
                   <CardDescription>Active and past loan accounts</CardDescription>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowAddLoanDialog(true)}
+                    className="ml-auto"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Loan
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {client.loans && client.loans.length > 0 ? (
@@ -501,6 +516,14 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     Savings Accounts
                   </CardTitle>
                   <CardDescription>Active savings and investment accounts</CardDescription>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowAddSavingsDialog(true)}
+                    className="ml-auto"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Savings
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   {client.savings_accounts && client.savings_accounts.length > 0 ? (
@@ -585,6 +608,21 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             Edit Client
           </Button>
         </div>
+
+        {/* Add Account Dialogs */}
+        <AddSavingsAccountDialog
+          clientId={client.id}
+          clientName={`${client.first_name} ${client.last_name}`}
+          open={showAddSavingsDialog}
+          onOpenChange={setShowAddSavingsDialog}
+        />
+
+        <AddLoanAccountDialog
+          clientId={client.id}
+          clientName={`${client.first_name} ${client.last_name}`}
+          open={showAddLoanDialog}
+          onOpenChange={setShowAddLoanDialog}
+        />
       </DialogContent>
     </Dialog>
   );
