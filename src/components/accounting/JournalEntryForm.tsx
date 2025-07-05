@@ -11,9 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 
 const journalEntrySchema = z.object({
   transaction_date: z.string().min(1, "Transaction date is required"),
@@ -36,8 +34,8 @@ interface JournalEntryFormProps {
 }
 
 export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) => {
-  const { profile } = useAuth();
   const createJournalEntryMutation = useCreateJournalEntry();
+  const { data: accounts } = useChartOfAccounts();
 
   const form = useForm<JournalEntryFormData>({
     resolver: zodResolver(journalEntrySchema),
@@ -58,24 +56,8 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
     name: "lines",
   });
 
-  // Fetch chart of accounts
-  const { data: accounts } = useQuery({
-    queryKey: ['chart-of-accounts', profile?.tenant_id],
-    queryFn: async () => {
-      if (!profile?.tenant_id) return [];
-      
-      const { data, error } = await supabase
-        .from('chart_of_accounts')
-        .select('*')
-        .eq('tenant_id', profile.tenant_id)
-        .eq('is_active', true)
-        .order('account_code');
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!profile?.tenant_id,
-  });
+  // Fetch active accounts for the dropdowns
+  const activeAccounts = accounts?.filter(acc => acc.is_active) || [];
 
   const onSubmit = async (data: JournalEntryFormData) => {
     try {
@@ -214,7 +196,7 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {accounts?.map((account) => (
+                                {activeAccounts?.map((account) => (
                                   <SelectItem key={account.id} value={account.id}>
                                     {account.account_code} - {account.account_name}
                                   </SelectItem>
