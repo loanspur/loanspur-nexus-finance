@@ -1,14 +1,19 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 
 interface LoanProductInterestRepaymentTabProps {
   form: UseFormReturn<LoanProductFormData>;
 }
 
 export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRepaymentTabProps) => {
+  const { data: feeStructures } = useFeeStructures();
+  const activeLoanCharges = feeStructures?.filter(fee => fee.fee_type === 'loan' && fee.is_active) || [];
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -214,10 +219,46 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
           <FormItem>
             <FormLabel>Other Loan Charges</FormLabel>
             <div className="text-sm text-muted-foreground mb-2">
-              Additional charges applied to the loan (other than overdue charges)
+              Select additional charges applied to the loan (other than overdue charges)
             </div>
             <FormControl>
-              <Input placeholder="Processing fee, insurance, etc." {...field} />
+              <div className="space-y-3">
+                {activeLoanCharges.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-4 border rounded-md">
+                    No active loan charges available. Please create loan charges in Fee Management first.
+                  </div>
+                ) : (
+                  activeLoanCharges.map((charge) => {
+                    const currentCharges = field.value ? field.value.split(',').map(id => id.trim()) : [];
+                    const isChecked = currentCharges.includes(charge.id);
+                    
+                    return (
+                      <div key={charge.id} className="flex items-center space-x-3 p-3 border rounded-md">
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={(checked) => {
+                            let updatedCharges: string[];
+                            if (checked) {
+                              updatedCharges = [...currentCharges, charge.id];
+                            } else {
+                              updatedCharges = currentCharges.filter(id => id !== charge.id);
+                            }
+                            field.onChange(updatedCharges.join(','));
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">{charge.fee_name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {charge.description} - {charge.calculation_method === 'fixed' 
+                              ? `Fixed: ${charge.fixed_amount}` 
+                              : `${charge.percentage_rate}%`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </FormControl>
             <FormMessage />
           </FormItem>
