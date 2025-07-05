@@ -6613,9 +6613,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_account_balance: {
+        Args: { p_account_id: string; p_date?: string }
+        Returns: number
+      }
       dev_switch_user_context: {
         Args: { target_profile_id: string }
         Returns: Json
+      }
+      get_current_account_balance: {
+        Args: { p_account_id: string }
+        Returns: number
       }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
