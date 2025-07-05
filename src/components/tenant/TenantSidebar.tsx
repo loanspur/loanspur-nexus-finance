@@ -13,7 +13,8 @@ import {
   Bell,
   FileText,
   RefreshCw,
-  Shield
+  Shield,
+  Calculator
 } from "lucide-react";
 
 const TenantSidebar = () => {
@@ -134,6 +135,12 @@ const TenantSidebar = () => {
           path: "/tenant/product-fee-management",
           icon: TrendingUp,
           description: "Products & Fee Structure"
+        },
+        {
+          title: "Accounting",
+          path: "/tenant/accounting",
+          icon: Calculator,
+          description: "Financial Records & Journal Entries"
         }
       ]
     },

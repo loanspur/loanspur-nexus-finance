@@ -16,7 +16,6 @@ export const JournalEntriesTable = () => {
     dateFrom: "",
     dateTo: "",
     status: "",
-    entryType: "",
     searchTerm: "",
   });
   const [showForm, setShowForm] = useState(false);
@@ -34,14 +33,13 @@ export const JournalEntriesTable = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getEntryTypeBadge = (type: string) => {
+  const getReferenceTypeBadge = (type?: string) => {
+    if (!type) return null;
     const typeColors = {
       manual: "bg-blue-100 text-blue-800",
-      automatic: "bg-green-100 text-green-800",
-      adjusting: "bg-yellow-100 text-yellow-800",
-      closing: "bg-purple-100 text-purple-800",
-      accrual: "bg-orange-100 text-orange-800",
-      provision: "bg-red-100 text-red-800",
+      loan: "bg-green-100 text-green-800",
+      payment: "bg-yellow-100 text-yellow-800",
+      adjustment: "bg-purple-100 text-purple-800",
     };
     const colorClass = typeColors[type as keyof typeof typeColors] || typeColors.manual;
     return <Badge className={colorClass}>{type.toUpperCase()}</Badge>;
@@ -102,28 +100,14 @@ export const JournalEntriesTable = () => {
               </SelectContent>
             </Select>
             
-            <Select value={filters.entryType} onValueChange={(value) => setFilters({ ...filters, entryType: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-                <SelectItem value="automatic">Automatic</SelectItem>
-                <SelectItem value="adjusting">Adjusting</SelectItem>
-                <SelectItem value="closing">Closing</SelectItem>
-                <SelectItem value="accrual">Accrual</SelectItem>
-                <SelectItem value="provision">Provision</SelectItem>
-              </SelectContent>
-            </Select>
-            
             <Button 
               variant="outline"
-              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "", entryType: "", searchTerm: "" })}
+              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "", searchTerm: "" })}
             >
               <Filter className="h-4 w-4 mr-2" />
-              Clear
+              Clear Filters
             </Button>
+            
           </div>
 
           {/* Table */}
@@ -145,13 +129,13 @@ export const JournalEntriesTable = () => {
                 {journalEntries?.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell className="font-medium">{entry.entry_number}</TableCell>
-                    <TableCell>{format(new Date(entry.entry_date), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{getEntryTypeBadge(entry.entry_type)}</TableCell>
+                    <TableCell>{format(new Date(entry.transaction_date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{getReferenceTypeBadge(entry.reference_type)}</TableCell>
                     <TableCell className="max-w-xs truncate" title={entry.description}>
                       {entry.description}
                     </TableCell>
-                    <TableCell>{entry.reference_number || "-"}</TableCell>
-                    <TableCell className="text-right">{entry.total_debit.toFixed(2)}</TableCell>
+                    <TableCell>{entry.reference_id || "-"}</TableCell>
+                    <TableCell className="text-right">{entry.total_amount.toFixed(2)}</TableCell>
                     <TableCell>{getStatusBadge(entry.status)}</TableCell>
                     <TableCell>
                       <Button

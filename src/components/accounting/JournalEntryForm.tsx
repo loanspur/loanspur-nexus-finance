@@ -16,10 +16,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const journalEntrySchema = z.object({
-  entry_date: z.string().min(1, "Entry date is required"),
+  transaction_date: z.string().min(1, "Transaction date is required"),
   description: z.string().min(1, "Description is required"),
-  entry_type: z.string().optional(),
-  reference_number: z.string().optional(),
+  reference_type: z.string().optional(),
+  reference_id: z.string().optional(),
   lines: z.array(z.object({
     account_id: z.string().min(1, "Account is required"),
     description: z.string().optional(),
@@ -42,10 +42,10 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
   const form = useForm<JournalEntryFormData>({
     resolver: zodResolver(journalEntrySchema),
     defaultValues: {
-      entry_date: new Date().toISOString().split('T')[0],
+      transaction_date: new Date().toISOString().split('T')[0],
       description: "",
-      entry_type: "manual",
-      reference_number: "",
+      reference_type: "",
+      reference_id: "",
       lines: [
         { account_id: "", description: "", debit_amount: "0", credit_amount: "0" },
         { account_id: "", description: "", debit_amount: "0", credit_amount: "0" },
@@ -80,10 +80,10 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
   const onSubmit = async (data: JournalEntryFormData) => {
     try {
       await createJournalEntryMutation.mutateAsync({
-        entry_date: data.entry_date,
+        transaction_date: data.transaction_date,
         description: data.description,
-        entry_type: data.entry_type,
-        reference_number: data.reference_number,
+        reference_type: data.reference_type,
+        reference_id: data.reference_id,
         lines: data.lines.map(line => ({
           account_id: line.account_id,
           description: line.description,
@@ -119,10 +119,10 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="entry_date"
+                name="transaction_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Entry Date</FormLabel>
+                    <FormLabel>Transaction Date</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -133,22 +133,21 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
               
               <FormField
                 control={form.control}
-                name="entry_type"
+                name="reference_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Entry Type</FormLabel>
+                    <FormLabel>Reference Type</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select entry type" />
+                          <SelectValue placeholder="Select reference type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="manual">Manual</SelectItem>
-                        <SelectItem value="adjusting">Adjusting</SelectItem>
-                        <SelectItem value="closing">Closing</SelectItem>
-                        <SelectItem value="accrual">Accrual</SelectItem>
-                        <SelectItem value="provision">Provision</SelectItem>
+                        <SelectItem value="manual">Manual Entry</SelectItem>
+                        <SelectItem value="loan">Loan Transaction</SelectItem>
+                        <SelectItem value="payment">Payment</SelectItem>
+                        <SelectItem value="adjustment">Adjustment</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -159,10 +158,10 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
 
             <FormField
               control={form.control}
-              name="reference_number"
+              name="reference_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reference Number (Optional)</FormLabel>
+                  <FormLabel>Reference ID (Optional)</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>

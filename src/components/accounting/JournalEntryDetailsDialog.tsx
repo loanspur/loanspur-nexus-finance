@@ -56,34 +56,34 @@ export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: Journal
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Date</label>
-                  <p>{format(new Date(entry.entry_date), 'MMM dd, yyyy')}</p>
+                  <p>{format(new Date(entry.transaction_date), 'MMM dd, yyyy')}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Type</label>
-                  <div>{getEntryTypeBadge(entry.entry_type)}</div>
+                  <div>{entry.reference_type ? getEntryTypeBadge(entry.reference_type) : "-"}</div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Status</label>
                   <div>{getStatusBadge(entry.status)}</div>
                 </div>
-                {entry.reference_number && (
+                {entry.reference_id && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Reference</label>
-                    <p>{entry.reference_number}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Reference ID</label>
+                    <p>{entry.reference_id}</p>
                   </div>
                 )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Total Amount</label>
-                  <p className="font-medium">{entry.total_debit.toFixed(2)}</p>
+                  <p className="font-medium">{entry.total_amount.toFixed(2)}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
                   <p>{format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm')}</p>
                 </div>
-                {entry.posted_at && (
+                {entry.approved_at && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Posted</label>
-                    <p>{format(new Date(entry.posted_at), 'MMM dd, yyyy HH:mm')}</p>
+                    <label className="text-sm font-medium text-muted-foreground">Approved</label>
+                    <p>{format(new Date(entry.approved_at), 'MMM dd, yyyy HH:mm')}</p>
                   </div>
                 )}
               </div>
@@ -95,12 +95,6 @@ export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: Journal
                 </div>
               )}
               
-              {entry.reversal_reason && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-muted-foreground">Reversal Reason</label>
-                  <p className="mt-1 text-destructive">{entry.reversal_reason}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -147,18 +141,8 @@ export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: Journal
               <div className="flex justify-end mt-4 pt-4 border-t">
                 <div className="text-right space-y-1">
                   <div className="flex justify-between gap-8">
-                    <span className="font-medium">Total Debits:</span>
-                    <span className="font-medium">{entry.total_debit.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between gap-8">
-                    <span className="font-medium">Total Credits:</span>
-                    <span className="font-medium">{entry.total_credit.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between gap-8 pt-2 border-t">
-                    <span className="font-medium">Difference:</span>
-                    <span className={`font-medium ${Math.abs(entry.total_debit - entry.total_credit) < 0.01 ? 'text-green-600' : 'text-red-600'}`}>
-                      {(entry.total_debit - entry.total_credit).toFixed(2)}
-                    </span>
+                    <span className="font-medium">Total Amount:</span>
+                    <span className="font-medium">{entry.total_amount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>

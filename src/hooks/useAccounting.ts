@@ -8,18 +8,15 @@ export interface JournalEntry {
   id: string;
   tenant_id: string;
   entry_number: string;
-  entry_date: string;
-  reference_number?: string;
+  transaction_date: string;
+  reference_type?: string;
+  reference_id?: string;
   description: string;
-  entry_type: 'manual' | 'automatic' | 'adjusting' | 'closing' | 'accrual' | 'provision';
-  total_debit: number;
-  total_credit: number;
+  total_amount: number;
   status: 'draft' | 'posted' | 'reversed';
   created_by?: string;
   approved_by?: string;
-  posted_at?: string;
-  reversed_at?: string;
-  reversal_reason?: string;
+  approved_at?: string;
   created_at: string;
   updated_at: string;
   journal_entry_lines?: JournalEntryLine[];
@@ -121,7 +118,6 @@ export const useJournalEntries = (filters?: {
   dateFrom?: string;
   dateTo?: string;
   status?: string;
-  entryType?: string;
   searchTerm?: string;
 }) => {
   const { profile } = useAuth();
@@ -144,19 +140,16 @@ export const useJournalEntries = (filters?: {
           )
         `)
         .eq('tenant_id', profile.tenant_id)
-        .order('entry_date', { ascending: false });
+        .order('transaction_date', { ascending: false });
 
       if (filters?.dateFrom) {
-        query = query.gte('entry_date', filters.dateFrom);
+        query = query.gte('transaction_date', filters.dateFrom);
       }
       if (filters?.dateTo) {
-        query = query.lte('entry_date', filters.dateTo);
+        query = query.lte('transaction_date', filters.dateTo);
       }
       if (filters?.status) {
         query = query.eq('status', filters.status);
-      }
-      if (filters?.entryType) {
-        query = query.eq('entry_type', filters.entryType);
       }
       if (filters?.searchTerm) {
         query = query.or(`description.ilike.%${filters.searchTerm}%,entry_number.ilike.%${filters.searchTerm}%`);
@@ -177,10 +170,10 @@ export const useCreateJournalEntry = () => {
 
   return useMutation({
     mutationFn: async (data: {
-      entry_date: string;
+      transaction_date: string;
       description: string;
-      entry_type?: string;
-      reference_number?: string;
+      reference_type?: string;
+      reference_id?: string;
       lines: Array<{
         account_id: string;
         description?: string;
@@ -209,12 +202,11 @@ export const useCreateJournalEntry = () => {
         .insert({
           tenant_id: profile.tenant_id,
           entry_number: entryNumber,
-          entry_date: data.entry_date,
+          transaction_date: data.transaction_date,
           description: data.description,
-          entry_type: data.entry_type || 'manual',
-          reference_number: data.reference_number,
-          total_debit: totalDebit,
-          total_credit: totalCredit,
+          reference_type: data.reference_type,
+          reference_id: data.reference_id,
+          total_amount: totalDebit,
           created_by: profile.id,
         })
         .select()
@@ -223,13 +215,12 @@ export const useCreateJournalEntry = () => {
       if (entryError) throw entryError;
 
       // Create journal entry lines
-      const lines = data.lines.map((line, index) => ({
+      const lines = data.lines.map((line) => ({
         journal_entry_id: journalEntry.id,
         account_id: line.account_id,
         description: line.description,
         debit_amount: line.debit_amount,
         credit_amount: line.credit_amount,
-        line_order: index + 1,
       }));
 
       const { error: linesError } = await supabase
