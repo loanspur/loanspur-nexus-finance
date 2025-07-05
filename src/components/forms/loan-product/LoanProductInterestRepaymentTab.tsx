@@ -41,35 +41,19 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="default_nominal_interest_rate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Default Interest Rate (% p.a.)</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" placeholder="10.0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="interest_rate_per_period"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Interest Rate Per Period (%)</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" placeholder="1.0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="default_nominal_interest_rate"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Default Interest Rate (% p.a.)</FormLabel>
+            <FormControl>
+              <Input type="number" step="0.01" placeholder="10.0" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <FormField
@@ -144,45 +128,19 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
         )}
       />
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="grace_period"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Grace Period</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="grace_period_type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Grace Period Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="principal_only">Principal Only</SelectItem>
-                  <SelectItem value="interest_only">Interest Only</SelectItem>
-                  <SelectItem value="both">Both Principal & Interest</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="grace_period"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Grace Period</FormLabel>
+            <FormControl>
+              <Input type="number" placeholder="0" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <FormField

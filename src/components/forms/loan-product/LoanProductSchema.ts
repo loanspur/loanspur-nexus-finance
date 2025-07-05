@@ -23,10 +23,10 @@ export const loanProductSchema = z.object({
   min_nominal_interest_rate: z.string().min(1, "Minimum interest rate is required"),
   max_nominal_interest_rate: z.string().min(1, "Maximum interest rate is required"),
   default_nominal_interest_rate: z.string().optional(),
-  interest_rate_per_period: z.string().optional(),
+  
   repayment_frequency: z.string().min(1, "Repayment frequency is required"),
   grace_period: z.string().optional(),
-  grace_period_type: z.string().optional(),
+  
   amortization_method: z.string().min(1, "Amortization method is required"),
   interest_calculation_method: z.string().min(1, "Interest calculation method is required"),
   repayment_strategy: z.string().min(1, "Repayment strategy is required"),
@@ -78,10 +78,10 @@ export const defaultValues: LoanProductFormData = {
   min_nominal_interest_rate: "",
   max_nominal_interest_rate: "",
   default_nominal_interest_rate: "",
-  interest_rate_per_period: "",
+  
   repayment_frequency: "monthly",
   grace_period: "",
-  grace_period_type: "none",
+  
   amortization_method: "equal_installments",
   interest_calculation_method: "declining_balance",
   repayment_strategy: "penalties_fees_interest_principal",
