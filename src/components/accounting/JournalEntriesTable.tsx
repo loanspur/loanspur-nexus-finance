@@ -15,7 +15,7 @@ export const JournalEntriesTable = () => {
   const [filters, setFilters] = useState({
     dateFrom: "",
     dateTo: "",
-    status: "",
+    status: "all",
     searchTerm: "",
   });
   const [showForm, setShowForm] = useState(false);
@@ -88,12 +88,12 @@ export const JournalEntriesTable = () => {
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
             />
             
-            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? "" : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="posted">Posted</SelectItem>
                 <SelectItem value="reversed">Reversed</SelectItem>
@@ -102,7 +102,7 @@ export const JournalEntriesTable = () => {
             
             <Button 
               variant="outline"
-              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "", searchTerm: "" })}
+              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "all", searchTerm: "" })}
             >
               <Filter className="h-4 w-4 mr-2" />
               Clear Filters
