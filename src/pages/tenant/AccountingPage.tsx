@@ -14,6 +14,7 @@ import {
 import { JournalEntriesTable } from "@/components/accounting/JournalEntriesTable";
 import { ChartOfAccountsTable } from "@/components/accounting/ChartOfAccountsTable";
 import { AccountBalancesTable } from "@/components/accounting/AccountBalancesTable";
+import { AccrualsTable } from "@/components/accounting/AccrualsTable";
 import { useAuth } from "@/hooks/useAuth";
 
 const AccountingPage = () => {
@@ -128,16 +129,7 @@ const AccountingPage = () => {
         </TabsContent>
 
         <TabsContent value="accruals" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Accruals Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Accruals management coming soon...
-              </div>
-            </CardContent>
-          </Card>
+          <AccrualsTable />
         </TabsContent>
 
         <TabsContent value="provisions" className="space-y-4">
