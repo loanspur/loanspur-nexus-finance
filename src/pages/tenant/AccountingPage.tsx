@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { JournalEntriesTable } from "@/components/accounting/JournalEntriesTable";
 import { ChartOfAccountsTable } from "@/components/accounting/ChartOfAccountsTable";
+import { AccountBalancesTable } from "@/components/accounting/AccountBalancesTable";
 import { useAuth } from "@/hooks/useAuth";
 
 const AccountingPage = () => {
@@ -123,16 +124,7 @@ const AccountingPage = () => {
         </TabsContent>
 
         <TabsContent value="account-balances" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Balances</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Account balances view coming soon...
-              </div>
-            </CardContent>
-          </Card>
+          <AccountBalancesTable />
         </TabsContent>
 
         <TabsContent value="accruals" className="space-y-4">
