@@ -9,6 +9,160 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_balances: {
+        Row: {
+          account_id: string
+          balance_date: string
+          closing_balance: number
+          created_at: string
+          id: string
+          opening_balance: number
+          period_credits: number
+          period_debits: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          balance_date: string
+          closing_balance?: number
+          created_at?: string
+          id?: string
+          opening_balance?: number
+          period_credits?: number
+          period_debits?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          balance_date?: string
+          closing_balance?: number
+          created_at?: string
+          id?: string
+          opening_balance?: number
+          period_credits?: number
+          period_debits?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_account_balances_account"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_account_balances_tenant"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accruals: {
+        Row: {
+          account_id: string
+          accrual_date: string
+          accrual_name: string
+          accrual_type: string
+          amount: number
+          contra_account_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          journal_entry_id: string | null
+          reversal_date: string | null
+          reversal_entry_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          accrual_date: string
+          accrual_name: string
+          accrual_type: string
+          amount: number
+          contra_account_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          reversal_date?: string | null
+          reversal_entry_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          accrual_date?: string
+          accrual_name?: string
+          accrual_type?: string
+          amount?: number
+          contra_account_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          journal_entry_id?: string | null
+          reversal_date?: string | null
+          reversal_entry_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_accruals_account"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_accruals_contra_account"
+            columns: ["contra_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_accruals_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_accruals_journal_entry"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_accruals_reversal_entry"
+            columns: ["reversal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_accruals_tenant"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_actions: {
         Row: {
           action: string
@@ -1101,6 +1255,109 @@ export type Database = {
           },
           {
             foreignKeyName: "clients_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      closing_entries: {
+        Row: {
+          closing_date: string
+          closing_period: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          income_summary_account_id: string | null
+          journal_entry_id: string | null
+          net_income: number | null
+          posted_at: string | null
+          posted_by: string | null
+          retained_earnings_account_id: string | null
+          status: string
+          tenant_id: string
+          total_expenses: number | null
+          total_revenue: number | null
+          updated_at: string
+        }
+        Insert: {
+          closing_date: string
+          closing_period: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          income_summary_account_id?: string | null
+          journal_entry_id?: string | null
+          net_income?: number | null
+          posted_at?: string | null
+          posted_by?: string | null
+          retained_earnings_account_id?: string | null
+          status?: string
+          tenant_id: string
+          total_expenses?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Update: {
+          closing_date?: string
+          closing_period?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          income_summary_account_id?: string | null
+          journal_entry_id?: string | null
+          net_income?: number | null
+          posted_at?: string | null
+          posted_by?: string | null
+          retained_earnings_account_id?: string | null
+          status?: string
+          tenant_id?: string
+          total_expenses?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_closing_entries_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_closing_entries_income_summary"
+            columns: ["income_summary_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_closing_entries_journal_entry"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_closing_entries_posted_by"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_closing_entries_retained_earnings"
+            columns: ["retained_earnings_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_closing_entries_tenant"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4702,6 +4959,102 @@ export type Database = {
           },
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provisions: {
+        Row: {
+          account_id: string
+          base_amount: number | null
+          calculation_method: string
+          calculation_rate: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expense_account_id: string
+          id: string
+          journal_entry_id: string | null
+          provision_amount: number
+          provision_date: string
+          provision_name: string
+          provision_type: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          base_amount?: number | null
+          calculation_method: string
+          calculation_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_account_id: string
+          id?: string
+          journal_entry_id?: string | null
+          provision_amount: number
+          provision_date: string
+          provision_name: string
+          provision_type: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          base_amount?: number | null
+          calculation_method?: string
+          calculation_rate?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_account_id?: string
+          id?: string
+          journal_entry_id?: string | null
+          provision_amount?: number
+          provision_date?: string
+          provision_name?: string
+          provision_type?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_provisions_account"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_provisions_created_by"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_provisions_expense_account"
+            columns: ["expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_provisions_journal_entry"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_provisions_tenant"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

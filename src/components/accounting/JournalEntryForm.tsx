@@ -1,0 +1,342 @@
+import { useState } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Trash2 } from "lucide-react";
+import { useCreateJournalEntry } from "@/hooks/useAccounting";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+const journalEntrySchema = z.object({
+  entry_date: z.string().min(1, "Entry date is required"),
+  description: z.string().min(1, "Description is required"),
+  entry_type: z.string().optional(),
+  reference_number: z.string().optional(),
+  lines: z.array(z.object({
+    account_id: z.string().min(1, "Account is required"),
+    description: z.string().optional(),
+    debit_amount: z.string(),
+    credit_amount: z.string(),
+  })).min(2, "At least two lines are required"),
+});
+
+type JournalEntryFormData = z.infer<typeof journalEntrySchema>;
+
+interface JournalEntryFormProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) => {
+  const { profile } = useAuth();
+  const createJournalEntryMutation = useCreateJournalEntry();
+
+  const form = useForm<JournalEntryFormData>({
+    resolver: zodResolver(journalEntrySchema),
+    defaultValues: {
+      entry_date: new Date().toISOString().split('T')[0],
+      description: "",
+      entry_type: "manual",
+      reference_number: "",
+      lines: [
+        { account_id: "", description: "", debit_amount: "0", credit_amount: "0" },
+        { account_id: "", description: "", debit_amount: "0", credit_amount: "0" },
+      ],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "lines",
+  });
+
+  // Fetch chart of accounts
+  const { data: accounts } = useQuery({
+    queryKey: ['chart-of-accounts', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) return [];
+      
+      const { data, error } = await supabase
+        .from('chart_of_accounts')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true)
+        .order('account_code');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.tenant_id,
+  });
+
+  const onSubmit = async (data: JournalEntryFormData) => {
+    try {
+      await createJournalEntryMutation.mutateAsync({
+        entry_date: data.entry_date,
+        description: data.description,
+        entry_type: data.entry_type,
+        reference_number: data.reference_number,
+        lines: data.lines.map(line => ({
+          account_id: line.account_id,
+          description: line.description,
+          debit_amount: parseFloat(String(line.debit_amount)) || 0,
+          credit_amount: parseFloat(String(line.credit_amount)) || 0,
+        })),
+      });
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating journal entry:', error);
+    }
+  };
+
+  const calculateTotals = () => {
+    const lines = form.watch('lines');
+    const totalDebits = lines.reduce((sum, line) => sum + (parseFloat(String(line.debit_amount)) || 0), 0);
+    const totalCredits = lines.reduce((sum, line) => sum + (parseFloat(String(line.credit_amount)) || 0), 0);
+    return { totalDebits, totalCredits };
+  };
+
+  const { totalDebits, totalCredits } = calculateTotals();
+  const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Journal Entry</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="entry_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Entry Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="entry_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Entry Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select entry type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="adjusting">Adjusting</SelectItem>
+                        <SelectItem value="closing">Closing</SelectItem>
+                        <SelectItem value="accrual">Accrual</SelectItem>
+                        <SelectItem value="provision">Provision</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="reference_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reference Number (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Journal Entry Lines</CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => append({ account_id: "", description: "", debit_amount: "0", credit_amount: "0" })}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Line
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-4">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.account_id`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Account</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accounts?.map((account) => (
+                                  <SelectItem key={account.id} value={account.id}>
+                                    {account.account_code} - {account.account_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="col-span-3">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.description`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.debit_amount`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Debit</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                step="0.01" 
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  if (parseFloat(e.target.value) > 0) {
+                                    form.setValue(`lines.${index}.credit_amount`, "0");
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="col-span-2">
+                      <FormField
+                        control={form.control}
+                        name={`lines.${index}.credit_amount`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Credit</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                step="0.01" 
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  if (parseFloat(e.target.value) > 0) {
+                                    form.setValue(`lines.${index}.debit_amount`, "0");
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="col-span-1 flex justify-center">
+                      {fields.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => remove(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Balance Check: {isBalanced ? "✓ Balanced" : "⚠ Not Balanced"}
+                  </div>
+                  <div className="text-sm">
+                    <span className="mr-4">Total Debits: {totalDebits.toFixed(2)}</span>
+                    <span>Total Credits: {totalCredits.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={!isBalanced || createJournalEntryMutation.isPending}
+              >
+                {createJournalEntryMutation.isPending ? "Creating..." : "Create Entry"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+};
