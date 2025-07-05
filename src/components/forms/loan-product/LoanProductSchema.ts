@@ -33,7 +33,9 @@ export const loanProductSchema = z.object({
   
   // Moratorium & Arrears
   moratorium_period: z.string().optional(),
+  moratorium_principal: z.string().optional(),
   moratorium_interest: z.string().optional(),
+  other_loan_charges: z.string().optional(),
   days_in_month_type: z.string().min(1, "Days in month type is required"),
   days_in_year_type: z.string().min(1, "Days in year type is required"),
   overdue_days_for_arrears: z.string().min(1, "Days for arrears is required"),
@@ -88,7 +90,9 @@ export const defaultValues: LoanProductFormData = {
   
   // Moratorium & Arrears
   moratorium_period: "",
+  moratorium_principal: "none",
   moratorium_interest: "none",
+  other_loan_charges: "",
   days_in_month_type: "actual",
   days_in_year_type: "actual",
   overdue_days_for_arrears: "1",

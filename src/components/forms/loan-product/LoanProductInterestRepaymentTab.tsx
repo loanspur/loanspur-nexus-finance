@@ -133,7 +133,10 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
         name="grace_period"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Grace Period</FormLabel>
+            <FormLabel>Grace Period (Days)</FormLabel>
+            <div className="text-sm text-muted-foreground mb-2">
+              Minimum days between disbursement and first repayment
+            </div>
             <FormControl>
               <Input type="number" placeholder="0" {...field} />
             </FormControl>
@@ -142,13 +145,13 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
         )}
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <FormField
           control={form.control}
           name="moratorium_period"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Moratorium Period</FormLabel>
+              <FormLabel>Moratorium Period (Days)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="0" {...field} />
               </FormControl>
@@ -159,10 +162,33 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
 
         <FormField
           control={form.control}
+          name="moratorium_principal"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Moratorium on Principal</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="waived">Waived</SelectItem>
+                  <SelectItem value="capitalize">Capitalize</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="moratorium_interest"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Moratorium Interest</FormLabel>
+              <FormLabel>Moratorium on Interest</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -180,6 +206,23 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
           )}
         />
       </div>
+
+      <FormField
+        control={form.control}
+        name="other_loan_charges"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Other Loan Charges</FormLabel>
+            <div className="text-sm text-muted-foreground mb-2">
+              Additional charges applied to the loan (other than overdue charges)
+            </div>
+            <FormControl>
+              <Input placeholder="Processing fee, insurance, etc." {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <div className="grid grid-cols-2 gap-4">
         <FormField
