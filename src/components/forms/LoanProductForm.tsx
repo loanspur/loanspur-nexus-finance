@@ -12,6 +12,7 @@ import { LoanProductTermsTab } from "./loan-product/LoanProductTermsTab";
 import { LoanProductInterestRepaymentTab } from "./loan-product/LoanProductInterestRepaymentTab";
 import { LoanProductArrearsTab } from "./loan-product/LoanProductArrearsTab";
 import { LoanProductAdvancedTab } from "./loan-product/LoanProductAdvancedTab";
+import { LoanProductAccountingTab } from "./loan-product/LoanProductAccountingTab";
 
 interface LoanProductFormProps {
   open: boolean;
@@ -68,11 +69,12 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId }: LoanProductFor
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="terms">Loan Terms</TabsTrigger>
                 <TabsTrigger value="interest">Interest & Repayment</TabsTrigger>
                 <TabsTrigger value="arrears">Arrears & NPA</TabsTrigger>
+                <TabsTrigger value="accounting">Accounting</TabsTrigger>
                 <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
 
@@ -90,6 +92,10 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId }: LoanProductFor
 
               <TabsContent value="arrears" className="space-y-4">
                 <LoanProductArrearsTab form={form} />
+              </TabsContent>
+
+              <TabsContent value="accounting" className="space-y-4">
+                <LoanProductAccountingTab form={form} />
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-4">

@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCreateSavingsProduct } from "@/hooks/useSupabase";
+import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Loader2 } from "lucide-react";
 
 const savingsProductSchema = z.object({
@@ -21,6 +22,16 @@ const savingsProductSchema = z.object({
   min_required_opening_balance: z.number().min(0, "Minimum opening balance must be positive"),
   min_balance_for_interest_calculation: z.number().min(0, "Minimum balance for interest must be positive"),
   is_active: z.boolean().default(true),
+  
+  // Accounting & General Ledger
+  accounting_method: z.string().min(1, "Accounting method is required"),
+  savings_reference_account_id: z.string().min(1, "Savings reference account is required"),
+  savings_control_account_id: z.string().min(1, "Savings control account is required"),
+  interest_on_savings_account_id: z.string().min(1, "Interest on savings account is required"),
+  income_from_fees_account_id: z.string().min(1, "Income from fees account is required"),
+  income_from_penalties_account_id: z.string().min(1, "Income from penalties account is required"),
+  overdraft_portfolio_control_id: z.string().optional(),
+  escheatment_liability_account_id: z.string().optional(),
 });
 
 type SavingsProductFormValues = z.infer<typeof savingsProductSchema>;
@@ -34,6 +45,12 @@ interface SavingsProductFormProps {
 export const SavingsProductForm = ({ open, onOpenChange, tenantId }: SavingsProductFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createSavingsProduct = useCreateSavingsProduct();
+  const { data: accounts } = useChartOfAccounts();
+
+  const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];
+  const liabilityAccounts = accounts?.filter(acc => acc.account_type === 'liability') || [];
+  const incomeAccounts = accounts?.filter(acc => acc.account_type === 'income') || [];
+  const expenseAccounts = accounts?.filter(acc => acc.account_type === 'expense') || [];
 
   const form = useForm<SavingsProductFormValues>({
     resolver: zodResolver(savingsProductSchema),
@@ -46,6 +63,16 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId }: SavingsProd
       min_required_opening_balance: 100,
       min_balance_for_interest_calculation: 50,
       is_active: true,
+      
+      // Accounting & General Ledger
+      accounting_method: "accrual_periodic",
+      savings_reference_account_id: "",
+      savings_control_account_id: "",
+      interest_on_savings_account_id: "",
+      income_from_fees_account_id: "",
+      income_from_penalties_account_id: "",
+      overdraft_portfolio_control_id: "",
+      escheatment_liability_account_id: "",
     },
   });
 
@@ -230,6 +257,215 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId }: SavingsProd
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Accounting Configuration */}
+            <div className="space-y-4 border-t pt-6">
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Accounting Configuration</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure general ledger accounts and accounting method for this savings product
+                </p>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="accounting_method"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Accounting Method</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select accounting method" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="accrual_periodic">Accrual Periodic</SelectItem>
+                        <SelectItem value="cash">Cash Accounting</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="savings_reference_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Savings Reference Account</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select savings reference account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {assetAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="savings_control_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Savings Control Account</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select savings control account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {liabilityAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="interest_on_savings_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Interest on Savings Account</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select interest account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {expenseAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="income_from_fees_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Income from Fees Account</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select fee income account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {incomeAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="income_from_penalties_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Income from Penalties Account</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select penalty income account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {incomeAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="overdraft_portfolio_control_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Overdraft Portfolio Control (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select overdraft control account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {assetAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="escheatment_liability_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Escheatment Liability Account (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select escheatment account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {liabilityAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <FormField

@@ -53,6 +53,18 @@ export const loanProductSchema = z.object({
   lock_in_period_frequency_type: z.string().optional(),
   overdue_charge_calculation_method: z.string().optional(),
   overdue_charge_applicable: z.boolean(),
+  
+  // Accounting & General Ledger
+  accounting_method: z.string().min(1, "Accounting method is required"),
+  fund_source_account_id: z.string().min(1, "Fund source account is required"),
+  loan_portfolio_account_id: z.string().min(1, "Loan portfolio account is required"),
+  interest_on_loans_account_id: z.string().min(1, "Interest on loans account is required"),
+  income_from_fees_account_id: z.string().min(1, "Income from fees account is required"),
+  income_from_penalties_account_id: z.string().min(1, "Income from penalties account is required"),
+  losses_written_off_account_id: z.string().min(1, "Losses written off account is required"),
+  suspense_account_id: z.string().min(1, "Suspense account is required"),
+  overpayment_account_id: z.string().min(1, "Overpayment account is required"),
+  transferred_in_suspense_account_id: z.string().min(1, "Transferred in suspense account is required"),
 });
 
 export type LoanProductFormData = z.infer<typeof loanProductSchema>;
@@ -110,4 +122,16 @@ export const defaultValues: LoanProductFormData = {
   lock_in_period_frequency_type: "days",
   overdue_charge_calculation_method: "outstanding_principal",
   overdue_charge_applicable: false,
+  
+  // Accounting & General Ledger
+  accounting_method: "accrual_periodic",
+  fund_source_account_id: "",
+  loan_portfolio_account_id: "",
+  interest_on_loans_account_id: "",
+  income_from_fees_account_id: "",
+  income_from_penalties_account_id: "",
+  losses_written_off_account_id: "",
+  suspense_account_id: "",
+  overpayment_account_id: "",
+  transferred_in_suspense_account_id: "",
 };
