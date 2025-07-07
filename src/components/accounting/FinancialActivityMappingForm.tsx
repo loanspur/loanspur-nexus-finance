@@ -70,29 +70,6 @@ export const FinancialActivityMappingForm = ({ open, onOpenChange, mapping }: Fi
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="activity_name">Activity Name *</Label>
-              <Input
-                id="activity_name"
-                value={formData.activity_name}
-                onChange={(e) => setFormData({ ...formData, activity_name: e.target.value })}
-                placeholder="e.g. Loan Disbursement"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="activity_code">Activity Code *</Label>
-              <Input
-                id="activity_code"
-                value={formData.activity_code}
-                onChange={(e) => setFormData({ ...formData, activity_code: e.target.value })}
-                placeholder="e.g. LD001"
-                required
-              />
-            </div>
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
