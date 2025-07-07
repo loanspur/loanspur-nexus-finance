@@ -14,7 +14,7 @@ export const LoanProductAccountingTab = ({ form }: LoanProductAccountingTabProps
 
   const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];
   const liabilityAccounts = accounts?.filter(acc => acc.account_type === 'liability') || [];
-  const incomeAccounts = accounts?.filter(acc => acc.account_type === 'income') || [];
+  const incomeAccounts = accounts?.filter(acc => acc.account_type === 'revenue') || [];
   const expenseAccounts = accounts?.filter(acc => acc.account_type === 'expense') || [];
 
   return (
