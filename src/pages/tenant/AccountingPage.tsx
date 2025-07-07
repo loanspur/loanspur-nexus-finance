@@ -14,6 +14,7 @@ import {
 import { JournalEntriesTable } from "@/components/accounting/JournalEntriesTable";
 import { ChartOfAccountsTable } from "@/components/accounting/ChartOfAccountsTable";
 import { AccountBalancesTable } from "@/components/accounting/AccountBalancesTable";
+import { FinancialActivityMappingsTable } from "@/components/accounting/FinancialActivityMappingsTable";
 
 import { useAuth } from "@/hooks/useAuth";
 
@@ -63,12 +64,12 @@ const AccountingPage = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Provisions</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Activity Mappings</CardTitle>
+            <Settings className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Active</p>
+            <p className="text-xs text-muted-foreground">Defined</p>
           </CardContent>
         </Card>
       </div>
@@ -88,9 +89,9 @@ const AccountingPage = () => {
             <PieChart className="h-4 w-4" />
             Account Balances
           </TabsTrigger>
-          <TabsTrigger value="provisions" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Provisions
+          <TabsTrigger value="activity-mappings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Activity Mappings
           </TabsTrigger>
           <TabsTrigger value="closing-entries" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -114,18 +115,8 @@ const AccountingPage = () => {
           <AccountBalancesTable />
         </TabsContent>
 
-
-        <TabsContent value="provisions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Provisions Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Provisions management coming soon...
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="activity-mappings" className="space-y-4">
+          <FinancialActivityMappingsTable />
         </TabsContent>
 
         <TabsContent value="closing-entries" className="space-y-4">
