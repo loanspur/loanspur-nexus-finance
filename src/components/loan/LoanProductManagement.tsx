@@ -9,6 +9,7 @@ import { FundSourcesConfigDialog } from "@/components/forms/FundSourcesConfigDia
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUpdateLoanProduct } from '@/hooks/useSupabase';
 import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, Calendar, Settings } from "lucide-react";
 
 export const LoanProductManagement = () => {
@@ -17,6 +18,7 @@ export const LoanProductManagement = () => {
   const [fundSourcesOpen, setFundSourcesOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const { profile } = useAuth();
+  const { mutate: updateLoanProduct } = useUpdateLoanProduct();
 
   // Fetch loan products
   const { data: loanProducts = [], isLoading } = useQuery({
@@ -227,6 +229,10 @@ export const LoanProductManagement = () => {
                            variant="outline" 
                            size="sm" 
                            className="flex items-center gap-1"
+                           onClick={() => updateLoanProduct({ 
+                             id: product.id, 
+                             is_active: !product.is_active 
+                           })}
                          >
                            {product.is_active ? (
                              <>

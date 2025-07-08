@@ -9,6 +9,7 @@ import { FundSourcesConfigDialog } from "@/components/forms/FundSourcesConfigDia
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUpdateSavingsProduct } from '@/hooks/useSupabase';
 import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, PiggyBank, Settings } from "lucide-react";
 
 export const SavingsProductManagement = () => {
@@ -17,6 +18,7 @@ export const SavingsProductManagement = () => {
   const [fundSourcesOpen, setFundSourcesOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const { profile } = useAuth();
+  const { mutate: updateSavingsProduct } = useUpdateSavingsProduct();
 
   // Fetch savings products
   const { data: savingsProducts = [], isLoading } = useQuery({
@@ -218,6 +220,10 @@ export const SavingsProductManagement = () => {
                           variant="outline" 
                           size="sm" 
                           className="flex items-center gap-1"
+                          onClick={() => updateSavingsProduct({ 
+                            id: product.id, 
+                            is_active: !product.is_active 
+                          })}
                         >
                           {product.is_active ? (
                             <>
