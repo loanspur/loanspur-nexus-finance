@@ -122,7 +122,7 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Button size="xl" variant="banking" onClick={() => navigate("/auth")} className="animate-pulse-glow">
+            <Button size="xl" variant="banking" onClick={() => navigate("/auth")}>
               <Star className="w-5 h-5 mr-2" />
               Start Free Trial
             </Button>
@@ -248,7 +248,7 @@ const Index = () => {
             Join hundreds of financial institutions already using LoanSpur CBS to serve their communities better. Start your digital transformation today.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Button size="xl" variant="banking" onClick={() => navigate("/auth")} className="animate-bounce-gentle">
+            <Button size="xl" variant="banking" onClick={() => navigate("/auth")}>
               <Star className="w-5 h-5 mr-2" />
               Start Your Free Trial
             </Button>
