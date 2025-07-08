@@ -5,14 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { LoanProductForm } from "@/components/forms/LoanProductForm";
+import { FundSourcesConfigDialog } from "@/components/forms/FundSourcesConfigDialog";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, Calendar } from "lucide-react";
+import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, Calendar, Settings } from "lucide-react";
 
 export const LoanProductManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [fundSourcesOpen, setFundSourcesOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const { profile } = useAuth();
 
   // Fetch loan products
@@ -194,39 +197,51 @@ export const LoanProductManagement = () => {
                         {product.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                     <TableCell>
+                       <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              setEditingProduct(product);
+                              setFormOpen(true);
+                            }}
+                          >
+                            <Edit className="w-3 h-3" />
+                            Edit
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setFundSourcesOpen(true);
+                            }}
+                          >
+                            <Settings className="w-3 h-3" />
+                            Fund Sources
+                          </Button>
                          <Button 
                            variant="outline" 
                            size="sm" 
                            className="flex items-center gap-1"
-                           onClick={() => {
-                             setEditingProduct(product);
-                             setFormOpen(true);
-                           }}
                          >
-                           <Edit className="w-3 h-3" />
-                           Edit
+                           {product.is_active ? (
+                             <>
+                               <ToggleLeft className="w-3 h-3" />
+                               Disable
+                             </>
+                           ) : (
+                             <>
+                               <ToggleRight className="w-3 h-3" />
+                               Enable
+                             </>
+                           )}
                          </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex items-center gap-1"
-                        >
-                          {product.is_active ? (
-                            <>
-                              <ToggleLeft className="w-3 h-3" />
-                              Disable
-                            </>
-                          ) : (
-                            <>
-                              <ToggleRight className="w-3 h-3" />
-                              Enable
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
+                       </div>
+                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -234,6 +249,17 @@ export const LoanProductManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Fund Sources Configuration Dialog */}
+      {selectedProduct && (
+        <FundSourcesConfigDialog
+          open={fundSourcesOpen}
+          onOpenChange={setFundSourcesOpen}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          productType="loan"
+        />
+      )}
     </div>
   );
 };

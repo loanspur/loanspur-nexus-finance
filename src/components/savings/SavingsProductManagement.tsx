@@ -5,13 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SavingsProductForm } from "@/components/forms/SavingsProductForm";
+import { FundSourcesConfigDialog } from "@/components/forms/FundSourcesConfigDialog";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, PiggyBank } from "lucide-react";
+import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, PiggyBank, Settings } from "lucide-react";
 
 export const SavingsProductManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [fundSourcesOpen, setFundSourcesOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const { profile } = useAuth();
 
   // Fetch savings products
@@ -62,8 +66,12 @@ export const SavingsProductManagement = () => {
             </DialogHeader>
             <SavingsProductForm 
               open={formOpen} 
-              onOpenChange={setFormOpen} 
+              onOpenChange={(open) => {
+                setFormOpen(open);
+                if (!open) setEditingProduct(null);
+              }}
               tenantId={profile?.tenant_id || ''} 
+              editingProduct={editingProduct}
             />
           </DialogContent>
         </Dialog>
@@ -182,9 +190,29 @@ export const SavingsProductManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1"
+                          onClick={() => {
+                            setEditingProduct(product);
+                            setFormOpen(true);
+                          }}
+                        >
                           <Edit className="w-3 h-3" />
                           Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setFundSourcesOpen(true);
+                          }}
+                        >
+                          <Settings className="w-3 h-3" />
+                          Fund Sources
                         </Button>
                         <Button 
                           variant="outline" 
@@ -212,6 +240,17 @@ export const SavingsProductManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Fund Sources Configuration Dialog */}
+      {selectedProduct && (
+        <FundSourcesConfigDialog
+          open={fundSourcesOpen}
+          onOpenChange={setFundSourcesOpen}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          productType="savings"
+        />
+      )}
     </div>
   );
 };
