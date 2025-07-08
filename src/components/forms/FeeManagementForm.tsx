@@ -23,6 +23,8 @@ const feeSchema = z.object({
     message: "Amount must be a positive number",
   }),
   category: z.enum(['loan', 'savings', 'account', 'transaction', 'penalty']),
+  chargeTimeType: z.enum(['upfront', 'monthly', 'annually', 'on_maturity', 'on_disbursement']),
+  chargePaymentBy: z.enum(['client', 'system', 'automatic', 'manual']),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   applicableFor: z.enum(['all', 'new_clients', 'existing_clients']),
@@ -92,6 +94,8 @@ export const FeeManagementForm = ({ open, onOpenChange }: FeeManagementFormProps
       type: "fixed",
       amount: "",
       category: "loan",
+      chargeTimeType: "upfront",
+      chargePaymentBy: "client",
       description: "",
       isActive: true,
       applicableFor: "all",
@@ -132,6 +136,8 @@ export const FeeManagementForm = ({ open, onOpenChange }: FeeManagementFormProps
       type: fee.type,
       amount: fee.amount.toString(),
       category: fee.category,
+      chargeTimeType: fee.chargeTimeType || "upfront",
+      chargePaymentBy: fee.chargePaymentBy || "client",
       description: fee.description,
       isActive: fee.isActive,
       applicableFor: fee.applicableFor,
@@ -382,28 +388,79 @@ export const FeeManagementForm = ({ open, onOpenChange }: FeeManagementFormProps
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="applicableFor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Applicable For</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select applicability" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="all">All Clients</SelectItem>
-                          <SelectItem value="new_clients">New Clients Only</SelectItem>
-                          <SelectItem value="existing_clients">Existing Clients Only</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                 <FormField
+                   control={form.control}
+                   name="applicableFor"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Applicable For</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <FormControl>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select applicability" />
+                           </SelectTrigger>
+                         </FormControl>
+                         <SelectContent>
+                           <SelectItem value="all">All Clients</SelectItem>
+                           <SelectItem value="new_clients">New Clients Only</SelectItem>
+                           <SelectItem value="existing_clients">Existing Clients Only</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+
+                 <div className="grid grid-cols-2 gap-4">
+                   <FormField
+                     control={form.control}
+                     name="chargeTimeType"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Charge Time Type</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <FormControl>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select charge time" />
+                             </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                             <SelectItem value="upfront">Upfront</SelectItem>
+                             <SelectItem value="monthly">Monthly</SelectItem>
+                             <SelectItem value="annually">Annually</SelectItem>
+                             <SelectItem value="on_maturity">On Maturity</SelectItem>
+                             <SelectItem value="on_disbursement">On Disbursement</SelectItem>
+                           </SelectContent>
+                         </Select>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+
+                   <FormField
+                     control={form.control}
+                     name="chargePaymentBy"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Charge Payment By</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                           <FormControl>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select payment method" />
+                             </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                             <SelectItem value="client">Client</SelectItem>
+                             <SelectItem value="system">System</SelectItem>
+                             <SelectItem value="automatic">Automatic</SelectItem>
+                             <SelectItem value="manual">Manual</SelectItem>
+                           </SelectContent>
+                         </Select>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+                 </div>
 
                 <FormField
                   control={form.control}
