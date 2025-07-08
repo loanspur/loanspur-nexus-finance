@@ -153,8 +153,8 @@ export default {
 					'50%': { transform: 'translateY(-5px)' }
 				},
 				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)' },
-					'70%': { boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)' }
+					'0%, 100%': { boxShadow: '0 0 0 0 hsl(var(--banking-primary) / 0.7)' },
+					'70%': { boxShadow: '0 0 0 10px hsl(var(--banking-primary) / 0)' }
 				}
 			},
 			animation: {
