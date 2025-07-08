@@ -12,6 +12,7 @@ import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, Calendar } fr
 
 export const LoanProductManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
   const { profile } = useAuth();
 
   // Fetch loan products
@@ -60,11 +61,15 @@ export const LoanProductManagement = () => {
                 Define a new loan product with specific terms and conditions
               </DialogDescription>
             </DialogHeader>
-            <LoanProductForm 
-              open={formOpen} 
-              onOpenChange={setFormOpen} 
-              tenantId={profile?.tenant_id || ''} 
-            />
+             <LoanProductForm 
+               open={formOpen} 
+               onOpenChange={(open) => {
+                 setFormOpen(open);
+                 if (!open) setEditingProduct(null);
+               }}
+               tenantId={profile?.tenant_id || ''} 
+               editingProduct={editingProduct}
+             />
           </DialogContent>
         </Dialog>
       </div>
@@ -191,10 +196,18 @@ export const LoanProductManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-1">
-                          <Edit className="w-3 h-3" />
-                          Edit
-                        </Button>
+                         <Button 
+                           variant="outline" 
+                           size="sm" 
+                           className="flex items-center gap-1"
+                           onClick={() => {
+                             setEditingProduct(product);
+                             setFormOpen(true);
+                           }}
+                         >
+                           <Edit className="w-3 h-3" />
+                           Edit
+                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm" 

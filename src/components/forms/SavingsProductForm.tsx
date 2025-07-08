@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCreateSavingsProduct } from "@/hooks/useSupabase";
+import { useCreateSavingsProduct, useUpdateSavingsProduct, SavingsProduct } from "@/hooks/useSupabase";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Loader2 } from "lucide-react";
 
@@ -40,11 +40,13 @@ interface SavingsProductFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenantId: string;
+  editingProduct?: SavingsProduct | null;
 }
 
-export const SavingsProductForm = ({ open, onOpenChange, tenantId }: SavingsProductFormProps) => {
+export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduct }: SavingsProductFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createSavingsProduct = useCreateSavingsProduct();
+  const updateSavingsProduct = useUpdateSavingsProduct();
   const { data: accounts } = useChartOfAccounts();
 
   const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];

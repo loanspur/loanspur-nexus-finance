@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCreateLoanProduct } from "@/hooks/useSupabase";
+import { useCreateLoanProduct, useUpdateLoanProduct, LoanProduct } from "@/hooks/useSupabase";
 import { loanProductSchema, defaultValues, type LoanProductFormData } from "./loan-product/LoanProductSchema";
 import { LoanProductBasicInfoTab } from "./loan-product/LoanProductBasicInfoTab";
 import { LoanProductTermsTab } from "./loan-product/LoanProductTermsTab";
@@ -18,21 +18,38 @@ interface LoanProductFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenantId: string;
+  editingProduct?: LoanProduct | null;
 }
 
-export const LoanProductForm = ({ open, onOpenChange, tenantId }: LoanProductFormProps) => {
+export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }: LoanProductFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createLoanProductMutation = useCreateLoanProduct();
+  const updateLoanProductMutation = useUpdateLoanProduct();
 
   const form = useForm<LoanProductFormData>({
     resolver: zodResolver(loanProductSchema),
-    defaultValues,
+    defaultValues: editingProduct ? {
+      name: editingProduct.name,
+      short_name: editingProduct.short_name,
+      description: editingProduct.description || "",
+      currency_code: editingProduct.currency_code,
+      min_principal: editingProduct.min_principal?.toString() || "",
+      max_principal: editingProduct.max_principal?.toString() || "",
+      default_principal: editingProduct.default_principal?.toString() || "",
+      min_nominal_interest_rate: editingProduct.min_nominal_interest_rate?.toString() || "",
+      max_nominal_interest_rate: editingProduct.max_nominal_interest_rate?.toString() || "",
+      default_nominal_interest_rate: editingProduct.default_nominal_interest_rate?.toString() || "",
+      min_term: editingProduct.min_term?.toString() || "",
+      max_term: editingProduct.max_term?.toString() || "",
+      default_term: editingProduct.default_term?.toString() || "",
+      repayment_frequency: editingProduct.repayment_frequency || "monthly",
+    } : defaultValues,
   });
 
   const onSubmit = async (data: LoanProductFormData) => {
     setIsSubmitting(true);
     try {
-      await createLoanProductMutation.mutateAsync({
+      const productData = {
         tenant_id: tenantId,
         name: data.name,
         short_name: data.short_name,
@@ -50,11 +67,21 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId }: LoanProductFor
         repayment_frequency: data.repayment_frequency,
         is_active: true,
         mifos_product_id: null,
-      });
+      };
+
+      if (editingProduct) {
+        await updateLoanProductMutation.mutateAsync({
+          id: editingProduct.id,
+          ...productData,
+        });
+      } else {
+        await createLoanProductMutation.mutateAsync(productData);
+      }
+      
       form.reset();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error creating loan product:", error);
+      console.error("Error saving loan product:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -64,7 +91,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId }: LoanProductFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Loan Product</DialogTitle>
+          <DialogTitle>{editingProduct ? 'Edit Loan Product' : 'Create Loan Product'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -108,7 +135,10 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId }: LoanProductFor
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Product"}
+                {isSubmitting 
+                  ? (editingProduct ? "Updating..." : "Creating...") 
+                  : (editingProduct ? "Update Product" : "Create Product")
+                }
               </Button>
             </DialogFooter>
           </form>
