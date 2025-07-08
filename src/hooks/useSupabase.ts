@@ -323,6 +323,39 @@ export const useCreateLoanProduct = () => {
   });
 };
 
+export const useUpdateLoanProduct = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (product: Partial<LoanProduct> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('loan_products')
+        .update(product)
+        .eq('id', product.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-products'] });
+      toast({
+        title: "Success",
+        description: "Loan product updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
 // Loan hooks
 export const useLoans = () => {
   return useQuery({
@@ -424,6 +457,39 @@ export const useCreateSavingsProduct = () => {
       toast({
         title: "Success",
         description: "Savings product created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const useUpdateSavingsProduct = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (product: Partial<SavingsProduct> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('savings_products')
+        .update(product)
+        .eq('id', product.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['savings-products'] });
+      toast({
+        title: "Success",
+        description: "Savings product updated successfully",
       });
     },
     onError: (error: any) => {
