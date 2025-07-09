@@ -52,18 +52,26 @@ export const SavingsProductManagement = () => {
           <h2 className="text-2xl font-bold text-foreground">Savings Products</h2>
           <p className="text-muted-foreground">Manage your savings product offerings</p>
         </div>
-        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+        <Dialog open={formOpen} onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setEditingProduct(null);
+        }}>
           <DialogTrigger asChild>
             <Button className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Savings Product</DialogTitle>
+              <DialogTitle>
+                {editingProduct ? "Edit Savings Product" : "Create Savings Product"}
+              </DialogTitle>
               <DialogDescription>
-                Define a new savings product with specific terms and interest rates
+                {editingProduct 
+                  ? "Update the savings product details and configuration"
+                  : "Define a new savings product with specific terms and interest rates"
+                }
               </DialogDescription>
             </DialogHeader>
             <SavingsProductForm 
