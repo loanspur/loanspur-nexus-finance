@@ -65,6 +65,18 @@ export const loanProductSchema = z.object({
   suspense_account_id: z.string().min(1, "Suspense account is required"),
   overpayment_account_id: z.string().min(1, "Overpayment account is required"),
   transferred_in_suspense_account_id: z.string().min(1, "Transferred in suspense account is required"),
+  
+  // Liability Accounts
+  interest_payable_account_id: z.string().optional(),
+  fees_payable_account_id: z.string().optional(),
+  loan_loss_provision_account_id: z.string().optional(),
+  unearned_income_account_id: z.string().optional(),
+  
+  // Expense Accounts
+  loan_impairment_expense_account_id: z.string().optional(),
+  credit_loss_expense_account_id: z.string().optional(),
+  loan_processing_expense_account_id: z.string().optional(),
+  collection_expense_account_id: z.string().optional(),
 });
 
 export type LoanProductFormData = z.infer<typeof loanProductSchema>;
@@ -134,4 +146,16 @@ export const defaultValues: LoanProductFormData = {
   suspense_account_id: "",
   overpayment_account_id: "",
   transferred_in_suspense_account_id: "",
+  
+  // Liability Accounts
+  interest_payable_account_id: "",
+  fees_payable_account_id: "",
+  loan_loss_provision_account_id: "",
+  unearned_income_account_id: "",
+  
+  // Expense Accounts
+  loan_impairment_expense_account_id: "",
+  credit_loss_expense_account_id: "",
+  loan_processing_expense_account_id: "",
+  collection_expense_account_id: "",
 };

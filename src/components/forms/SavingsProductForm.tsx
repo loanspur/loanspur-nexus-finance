@@ -32,6 +32,9 @@ const savingsProductSchema = z.object({
   income_from_penalties_account_id: z.string().min(1, "Income from penalties account is required"),
   overdraft_portfolio_control_id: z.string().optional(),
   escheatment_liability_account_id: z.string().optional(),
+  dormancy_tracking_account_id: z.string().optional(),
+  withholding_tax_account_id: z.string().optional(),
+  savings_operation_expense_account_id: z.string().optional(),
 });
 
 type SavingsProductFormValues = z.infer<typeof savingsProductSchema>;
@@ -75,6 +78,9 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
       income_from_penalties_account_id: "",
       overdraft_portfolio_control_id: "",
       escheatment_liability_account_id: "",
+      dormancy_tracking_account_id: "",
+      withholding_tax_account_id: "",
+      savings_operation_expense_account_id: "",
     },
   });
 
@@ -457,6 +463,81 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                         </FormControl>
                         <SelectContent>
                           {liabilityAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dormancy_tracking_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dormancy Tracking Account (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select dormancy tracking account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {liabilityAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="withholding_tax_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Withholding Tax Account (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select withholding tax account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {liabilityAccounts.map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="savings_operation_expense_account_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Savings Operation Expense Account (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select operation expense account" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {expenseAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.account_code} - {account.account_name}
                             </SelectItem>

@@ -278,6 +278,232 @@ export const LoanProductAccountingTab = ({ form }: LoanProductAccountingTabProps
         </CardContent>
       </Card>
 
+      {/* Liability Accounts */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Liability Accounts</CardTitle>
+          <CardDescription>
+            Configure liability accounts for client deposits, accrued interest, and provisions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="interest_payable_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Interest Payable Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select interest payable account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {liabilityAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="fees_payable_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fees Payable Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select fees payable account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {liabilityAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="loan_loss_provision_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Loan Loss Provision Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select provision account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {liabilityAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="unearned_income_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unearned Income Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select unearned income account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {liabilityAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Expense Accounts */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Expense Accounts</CardTitle>
+          <CardDescription>
+            Configure expense accounts for loan impairment, operational costs, and provisions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="loan_impairment_expense_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Loan Impairment Expense Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select impairment expense account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {expenseAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="credit_loss_expense_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Credit Loss Expense Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select credit loss expense account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {expenseAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="loan_processing_expense_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Loan Processing Expense Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select processing expense account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {expenseAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="collection_expense_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Collection Expense Account</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select collection expense account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {expenseAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Transfer Accounts */}
       <Card>
         <CardHeader>
