@@ -27,7 +27,7 @@ const feeSchema = z.object({
   maximum_fee: z.string().optional(),
   frequency: z.enum(['one_time', 'monthly', 'quarterly', 'annually']),
   charge_time_type: z.enum(['upfront', 'monthly', 'annually', 'on_maturity', 'on_disbursement']),
-  charge_payment_by: z.enum(['client', 'system', 'automatic', 'manual']),
+  charge_payment_by: z.enum(['regular', 'transfer_from_savings']),
   is_active: z.boolean().default(true),
 });
 
@@ -56,7 +56,7 @@ export const FeeStructureManagement = () => {
       maximum_fee: "",
       frequency: "one_time",
       charge_time_type: "upfront",
-      charge_payment_by: "client",
+      charge_payment_by: "regular",
       is_active: true,
     },
   });
@@ -103,7 +103,7 @@ export const FeeStructureManagement = () => {
       maximum_fee: fee.maximum_fee?.toString() || "",
       frequency: fee.frequency,
       charge_time_type: (fee as any).charge_time_type || "upfront",
-      charge_payment_by: (fee as any).charge_payment_by || "client",
+      charge_payment_by: (fee as any).charge_payment_by || "regular",
       is_active: fee.is_active,
     });
     setActiveTab("form");
@@ -487,10 +487,8 @@ export const FeeStructureManagement = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="client">Client</SelectItem>
-                              <SelectItem value="system">System</SelectItem>
-                              <SelectItem value="automatic">Automatic</SelectItem>
-                              <SelectItem value="manual">Manual</SelectItem>
+                              <SelectItem value="regular">Regular</SelectItem>
+                              <SelectItem value="transfer_from_savings">Transfer from Savings</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
