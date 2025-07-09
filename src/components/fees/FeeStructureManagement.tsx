@@ -26,6 +26,8 @@ const feeSchema = z.object({
   minimum_fee: z.string().optional(),
   maximum_fee: z.string().optional(),
   frequency: z.enum(['one_time', 'monthly', 'quarterly', 'annually']),
+  charge_time_type: z.enum(['upfront', 'monthly', 'annually', 'on_maturity', 'on_disbursement']),
+  charge_payment_by: z.enum(['client', 'system', 'automatic', 'manual']),
   is_active: z.boolean().default(true),
 });
 
@@ -53,6 +55,8 @@ export const FeeStructureManagement = () => {
       minimum_fee: "",
       maximum_fee: "",
       frequency: "one_time",
+      charge_time_type: "upfront",
+      charge_payment_by: "client",
       is_active: true,
     },
   });
@@ -98,6 +102,8 @@ export const FeeStructureManagement = () => {
       minimum_fee: fee.minimum_fee.toString(),
       maximum_fee: fee.maximum_fee?.toString() || "",
       frequency: fee.frequency,
+      charge_time_type: (fee as any).charge_time_type || "upfront",
+      charge_payment_by: (fee as any).charge_payment_by || "client",
       is_active: fee.is_active,
     });
     setActiveTab("form");
@@ -441,6 +447,57 @@ export const FeeStructureManagement = () => {
                       </FormItem>
                     )}
                   />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="charge_time_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Charge Time Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select charge time" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="upfront">Upfront</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="annually">Annually</SelectItem>
+                              <SelectItem value="on_maturity">On Maturity</SelectItem>
+                              <SelectItem value="on_disbursement">On Disbursement</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="charge_payment_by"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Charge Payment By</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select payment method" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="client">Client</SelectItem>
+                              <SelectItem value="system">System</SelectItem>
+                              <SelectItem value="automatic">Automatic</SelectItem>
+                              <SelectItem value="manual">Manual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
