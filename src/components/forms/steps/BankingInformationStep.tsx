@@ -1,8 +1,11 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2 } from "lucide-react";
+import { kenyanBanks } from "@/data/banks";
+import { useState } from "react";
 
 interface BankingInformationStepProps {
   form: UseFormReturn<any>;
@@ -11,6 +14,9 @@ interface BankingInformationStepProps {
 }
 
 export const BankingInformationStep = ({ form }: BankingInformationStepProps) => {
+  const [selectedBank, setSelectedBank] = useState<string>("");
+  const selectedBankData = kenyanBanks.find(bank => bank.name === selectedBank);
+
   return (
     <div className="space-y-6">
       <Card>
@@ -30,9 +36,28 @@ export const BankingInformationStep = ({ form }: BankingInformationStepProps) =>
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Bank Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Kenya Commercial Bank" {...field} />
-                </FormControl>
+                <Select 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setSelectedBank(value);
+                    // Clear branch when bank changes
+                    form.setValue("bank_branch", "");
+                  }} 
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a bank" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {kenyanBanks.map((bank) => (
+                      <SelectItem key={bank.code} value={bank.name}>
+                        {bank.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -59,9 +84,20 @@ export const BankingInformationStep = ({ form }: BankingInformationStepProps) =>
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Branch</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nairobi Branch" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedBankData}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={selectedBankData ? "Select a branch" : "Select bank first"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {selectedBankData?.branches.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

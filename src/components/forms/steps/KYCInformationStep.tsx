@@ -21,7 +21,7 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
             <FormItem>
               <FormLabel>Client Number *</FormLabel>
               <FormControl>
-                <Input placeholder="CLI001" {...field} />
+                <Input placeholder="CLI001" {...field} disabled className="bg-muted" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -43,7 +43,7 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <FormField
           control={form.control}
           name="first_name"
@@ -52,6 +52,20 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
               <FormLabel>First Name *</FormLabel>
               <FormControl>
                 <Input placeholder="John" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="middle_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Middle Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Michael" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

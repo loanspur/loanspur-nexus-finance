@@ -26,6 +26,7 @@ const clientOnboardingSchema = z.object({
   // KYC Information
   client_number: z.string().min(1, "Client number is required"),
   first_name: z.string().min(1, "First name is required"),
+  middle_name: z.string().optional(),
   last_name: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().min(1, "Phone number is required"),
@@ -102,6 +103,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
     defaultValues: {
       client_number: "",
       first_name: "",
+      middle_name: "",
       last_name: "",
       email: "",
       phone: "",
@@ -159,6 +161,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         tenant_id: profile?.tenant_id,
         client_number: data.client_number,
         first_name: data.first_name,
+        middle_name: data.middle_name || null,
         last_name: data.last_name,
         email: data.email || null,
         phone: data.phone,
