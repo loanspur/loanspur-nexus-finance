@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, User, FileText, Building, CreditCard, Users, Upload, CheckCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useCreateClient } from "@/hooks/useSupabase";
 
 // Step Components
 import { KYCInformationStep } from "./steps/KYCInformationStep";
@@ -118,6 +119,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
   const [uploadedDocuments, setUploadedDocuments] = useState<string[]>([]);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const createClientMutation = useCreateClient();
 
   // Generate unique client number
   const generateClientNumber = () => {
@@ -363,15 +365,13 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         mifos_client_id: null,
       };
 
-      console.log('Creating client with data:', clientData);
-      console.log('All next of kin contacts:', data.next_of_kin);
-      console.log('Savings account requested:', data.create_savings_account);
-      console.log('Uploaded documents:', uploadedDocuments);
+      // Create the client in the database
+      await createClientMutation.mutateAsync(clientData);
 
-      toast({
-        title: "Success",
-        description: "Client onboarding completed successfully. Pending approval.",
-      });
+      // TODO: Handle additional features if needed
+      // - Save additional next of kin contacts (beyond the first one)
+      // - Create savings account if requested
+      // - Upload documents to storage and link to client
 
       form.reset();
       setCurrentStep(0);
