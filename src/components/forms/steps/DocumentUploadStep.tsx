@@ -14,10 +14,10 @@ interface DocumentUploadStepProps {
   setUploadedDocuments: (docs: string[]) => void;
 }
 
-const requiredDocuments = [
-  { id: 'national_id', label: 'National ID', required: true },
-  { id: 'passport_photo', label: 'Passport Photo', required: true },
-  { id: 'proof_of_residence', label: 'Proof of Residence', required: true },
+const documentOptions = [
+  { id: 'national_id', label: 'National ID', required: false },
+  { id: 'passport_photo', label: 'Passport Photo', required: false },
+  { id: 'proof_of_residence', label: 'Proof of Residence', required: false },
   { id: 'bank_statement', label: 'Bank Statement', required: false },
   { id: 'employment_letter', label: 'Employment Letter', required: false },
   { id: 'business_permit', label: 'Business Permit', required: false },
@@ -69,9 +69,6 @@ export const DocumentUploadStep = ({
   };
 
   const isDocumentUploaded = (docId: string) => uploadedDocuments.includes(docId);
-  const requiredDocsUploaded = requiredDocuments
-    .filter(doc => doc.required)
-    .every(doc => isDocumentUploaded(doc.id));
 
   return (
     <div className="space-y-6">
@@ -82,18 +79,13 @@ export const DocumentUploadStep = ({
             Document Upload
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant={requiredDocsUploaded ? "default" : "secondary"}>
-              {uploadedDocuments.filter(docId => 
-                requiredDocuments.find(doc => doc.id === docId && doc.required)
-              ).length} / {requiredDocuments.filter(doc => doc.required).length} Required
-            </Badge>
             <Badge variant="outline">
-              {uploadedDocuments.length} / {requiredDocuments.length} Total
+              {uploadedDocuments.length} / {documentOptions.length} Documents Uploaded
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {requiredDocuments.map((doc) => {
+          {documentOptions.map((doc) => {
             const isUploaded = isDocumentUploaded(doc.id);
             const isUploading = uploading === doc.id;
 
@@ -111,10 +103,10 @@ export const DocumentUploadStep = ({
                     <p className="font-medium">{doc.label}</p>
                     <div className="flex items-center gap-2">
                       <Badge 
-                        variant={doc.required ? "destructive" : "secondary"}
+                        variant="secondary"
                         className="text-xs"
                       >
-                        {doc.required ? "Required" : "Optional"}
+                        Optional
                       </Badge>
                       {isUploaded && (
                         <Badge variant="default" className="text-xs">
@@ -181,7 +173,7 @@ export const DocumentUploadStep = ({
               <li>Accepted formats: PDF, JPG, PNG</li>
               <li>Maximum file size: 5MB per document</li>
               <li>Ensure documents are clear and readable</li>
-              <li>All required documents must be uploaded to proceed</li>
+              <li>All documents are optional - you can proceed without uploading</li>
             </ul>
           </div>
         </div>

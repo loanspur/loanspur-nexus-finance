@@ -378,7 +378,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
           </div>
         </DialogHeader>
 
-        <div className="flex gap-6 overflow-hidden min-h-[70vh]">
+        <div className="flex gap-6 h-[70vh]">
           {/* Left Sidebar - Step Navigation */}
           <div className="w-72 flex-shrink-0 space-y-2 overflow-y-auto">
             {steps.map((step, index) => {
@@ -430,9 +430,9 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col">
             <Form {...form}>
-              <div className="flex-1 overflow-y-auto pr-2">
+              <div className="flex-1 overflow-y-auto pr-2 max-h-[55vh]">
                 {/* Current Step */}
                 <Card className="border-0 shadow-none">
                   <CardHeader className="px-0 pt-0 pb-4">
@@ -451,7 +451,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
               </div>
 
               {/* Navigation Buttons - Fixed at bottom */}
-              <div className="flex items-center justify-between pt-4 mt-4 border-t bg-background">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t bg-background flex-shrink-0">
                 <Button
                   type="button"
                   variant="outline"
