@@ -365,7 +365,9 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       };
 
       // Create the client in the database
+      console.log('Creating client with data:', clientData);
       await createClientMutation.mutateAsync(clientData);
+      console.log('Client created successfully');
 
       // TODO: Handle additional features if needed
       // - Save additional next of kin contacts (beyond the first one)
