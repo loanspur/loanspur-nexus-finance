@@ -266,22 +266,31 @@ export const ReviewStep = ({ formData, onSubmit, isSubmitting }: ReviewStepProps
         </Card>
       )}
 
-      {/* Submit Button */}
+      {/* Action Buttons */}
       <Card>
         <CardContent className="pt-6">
           <div className="text-center space-y-4">
             <p className="text-sm text-muted-foreground">
               By submitting this form, I confirm that all information provided is accurate and complete.
             </p>
-            <Button
-              onClick={onSubmit}
-              disabled={isSubmitting}
-              size="lg"
-              className="bg-success hover:bg-success/90 flex items-center gap-2"
-            >
-              {isSubmitting ? "Submitting..." : "Submit Application"}
-              <CheckCircle className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-4 justify-center">
+              <Button
+                variant="outline"
+                onClick={() => window.history.back()}
+                size="lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={onSubmit}
+                disabled={isSubmitting}
+                size="lg"
+                className="bg-success hover:bg-success/90 flex items-center gap-2"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Application"}
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
