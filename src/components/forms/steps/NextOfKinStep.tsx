@@ -42,9 +42,6 @@ export const NextOfKinStep = ({ form }: NextOfKinStepProps) => {
             <Users className="h-5 w-5" />
             Next of Kin / Emergency Contacts
           </h3>
-          <p className="text-sm text-muted-foreground">
-            Add one or more emergency contacts
-          </p>
         </div>
         <Button type="button" onClick={addNextOfKin} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -57,7 +54,7 @@ export const NextOfKinStep = ({ form }: NextOfKinStepProps) => {
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">No next of kin contacts added yet</p>
+              <p className="text-muted-foreground mb-4">No contacts added yet</p>
               <Button type="button" onClick={addNextOfKin} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Add First Contact
@@ -88,9 +85,6 @@ export const NextOfKinStep = ({ form }: NextOfKinStepProps) => {
                 </Button>
               )}
             </div>
-            <CardDescription>
-              Contact information for emergency situations
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

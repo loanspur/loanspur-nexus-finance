@@ -30,9 +30,6 @@ export const ReviewStep = ({ formData, onSubmit, isSubmitting }: ReviewStepProps
       <div className="text-center">
         <CheckCircle className="h-12 w-12 mx-auto text-green-600 mb-4" />
         <h3 className="text-xl font-semibold mb-2">Review Your Information</h3>
-        <p className="text-muted-foreground">
-          Please review all the information below before submitting your application
-        </p>
       </div>
 
       {/* KYC Information */}

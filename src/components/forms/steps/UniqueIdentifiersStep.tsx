@@ -22,9 +22,6 @@ export const UniqueIdentifiersStep = ({ form }: UniqueIdentifiersStepProps) => {
             <FileText className="h-5 w-5" />
             Select Identifier Type
           </CardTitle>
-          <CardDescription>
-            Choose which type of identification document you want to provide
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <FormField
@@ -59,9 +56,6 @@ export const UniqueIdentifiersStep = ({ form }: UniqueIdentifiersStepProps) => {
               <CreditCard className="h-5 w-5" />
               National ID
             </CardTitle>
-            <CardDescription>
-              Primary government-issued identification (8 digits)
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
@@ -92,9 +86,6 @@ export const UniqueIdentifiersStep = ({ form }: UniqueIdentifiersStepProps) => {
               <FileText className="h-5 w-5" />
               Passport
             </CardTitle>
-            <CardDescription>
-              International travel document (6-12 characters, letters and numbers)
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <FormField
@@ -126,9 +117,6 @@ export const UniqueIdentifiersStep = ({ form }: UniqueIdentifiersStepProps) => {
               <Car className="h-5 w-5" />
               Driving License
             </CardTitle>
-            <CardDescription>
-              Valid driving license number
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <FormField

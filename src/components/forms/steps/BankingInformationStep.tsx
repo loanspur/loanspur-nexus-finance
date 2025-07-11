@@ -25,9 +25,6 @@ export const BankingInformationStep = ({ form }: BankingInformationStepProps) =>
             <Building2 className="h-5 w-5" />
             Bank Account Details
           </CardTitle>
-          <CardDescription>
-            Primary bank account for transactions and disbursements
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <FormField

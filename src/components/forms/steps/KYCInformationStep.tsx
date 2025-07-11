@@ -33,7 +33,7 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Email *</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="client@example.com" {...field} />
               </FormControl>

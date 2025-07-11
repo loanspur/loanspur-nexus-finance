@@ -36,9 +36,6 @@ export const SavingsAccountStep = ({
             <PiggyBank className="h-5 w-5" />
             Savings Account Setup
           </CardTitle>
-          <CardDescription>
-            Optionally create a savings account for the client
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <FormField
@@ -144,9 +141,6 @@ export const SavingsAccountStep = ({
             <CheckCircle className="h-5 w-5" />
             Onboarding Summary
           </CardTitle>
-          <CardDescription>
-            Review the client onboarding process
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

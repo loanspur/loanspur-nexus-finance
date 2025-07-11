@@ -23,9 +23,6 @@ export const EmploymentBusinessStep = ({ form }: EmploymentBusinessStepProps) =>
             <DollarSign className="h-5 w-5" />
             Income Source
           </CardTitle>
-          <CardDescription>
-            Select your primary source of income
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <FormField
@@ -59,9 +56,6 @@ export const EmploymentBusinessStep = ({ form }: EmploymentBusinessStepProps) =>
               <Briefcase className="h-5 w-5" />
               Employment Details
             </CardTitle>
-            <CardDescription>
-              Current employment and job information
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -166,9 +160,6 @@ export const EmploymentBusinessStep = ({ form }: EmploymentBusinessStepProps) =>
               <Building className="h-5 w-5" />
               Business Details
             </CardTitle>
-            <CardDescription>
-              Information about your business
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

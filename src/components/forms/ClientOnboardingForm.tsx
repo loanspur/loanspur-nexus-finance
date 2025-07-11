@@ -29,10 +29,7 @@ const clientOnboardingSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters"),
   middle_name: z.string().optional(),
   last_name: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.union([
-    z.string().email("Invalid email format"),
-    z.literal("")
-  ]).optional(),
+  email: z.string().min(1, "Email is required").email("Invalid email format"),
   phone: z.string()
     .min(10, "Phone number must be at least 10 digits")
     .regex(/^[\+]?[0-9\s\-\(\)]{10,15}$/, "Invalid phone number format"),
@@ -196,7 +193,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
     switch (stepId) {
       case 'kyc':
-        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth'];
+        fieldsToValidate = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth'];
         break;
       case 'identifiers':
         const selectedType = form.getValues('selected_identifier_type');
