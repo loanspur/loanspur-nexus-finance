@@ -287,7 +287,7 @@ export const ReviewStep = ({ formData, onSubmit, isSubmitting }: ReviewStepProps
                 size="lg"
                 className="bg-success hover:bg-success/90 flex items-center gap-2"
               >
-                {isSubmitting ? "Submitting..." : "Submit Application"}
+                {isSubmitting ? "Submitting..." : "Complete Onboarding & Submit Application"}
                 <CheckCircle className="h-4 w-4" />
               </Button>
             </div>
