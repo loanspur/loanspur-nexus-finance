@@ -24,8 +24,8 @@ import { ReviewStep } from "./steps/ReviewStep";
 
 // Enhanced validation schema
 const clientOnboardingSchema = z.object({
-  // KYC Information
-  client_number: z.string().min(1, "Client number is required"),
+  // KYC Information (client_number will be auto-generated)
+  client_number: z.string().optional(),
   first_name: z.string().min(2, "First name must be at least 2 characters"),
   middle_name: z.string().optional(),
   last_name: z.string().min(2, "Last name must be at least 2 characters"),
@@ -122,6 +122,13 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
   const { toast } = useToast();
   const { profile } = useAuth();
 
+  // Generate unique client number
+  const generateClientNumber = () => {
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    return `CLI${timestamp}${random}`;
+  };
+
   const form = useForm<ClientOnboardingData>({
     resolver: zodResolver(clientOnboardingSchema),
     defaultValues: {
@@ -161,6 +168,14 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
     },
   });
 
+  // Auto-generate client number when form opens
+  React.useEffect(() => {
+    if (open && !form.getValues('client_number')) {
+      const newClientNumber = generateClientNumber();
+      form.setValue('client_number', newClientNumber);
+    }
+  }, [open, form]);
+
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   const nextStep = () => {
@@ -181,7 +196,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
     switch (stepId) {
       case 'kyc':
-        fieldsToValidate = ['client_number', 'first_name', 'last_name', 'phone', 'date_of_birth'];
+        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth'];
         break;
       case 'identifiers':
         const selectedType = form.getValues('selected_identifier_type');

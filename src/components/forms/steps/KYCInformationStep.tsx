@@ -19,7 +19,7 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           name="client_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client Number *</FormLabel>
+              <FormLabel>Client Number (Auto-generated)</FormLabel>
               <FormControl>
                 <Input placeholder="CLI001" {...field} disabled className="bg-muted" />
               </FormControl>
