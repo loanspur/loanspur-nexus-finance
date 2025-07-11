@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, FileText, Car } from "lucide-react";
+import { CreditCard, FileText, Car, Mail } from "lucide-react";
 
 interface UniqueIdentifiersStepProps {
   form: UseFormReturn<any>;
@@ -40,6 +40,7 @@ export const UniqueIdentifiersStep = ({ form }: UniqueIdentifiersStepProps) => {
                     <SelectItem value="national_id">National ID</SelectItem>
                     <SelectItem value="passport_number">Passport</SelectItem>
                     <SelectItem value="driving_license_number">Driving License</SelectItem>
+                    <SelectItem value="email">Email Address</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -127,6 +128,36 @@ export const UniqueIdentifiersStep = ({ form }: UniqueIdentifiersStepProps) => {
                   <FormLabel>Driving License Number</FormLabel>
                   <FormControl>
                     <Input placeholder="DL123456789" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedType === 'email' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Address
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="email"
+                      placeholder="client@example.com" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

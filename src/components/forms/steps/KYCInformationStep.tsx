@@ -13,7 +13,7 @@ interface KYCInformationStepProps {
 export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <FormField
           control={form.control}
           name="client_number"
@@ -22,20 +22,6 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
               <FormLabel>Client Number (Auto-generated)</FormLabel>
               <FormControl>
                 <Input placeholder="CLI001" {...field} disabled className="bg-muted" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email *</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="client@example.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
