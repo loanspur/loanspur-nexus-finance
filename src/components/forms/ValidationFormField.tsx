@@ -133,18 +133,13 @@ export const ValidationFormField = ({
             {hasError && <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />}
           </FormMessage>
           
-          {/* Guidelines */}
-          {(hasError || guidelines.length > 0) && (
-            <div className={cn(
-              "text-xs rounded-md p-2 mt-1",
-              hasError ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-muted/50 text-muted-foreground"
-            )}>
+          {/* Guidelines - Only show when there's an error */}
+          {hasError && (
+            <div className="text-xs rounded-md p-2 mt-1 bg-destructive/10 text-destructive border border-destructive/20">
               <div className="flex items-start gap-1">
                 <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium mb-1">
-                    {hasError ? "Please fix the following:" : "Guidelines:"}
-                  </p>
+                  <p className="font-medium mb-1">Please fix the following:</p>
                   <ul className="space-y-0.5">
                     {getFieldGuidelines().map((guideline, index) => (
                       <li key={index} className="flex items-start gap-1">
