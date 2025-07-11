@@ -40,7 +40,7 @@ export const NextOfKinStep = ({ form }: NextOfKinStepProps) => {
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Next of Kin / Emergency Contacts
+            Emergency Contacts
           </h3>
         </div>
         <Button type="button" onClick={addNextOfKin} className="flex items-center gap-2">
@@ -54,7 +54,7 @@ export const NextOfKinStep = ({ form }: NextOfKinStepProps) => {
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">No contacts added yet</p>
+              <p className="text-muted-foreground mb-4">No contacts added</p>
               <Button type="button" onClick={addNextOfKin} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Add First Contact
@@ -70,7 +70,7 @@ export const NextOfKinStep = ({ form }: NextOfKinStepProps) => {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Emergency Contact {index + 1}
+                Contact {index + 1}
               </CardTitle>
               {fields.length > 1 && (
                 <Button

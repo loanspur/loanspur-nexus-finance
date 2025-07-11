@@ -103,14 +103,14 @@ interface ClientOnboardingFormProps {
 }
 
 const steps = [
-  { id: 'kyc', title: 'KYC Information', icon: User, description: 'Basic personal information' },
-  { id: 'identifiers', title: 'Unique Identifiers', icon: FileText, description: 'ID numbers and documents' },
-  { id: 'banking', title: 'Banking Information', icon: CreditCard, description: 'Bank account details' },
-  { id: 'employment_business', title: 'Income Source', icon: Building, description: 'Employment or business details' },
-  { id: 'next_of_kin', title: 'Next of Kin', icon: Users, description: 'Emergency contact information' },
-  { id: 'documents', title: 'Document Upload', icon: Upload, description: 'Upload required documents' },
-  { id: 'savings', title: 'Savings Account', icon: CheckCircle, description: 'Create savings account' },
-  { id: 'review', title: 'Review', icon: Eye, description: 'Review all information' },
+  { id: 'kyc', title: 'KYC Information', icon: User, description: 'Personal details' },
+  { id: 'identifiers', title: 'Unique Identifiers', icon: FileText, description: 'ID verification' },
+  { id: 'banking', title: 'Banking Information', icon: CreditCard, description: 'Bank details' },
+  { id: 'employment_business', title: 'Income Source', icon: Building, description: 'Income details' },
+  { id: 'next_of_kin', title: 'Next of Kin', icon: Users, description: 'Emergency contact' },
+  { id: 'documents', title: 'Document Upload', icon: Upload, description: 'Upload documents' },
+  { id: 'savings', title: 'Savings Account', icon: CheckCircle, description: 'Account setup' },
+  { id: 'review', title: 'Review', icon: Eye, description: 'Review details' },
 ];
 
 export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFormProps) => {
@@ -222,7 +222,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         if (!selectedType) {
           toast({
             title: "Identifier Required",
-            description: "Please select an identifier type and provide the corresponding information",
+            description: "Select an identifier type",
             variant: "destructive",
           });
           return false;
@@ -236,7 +236,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         if (!incomeType) {
           toast({
             title: "Income Source Required",
-            description: "Please select whether your income comes from employment or business",
+            description: "Select employment or business",
             variant: "destructive",
           });
           return false;
@@ -252,7 +252,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         if (nextOfKin.length === 0) {
           toast({
             title: "Next of Kin Required",
-            description: "Please add at least one next of kin contact before proceeding to the next step",
+            description: "Add at least one contact",
             variant: "destructive",
           });
           return false;

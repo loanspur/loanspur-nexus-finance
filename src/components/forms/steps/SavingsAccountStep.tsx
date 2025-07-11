@@ -57,7 +57,7 @@ export const SavingsAccountStep = ({
                     Create Savings Account
                   </FormLabel>
                   <p className="text-sm text-muted-foreground">
-                    Create a savings account for this client during onboarding
+                    Create savings account during onboarding
                   </p>
                 </div>
               </FormItem>
@@ -120,12 +120,7 @@ export const SavingsAccountStep = ({
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 mt-0.5 text-blue-600" />
                   <div>
-                    <p className="font-medium text-blue-800">Account Creation Process:</p>
-                    <ul className="list-disc list-inside mt-1 space-y-1 text-blue-700">
-                      <li>Account will be created in pending status</li>
-                      <li>Requires approval before activation</li>
-                      <li>Initial deposit will be processed after approval</li>
-                    </ul>
+                    <p className="font-medium text-blue-800">Account will be pending approval</p>
                   </div>
                 </div>
               </div>
@@ -168,13 +163,7 @@ export const SavingsAccountStep = ({
             <div className="flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 text-amber-600" />
               <div>
-                <p className="font-medium text-amber-800">Next Steps:</p>
-                <ol className="list-decimal list-inside mt-1 space-y-1 text-amber-700">
-                  <li>Client will be created with pending approval status</li>
-                  <li>Admin review and approval required</li>
-                  <li>Account activation after approval</li>
-                  <li>Savings account creation (if selected)</li>
-                </ol>
+                <p className="font-medium text-amber-800">Client will be created pending approval</p>
               </div>
             </div>
           </div>

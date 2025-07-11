@@ -35,7 +35,6 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           label="First Name"
           placeholder="John"
           required
-          guidelines={["Must be at least 2 characters", "Only letters and spaces allowed"]}
         />
         
         <ValidationFormField
@@ -51,7 +50,6 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           label="Last Name"
           placeholder="Doe"
           required
-          guidelines={["Must be at least 2 characters", "Only letters and spaces allowed"]}
         />
       </div>
 
@@ -63,7 +61,6 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           type="phone"
           placeholder="+254700000000"
           required
-          guidelines={["Include country code (e.g., +254700000000)", "Must be 10-15 digits"]}
         />
         
         <ValidationFormField
@@ -72,7 +69,6 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           label="Date of Birth"
           type="date"
           required
-          guidelines={["Select a valid date", "Date of birth should be in the past"]}
         />
       </div>
 

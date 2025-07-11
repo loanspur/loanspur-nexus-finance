@@ -23,17 +23,17 @@ interface UploadedDocument {
 }
 
 const documentTypes = [
-  { value: 'national_id', label: 'National ID', description: 'Government issued ID card' },
-  { value: 'passport', label: 'Passport', description: 'International travel document' },
-  { value: 'driving_license', label: 'Driving License', description: 'Valid driving permit' },
-  { value: 'birth_certificate', label: 'Birth Certificate', description: 'Official birth record' },
-  { value: 'proof_of_residence', label: 'Proof of Residence', description: 'Utility bill or lease agreement' },
-  { value: 'bank_statement', label: 'Bank Statement', description: '3 months bank statements' },
-  { value: 'employment_letter', label: 'Employment Letter', description: 'Letter from employer' },
-  { value: 'payslip', label: 'Payslip', description: 'Recent salary slip' },
-  { value: 'business_permit', label: 'Business Permit', description: 'Business registration document' },
-  { value: 'tax_certificate', label: 'Tax Certificate', description: 'Tax compliance certificate' },
-  { value: 'other', label: 'Other Document', description: 'Any other supporting document' },
+  { value: 'national_id', label: 'National ID', description: 'ID card' },
+  { value: 'passport', label: 'Passport', description: 'Travel document' },
+  { value: 'driving_license', label: 'Driving License', description: 'Driving permit' },
+  { value: 'birth_certificate', label: 'Birth Certificate', description: 'Birth record' },
+  { value: 'proof_of_residence', label: 'Proof of Residence', description: 'Utility bill' },
+  { value: 'bank_statement', label: 'Bank Statement', description: 'Bank statements' },
+  { value: 'employment_letter', label: 'Employment Letter', description: 'Employer letter' },
+  { value: 'payslip', label: 'Payslip', description: 'Salary slip' },
+  { value: 'business_permit', label: 'Business Permit', description: 'Business registration' },
+  { value: 'tax_certificate', label: 'Tax Certificate', description: 'Tax certificate' },
+  { value: 'other', label: 'Other Document', description: 'Supporting document' },
 ];
 
 export const DocumentUploadStep = ({ 
@@ -126,7 +126,7 @@ export const DocumentUploadStep = ({
             Upload New Document
           </CardTitle>
           <CardDescription>
-            Select the document type and upload your file
+            Select document type and upload file
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -197,8 +197,7 @@ export const DocumentUploadStep = ({
           {uploadedDocs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No documents uploaded yet</p>
-              <p className="text-sm">Upload documents using the form above</p>
+              <p>No documents uploaded</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -243,13 +242,11 @@ export const DocumentUploadStep = ({
         <div className="flex items-start gap-2">
           <FileText className="h-4 w-4 mt-0.5" />
           <div>
-            <p className="font-medium">Upload Guidelines:</p>
+            <p className="font-medium">Guidelines:</p>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Accepted formats: PDF, JPG, PNG</li>
-              <li>Maximum file size: 5MB per document</li>
-              <li>Ensure documents are clear and readable</li>
-              <li>You can upload multiple documents of different types</li>
-              <li>All documents are optional - you can proceed without uploading</li>
+              <li>PDF, JPG, PNG formats</li>
+              <li>Max 5MB per file</li>
+              <li>Documents optional</li>
             </ul>
           </div>
         </div>
