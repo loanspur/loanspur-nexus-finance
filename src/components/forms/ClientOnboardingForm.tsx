@@ -187,6 +187,26 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
     }
   };
 
+  // Helper function to get user-friendly field labels
+  const getFieldLabel = (fieldName: string): string => {
+    const labels: Record<string, string> = {
+      first_name: "First Name",
+      last_name: "Last Name", 
+      email: "Email",
+      phone: "Phone Number",
+      date_of_birth: "Date of Birth",
+      selected_identifier_type: "Identifier Type",
+      national_id: "National ID",
+      passport_number: "Passport Number", 
+      driving_license_number: "Driving License",
+      occupation: "Occupation",
+      employer_name: "Employer Name",
+      business_name: "Business Name",
+      business_type: "Business Type"
+    };
+    return labels[fieldName] || fieldName.replace(/_/g, ' ');
+  };
+
   const validateCurrentStep = async () => {
     const stepId = steps[currentStep].id;
     let fieldsToValidate: string[] = [];
@@ -197,12 +217,28 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         break;
       case 'identifiers':
         const selectedType = form.getValues('selected_identifier_type');
+        if (!selectedType) {
+          toast({
+            title: "Identifier Required",
+            description: "Please select an identifier type and provide the corresponding information",
+            variant: "destructive",
+          });
+          return false;
+        }
         if (selectedType) {
           fieldsToValidate = [selectedType];
         }
         break;
       case 'employment_business':
         const incomeType = form.getValues('income_source_type');
+        if (!incomeType) {
+          toast({
+            title: "Income Source Required",
+            description: "Please select whether your income comes from employment or business",
+            variant: "destructive",
+          });
+          return false;
+        }
         if (incomeType === 'employment') {
           fieldsToValidate = ['occupation', 'employer_name'];
         } else if (incomeType === 'business') {
@@ -213,8 +249,32 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         const nextOfKin = form.getValues('next_of_kin');
         if (nextOfKin.length === 0) {
           toast({
-            title: "Validation Error",
-            description: "Please add at least one next of kin contact",
+            title: "Next of Kin Required",
+            description: "Please add at least one next of kin contact before proceeding to the next step",
+            variant: "destructive",
+          });
+          return false;
+        }
+        // Validate each next of kin entry
+        const nokErrors: string[] = [];
+        nextOfKin.forEach((nok: any, index: number) => {
+          if (!nok.name || nok.name.length < 2) {
+            nokErrors.push(`Contact ${index + 1}: Name must be at least 2 characters`);
+          }
+          if (!nok.relationship) {
+            nokErrors.push(`Contact ${index + 1}: Relationship is required`);
+          }
+          if (!nok.phone || nok.phone.length < 10) {
+            nokErrors.push(`Contact ${index + 1}: Valid phone number required`);
+          }
+          if (nok.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nok.email)) {
+            nokErrors.push(`Contact ${index + 1}: Valid email format required`);
+          }
+        });
+        if (nokErrors.length > 0) {
+          toast({
+            title: "Next of Kin Validation Errors",
+            description: nokErrors.join(" • "),
             variant: "destructive",
           });
           return false;
@@ -225,13 +285,21 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
     if (fieldsToValidate.length > 0) {
       const result = await form.trigger(fieldsToValidate as any);
       if (!result) {
-        // Get specific field errors to show detailed feedback
+        // Get specific field errors with detailed messages
         const errors = form.formState.errors;
-        const errorFields = fieldsToValidate.filter(field => errors[field]);
+        const errorMessages: string[] = [];
+        
+        fieldsToValidate.forEach(fieldName => {
+          const error = errors[fieldName];
+          if (error) {
+            const fieldLabel = getFieldLabel(fieldName);
+            errorMessages.push(`${fieldLabel}: ${error.message}`);
+          }
+        });
         
         toast({
-          title: "Validation Error",
-          description: `Please fix the errors in: ${errorFields.join(', ').replace(/_/g, ' ')}`,
+          title: "Please Fix These Errors",
+          description: errorMessages.length > 0 ? errorMessages.join(" • ") : "Please correct the highlighted fields",
           variant: "destructive",
         });
         return false;
