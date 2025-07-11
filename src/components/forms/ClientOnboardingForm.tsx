@@ -8,7 +8,7 @@ import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, User, FileText, Building, CreditCard, Users, Upload, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, FileText, Building, CreditCard, Users, Upload, CheckCircle, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -16,20 +16,26 @@ import { useAuth } from "@/hooks/useAuth";
 import { KYCInformationStep } from "./steps/KYCInformationStep";
 import { UniqueIdentifiersStep } from "./steps/UniqueIdentifiersStep";
 import { BankingInformationStep } from "./steps/BankingInformationStep";
-import { EmploymentInformationStep } from "./steps/EmploymentInformationStep";
-import { BusinessInformationStep } from "./steps/BusinessInformationStep";
+import { EmploymentBusinessStep } from "./steps/EmploymentBusinessStep";
 import { NextOfKinStep } from "./steps/NextOfKinStep";
 import { DocumentUploadStep } from "./steps/DocumentUploadStep";
 import { SavingsAccountStep } from "./steps/SavingsAccountStep";
+import { ReviewStep } from "./steps/ReviewStep";
 
+// Enhanced validation schema
 const clientOnboardingSchema = z.object({
   // KYC Information
   client_number: z.string().min(1, "Client number is required"),
-  first_name: z.string().min(1, "First name is required"),
+  first_name: z.string().min(2, "First name must be at least 2 characters"),
   middle_name: z.string().optional(),
-  last_name: z.string().min(1, "Last name is required"),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().min(1, "Phone number is required"),
+  last_name: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.union([
+    z.string().email("Invalid email format"),
+    z.literal("")
+  ]).optional(),
+  phone: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .regex(/^[\+]?[0-9\s\-\(\)]{10,15}$/, "Invalid phone number format"),
   date_of_birth: z.string().min(1, "Date of birth is required"),
   place_of_birth: z.string().optional(),
   nationality: z.string().optional(),
@@ -37,16 +43,29 @@ const clientOnboardingSchema = z.object({
   address: z.string().optional(),
   
   // Unique Identifiers
-  national_id: z.string().optional(),
-  passport_number: z.string().optional(),
+  selected_identifier_type: z.string().optional(),
+  national_id: z.string().optional().refine((val) => {
+    if (!val) return true;
+    return /^[0-9]{8}$/.test(val);
+  }, "National ID must be 8 digits"),
+  passport_number: z.string().optional().refine((val) => {
+    if (!val) return true;
+    return /^[A-Z0-9]{6,12}$/.test(val);
+  }, "Invalid passport number format"),
   driving_license_number: z.string().optional(),
   
   // Banking Information
   bank_name: z.string().optional(),
-  bank_account_number: z.string().optional(),
+  bank_account_number: z.string().optional().refine((val) => {
+    if (!val) return true;
+    return /^[0-9]{10,16}$/.test(val);
+  }, "Bank account number must be 10-16 digits"),
   bank_branch: z.string().optional(),
   
-  // Employment Information
+  // Employment/Business Information
+  income_source_type: z.enum(["employment", "business"]).optional(),
+  
+  // Employment fields
   occupation: z.string().optional(),
   employer_name: z.string().optional(),
   employer_address: z.string().optional(),
@@ -54,18 +73,23 @@ const clientOnboardingSchema = z.object({
   employment_start_date: z.string().optional(),
   monthly_income: z.string().optional(),
   
-  // Business Information
+  // Business fields
   business_name: z.string().optional(),
   business_type: z.string().optional(),
   business_registration_number: z.string().optional(),
   business_address: z.string().optional(),
   
-  // Next of Kin Information
-  next_of_kin_name: z.string().optional(),
-  next_of_kin_relationship: z.string().optional(),
-  next_of_kin_phone: z.string().optional(),
-  next_of_kin_email: z.string().optional(),
-  next_of_kin_address: z.string().optional(),
+  // Next of Kin Information (array support)
+  next_of_kin: z.array(z.object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    relationship: z.string().min(1, "Relationship is required"),
+    phone: z.string().min(10, "Phone number must be at least 10 digits"),
+    email: z.union([
+      z.string().email("Invalid email format"),
+      z.literal("")
+    ]).optional(),
+    address: z.string().optional(),
+  })).default([]),
   
   // Savings Account
   create_savings_account: z.boolean().default(false),
@@ -84,11 +108,11 @@ const steps = [
   { id: 'kyc', title: 'KYC Information', icon: User, description: 'Basic personal information' },
   { id: 'identifiers', title: 'Unique Identifiers', icon: FileText, description: 'ID numbers and documents' },
   { id: 'banking', title: 'Banking Information', icon: CreditCard, description: 'Bank account details' },
-  { id: 'employment', title: 'Employment Information', icon: Building, description: 'Work and income details' },
-  { id: 'business', title: 'Business Information', icon: Building, description: 'Business details (if applicable)' },
+  { id: 'employment_business', title: 'Income Source', icon: Building, description: 'Employment or business details' },
   { id: 'next_of_kin', title: 'Next of Kin', icon: Users, description: 'Emergency contact information' },
   { id: 'documents', title: 'Document Upload', icon: Upload, description: 'Upload required documents' },
   { id: 'savings', title: 'Savings Account', icon: CheckCircle, description: 'Create savings account' },
+  { id: 'review', title: 'Review', icon: Eye, description: 'Review all information' },
 ];
 
 export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFormProps) => {
@@ -112,12 +136,14 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       nationality: "",
       gender: "",
       address: "",
+      selected_identifier_type: "",
       national_id: "",
       passport_number: "",
       driving_license_number: "",
       bank_name: "",
       bank_account_number: "",
       bank_branch: "",
+      income_source_type: undefined,
       occupation: "",
       employer_name: "",
       employer_address: "",
@@ -128,11 +154,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       business_type: "",
       business_registration_number: "",
       business_address: "",
-      next_of_kin_name: "",
-      next_of_kin_relationship: "",
-      next_of_kin_phone: "",
-      next_of_kin_email: "",
-      next_of_kin_address: "",
+      next_of_kin: [],
       create_savings_account: false,
       savings_product_id: "",
       initial_deposit: "",
@@ -150,6 +172,63 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
   const prevStep = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const validateCurrentStep = async () => {
+    const stepId = steps[currentStep].id;
+    let fieldsToValidate: string[] = [];
+
+    switch (stepId) {
+      case 'kyc':
+        fieldsToValidate = ['client_number', 'first_name', 'last_name', 'phone', 'date_of_birth'];
+        break;
+      case 'identifiers':
+        const selectedType = form.getValues('selected_identifier_type');
+        if (selectedType) {
+          fieldsToValidate = [selectedType];
+        }
+        break;
+      case 'employment_business':
+        const incomeType = form.getValues('income_source_type');
+        if (incomeType === 'employment') {
+          fieldsToValidate = ['occupation', 'employer_name'];
+        } else if (incomeType === 'business') {
+          fieldsToValidate = ['business_name', 'business_type'];
+        }
+        break;
+      case 'next_of_kin':
+        const nextOfKin = form.getValues('next_of_kin');
+        if (nextOfKin.length === 0) {
+          toast({
+            title: "Validation Error",
+            description: "Please add at least one next of kin contact",
+            variant: "destructive",
+          });
+          return false;
+        }
+        break;
+    }
+
+    if (fieldsToValidate.length > 0) {
+      const result = await form.trigger(fieldsToValidate as any);
+      if (!result) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields correctly",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleNext = async () => {
+    const isValid = await validateCurrentStep();
+    if (isValid) {
+      nextStep();
     }
   };
 
@@ -186,21 +265,22 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         business_type: data.business_type || null,
         business_registration_number: data.business_registration_number || null,
         business_address: data.business_address || null,
-        next_of_kin_name: data.next_of_kin_name || null,
-        next_of_kin_relationship: data.next_of_kin_relationship || null,
-        next_of_kin_phone: data.next_of_kin_phone || null,
-        next_of_kin_email: data.next_of_kin_email || null,
-        next_of_kin_address: data.next_of_kin_address || null,
+        // Store first next of kin in main fields for compatibility
+        next_of_kin_name: data.next_of_kin[0]?.name || null,
+        next_of_kin_relationship: data.next_of_kin[0]?.relationship || null,
+        next_of_kin_phone: data.next_of_kin[0]?.phone || null,
+        next_of_kin_email: data.next_of_kin[0]?.email || null,
+        next_of_kin_address: data.next_of_kin[0]?.address || null,
         kyc_status: 'completed',
         approval_status: 'pending',
-        is_active: false, // Will be activated after approval
+        is_active: false,
         timely_repayment_rate: 0,
         profile_picture_url: null,
         mifos_client_id: null,
       };
 
-      // Here you would call your API to create the client
       console.log('Creating client with data:', clientData);
+      console.log('All next of kin contacts:', data.next_of_kin);
       console.log('Savings account requested:', data.create_savings_account);
       console.log('Uploaded documents:', uploadedDocuments);
 
@@ -227,7 +307,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
   const renderStep = () => {
     const stepId = steps[currentStep].id;
-    const commonProps = { form, nextStep, prevStep };
+    const commonProps = { form, nextStep: handleNext, prevStep };
 
     switch (stepId) {
       case 'kyc':
@@ -236,10 +316,8 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         return <UniqueIdentifiersStep {...commonProps} />;
       case 'banking':
         return <BankingInformationStep {...commonProps} />;
-      case 'employment':
-        return <EmploymentInformationStep {...commonProps} />;
-      case 'business':
-        return <BusinessInformationStep {...commonProps} />;
+      case 'employment_business':
+        return <EmploymentBusinessStep {...commonProps} />;
       case 'next_of_kin':
         return <NextOfKinStep {...commonProps} />;
       case 'documents':
@@ -258,6 +336,15 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
             isSubmitting={isSubmitting}
           />
         );
+      case 'review':
+        return (
+          <ReviewStep 
+            {...commonProps} 
+            formData={form.getValues()}
+            onSubmit={form.handleSubmit(onSubmit)}
+            isSubmitting={isSubmitting}
+          />
+        );
       default:
         return null;
     }
@@ -265,7 +352,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl">Client Onboarding</DialogTitle>
           
@@ -279,9 +366,9 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
           </div>
         </DialogHeader>
 
-        <div className="flex gap-6 overflow-hidden">
+        <div className="flex gap-6 overflow-hidden min-h-[70vh]">
           {/* Left Sidebar - Step Navigation */}
-          <div className="w-80 flex-shrink-0 space-y-2 overflow-y-auto">
+          <div className="w-72 flex-shrink-0 space-y-2 overflow-y-auto">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
               const isActive = index === currentStep;
@@ -292,7 +379,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                   key={step.id}
                   type="button"
                   onClick={() => setCurrentStep(index)}
-                  className={`w-full flex items-start gap-3 p-4 rounded-lg text-left transition-all duration-200 ${
+                  className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all duration-200 ${
                     isActive 
                       ? 'bg-primary text-primary-foreground shadow-md' 
                       : isCompleted 
@@ -300,7 +387,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                         : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                   }`}
                 >
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                  <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
                     isActive 
                       ? 'bg-primary-foreground/20' 
                       : isCompleted 
@@ -333,10 +420,10 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
           {/* Right Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             <Form {...form}>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto pr-2">
                 {/* Current Step */}
                 <Card className="border-0 shadow-none">
-                  <CardHeader className="px-0 pt-0">
+                  <CardHeader className="px-0 pt-0 pb-4">
                     <CardTitle className="flex items-center gap-2">
                       {React.createElement(steps[currentStep].icon, { className: "h-5 w-5" })}
                       {steps[currentStep].title}
@@ -351,15 +438,16 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                 </Card>
               </div>
 
-              {/* Navigation Buttons */}
-              <div className="flex items-center justify-between pt-4 border-t bg-background">
+              {/* Navigation Buttons - Fixed at bottom */}
+              <div className="flex items-center justify-between pt-4 mt-4 border-t bg-background">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={prevStep}
                   disabled={currentStep === 0}
+                  className="flex items-center gap-2"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  <ChevronLeft className="h-4 w-4" />
                   Previous
                 </Button>
 
@@ -374,15 +462,19 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                     type="button"
                     onClick={form.handleSubmit(onSubmit)}
                     disabled={isSubmitting}
-                    className="bg-success hover:bg-success/90"
+                    className="bg-success hover:bg-success/90 flex items-center gap-2"
                   >
                     {isSubmitting ? "Submitting..." : "Complete Onboarding"}
-                    <CheckCircle className="h-4 w-4 ml-2" />
+                    <CheckCircle className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button type="button" onClick={nextStep}>
+                  <Button 
+                    type="button" 
+                    onClick={handleNext}
+                    className="flex items-center gap-2"
+                  >
                     Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 )}
               </div>
