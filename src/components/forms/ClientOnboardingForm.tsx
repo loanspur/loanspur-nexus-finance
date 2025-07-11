@@ -225,9 +225,13 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
     if (fieldsToValidate.length > 0) {
       const result = await form.trigger(fieldsToValidate as any);
       if (!result) {
+        // Get specific field errors to show detailed feedback
+        const errors = form.formState.errors;
+        const errorFields = fieldsToValidate.filter(field => errors[field]);
+        
         toast({
           title: "Validation Error",
-          description: "Please fill in all required fields correctly",
+          description: `Please fix the errors in: ${errorFields.join(', ').replace(/_/g, ' ')}`,
           variant: "destructive",
         });
         return false;

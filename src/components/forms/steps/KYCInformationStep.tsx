@@ -1,8 +1,7 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
+import { ValidationFormField } from "../ValidationFormField";
 
 interface KYCInformationStepProps {
   form: UseFormReturn<any>;
@@ -30,148 +29,89 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="first_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>First Name *</FormLabel>
-              <FormControl>
-                <Input placeholder="John" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="First Name"
+          placeholder="John"
+          required
+          guidelines={["Must be at least 2 characters", "Only letters and spaces allowed"]}
         />
         
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="middle_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Middle Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Michael" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Middle Name"
+          placeholder="Michael"
         />
         
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="last_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Last Name *</FormLabel>
-              <FormControl>
-                <Input placeholder="Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Last Name"
+          placeholder="Doe"
+          required
+          guidelines={["Must be at least 2 characters", "Only letters and spaces allowed"]}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number *</FormLabel>
-              <FormControl>
-                <Input placeholder="+1234567890" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Phone Number"
+          type="phone"
+          placeholder="+254700000000"
+          required
+          guidelines={["Include country code (e.g., +254700000000)", "Must be 10-15 digits"]}
         />
         
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="date_of_birth"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date of Birth *</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Date of Birth"
+          type="date"
+          required
+          guidelines={["Select a valid date", "Date of birth should be in the past"]}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="place_of_birth"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Place of Birth</FormLabel>
-              <FormControl>
-                <Input placeholder="City, Country" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Place of Birth"
+          placeholder="City, Country"
         />
         
-        <FormField
-          control={form.control}
+        <ValidationFormField
+          form={form}
           name="nationality"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nationality</FormLabel>
-              <FormControl>
-                <Input placeholder="Kenyan" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Nationality"
+          placeholder="Kenyan"
         />
       </div>
 
-      <FormField
-        control={form.control}
+      <ValidationFormField
+        form={form}
         name="gender"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Gender</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Gender"
+        type="select"
+        placeholder="Select gender"
+        options={[
+          { value: "male", label: "Male" },
+          { value: "female", label: "Female" },
+          { value: "other", label: "Other" }
+        ]}
       />
 
-      <FormField
-        control={form.control}
+      <ValidationFormField
+        form={form}
         name="address"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Residential Address</FormLabel>
-            <FormControl>
-              <Textarea 
-                placeholder="Enter full residential address"
-                rows={3}
-                {...field} 
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Residential Address"
+        type="textarea"
+        placeholder="Enter full residential address"
+        rows={3}
       />
     </div>
   );
