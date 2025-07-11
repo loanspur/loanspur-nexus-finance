@@ -326,7 +326,6 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         tenant_id: profile?.tenant_id,
         client_number: data.client_number,
         first_name: data.first_name,
-        middle_name: data.middle_name || null,
         last_name: data.last_name,
         email: data.email || null,
         phone: data.phone,
