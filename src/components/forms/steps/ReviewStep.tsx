@@ -266,31 +266,13 @@ export const ReviewStep = ({ formData, onSubmit, isSubmitting }: ReviewStepProps
         </Card>
       )}
 
-      {/* Action Buttons */}
+      {/* Information Display Only - No Submit Button */}
       <Card>
         <CardContent className="pt-6">
-          <div className="text-center space-y-4">
+          <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              By submitting this form, I confirm that all information provided is accurate and complete.
+              Please review all information above. Click "Next" to proceed to the final step where you can submit your application.
             </p>
-            <div className="flex gap-4 justify-center">
-              <Button
-                variant="outline"
-                onClick={() => window.history.back()}
-                size="lg"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={onSubmit}
-                disabled={isSubmitting}
-                size="lg"
-                className="bg-success hover:bg-success/90 flex items-center gap-2"
-              >
-                {isSubmitting ? "Submitting..." : "Complete Onboarding & Submit Application"}
-                <CheckCircle className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
