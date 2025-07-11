@@ -213,7 +213,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
     switch (stepId) {
       case 'kyc':
-        fieldsToValidate = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth'];
+        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth'];
         break;
       case 'identifiers':
         const selectedType = form.getValues('selected_identifier_type');
