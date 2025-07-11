@@ -21,9 +21,6 @@ export const BusinessInformationStep = ({ form }: BusinessInformationStepProps) 
             <Building className="h-5 w-5" />
             Business Details
           </CardTitle>
-          <CardDescription>
-            Business information (if applicable)
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

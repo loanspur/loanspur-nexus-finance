@@ -20,9 +20,6 @@ export const EmploymentInformationStep = ({ form }: EmploymentInformationStepPro
             <Briefcase className="h-5 w-5" />
             Employment Details
           </CardTitle>
-          <CardDescription>
-            Current employment and job information
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -109,9 +106,6 @@ export const EmploymentInformationStep = ({ form }: EmploymentInformationStepPro
             <DollarSign className="h-5 w-5" />
             Income Information
           </CardTitle>
-          <CardDescription>
-            Monthly income and financial details
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <FormField

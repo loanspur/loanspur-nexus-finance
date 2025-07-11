@@ -81,9 +81,6 @@ export const DocumentUploadStep = ({
             <Upload className="h-5 w-5" />
             Document Upload
           </CardTitle>
-          <CardDescription>
-            Upload required documents for KYC verification
-          </CardDescription>
           <div className="flex items-center gap-2">
             <Badge variant={requiredDocsUploaded ? "default" : "secondary"}>
               {uploadedDocuments.filter(docId => 

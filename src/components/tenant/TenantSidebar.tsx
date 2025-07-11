@@ -28,32 +28,27 @@ const TenantSidebar = () => {
         {
           title: "Dashboard",
           path: "/tenant/dashboard",
-          icon: LayoutDashboard,
-          description: "Overview & Analytics"
+          icon: LayoutDashboard
         },
         {
           title: "Clients",
           path: "/tenant/clients", 
-          icon: Users,
-          description: "Client Management"
+          icon: Users
         },
         {
           title: "Groups",
           path: "/tenant/groups",
-          icon: Users2,
-          description: "Group Banking"
+          icon: Users2
         },
         {
           title: "Loans",
           path: "/tenant/loans",
-          icon: CreditCard,
-          description: "Loan Portfolio"
+          icon: CreditCard
         },
         {
           title: "Savings",
           path: "/tenant/savings",
-          icon: PiggyBank,
-          description: "Savings Accounts"
+          icon: PiggyBank
         }
       ]
     },
@@ -63,14 +58,12 @@ const TenantSidebar = () => {
         {
           title: "Transactions",
           path: "/tenant/transactions",
-          icon: ArrowLeftRight,
-          description: "Payment History"
+          icon: ArrowLeftRight
         },
         {
           title: "M-Pesa Integration",
           path: "/tenant/mpesa",
-          icon: CreditCard,
-          description: "C2B & B2C Payments"
+          icon: CreditCard
         }
       ]
     },
@@ -80,20 +73,17 @@ const TenantSidebar = () => {
         {
           title: "Reports",
           path: "/tenant/reports",
-          icon: TrendingUp,
-          description: "Financial Reports"
+          icon: TrendingUp
         },
         {
           title: "Reconciliation",
           path: "/tenant/reconciliation",
-          icon: RefreshCw,
-          description: "Bank & MPESA Reconciliation"
+          icon: RefreshCw
         },
         {
           title: "Audit & Compliance",
           path: "/tenant/audit",
-          icon: Shield,
-          description: "Security & Compliance Monitoring"
+          icon: Shield
         }
       ]
     },
@@ -103,44 +93,37 @@ const TenantSidebar = () => {
         {
           title: "User Management",
           path: "/tenant/user-management",
-          icon: Users,
-          description: "Manage Users & Access"
+          icon: Users
         },
         {
           title: "Roles & Permissions",
           path: "/tenant/roles-permissions",
-          icon: Shield,
-          description: "Role-Based Access Control"
+          icon: Shield
         },
         {
           title: "Office Management",
           path: "/tenant/office-management",
-          icon: Building2,
-          description: "Office & Branch Setup"
+          icon: Building2
         },
         {
           title: "Currency Configuration",
           path: "/tenant/currency-config",
-          icon: CreditCard,
-          description: "Multi-Currency Setup"
+          icon: CreditCard
         },
         {
           title: "Funds Management",
           path: "/tenant/funds-management",
-          icon: PiggyBank,
-          description: "Fund Allocation & Control"
+          icon: PiggyBank
         },
         {
           title: "Product & Fee Management",
           path: "/tenant/product-fee-management",
-          icon: TrendingUp,
-          description: "Products & Fee Structure"
+          icon: TrendingUp
         },
         {
           title: "Accounting",
           path: "/tenant/accounting",
-          icon: Calculator,
-          description: "Financial Records & Journal Entries"
+          icon: Calculator
         }
       ]
     },
@@ -150,32 +133,27 @@ const TenantSidebar = () => {
         {
           title: "Audit Trail",
           path: "/tenant/audit-trail",
-          icon: Shield,
-          description: "System Activity Logs"
+          icon: Shield
         },
         {
           title: "Schedule Jobs",
           path: "/tenant/schedule-jobs",
-          icon: RefreshCw,
-          description: "Automated Task Management"
+          icon: RefreshCw
         },
         {
           title: "Documents",
           path: "/tenant/documents",
-          icon: FileText,
-          description: "Document Management"
+          icon: FileText
         },
         {
           title: "Notifications",
           path: "/tenant/notifications",
-          icon: Bell,
-          description: "Communication Hub"
+          icon: Bell
         },
         {
           title: "Settings",
           path: "/tenant/settings",
-          icon: Settings,
-          description: "System Configuration"
+          icon: Settings
         }
       ]
     }
@@ -245,12 +223,9 @@ const TenantSidebar = () => {
                               <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
                             </div>
                             <div className="flex-1 text-left">
-                              <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-foreground'}`}>
-                                {item.title}
-                              </p>
-                              <p className={`text-xs ${isActive ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                {item.description}
-                              </p>
+                               <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-foreground'}`}>
+                                 {item.title}
+                               </p>
                             </div>
                           </div>
                         </SidebarMenuButton>
