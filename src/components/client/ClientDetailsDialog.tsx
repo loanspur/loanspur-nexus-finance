@@ -137,102 +137,92 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     }
   };
 
-  const handleCloseClient = async () => {
-    try {
-      // Check for active loans and savings accounts before closing
-      const hasActiveLoans = client.loans?.some(loan => loan.status === 'active') || false;
-      const hasActiveSavings = client.savings_accounts?.some(account => account.account_balance > 0) || false;
-      
-      // Mock check for active accounts using placeholder data
-      const mockActiveLoans = [
-        { 
-          id: "L001", 
-          type: "Personal Loan", 
-          amount: 150000, 
-          outstanding: 75000, 
-          status: "active",
-          nextPayment: "2024-02-15",
-          monthlyPayment: 12500
-        },
-        { 
-          id: "L002", 
-          type: "Business Loan", 
-          amount: 300000, 
-          outstanding: 200000, 
-          status: "active",
-          nextPayment: "2024-02-20",
-          monthlyPayment: 25000
-        }
-      ].filter(loan => loan.status === 'active');
-
-      const mockActiveSavings = [
-        { 
-          id: "S001", 
-          type: "Regular Savings", 
-          balance: 45000, 
-          interestRate: 3.5,
-          status: "active",
-          lastTransaction: "2024-01-28",
-          monthlyContribution: 5000
-        },
-        { 
-          id: "S002", 
-          type: "Fixed Deposit", 
-          balance: 100000, 
-          interestRate: 8.0,
-          status: "active",
-          maturityDate: "2024-12-31",
-          monthlyContribution: 0
-        }
-      ].filter(savings => savings.status === 'active');
-
-      if (mockActiveLoans.length > 0 || mockActiveSavings.length > 0) {
-        let errorMessage = "Cannot close client account. The following accounts are still active:\n";
-        
-        if (mockActiveLoans.length > 0) {
-          errorMessage += `\nActive Loans (${mockActiveLoans.length}):`;
-          mockActiveLoans.forEach(loan => {
-            errorMessage += `\n• ${loan.type} (${loan.id})`;
-          });
-        }
-        
-        if (mockActiveSavings.length > 0) {
-          errorMessage += `\nActive Savings (${mockActiveSavings.length}):`;
-          mockActiveSavings.forEach(savings => {
-            errorMessage += `\n• ${savings.type} (${savings.id})`;
-          });
-        }
-        
-        errorMessage += "\n\nPlease close all accounts before closing the client account.";
-        
-        toast({
-          title: "Cannot Close Client Account",
-          description: errorMessage,
-          variant: "destructive",
-        });
-        
-        setShowCloseClientDialog(false);
-        return;
-      }
-      
-      // Here you would call your API to deactivate the client
-      console.log('Closing client:', client.id);
-      
-      toast({
-        title: "Client Closed",
-        description: `${client.first_name} ${client.last_name}'s account has been deactivated`,
-      });
-      
-      setShowCloseClientDialog(false);
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Error closing client:", error);
-      toast({
-        title: "Error",
-        description: "Failed to close client account. Please try again.",
-        variant: "destructive",
-      });
+  // Mock data for loans and savings
+  const mockLoans = [
+    { 
+      id: "L001", 
+      type: "Personal Loan", 
+      amount: 150000, 
+      outstanding: 75000, 
+      status: "active",
+      nextPayment: "2024-02-15",
+      monthlyPayment: 12500,
+      interestRate: 12.5,
+      term: 12,
+      disbursedDate: "2023-08-15"
+    },
+    { 
+      id: "L002", 
+      type: "Business Loan", 
+      amount: 300000, 
+      outstanding: 250000, 
+      status: "pending",
+      requestedDate: "2024-01-10",
+      monthlyPayment: 25000,
+      interestRate: 15.0,
+      term: 18,
+      purpose: "Business expansion"
+    },
+    { 
+      id: "L003", 
+      type: "Emergency Loan", 
+      amount: 50000, 
+      outstanding: 0, 
+      status: "closed",
+      disbursedDate: "2023-03-01",
+      closedDate: "2023-12-01",
+      monthlyPayment: 5000,
+      interestRate: 18.0,
+      term: 10
     }
+  ];
+
+  const mockSavings = [
+    { 
+      id: "S001", 
+      type: "Regular Savings", 
+      balance: 45000, 
+      interestRate: 3.5,
+      status: "active",
+      lastTransaction: "2024-01-28",
+      monthlyContribution: 5000,
+      openedDate: "2022-06-15"
+    },
+    { 
+      id: "S002", 
+      type: "Fixed Deposit", 
+      balance: 80000, 
+      interestRate: 8.0,
+      status: "pending",
+      maturityDate: "2024-12-31",
+      monthlyContribution: 0,
+      requestedDate: "2024-01-15",
+      term: 12
+    },
+    { 
+      id: "S003", 
+      type: "Emergency Fund", 
+      balance: 15000, 
+      interestRate: 2.0,
+      status: "closed",
+      openedDate: "2021-01-10",
+      closedDate: "2023-06-30",
+      finalBalance: 15000
+    }
+  ];
+
+  const handleLoanAction = (action: string, loanId: string) => {
+    toast({
+      title: `Loan ${action}`,
+      description: `${action} action completed for loan ${loanId}`,
+    });
+  };
+
+  const handleSavingsAction = (action: string, savingsId: string) => {
+    toast({
+      title: `Savings ${action}`,
+      description: `${action} action completed for savings ${savingsId}`,
+    });
   };
 
   return (
@@ -321,21 +311,190 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <Tabs defaultValue="overview" className="h-full">
+          <Tabs defaultValue="accounts" className="h-full">
             <TabsList className="w-full justify-start px-6 py-2 bg-muted/50">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="accounts">Accounts</TabsTrigger>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
               <TabsTrigger value="profile">Full Profile</TabsTrigger>
             </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="p-6 space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Key Information */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Personal Details Card */}
+            {/* Accounts Tab */}
+            <TabsContent value="accounts" className="p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Loans Section */}
                 <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5" />
+                      Loans
+                    </CardTitle>
+                    <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Loan
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {mockLoans.map((loan) => (
+                      <div key={loan.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{loan.type}</h4>
+                            <p className="text-sm text-muted-foreground">{loan.id}</p>
+                          </div>
+                          <Badge variant={getStatusColor(loan.status)}>
+                            {loan.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Amount</span>
+                            <div className="font-medium">{formatCurrency(loan.amount)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Outstanding</span>
+                            <div className="font-medium">{formatCurrency(loan.outstanding)}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedLoan(loan);
+                              setShowLoanDetails(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          
+                          {loan.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleLoanAction('Approve', loan.id)}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleLoanAction('Modify', loan.id)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Modify
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleLoanAction('Disburse', loan.id)}
+                              >
+                                <Wallet className="h-4 w-4 mr-2" />
+                                Disburse
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Savings Section */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <PiggyBank className="h-5 w-5" />
+                      Savings
+                    </CardTitle>
+                    <Button size="sm" onClick={() => setShowAddSavingsDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Savings
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {mockSavings.map((savings) => (
+                      <div key={savings.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{savings.type}</h4>
+                            <p className="text-sm text-muted-foreground">{savings.id}</p>
+                          </div>
+                          <Badge variant={getStatusColor(savings.status)}>
+                            {savings.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Balance</span>
+                            <div className="font-medium">{formatCurrency(savings.balance)}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Interest Rate</span>
+                            <div className="font-medium">{savings.interestRate}%</div>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedSavings(savings);
+                              setShowSavingsDetails(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          
+                          {savings.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleSavingsAction('Approve', savings.id)}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSavingsAction('Modify', savings.id)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Modify
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSavingsAction('Activate', savings.id)}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Activate
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Personal Details Card */}
+                <Card className="lg:col-span-2">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <User className="h-5 w-5" />
@@ -382,53 +541,6 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                   </CardContent>
                 </Card>
 
-                {/* Recent Activity */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Clock className="h-5 w-5" />
-                      Recent Activity
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center justify-between py-2 border-l-2 border-green-500 pl-3">
-                        <div>
-                          <div className="font-medium">Savings deposit</div>
-                          <div className="text-muted-foreground">Regular Savings Account</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-green-600">+KES 5,000</div>
-                          <div className="text-muted-foreground">2 days ago</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between py-2 border-l-2 border-blue-500 pl-3">
-                        <div>
-                          <div className="font-medium">Loan payment</div>
-                          <div className="text-muted-foreground">Personal Loan - L001</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-blue-600">KES 12,500</div>
-                          <div className="text-muted-foreground">5 days ago</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between py-2 border-l-2 border-orange-500 pl-3">
-                        <div>
-                          <div className="font-medium">Loan disbursement</div>
-                          <div className="text-muted-foreground">Business Loan - L002</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium text-orange-600">KES 300,000</div>
-                          <div className="text-muted-foreground">1 week ago</div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right Column - Status & Actions */}
-              <div className="space-y-6">
                 {/* Status Card */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -461,879 +573,50 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Quick Actions */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button 
-                      className="w-full justify-start" 
-                      variant="outline"
-                      onClick={() => setShowAddLoanDialog(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Loan Account
-                    </Button>
-                    <Button 
-                      className="w-full justify-start" 
-                      variant="outline"
-                      onClick={() => setShowAddSavingsDialog(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Savings Account
-                    </Button>
-                    <Button 
-                      className="w-full justify-start" 
-                      variant="outline"
-                      onClick={() => setShowUpdateOfficerDialog(true)}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Update Loan Officer
-                    </Button>
-                    <Separator className="my-2" />
-                    <Button 
-                      className="w-full justify-start" 
-                      variant="outline"
-                      onClick={() => setShowCloseClientDialog(true)}
-                    >
-                      <UserMinus className="h-4 w-4 mr-2" />
-                      Close Account
-                    </Button>
-                  </CardContent>
-                </Card>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          {/* Full Profile Tab */}
-          <TabsContent value="profile" className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Personal Information */}
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="p-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Personal Information</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Client Documents
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Name:</span>
-                    <span>{client.first_name} {client.last_name}</span>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No documents uploaded yet</p>
                   </div>
-                  
-                  {client.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Email:</span>
-                      <span>{client.email}</span>
-                    </div>
-                  )}
-                  
-                  {client.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Phone:</span>
-                      <span>{client.phone}</span>
-                    </div>
-                  )}
-                  
-                  {client.national_id && (
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">National ID:</span>
-                      <span>{client.national_id}</span>
-                    </div>
-                  )}
-                  
-                  {client.date_of_birth && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Date of Birth:</span>
-                      <span>{format(new Date(client.date_of_birth), 'MMM dd, yyyy')}</span>
-                    </div>
-                  )}
-                  
-                  {client.gender && (
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Gender:</span>
-                      <span className="capitalize">{client.gender}</span>
-                    </div>
-                  )}
-                  
-                  {client.occupation && (
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Occupation:</span>
-                      <span>{client.occupation}</span>
-                    </div>
-                  )}
-                  
-                  {client.monthly_income && (
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Monthly Income:</span>
-                      <span>{formatCurrency(client.monthly_income)}</span>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Account Status */}
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="p-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Account Status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    <Badge variant={client.is_active ? "default" : "secondary"}>
-                      {client.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  
-                  {client.approval_status && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Approval:</span>
-                      <Badge variant={getStatusColor(client.approval_status)}>
-                        {client.approval_status}
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {client.kyc_status && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">KYC Status:</span>
-                      <Badge variant={getStatusColor(client.kyc_status)}>
-                        {client.kyc_status}
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  {client.timely_repayment_rate !== null && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Repayment Rate:</span>
-                      <span className={`font-semibold ${
-                        client.timely_repayment_rate >= 95 ? 'text-green-600' :
-                        client.timely_repayment_rate >= 80 ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {client.timely_repayment_rate}%
-                      </span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Financial Summary */}
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Financial Summary</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Complete Profile
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <CreditCard className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-                      <div className="text-2xl font-bold text-orange-600">
-                        {formatCurrency(calculateTotalLoanBalance())}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Current Loan Balance</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {client.loans?.length || 0} active loan(s)
-                      </div>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <PiggyBank className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                      <div className="text-2xl font-bold text-green-600">
-                        {formatCurrency(calculateTotalSavingsBalance())}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total Savings</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {client.savings_accounts?.length || 0} account(s)
-                      </div>
-                    </div>
-                    
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <Wallet className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                      <div className="text-2xl font-bold text-blue-600">
-                        {formatCurrency((calculateTotalSavingsBalance() - calculateTotalLoanBalance()))}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Net Position</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Savings - Loans
-                      </div>
-                    </div>
-
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <FileText className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                      <div className="text-2xl font-bold text-purple-600">
-                        {/* Placeholder for previous loans count */}
-                        {Math.floor(Math.random() * 5) + 1}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Previous Loans</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Completed loans
-                      </div>
-                    </div>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Full profile view coming soon</p>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Client Assignment Information */}
-              <Card className="md:col-span-2">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Assignment & Membership</CardTitle>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => setShowTransferDialog(true)}
-                  >
-                    <ArrowRightLeft className="h-4 w-4 mr-2" />
-                    Transfer
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                      <Building className="h-6 w-6 text-blue-600" />
-                      <div>
-                        <div className="font-medium text-sm">Branch</div>
-                        <div className="text-lg font-bold text-blue-600">Main Branch</div>
-                        <div className="text-xs text-muted-foreground">Nairobi CBD</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between gap-3 p-4 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <User className="h-6 w-6 text-indigo-600" />
-                        <div>
-                          <div className="font-medium text-sm">Loan Officer</div>
-                          <div className="text-lg font-bold text-indigo-600">Jane Wanjiku</div>
-                          <div className="text-xs text-muted-foreground">Senior Officer</div>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => setShowUpdateOfficerDialog(true)}
-                        className="shrink-0"
-                      >
-                        Change
-                      </Button>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                      <Users className="h-6 w-6 text-emerald-600" />
-                      <div>
-                        <div className="font-medium text-sm">Group</div>
-                        <div className="text-lg font-bold text-emerald-600">
-                          {/* Placeholder group name */}
-                          Umoja Savings Group
-                        </div>
-                        <div className="text-xs text-muted-foreground">25 members</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Documents Tab */}
-          <TabsContent value="documents" className="p-6 space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Client Documents</CardTitle>
-                  <CardDescription>Manage and view all client documentation</CardDescription>
-                </div>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Document
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {/* Placeholder documents - you'll need to fetch actual documents */}
-                <div className="space-y-4">
-                  {[
-                    { name: "National ID Copy", type: "Identity", status: "verified", date: "2024-01-15" },
-                    { name: "Passport Photo", type: "Identity", status: "verified", date: "2024-01-15" },
-                    { name: "Bank Statement", type: "Financial", status: "pending", date: "2024-01-20" },
-                    { name: "Employment Letter", type: "Employment", status: "verified", date: "2024-01-18" },
-                    { name: "Proof of Address", type: "Address", status: "pending", date: "2024-01-22" }
-                  ].map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{doc.name}</div>
-                          <div className="text-sm text-muted-foreground">{doc.type} • Uploaded {format(new Date(doc.date), 'MMM dd, yyyy')}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={doc.status === 'verified' ? 'default' : 'secondary'}>
-                          {doc.status === 'verified' ? (
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                          ) : (
-                            <Clock className="h-3 w-3 mr-1" />
-                          )}
-                          {doc.status}
-                        </Badge>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Accounts Tab */}
-          <TabsContent value="accounts" className="p-6 space-y-6">
-            <Tabs defaultValue="loans" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="loans" className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Loan Accounts
-                </TabsTrigger>
-                <TabsTrigger value="savings" className="flex items-center gap-2">
-                  <PiggyBank className="h-4 w-4" />
-                  Savings Accounts
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Loans Tab */}
-              <TabsContent value="loans" className="mt-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-orange-600" />
-                        Loan Accounts
-                      </CardTitle>
-                      <CardDescription>Manage client loan accounts</CardDescription>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => setShowAddLoanDialog(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Loan
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs defaultValue="active" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="active">Active</TabsTrigger>
-                        <TabsTrigger value="pending">Pending</TabsTrigger>
-                        <TabsTrigger value="closed">Closed</TabsTrigger>
-                      </TabsList>
-
-                      {/* Active Loans */}
-                      <TabsContent value="active" className="mt-4">
-                        <div className="space-y-3">
-                          {[
-                            { 
-                              id: "L001", 
-                              type: "Personal Loan", 
-                              amount: 150000, 
-                              outstanding: 75000, 
-                              status: "active",
-                              nextPayment: "2024-02-15",
-                              monthlyPayment: 12500,
-                              loanOfficer: "John Kamau"
-                            },
-                            { 
-                              id: "L002", 
-                              type: "Business Loan", 
-                              amount: 300000, 
-                              outstanding: 200000, 
-                              status: "active",
-                              nextPayment: "2024-02-20",
-                              monthlyPayment: 25000,
-                              loanOfficer: "Mary Njeri"
-                            }
-                          ].map((loan, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium">{loan.type}</span>
-                                  <Badge variant="default" className="text-xs">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Active
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">ID: {loan.id} • Officer: {loan.loanOfficer}</div>
-                                <div className="flex items-center gap-4 text-sm">
-                                  <span className="text-orange-600 font-medium">{formatCurrency(loan.outstanding)} outstanding</span>
-                                  <span className="text-muted-foreground">Next payment: {format(new Date(loan.nextPayment), 'MMM dd')}</span>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={() => {
-                                setSelectedLoan(loan);
-                                setShowLoanDetails(true);
-                              }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-
-                      {/* Pending Loans */}
-                      <TabsContent value="pending" className="mt-4">
-                        <div className="space-y-3">
-                          {[
-                            { 
-                              id: "L004", 
-                              type: "Home Improvement Loan", 
-                              amount: 200000, 
-                              status: "pending_approval",
-                              applicationDate: "2024-01-25",
-                              applicationStage: "Credit Assessment",
-                              approver: "Jane Smith",
-                              purpose: "Kitchen renovation and repairs",
-                              loanOfficer: "John Kamau",
-                              term: 36,
-                              interestRate: 14.5,
-                              creditScore: 720
-                            },
-                            { 
-                              id: "L005", 
-                              type: "Education Loan", 
-                              amount: 100000, 
-                              status: "pending_disbursement",
-                              applicationDate: "2024-01-20",
-                              applicationStage: "Approved - Awaiting Disbursement",
-                              approver: "Sarah Mwangi",
-                              purpose: "University tuition fees",
-                              loanOfficer: "Mary Njeri",
-                              term: 24,
-                              interestRate: 12.0,
-                              creditScore: 680,
-                              approvedDate: "2024-01-30",
-                              disbursementDate: "2024-02-05"
-                            }
-                          ].map((loan, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors bg-gradient-to-r from-yellow-50/50 to-orange-50/50">
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium">{loan.type}</span>
-                                  <Badge variant={loan.status === 'pending_disbursement' ? 'default' : 'secondary'} className="text-xs">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {loan.status.replace('_', ' ')}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  ID: {loan.id} • {formatCurrency(loan.amount)} • {loan.term}m @ {loan.interestRate}%
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Stage: {loan.applicationStage} • Officer: {loan.loanOfficer}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={() => {
-                                  setSelectedLoan(loan);
-                                  setShowLoanDetails(true);
-                                }}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View
-                                </Button>
-                                {loan.status === 'pending_approval' && (
-                                  <>
-                                    <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Approve
-                                    </Button>
-                                    <Button variant="outline" size="sm">
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Modify
-                                    </Button>
-                                  </>
-                                )}
-                                {loan.status === 'pending_disbursement' && (
-                                  <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700">
-                                    <CreditCard className="h-4 w-4 mr-2" />
-                                    Disburse
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-
-                      {/* Closed Loans */}
-                      <TabsContent value="closed" className="mt-4">
-                        <div className="space-y-3">
-                          {[
-                            { 
-                              id: "L003", 
-                              type: "Emergency Loan", 
-                              amount: 50000, 
-                              status: "closed",
-                              closedDate: "2024-01-15",
-                              totalPaid: 52500,
-                              disbursementDate: "2023-10-15",
-                              term: 6,
-                              actualTerm: 3,
-                              closureReason: "Early repayment",
-                              interestPaid: 2500,
-                              loanOfficer: "Mary Njeri",
-                              performance: "Excellent"
-                            },
-                            { 
-                              id: "L002", 
-                              type: "Business Loan", 
-                              amount: 300000, 
-                              status: "closed",
-                              closedDate: "2023-12-31",
-                              totalPaid: 345000,
-                              disbursementDate: "2022-01-15",
-                              term: 24,
-                              actualTerm: 24,
-                              closureReason: "Full term completion",
-                              interestPaid: 45000,
-                              loanOfficer: "John Kamau",
-                              performance: "Good"
-                            }
-                          ].map((loan, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors bg-gradient-to-r from-gray-50/50 to-slate-50/50">
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium text-muted-foreground">{loan.type}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    <XCircle className="h-3 w-3 mr-1" />
-                                    Closed
-                                  </Badge>
-                                  <Badge variant={loan.performance === 'Excellent' ? 'default' : 'secondary'} className="text-xs">
-                                    {loan.performance}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  ID: {loan.id} • {formatCurrency(loan.amount)} • Paid: {formatCurrency(loan.totalPaid)}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Closed: {format(new Date(loan.closedDate), 'MMM dd, yyyy')} • {loan.closureReason}
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={() => {
-                                setSelectedLoan(loan);
-                                setShowLoanDetails(true);
-                              }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Savings Tab */}
-              <TabsContent value="savings" className="mt-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <PiggyBank className="h-5 w-5 text-green-600" />
-                        Savings Accounts
-                      </CardTitle>
-                      <CardDescription>Manage client savings accounts</CardDescription>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => setShowAddSavingsDialog(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Savings
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <Tabs defaultValue="active" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="active">Active</TabsTrigger>
-                        <TabsTrigger value="pending">Pending</TabsTrigger>
-                        <TabsTrigger value="closed">Closed</TabsTrigger>
-                      </TabsList>
-
-                      {/* Active Savings */}
-                      <TabsContent value="active" className="mt-4">
-                        <div className="space-y-3">
-                          {[
-                            { 
-                              id: "S001", 
-                              type: "Regular Savings", 
-                              balance: 45000, 
-                              interestRate: 3.5,
-                              status: "active",
-                              lastTransaction: "2024-01-28",
-                              accountOfficer: "Jane Smith"
-                            },
-                            { 
-                              id: "S002", 
-                              type: "Fixed Deposit", 
-                              balance: 100000, 
-                              interestRate: 8.0,
-                              status: "active",
-                              maturityDate: "2024-12-31",
-                              accountOfficer: "John Doe"
-                            }
-                          ].map((savings, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium">{savings.type}</span>
-                                  <Badge variant="default" className="text-xs">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Active
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">ID: {savings.id} • Officer: {savings.accountOfficer}</div>
-                                <div className="flex items-center gap-4 text-sm">
-                                  <span className="text-green-600 font-medium">{formatCurrency(savings.balance)} balance</span>
-                                  <span className="text-muted-foreground">{savings.interestRate}% interest</span>
-                                  {savings.maturityDate && (
-                                    <span className="text-muted-foreground">Matures: {format(new Date(savings.maturityDate), 'MMM dd')}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={() => {
-                                setSelectedSavings(savings);
-                                setShowSavingsDetails(true);
-                              }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-
-                      {/* Pending Savings */}
-                      <TabsContent value="pending" className="mt-4">
-                        <div className="space-y-3">
-                          {[
-                            { 
-                              id: "S004", 
-                              type: "Investment Account", 
-                              initialDeposit: 50000, 
-                              status: "pending_approval",
-                              applicationDate: "2024-01-30",
-                              applicationStage: "Documentation Review",
-                              approver: "Sarah Mwangi",
-                              purpose: "Long-term investment savings",
-                              interestRate: 6.5,
-                              accountOfficer: "Mary Njeri"
-                            },
-                            { 
-                              id: "S005", 
-                              type: "Children Education Fund", 
-                              initialDeposit: 25000, 
-                              status: "pending_activation",
-                              applicationDate: "2024-01-25",
-                              applicationStage: "Approved - Awaiting Activation",
-                              approver: "John Kamau",
-                              purpose: "Education savings for children",
-                              interestRate: 5.0,
-                              approvedDate: "2024-02-01",
-                              activationDate: "2024-02-10",
-                              accountOfficer: "Sarah Njeri"
-                            }
-                          ].map((savings, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors bg-gradient-to-r from-green-50/50 to-blue-50/50">
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium">{savings.type}</span>
-                                  <Badge variant={savings.status === 'pending_activation' ? 'default' : 'secondary'} className="text-xs">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {savings.status.replace('_', ' ')}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  ID: {savings.id} • {formatCurrency(savings.initialDeposit)} • {savings.interestRate}%
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Stage: {savings.applicationStage} • Officer: {savings.accountOfficer}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={() => {
-                                  setSelectedSavings(savings);
-                                  setShowSavingsDetails(true);
-                                }}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View
-                                </Button>
-                                {savings.status === 'pending_approval' && (
-                                  <>
-                                    <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Approve
-                                    </Button>
-                                    <Button variant="outline" size="sm">
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Modify
-                                    </Button>
-                                  </>
-                                )}
-                                {savings.status === 'pending_activation' && (
-                                  <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700">
-                                    <PiggyBank className="h-4 w-4 mr-2" />
-                                    Activate
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-
-                      {/* Closed Savings */}
-                      <TabsContent value="closed" className="mt-4">
-                        <div className="space-y-3">
-                          {[
-                            { 
-                              id: "S003", 
-                              type: "Emergency Fund", 
-                              balance: 0, 
-                              status: "closed",
-                              closedDate: "2024-01-20",
-                              finalBalance: 75000,
-                              openDate: "2023-06-15",
-                              interestEarned: 5000,
-                              closureReason: "Funds withdrawn for emergency",
-                              accountOfficer: "Jane Smith",
-                              performance: "Good"
-                            }
-                          ].map((savings, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors bg-gradient-to-r from-gray-50/50 to-slate-50/50">
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-medium text-muted-foreground">{savings.type}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    <XCircle className="h-3 w-3 mr-1" />
-                                    Closed
-                                  </Badge>
-                                  <Badge variant={savings.performance === 'Excellent' ? 'default' : 'secondary'} className="text-xs">
-                                    {savings.performance}
-                                  </Badge>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  ID: {savings.id} • Final: {formatCurrency(savings.finalBalance)} • Interest: {formatCurrency(savings.interestEarned)}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Closed: {format(new Date(savings.closedDate), 'MMM dd, yyyy')} • {savings.closureReason}
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={() => {
-                                setSelectedSavings(savings);
-                                setShowSavingsDetails(true);
-                              }}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-                                    <div className="font-medium">{format(new Date(savings.openingDate), 'MMM dd, yyyy')}</div>
-                                  </div>
-                                  <div>
-                                    <span className="text-sm font-medium text-muted-foreground">Interest Rate</span>
-                                    <div className="font-medium">{savings.interestRate}% p.a.</div>
-                                  </div>
-                                  <div>
-                                    <span className="text-sm font-medium text-muted-foreground">Account Officer</span>
-                                    <div className="font-medium">{savings.accountOfficer}</div>
-                                  </div>
-                                  <div>
-                                    <span className="text-sm font-medium text-muted-foreground">Closure Reason</span>
-                                    <div className="font-medium">{savings.closureReason}</div>
-                                  </div>
-                                  {savings.transferredTo && (
-                                    <div>
-                                      <span className="text-sm font-medium text-muted-foreground">Transferred To</span>
-                                      <div className="font-medium">{savings.transferredTo}</div>
-                                    </div>
-                                  )}
-                                  {savings.penaltyCharge && (
-                                    <div>
-                                      <span className="text-sm font-medium text-muted-foreground">Penalty Charge</span>
-                                      <div className="font-medium text-red-600">{formatCurrency(savings.penaltyCharge)}</div>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Account Performance */}
-                                <div className="p-4 bg-white/50 rounded-lg">
-                                  <div className="text-sm font-medium text-muted-foreground mb-3">Account Summary</div>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                                    <div>
-                                      <div className="text-xl font-bold text-green-600">{formatCurrency(savings.totalDeposits)}</div>
-                                      <div className="text-xs text-muted-foreground">Total Deposits</div>
-                                    </div>
-                                    <div>
-                                      <div className="text-xl font-bold text-blue-600">{formatCurrency(savings.interestEarned)}</div>
-                                      <div className="text-xs text-muted-foreground">Interest Earned</div>
-                                    </div>
-                                    <div>
-                                      <div className="text-xl font-bold text-green-600">{formatCurrency(savings.closedBalance)}</div>
-                                      <div className="text-xs text-muted-foreground">Final Balance</div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-2">
-                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
-                                    setSelectedSavings(savings);
-                                    setShowSavingsDetails(true);
-                                  }}>
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    View Complete History
-                                  </Button>
-                                  <Button variant="outline" size="sm">
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Certificate
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+            </TabsContent>
           </Tabs>
         </div>
 
         <Separator />
 
-        <div className="flex justify-between">
+        <div className="flex justify-between p-6">
           <Button 
             variant="destructive" 
             onClick={() => setShowCloseClientDialog(true)}
@@ -1353,7 +636,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           </div>
         </div>
 
-        {/* Add Account Dialogs */}
+        {/* Dialogs */}
         <AddSavingsAccountDialog
           clientId={client.id}
           clientName={`${client.first_name} ${client.last_name}`}
@@ -1390,7 +673,6 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           onOpenChange={setShowUpdateOfficerDialog}
         />
 
-        {/* Close Client Confirmation Dialog */}
         <AlertDialog open={showCloseClientDialog} onOpenChange={setShowCloseClientDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -1403,14 +685,13 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCloseClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Close Client Account
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Loan Details Dialog */}
         <LoanDetailsDialog
           loan={selectedLoan}
           clientName={`${client.first_name} ${client.last_name}`}
@@ -1418,7 +699,6 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           onOpenChange={setShowLoanDetails}
         />
 
-        {/* Savings Details Dialog */}
         <SavingsDetailsDialog
           savings={selectedSavings}
           clientName={`${client.first_name} ${client.last_name}`}
