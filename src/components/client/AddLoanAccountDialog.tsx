@@ -212,7 +212,7 @@ export const AddLoanAccountDialog = ({
     
     switch (tab) {
       case "basic":
-        return formData.loan_product_id && formData.requested_amount && formData.loan_purpose && formData.fund_id && !errors.loan_product_id && !errors.requested_amount && !errors.loan_purpose && !errors.fund_id;
+        return formData.loan_product_id && formData.requested_amount && formData.loan_purpose && formData.fund_id && formData.interest_rate && !errors.loan_product_id && !errors.requested_amount && !errors.loan_purpose && !errors.fund_id && !errors.interest_rate;
       case "terms":
         return formData.expected_disbursement_date && formData.loan_term && formData.number_of_repayments && formData.first_repayment_date && formData.interest_rate && !errors.expected_disbursement_date && !errors.loan_term && !errors.number_of_repayments && !errors.first_repayment_date && !errors.interest_rate;
       case "charges":
