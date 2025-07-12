@@ -82,19 +82,46 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
   // Mock data for comprehensive savings details
   const savingsDetails = {
     ...savings,
-    openingDate: "2023-03-15",
-    totalDeposits: 150000,
-    totalWithdrawals: 5000,
-    interestEarned: 5250,
+    openingDate: savings.status === 'pending_approval' ? null : "2023-03-15",
+    totalDeposits: savings.status === 'pending_approval' ? 0 : 150000,
+    totalWithdrawals: savings.status === 'pending_approval' ? 0 : 5000,
+    interestEarned: savings.status === 'pending_approval' ? 0 : 5250,
     minimumBalance: 1000,
-    averageBalance: 35000,
-    numberOfTransactions: 25,
-    lastInterestPosting: "2024-01-31",
-    nextInterestPosting: "2024-02-29",
-    accountOfficer: "Sarah Njeri"
+    averageBalance: savings.status === 'pending_approval' ? 0 : 35000,
+    numberOfTransactions: savings.status === 'pending_approval' ? 0 : 25,
+    lastInterestPosting: savings.status === 'pending_approval' ? null : "2024-01-31",
+    nextInterestPosting: savings.status === 'pending_approval' ? null : "2024-02-29",
+    accountOfficer: "Sarah Njeri",
+    
+    // Status-specific details
+    approvalStatus: savings.status === 'pending_approval' ? {
+      submittedDate: "2024-01-15",
+      reviewStage: "Documentation Review",
+      approver: "Jane Smith",
+      estimatedApproval: "2024-01-22",
+      requiredDocuments: ["ID verification", "Initial deposit"],
+      comments: "Waiting for initial deposit confirmation"
+    } : null,
+    
+    closureDetails: savings.status === 'closed' ? {
+      closureDate: "2024-12-15",
+      closureReason: "Customer request",
+      finalBalance: 0,
+      transferredTo: "Primary Checking Account",
+      closedBy: "Sarah Njeri",
+      certificateGenerated: true
+    } : null,
+    
+    maturityDetails: savings.status === 'matured' && savings.type === 'Fixed Deposit' ? {
+      maturityDate: "2024-03-15",
+      maturityAmount: 125000,
+      interestEarned: 25000,
+      renewalOption: true,
+      autoRenewal: false
+    } : null
   };
 
-  const transactionHistory = [
+  const transactionHistory = savings.status === 'pending_approval' ? [] : [
     { date: "2024-01-28", type: "Deposit", amount: 5000, balance: 45000, method: "Cash", reference: "DEP001" },
     { date: "2024-01-25", type: "Interest", amount: 125, balance: 40125, method: "Auto", reference: "INT001" },
     { date: "2024-01-20", type: "Deposit", amount: 5000, balance: 40000, method: "Bank Transfer", reference: "DEP002" },
@@ -102,7 +129,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
     { date: "2024-01-10", type: "Deposit", amount: 5000, balance: 37000, method: "M-Pesa", reference: "DEP003" },
   ];
 
-  const interestHistory = [
+  const interestHistory = savings.status === 'pending_approval' ? [] : [
     { month: "January 2024", rate: 3.5, amount: 125, balance: 45000 },
     { month: "December 2023", rate: 3.5, amount: 115, balance: 40000 },
     { month: "November 2023", rate: 3.5, amount: 110, balance: 38000 },
@@ -110,10 +137,10 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
   ];
 
   const documents = [
-    { name: "Account Opening Form", type: "Application", date: "2023-03-15", status: "Signed" },
-    { name: "Terms and Conditions", type: "Agreement", date: "2023-03-15", status: "Accepted" },
-    { name: "Interest Rate Certificate", type: "Certificate", date: "2023-03-15", status: "Active" },
-    { name: "Monthly Statement - Jan 2024", type: "Statement", date: "2024-01-31", status: "Generated" },
+    { name: "Account Opening Form", type: "Application", date: "2023-03-15", status: savings.status === 'pending_approval' ? "Pending" : "Signed" },
+    { name: "Terms and Conditions", type: "Agreement", date: "2023-03-15", status: savings.status === 'pending_approval' ? "Under Review" : "Accepted" },
+    { name: "Interest Rate Certificate", type: "Certificate", date: "2023-03-15", status: savings.status === 'closed' ? "Expired" : "Active" },
+    { name: "Monthly Statement - Jan 2024", type: "Statement", date: "2024-01-31", status: savings.status === 'pending_approval' ? "Not Available" : "Generated" },
   ];
 
   return (
@@ -133,9 +160,12 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
           <Tabs defaultValue="overview" className="h-full">
             <TabsList className="w-full justify-start mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              <TabsTrigger value="interest">Interest History</TabsTrigger>
+              <TabsTrigger value="transactions" disabled={savings.status === 'pending_approval'}>Transactions</TabsTrigger>
+              <TabsTrigger value="interest" disabled={savings.status === 'pending_approval'}>Interest History</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              {savings.status === 'pending_approval' && <TabsTrigger value="approval">Approval Details</TabsTrigger>}
+              {savings.status === 'closed' && <TabsTrigger value="closure">Closure Details</TabsTrigger>}
+              {savings.status === 'matured' && <TabsTrigger value="maturity">Maturity Details</TabsTrigger>}
             </TabsList>
 
             {/* Overview Tab */}
@@ -469,6 +499,186 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Approval Details Tab */}
+            {savings.status === 'pending_approval' && (
+              <TabsContent value="approval" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-yellow-600" />
+                      Approval Process
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Application Date</span>
+                          <div className="font-medium">{format(new Date(savingsDetails.approvalStatus?.submittedDate || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Current Stage</span>
+                          <div className="font-medium">{savingsDetails.approvalStatus?.reviewStage}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Assigned Approver</span>
+                          <div className="font-medium">{savingsDetails.approvalStatus?.approver}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Estimated Approval</span>
+                          <div className="font-medium">{format(new Date(savingsDetails.approvalStatus?.estimatedApproval || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Required Documents</span>
+                          <div className="mt-2 space-y-1">
+                            {savingsDetails.approvalStatus?.requiredDocuments.map((doc: string, index: number) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                <span className="text-sm">{doc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Comments</span>
+                          <div className="mt-1 p-3 bg-muted rounded-md text-sm">{savingsDetails.approvalStatus?.comments}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Closure Details Tab */}
+            {savings.status === 'closed' && (
+              <TabsContent value="closure" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <XCircle className="h-5 w-5 text-gray-600" />
+                      Account Closure Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closure Date</span>
+                          <div className="font-medium">{format(new Date(savingsDetails.closureDetails?.closureDate || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closure Reason</span>
+                          <div className="font-medium">{savingsDetails.closureDetails?.closureReason}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Final Balance</span>
+                          <div className="font-medium">{formatCurrency(savingsDetails.closureDetails?.finalBalance || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closed By</span>
+                          <div className="font-medium">{savingsDetails.closureDetails?.closedBy}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Amount Transferred</span>
+                          <div className="font-medium">{savingsDetails.closureDetails?.transferredTo}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closure Certificate</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={savingsDetails.closureDetails?.certificateGenerated ? 'default' : 'secondary'}>
+                              {savingsDetails.closureDetails?.certificateGenerated ? 'Generated' : 'Pending'}
+                            </Badge>
+                            {savingsDetails.closureDetails?.certificateGenerated && (
+                              <Button variant="outline" size="sm">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-gray-800">
+                            <XCircle className="h-4 w-4" />
+                            <span className="font-medium">Account Closed</span>
+                          </div>
+                          <p className="text-sm text-gray-700 mt-1">
+                            This savings account has been permanently closed.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Maturity Details Tab */}
+            {savings.status === 'matured' && (
+              <TabsContent value="maturity" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Maturity Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Maturity Date</span>
+                          <div className="font-medium">{format(new Date(savingsDetails.maturityDetails?.maturityDate || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Maturity Amount</span>
+                          <div className="font-medium text-green-600">{formatCurrency(savingsDetails.maturityDetails?.maturityAmount || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Interest Earned</span>
+                          <div className="font-medium text-blue-600">{formatCurrency(savingsDetails.maturityDetails?.interestEarned || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Renewal Available</span>
+                          <div className="font-medium">{savingsDetails.maturityDetails?.renewalOption ? 'Yes' : 'No'}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Auto Renewal</span>
+                          <div className="font-medium">{savingsDetails.maturityDetails?.autoRenewal ? 'Enabled' : 'Disabled'}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-sm text-muted-foreground">Actions</span>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              Renew Fixed Deposit
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              Withdraw Amount
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-blue-800">
+                            <TrendingUp className="h-4 w-4" />
+                            <span className="font-medium">Fixed Deposit Matured</span>
+                          </div>
+                          <p className="text-sm text-blue-700 mt-1">
+                            Your fixed deposit has reached maturity. Choose to renew or withdraw.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
 

@@ -86,24 +86,52 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   // Mock data for comprehensive loan details
   const loanDetails = {
     ...loan,
-    disbursementDate: "2023-06-15",
-    maturityDate: "2025-06-15",
+    disbursementDate: loan.status === 'pending_approval' ? null : "2023-06-15",
+    maturityDate: loan.status === 'closed' ? "2024-12-15" : "2025-06-15",
     interestRate: 12.5,
     paymentFrequency: "Monthly",
-    remainingTerm: 18,
+    remainingTerm: loan.status === 'closed' ? 0 : 18,
     totalTerm: 24,
     principalPaid: loan.amount - loan.outstanding,
     interestPaid: 25000,
-    totalPayments: 15,
-    missedPayments: 1,
-    latePayments: 2,
+    totalPayments: loan.status === 'pending_approval' ? 0 : 15,
+    missedPayments: loan.status === 'pending_approval' ? 0 : 1,
+    latePayments: loan.status === 'pending_approval' ? 0 : 2,
     collateral: "Vehicle - Toyota Corolla 2020",
     purpose: "Business expansion",
     guarantor: "Mary Wanjiku",
-    loanOfficer: "John Kamau"
+    loanOfficer: "John Kamau",
+    
+    // Status-specific details
+    approvalStatus: loan.status === 'pending_approval' ? {
+      submittedDate: "2024-01-15",
+      reviewStage: "Credit Assessment",
+      approver: "Jane Smith",
+      estimatedApproval: "2024-01-25",
+      requiredDocuments: ["Income verification", "Collateral valuation"],
+      comments: "Pending final credit check and collateral verification"
+    } : null,
+    
+    closureDetails: loan.status === 'closed' ? {
+      closureDate: "2024-12-15",
+      closureReason: "Fully repaid",
+      finalPayment: 12500,
+      totalAmountPaid: 300000,
+      closedBy: "John Kamau",
+      certificateGenerated: true
+    } : null,
+    
+    overdueDetails: loan.status === 'overdue' ? {
+      daysPastDue: 15,
+      overdueAmount: 12500,
+      penaltyCharges: 1250,
+      lastContactDate: "2024-01-20",
+      nextAction: "Field visit scheduled",
+      restructureOption: true
+    } : null
   };
 
-  const paymentHistory = [
+  const paymentHistory = loan.status === 'pending_approval' ? [] : [
     { date: "2024-01-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 75000 },
     { date: "2023-12-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 87500 },
     { date: "2023-11-15", amount: 0, type: "Regular Payment", status: "Missed", balance: 87500 },
@@ -111,17 +139,17 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     { date: "2023-09-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 100000 },
   ];
 
-  const upcomingPayments = [
+  const upcomingPayments = loan.status === 'pending_approval' || loan.status === 'closed' ? [] : [
     { date: "2024-02-15", amount: 12500, type: "Regular Payment", status: "Due" },
     { date: "2024-03-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
     { date: "2024-04-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
   ];
 
   const documents = [
-    { name: "Loan Agreement", type: "Contract", date: "2023-06-15", status: "Signed" },
-    { name: "Collateral Valuation", type: "Valuation", date: "2023-06-10", status: "Verified" },
+    { name: "Loan Agreement", type: "Contract", date: "2023-06-15", status: loan.status === 'pending_approval' ? "Pending" : "Signed" },
+    { name: "Collateral Valuation", type: "Valuation", date: "2023-06-10", status: loan.status === 'pending_approval' ? "Under Review" : "Verified" },
     { name: "Income Verification", type: "Financial", date: "2023-06-08", status: "Verified" },
-    { name: "Insurance Certificate", type: "Insurance", date: "2023-06-12", status: "Active" },
+    { name: "Insurance Certificate", type: "Insurance", date: "2023-06-12", status: loan.status === 'closed' ? "Expired" : "Active" },
   ];
 
   return (
@@ -141,9 +169,12 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
           <Tabs defaultValue="overview" className="h-full">
             <TabsList className="w-full justify-start mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="payments">Payment History</TabsTrigger>
-              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="payments" disabled={loan.status === 'pending_approval'}>Payment History</TabsTrigger>
+              <TabsTrigger value="schedule" disabled={loan.status === 'pending_approval' || loan.status === 'closed'}>Schedule</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
+              {loan.status === 'pending_approval' && <TabsTrigger value="approval">Approval Details</TabsTrigger>}
+              {loan.status === 'closed' && <TabsTrigger value="closure">Closure Details</TabsTrigger>}
+              {loan.status === 'overdue' && <TabsTrigger value="recovery">Recovery</TabsTrigger>}
             </TabsList>
 
             {/* Overview Tab */}
@@ -226,14 +257,18 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                         <span className="text-muted-foreground">Interest Rate</span>
                         <div className="font-medium">{loanDetails.interestRate}% p.a.</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Disbursement Date</span>
-                        <div className="font-medium">{format(new Date(loanDetails.disbursementDate), 'MMM dd, yyyy')}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Maturity Date</span>
-                        <div className="font-medium">{format(new Date(loanDetails.maturityDate), 'MMM dd, yyyy')}</div>
-                      </div>
+                      {loanDetails.disbursementDate && (
+                        <div>
+                          <span className="text-muted-foreground">Disbursement Date</span>
+                          <div className="font-medium">{format(new Date(loanDetails.disbursementDate), 'MMM dd, yyyy')}</div>
+                        </div>
+                      )}
+                      {loanDetails.maturityDate && (
+                        <div>
+                          <span className="text-muted-foreground">Maturity Date</span>
+                          <div className="font-medium">{format(new Date(loanDetails.maturityDate), 'MMM dd, yyyy')}</div>
+                        </div>
+                      )}
                       <div>
                         <span className="text-muted-foreground">Payment Frequency</span>
                         <div className="font-medium">{loanDetails.paymentFrequency}</div>
@@ -475,6 +510,188 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Approval Details Tab */}
+            {loan.status === 'pending_approval' && (
+              <TabsContent value="approval" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-yellow-600" />
+                      Approval Process
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Application Date</span>
+                          <div className="font-medium">{format(new Date(loanDetails.approvalStatus?.submittedDate || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Current Stage</span>
+                          <div className="font-medium">{loanDetails.approvalStatus?.reviewStage}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Assigned Approver</span>
+                          <div className="font-medium">{loanDetails.approvalStatus?.approver}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Estimated Approval</span>
+                          <div className="font-medium">{format(new Date(loanDetails.approvalStatus?.estimatedApproval || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Required Documents</span>
+                          <div className="mt-2 space-y-1">
+                            {loanDetails.approvalStatus?.requiredDocuments.map((doc: string, index: number) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                                <span className="text-sm">{doc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Comments</span>
+                          <div className="mt-1 p-3 bg-muted rounded-md text-sm">{loanDetails.approvalStatus?.comments}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Closure Details Tab */}
+            {loan.status === 'closed' && (
+              <TabsContent value="closure" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      Loan Closure Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closure Date</span>
+                          <div className="font-medium">{format(new Date(loanDetails.closureDetails?.closureDate || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closure Reason</span>
+                          <div className="font-medium">{loanDetails.closureDetails?.closureReason}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Final Payment</span>
+                          <div className="font-medium text-green-600">{formatCurrency(loanDetails.closureDetails?.finalPayment || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Closed By</span>
+                          <div className="font-medium">{loanDetails.closureDetails?.closedBy}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Total Amount Paid</span>
+                          <div className="font-medium text-green-600">{formatCurrency(loanDetails.closureDetails?.totalAmountPaid || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Completion Certificate</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={loanDetails.closureDetails?.certificateGenerated ? 'default' : 'secondary'}>
+                              {loanDetails.closureDetails?.certificateGenerated ? 'Generated' : 'Pending'}
+                            </Badge>
+                            {loanDetails.closureDetails?.certificateGenerated && (
+                              <Button variant="outline" size="sm">
+                                <Download className="h-4 w-4 mr-2" />
+                                Download
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-800">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="font-medium">Loan Successfully Completed</span>
+                          </div>
+                          <p className="text-sm text-green-700 mt-1">
+                            This loan has been fully repaid and closed successfully.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
+            {/* Recovery Details Tab */}
+            {loan.status === 'overdue' && (
+              <TabsContent value="recovery" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                      Recovery Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Days Past Due</span>
+                          <div className="font-medium text-red-600">{loanDetails.overdueDetails?.daysPastDue} days</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Overdue Amount</span>
+                          <div className="font-medium text-red-600">{formatCurrency(loanDetails.overdueDetails?.overdueAmount || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Penalty Charges</span>
+                          <div className="font-medium text-red-600">{formatCurrency(loanDetails.overdueDetails?.penaltyCharges || 0)}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Last Contact</span>
+                          <div className="font-medium">{format(new Date(loanDetails.overdueDetails?.lastContactDate || ''), 'MMM dd, yyyy')}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <span className="text-sm text-muted-foreground">Next Action</span>
+                          <div className="font-medium">{loanDetails.overdueDetails?.nextAction}</div>
+                        </div>
+                        <div>
+                          <span className="text-sm text-muted-foreground">Restructure Available</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={loanDetails.overdueDetails?.restructureOption ? 'default' : 'secondary'}>
+                              {loanDetails.overdueDetails?.restructureOption ? 'Yes' : 'No'}
+                            </Badge>
+                            {loanDetails.overdueDetails?.restructureOption && (
+                              <Button variant="outline" size="sm">
+                                Initiate Restructure
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-red-800">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="font-medium">Immediate Action Required</span>
+                          </div>
+                          <p className="text-sm text-red-700 mt-1">
+                            This loan requires immediate attention due to overdue payments.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
 
