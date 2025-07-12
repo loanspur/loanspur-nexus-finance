@@ -510,9 +510,9 @@ export const AddLoanAccountDialog = ({
                           </FormControl>
                           <SelectContent>
                             {isLoadingProducts ? (
-                              <SelectItem value="" disabled>Loading products...</SelectItem>
+                              <SelectItem value="loading" disabled>Loading products...</SelectItem>
                             ) : loanProducts.length === 0 ? (
-                              <SelectItem value="" disabled>No active products found</SelectItem>
+                              <SelectItem value="no-products" disabled>No active products found</SelectItem>
                             ) : (
                               loanProducts.map((product) => (
                                 <SelectItem key={product.id} value={product.id}>
@@ -868,7 +868,7 @@ export const AddLoanAccountDialog = ({
                             </SelectTrigger>
                            <SelectContent>
                               {loanFeeStructures.length === 0 ? (
-                                <SelectItem value="" disabled>No loan charges configured</SelectItem>
+                                <SelectItem value="no-charges" disabled>No loan charges configured</SelectItem>
                               ) : (
                                 loanFeeStructures.map((fee) => (
                                   <SelectItem key={fee.id} value={fee.id}>
