@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -99,7 +100,42 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [selectedSavings, setSelectedSavings] = useState<any>(null);
   const [showLoanDetails, setShowLoanDetails] = useState(false);
   const [showSavingsDetails, setShowSavingsDetails] = useState(false);
+  const [activeLoanProducts, setActiveLoanProducts] = useState<any[]>([]);
+  const [activeSavingsProducts, setActiveSavingsProducts] = useState<any[]>([]);
   const { toast } = useToast();
+  
+  // Fetch active products when dialog opens
+  useEffect(() => {
+    if (open && client) {
+      fetchActiveProducts();
+    }
+  }, [open, client]);
+
+  const fetchActiveProducts = async () => {
+    try {
+      // Fetch active loan products
+      const { data: loanProducts } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('is_active', true);
+
+      // Fetch active savings products
+      const { data: savingsProducts } = await supabase
+        .from('savings_products')
+        .select('*')
+        .eq('is_active', true);
+
+      setActiveLoanProducts(loanProducts || []);
+      setActiveSavingsProducts(savingsProducts || []);
+    } catch (error) {
+      console.error('Error fetching active products:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load active products",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (!client) return null;
 
@@ -225,6 +261,21 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     });
   };
 
+  // Filter mock data to only show products that are active
+  const filteredLoans = mockLoans.filter(loan => 
+    activeLoanProducts.some(product => 
+      product.name.toLowerCase().includes(loan.type.toLowerCase().split(' ')[0]) || 
+      product.short_name.toLowerCase().includes(loan.type.toLowerCase().split(' ')[0])
+    )
+  );
+
+  const filteredSavings = mockSavings.filter(savings => 
+    activeSavingsProducts.some(product => 
+      product.name.toLowerCase().includes(savings.type.toLowerCase().split(' ')[0]) || 
+      product.short_name.toLowerCase().includes(savings.type.toLowerCase().split(' ')[0])
+    )
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
@@ -326,7 +377,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <CreditCard className="h-5 w-5" />
-                    Loans ({mockLoans.length})
+                    Loans ({filteredLoans.length})
                   </h3>
                   <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -335,7 +386,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 </div>
                 
                 <div className="border rounded-lg divide-y">
-                  {mockLoans.map((loan) => (
+                  {filteredLoans.map((loan) => (
                     <div key={loan.id} className="p-4 hover:bg-muted/50 transition-colors">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -408,7 +459,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <PiggyBank className="h-5 w-5" />
-                    Savings Accounts ({mockSavings.length})
+                    Savings Accounts ({filteredSavings.length})
                   </h3>
                   <Button size="sm" onClick={() => setShowAddSavingsDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -417,7 +468,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 </div>
                 
                 <div className="border rounded-lg divide-y">
-                  {mockSavings.map((savings) => (
+                  {filteredSavings.map((savings) => (
                     <div key={savings.id} className="p-4 hover:bg-muted/50 transition-colors">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
