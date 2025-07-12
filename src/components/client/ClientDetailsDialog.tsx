@@ -231,46 +231,278 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            {client.first_name} {client.last_name}
-          </DialogTitle>
-          <DialogDescription>
-            Client ID: {client.client_number} • Member since {format(new Date(client.created_at), 'MMM dd, yyyy')}
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Photo Section */}
-        <div className="flex justify-center mb-6">
+      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
+        {/* Header with Avatar and Basic Info */}
+        <div className="flex items-start gap-6 p-6 border-b bg-gradient-to-r from-primary/5 to-primary/10">
           <div className="relative">
-            <Avatar className="h-32 w-32">
+            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
               <AvatarImage src={client.profile_picture_url || ""} />
-              <AvatarFallback className="text-2xl">
+              <AvatarFallback className="text-xl bg-primary/10">
                 {client.first_name[0]}{client.last_name[0]}
               </AvatarFallback>
             </Avatar>
             <Button
               size="sm"
               variant="outline"
-              className="absolute -bottom-2 left-1/2 transform -translate-x-1/2"
+              className="absolute -bottom-2 -right-2 h-8 w-8 p-0 rounded-full"
             >
-              <Camera className="h-4 w-4 mr-2" />
-              Upload Photo
+              <Camera className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold truncate">{client.first_name} {client.last_name}</h2>
+              <Badge variant={client.is_active ? "default" : "secondary"} className="shrink-0">
+                {client.is_active ? "Active" : "Inactive"}
+              </Badge>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
+              <span className="flex items-center gap-1">
+                <User className="h-4 w-4" />
+                {client.client_number}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Member since {format(new Date(client.created_at), 'MMM dd, yyyy')}
+              </span>
+              {client.email && (
+                <span className="flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  {client.email}
+                </span>
+              )}
+              {client.phone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="h-4 w-4" />
+                  {client.phone}
+                </span>
+              )}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-xl font-bold text-orange-600">{formatCurrency(calculateTotalLoanBalance())}</div>
+                <div className="text-xs text-muted-foreground">Outstanding Loans</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-600">{formatCurrency(calculateTotalSavingsBalance())}</div>
+                <div className="text-xs text-muted-foreground">Total Savings</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-blue-600">
+                  {client.timely_repayment_rate !== null ? `${client.timely_repayment_rate}%` : 'N/A'}
+                </div>
+                <div className="text-xs text-muted-foreground">Repayment Rate</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2 shrink-0">
+            <Button size="sm" variant="outline">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowTransferDialog(true)}>
+              <ArrowRightLeft className="h-4 w-4 mr-2" />
+              Transfer
             </Button>
           </div>
         </div>
 
-        <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          </TabsList>
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          <Tabs defaultValue="overview" className="h-full">
+            <TabsList className="w-full justify-start px-6 py-2 bg-muted/50">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="accounts">Accounts</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="profile">Full Profile</TabsTrigger>
+            </TabsList>
 
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="p-6 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column - Key Information */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Personal Details Card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Personal Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Full Name</span>
+                        <div className="font-medium">{client.first_name} {client.last_name}</div>
+                      </div>
+                      {client.national_id && (
+                        <div>
+                          <span className="text-muted-foreground">National ID</span>
+                          <div className="font-medium">{client.national_id}</div>
+                        </div>
+                      )}
+                      {client.date_of_birth && (
+                        <div>
+                          <span className="text-muted-foreground">Date of Birth</span>
+                          <div className="font-medium">{format(new Date(client.date_of_birth), 'MMM dd, yyyy')}</div>
+                        </div>
+                      )}
+                      {client.gender && (
+                        <div>
+                          <span className="text-muted-foreground">Gender</span>
+                          <div className="font-medium capitalize">{client.gender}</div>
+                        </div>
+                      )}
+                      {client.occupation && (
+                        <div>
+                          <span className="text-muted-foreground">Occupation</span>
+                          <div className="font-medium">{client.occupation}</div>
+                        </div>
+                      )}
+                      {client.monthly_income && (
+                        <div>
+                          <span className="text-muted-foreground">Monthly Income</span>
+                          <div className="font-medium">{formatCurrency(client.monthly_income)}</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center justify-between py-2 border-l-2 border-green-500 pl-3">
+                        <div>
+                          <div className="font-medium">Savings deposit</div>
+                          <div className="text-muted-foreground">Regular Savings Account</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-green-600">+KES 5,000</div>
+                          <div className="text-muted-foreground">2 days ago</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-l-2 border-blue-500 pl-3">
+                        <div>
+                          <div className="font-medium">Loan payment</div>
+                          <div className="text-muted-foreground">Personal Loan - L001</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-blue-600">KES 12,500</div>
+                          <div className="text-muted-foreground">5 days ago</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-l-2 border-orange-500 pl-3">
+                        <div>
+                          <div className="font-medium">Loan disbursement</div>
+                          <div className="text-muted-foreground">Business Loan - L002</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium text-orange-600">KES 300,000</div>
+                          <div className="text-muted-foreground">1 week ago</div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column - Status & Actions */}
+              <div className="space-y-6">
+                {/* Status Card */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Account Status</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Account Status</span>
+                        <Badge variant={client.is_active ? "default" : "secondary"}>
+                          {client.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      {client.approval_status && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Approval</span>
+                          <Badge variant={getStatusColor(client.approval_status)}>
+                            {client.approval_status}
+                          </Badge>
+                        </div>
+                      )}
+                      {client.kyc_status && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">KYC Status</span>
+                          <Badge variant={getStatusColor(client.kyc_status)}>
+                            {client.kyc_status}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button 
+                      className="w-full justify-start" 
+                      variant="outline"
+                      onClick={() => setShowAddLoanDialog(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Loan Account
+                    </Button>
+                    <Button 
+                      className="w-full justify-start" 
+                      variant="outline"
+                      onClick={() => setShowAddSavingsDialog(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Savings Account
+                    </Button>
+                    <Button 
+                      className="w-full justify-start" 
+                      variant="outline"
+                      onClick={() => setShowUpdateOfficerDialog(true)}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Update Loan Officer
+                    </Button>
+                    <Separator className="my-2" />
+                    <Button 
+                      className="w-full justify-start" 
+                      variant="outline"
+                      onClick={() => setShowCloseClientDialog(true)}
+                    >
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      Close Account
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Full Profile Tab */}
+          <TabsContent value="profile" className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Personal Information */}
               <Card>
@@ -506,7 +738,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           </TabsContent>
 
           {/* Documents Tab */}
-          <TabsContent value="documents" className="space-y-6">
+          <TabsContent value="documents" className="p-6 space-y-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -561,7 +793,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           </TabsContent>
 
           {/* Accounts Tab */}
-          <TabsContent value="accounts" className="space-y-6">
+          <TabsContent value="accounts" className="p-6 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Loans Section */}
               <Card>
@@ -750,7 +982,8 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
               </Card>
             </div>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
 
         <Separator />
 
