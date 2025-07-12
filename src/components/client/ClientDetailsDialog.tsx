@@ -1006,24 +1006,26 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                   </div>
 
                                   {/* Document Status */}
-                                  <div>
-                                    <span className="text-sm font-medium text-muted-foreground mb-2 block">Document Status</span>
-                                    <div className="space-y-2">
-                                      {loan.requiredDocuments.map((doc, docIndex) => (
+                                  {loan.requiredDocuments && (
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground mb-2 block">Document Status</span>
+                                      <div className="space-y-2">
+                                        {loan.requiredDocuments.map((doc, docIndex) => (
                                         <div key={docIndex} className="flex items-center justify-between p-2 bg-white/50 rounded">
                                           <span className="text-sm">{doc}</span>
-                                          <Badge variant={loan.submittedDocuments.includes(doc) ? 'default' : 'outline'}>
-                                            {loan.submittedDocuments.includes(doc) ? (
+                                          <Badge variant={loan.submittedDocuments?.includes(doc) ? 'default' : 'outline'}>
+                                            {loan.submittedDocuments?.includes(doc) ? (
                                               <CheckCircle className="h-3 w-3 mr-1" />
                                             ) : (
                                               <Clock className="h-3 w-3 mr-1" />
                                             )}
-                                            {loan.submittedDocuments.includes(doc) ? 'Submitted' : 'Pending'}
+                                            {loan.submittedDocuments?.includes(doc) ? 'Submitted' : 'Pending'}
                                           </Badge>
                                         </div>
-                                      ))}
+                                        ))}
+                                      </div>
                                     </div>
-                                  </div>
+                                  )}
 
                                   {/* Comments */}
                                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
