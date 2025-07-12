@@ -326,7 +326,20 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                       <Calculator className="h-4 w-4 mr-2" />
                       Calculate Payment
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        import('@/lib/statement-generator').then(({ generateLoanStatement }) => {
+                          generateLoanStatement({
+                            loan,
+                            clientName,
+                            paymentHistory,
+                            loanDetails
+                          });
+                        });
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       Download Statement
                     </Button>

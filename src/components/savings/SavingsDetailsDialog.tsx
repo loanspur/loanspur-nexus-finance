@@ -324,7 +324,20 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                       <Minus className="h-4 w-4 mr-2" />
                       Make Withdrawal
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        import('@/lib/statement-generator').then(({ generateSavingsStatement }) => {
+                          generateSavingsStatement({
+                            savings,
+                            clientName,
+                            transactionHistory,
+                            savingsDetails
+                          });
+                        });
+                      }}
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       Download Statement
                     </Button>
