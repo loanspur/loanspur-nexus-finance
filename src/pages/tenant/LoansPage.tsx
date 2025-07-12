@@ -229,6 +229,7 @@ const LoansPage = () => {
 
       <LoanDetailsDialog 
         loan={selectedLoan}
+        clientName={selectedLoan?.client_name || "Unknown Client"}
         open={!!selectedLoan}
         onOpenChange={(open) => !open && setSelectedLoan(null)}
       />

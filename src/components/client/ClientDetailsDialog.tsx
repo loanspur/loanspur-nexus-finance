@@ -41,6 +41,8 @@ import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
 import { AddLoanAccountDialog } from "./AddLoanAccountDialog";
 import { TransferClientDialog } from "./TransferClientDialog";
 import { UpdateLoanOfficerDialog } from "./UpdateLoanOfficerDialog";
+import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
+import { SavingsDetailsDialog } from "@/components/savings/SavingsDetailsDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -93,6 +95,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showUpdateOfficerDialog, setShowUpdateOfficerDialog] = useState(false);
   const [showCloseClientDialog, setShowCloseClientDialog] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<any>(null);
+  const [selectedSavings, setSelectedSavings] = useState<any>(null);
+  const [showLoanDetails, setShowLoanDetails] = useState(false);
+  const [showSavingsDetails, setShowSavingsDetails] = useState(false);
   const { toast } = useToast();
   
   if (!client) return null;
@@ -883,7 +889,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                   <div className="font-medium">{format(new Date(loan.nextPayment), 'MMM dd, yyyy')}</div>
                                 </div>
                               </div>
-                              <Button variant="outline" size="sm" className="w-full">
+                              <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                                setSelectedLoan(loan);
+                                setShowLoanDetails(true);
+                              }}>
                                 View Details
                               </Button>
                             </div>
@@ -1075,7 +1084,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                   </div>
                                 </div>
                               </div>
-                              <Button variant="outline" size="sm" className="w-full">
+                              <Button variant="outline" size="sm" className="w-full" onClick={() => {
+                                setSelectedSavings(savings);
+                                setShowSavingsDetails(true);
+                              }}>
                                 View Details
                               </Button>
                             </div>
@@ -1263,6 +1275,22 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Loan Details Dialog */}
+        <LoanDetailsDialog
+          loan={selectedLoan}
+          clientName={`${client.first_name} ${client.last_name}`}
+          open={showLoanDetails}
+          onOpenChange={setShowLoanDetails}
+        />
+
+        {/* Savings Details Dialog */}
+        <SavingsDetailsDialog
+          savings={selectedSavings}
+          clientName={`${client.first_name} ${client.last_name}`}
+          open={showSavingsDetails}
+          onOpenChange={setShowSavingsDetails}
+        />
       </DialogContent>
     </Dialog>
   );

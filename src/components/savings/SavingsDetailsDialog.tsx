@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { 
-  CreditCard, 
+  PiggyBank, 
   Calendar, 
   DollarSign, 
   FileText, 
@@ -20,22 +20,23 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  AlertTriangle,
+  TrendingUp,
   Download,
   Eye,
-  Calculator
+  Plus,
+  Minus
 } from "lucide-react";
 import { format } from "date-fns";
 
-interface LoanDetailsDialogProps {
-  loan: any;
+interface SavingsDetailsDialogProps {
+  savings: any;
   clientName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: LoanDetailsDialogProps) => {
-  if (!loan) return null;
+export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }: SavingsDetailsDialogProps) => {
+  if (!savings) return null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -49,12 +50,11 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       case 'active':
         return 'default';
       case 'pending_approval':
-      case 'pending_disbursement':
         return 'secondary';
       case 'closed':
-      case 'completed':
+      case 'matured':
         return 'outline';
-      case 'overdue':
+      case 'dormant':
         return 'destructive';
       default:
         return 'secondary';
@@ -66,57 +66,50 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       case 'active':
         return <CheckCircle className="h-3 w-3" />;
       case 'pending_approval':
-      case 'pending_disbursement':
         return <Clock className="h-3 w-3" />;
       case 'closed':
-      case 'completed':
+      case 'matured':
         return <XCircle className="h-3 w-3" />;
-      case 'overdue':
-        return <AlertTriangle className="h-3 w-3" />;
       default:
         return <Clock className="h-3 w-3" />;
     }
   };
 
-  // Mock data for comprehensive loan details
-  const loanDetails = {
-    ...loan,
-    disbursementDate: "2023-06-15",
-    maturityDate: "2025-06-15",
-    interestRate: 12.5,
-    paymentFrequency: "Monthly",
-    remainingTerm: 18,
-    totalTerm: 24,
-    principalPaid: loan.amount - loan.outstanding,
-    interestPaid: 25000,
-    totalPayments: 15,
-    missedPayments: 1,
-    latePayments: 2,
-    collateral: "Vehicle - Toyota Corolla 2020",
-    purpose: "Business expansion",
-    guarantor: "Mary Wanjiku",
-    loanOfficer: "John Kamau"
+  // Mock data for comprehensive savings details
+  const savingsDetails = {
+    ...savings,
+    openingDate: "2023-03-15",
+    totalDeposits: 150000,
+    totalWithdrawals: 5000,
+    interestEarned: 5250,
+    minimumBalance: 1000,
+    averageBalance: 35000,
+    numberOfTransactions: 25,
+    lastInterestPosting: "2024-01-31",
+    nextInterestPosting: "2024-02-29",
+    accountOfficer: "Sarah Njeri"
   };
 
-  const paymentHistory = [
-    { date: "2024-01-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 75000 },
-    { date: "2023-12-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 87500 },
-    { date: "2023-11-15", amount: 0, type: "Regular Payment", status: "Missed", balance: 87500 },
-    { date: "2023-10-20", amount: 12500, type: "Regular Payment", status: "Late (5 days)", balance: 87500 },
-    { date: "2023-09-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 100000 },
+  const transactionHistory = [
+    { date: "2024-01-28", type: "Deposit", amount: 5000, balance: 45000, method: "Cash", reference: "DEP001" },
+    { date: "2024-01-25", type: "Interest", amount: 125, balance: 40125, method: "Auto", reference: "INT001" },
+    { date: "2024-01-20", type: "Deposit", amount: 5000, balance: 40000, method: "Bank Transfer", reference: "DEP002" },
+    { date: "2024-01-15", type: "Withdrawal", amount: 2000, balance: 35000, method: "ATM", reference: "WTH001" },
+    { date: "2024-01-10", type: "Deposit", amount: 5000, balance: 37000, method: "M-Pesa", reference: "DEP003" },
   ];
 
-  const upcomingPayments = [
-    { date: "2024-02-15", amount: 12500, type: "Regular Payment", status: "Due" },
-    { date: "2024-03-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
-    { date: "2024-04-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
+  const interestHistory = [
+    { month: "January 2024", rate: 3.5, amount: 125, balance: 45000 },
+    { month: "December 2023", rate: 3.5, amount: 115, balance: 40000 },
+    { month: "November 2023", rate: 3.5, amount: 110, balance: 38000 },
+    { month: "October 2023", rate: 3.5, amount: 105, balance: 36000 },
   ];
 
   const documents = [
-    { name: "Loan Agreement", type: "Contract", date: "2023-06-15", status: "Signed" },
-    { name: "Collateral Valuation", type: "Valuation", date: "2023-06-10", status: "Verified" },
-    { name: "Income Verification", type: "Financial", date: "2023-06-08", status: "Verified" },
-    { name: "Insurance Certificate", type: "Insurance", date: "2023-06-12", status: "Active" },
+    { name: "Account Opening Form", type: "Application", date: "2023-03-15", status: "Signed" },
+    { name: "Terms and Conditions", type: "Agreement", date: "2023-03-15", status: "Accepted" },
+    { name: "Interest Rate Certificate", type: "Certificate", date: "2023-03-15", status: "Active" },
+    { name: "Monthly Statement - Jan 2024", type: "Statement", date: "2024-01-31", status: "Generated" },
   ];
 
   return (
@@ -124,11 +117,11 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-orange-600" />
-            Loan Details - {loanDetails.type}
+            <PiggyBank className="h-5 w-5 text-green-600" />
+            Savings Account Details - {savingsDetails.type}
           </DialogTitle>
           <DialogDescription>
-            Comprehensive view for {clientName}'s loan account {loanDetails.id}
+            Comprehensive view for {clientName}'s savings account {savingsDetails.id}
           </DialogDescription>
         </DialogHeader>
 
@@ -136,23 +129,23 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
           <Tabs defaultValue="overview" className="h-full">
             <TabsList className="w-full justify-start mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="payments">Payment History</TabsTrigger>
-              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="transactions">Transactions</TabsTrigger>
+              <TabsTrigger value="interest">Interest History</TabsTrigger>
               <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
-              {/* Loan Summary Cards */}
+              {/* Account Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Outstanding Balance</p>
-                        <p className="text-2xl font-bold text-orange-600">{formatCurrency(loanDetails.outstanding)}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
+                        <p className="text-2xl font-bold text-green-600">{formatCurrency(savingsDetails.balance)}</p>
                       </div>
-                      <DollarSign className="h-8 w-8 text-orange-600" />
+                      <DollarSign className="h-8 w-8 text-green-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -161,10 +154,10 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Monthly Payment</p>
-                        <p className="text-2xl font-bold">{formatCurrency(loanDetails.monthlyPayment)}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Interest Rate</p>
+                        <p className="text-2xl font-bold">{savingsDetails.interestRate}%</p>
                       </div>
-                      <Calendar className="h-8 w-8 text-blue-600" />
+                      <TrendingUp className="h-8 w-8 text-blue-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -173,10 +166,10 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Remaining Term</p>
-                        <p className="text-2xl font-bold">{loanDetails.remainingTerm} months</p>
+                        <p className="text-sm font-medium text-muted-foreground">Interest Earned</p>
+                        <p className="text-2xl font-bold text-green-500">{formatCurrency(savingsDetails.interestEarned)}</p>
                       </div>
-                      <Clock className="h-8 w-8 text-green-600" />
+                      <Plus className="h-8 w-8 text-green-500" />
                     </div>
                   </CardContent>
                 </Card>
@@ -186,9 +179,9 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Status</p>
-                        <Badge variant={getStatusColor(loanDetails.status)} className="mt-1">
-                          {getStatusIcon(loanDetails.status)}
-                          <span className="ml-1">{loanDetails.status}</span>
+                        <Badge variant={getStatusColor(savingsDetails.status)} className="mt-1">
+                          {getStatusIcon(savingsDetails.status)}
+                          <span className="ml-1">{savingsDetails.status}</span>
                         </Badge>
                       </div>
                       <CheckCircle className="h-8 w-8 text-primary" />
@@ -198,103 +191,109 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Loan Information */}
+                {/* Account Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Loan Information</CardTitle>
+                    <CardTitle>Account Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Loan ID</span>
-                        <div className="font-medium">{loanDetails.id}</div>
+                        <span className="text-muted-foreground">Account ID</span>
+                        <div className="font-medium">{savingsDetails.id}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Loan Type</span>
-                        <div className="font-medium">{loanDetails.type}</div>
+                        <span className="text-muted-foreground">Account Type</span>
+                        <div className="font-medium">{savingsDetails.type}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Original Amount</span>
-                        <div className="font-medium">{formatCurrency(loanDetails.amount)}</div>
+                        <span className="text-muted-foreground">Opening Date</span>
+                        <div className="font-medium">{format(new Date(savingsDetails.openingDate), 'MMM dd, yyyy')}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Interest Rate</span>
-                        <div className="font-medium">{loanDetails.interestRate}% p.a.</div>
+                        <div className="font-medium">{savingsDetails.interestRate}% p.a.</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Disbursement Date</span>
-                        <div className="font-medium">{format(new Date(loanDetails.disbursementDate), 'MMM dd, yyyy')}</div>
+                        <span className="text-muted-foreground">Minimum Balance</span>
+                        <div className="font-medium">{formatCurrency(savingsDetails.minimumBalance)}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Maturity Date</span>
-                        <div className="font-medium">{format(new Date(loanDetails.maturityDate), 'MMM dd, yyyy')}</div>
+                        <span className="text-muted-foreground">Monthly Contribution</span>
+                        <div className="font-medium">{formatCurrency(savingsDetails.monthlyContribution)}</div>
                       </div>
+                      {savingsDetails.type === 'Fixed Deposit' && savingsDetails.maturityDate && (
+                        <div>
+                          <span className="text-muted-foreground">Maturity Date</span>
+                          <div className="font-medium">{format(new Date(savingsDetails.maturityDate), 'MMM dd, yyyy')}</div>
+                        </div>
+                      )}
                       <div>
-                        <span className="text-muted-foreground">Payment Frequency</span>
-                        <div className="font-medium">{loanDetails.paymentFrequency}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Purpose</span>
-                        <div className="font-medium">{loanDetails.purpose}</div>
+                        <span className="text-muted-foreground">Account Officer</span>
+                        <div className="font-medium">{savingsDetails.accountOfficer}</div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Payment Summary */}
+                {/* Transaction Summary */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Payment Summary</CardTitle>
+                    <CardTitle>Transaction Summary</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-muted-foreground">Principal Paid</span>
-                        <div className="font-medium text-green-600">{formatCurrency(loanDetails.principalPaid)}</div>
+                        <span className="text-muted-foreground">Total Deposits</span>
+                        <div className="font-medium text-green-600">{formatCurrency(savingsDetails.totalDeposits)}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Interest Paid</span>
-                        <div className="font-medium">{formatCurrency(loanDetails.interestPaid)}</div>
+                        <span className="text-muted-foreground">Total Withdrawals</span>
+                        <div className="font-medium text-red-600">{formatCurrency(savingsDetails.totalWithdrawals)}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Total Payments</span>
-                        <div className="font-medium">{loanDetails.totalPayments}</div>
+                        <span className="text-muted-foreground">Interest Earned</span>
+                        <div className="font-medium text-blue-600">{formatCurrency(savingsDetails.interestEarned)}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Missed Payments</span>
-                        <div className="font-medium text-red-600">{loanDetails.missedPayments}</div>
+                        <span className="text-muted-foreground">Average Balance</span>
+                        <div className="font-medium">{formatCurrency(savingsDetails.averageBalance)}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Late Payments</span>
-                        <div className="font-medium text-yellow-600">{loanDetails.latePayments}</div>
+                        <span className="text-muted-foreground">Total Transactions</span>
+                        <div className="font-medium">{savingsDetails.numberOfTransactions}</div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Next Payment</span>
-                        <div className="font-medium">{format(new Date(loanDetails.nextPayment), 'MMM dd, yyyy')}</div>
+                        <span className="text-muted-foreground">Last Transaction</span>
+                        <div className="font-medium">{format(new Date(savingsDetails.lastTransaction), 'MMM dd, yyyy')}</div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Collateral & Guarantor */}
+                {/* Interest Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Security & Guarantor</CardTitle>
+                    <CardTitle>Interest Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">Collateral</span>
-                      <div className="font-medium">{loanDetails.collateral}</div>
-                    </div>
-                    <Separator />
-                    <div>
-                      <span className="text-sm text-muted-foreground">Guarantor</span>
-                      <div className="font-medium">{loanDetails.guarantor}</div>
-                    </div>
-                    <Separator />
-                    <div>
-                      <span className="text-sm text-muted-foreground">Loan Officer</span>
-                      <div className="font-medium">{loanDetails.loanOfficer}</div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Current Rate</span>
+                        <div className="font-medium">{savingsDetails.interestRate}% p.a.</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total Interest Earned</span>
+                        <div className="font-medium text-green-600">{formatCurrency(savingsDetails.interestEarned)}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Last Interest Posting</span>
+                        <div className="font-medium">{format(new Date(savingsDetails.lastInterestPosting), 'MMM dd, yyyy')}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Next Interest Posting</span>
+                        <div className="font-medium">{format(new Date(savingsDetails.nextInterestPosting), 'MMM dd, yyyy')}</div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -306,8 +305,12 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <Button variant="outline" className="w-full justify-start">
-                      <Calculator className="h-4 w-4 mr-2" />
-                      Calculate Payment
+                      <Plus className="h-4 w-4 mr-2" />
+                      Make Deposit
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Minus className="h-4 w-4 mr-2" />
+                      Make Withdrawal
                     </Button>
                     <Button variant="outline" className="w-full justify-start">
                       <Download className="h-4 w-4 mr-2" />
@@ -322,42 +325,40 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
               </div>
             </TabsContent>
 
-            {/* Payment History Tab */}
-            <TabsContent value="payments" className="space-y-6">
+            {/* Transactions Tab */}
+            <TabsContent value="transactions" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <History className="h-5 w-5" />
-                    Payment History
+                    Transaction History
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {paymentHistory.map((payment, index) => (
+                    {transactionHistory.map((transaction, index) => (
                       <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
                           <div className={`w-3 h-3 rounded-full ${
-                            payment.status === 'Paid' ? 'bg-green-500' : 
-                            payment.status === 'Missed' ? 'bg-red-500' : 'bg-yellow-500'
+                            transaction.type === 'Deposit' || transaction.type === 'Interest' ? 'bg-green-500' : 'bg-red-500'
                           }`} />
                           <div>
-                            <div className="font-medium">{payment.type}</div>
+                            <div className="font-medium">{transaction.type}</div>
                             <div className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'MMM dd, yyyy')}
+                              {format(new Date(transaction.date), 'MMM dd, yyyy')} • {transaction.method}
                             </div>
+                            <div className="text-xs text-muted-foreground">Ref: {transaction.reference}</div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">{formatCurrency(payment.amount)}</div>
-                          <div className={`text-sm ${
-                            payment.status === 'Paid' ? 'text-green-600' : 
-                            payment.status === 'Missed' ? 'text-red-600' : 'text-yellow-600'
+                          <div className={`font-medium ${
+                            transaction.type === 'Deposit' || transaction.type === 'Interest' ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {payment.status}
+                            {transaction.type === 'Deposit' || transaction.type === 'Interest' ? '+' : '-'}{formatCurrency(transaction.amount)}
                           </div>
-                        </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          Balance: {formatCurrency(payment.balance)}
+                          <div className="text-sm text-muted-foreground">
+                            Balance: {formatCurrency(transaction.balance)}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -366,36 +367,34 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
               </Card>
             </TabsContent>
 
-            {/* Schedule Tab */}
-            <TabsContent value="schedule" className="space-y-6">
+            {/* Interest History Tab */}
+            <TabsContent value="interest" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Upcoming Payments
+                    <TrendingUp className="h-5 w-5" />
+                    Interest History
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {upcomingPayments.map((payment, index) => (
+                    {interestHistory.map((interest, index) => (
                       <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
-                          <div className={`w-3 h-3 rounded-full ${
-                            payment.status === 'Due' ? 'bg-orange-500' : 'bg-gray-300'
-                          }`} />
+                          <div className="w-3 h-3 rounded-full bg-blue-500" />
                           <div>
-                            <div className="font-medium">{payment.type}</div>
+                            <div className="font-medium">{interest.month}</div>
                             <div className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'MMM dd, yyyy')}
+                              Rate: {interest.rate}% p.a.
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">{formatCurrency(payment.amount)}</div>
-                          <div className={`text-sm ${
-                            payment.status === 'Due' ? 'text-orange-600' : 'text-muted-foreground'
-                          }`}>
-                            {payment.status}
+                          <div className="font-medium text-blue-600">
+                            +{formatCurrency(interest.amount)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            On: {formatCurrency(interest.balance)}
                           </div>
                         </div>
                       </div>
@@ -411,7 +410,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Loan Documents
+                    Account Documents
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -428,7 +427,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={doc.status === 'Signed' || doc.status === 'Verified' || doc.status === 'Active' ? 'default' : 'secondary'}>
+                          <Badge variant={doc.status === 'Signed' || doc.status === 'Accepted' || doc.status === 'Active' || doc.status === 'Generated' ? 'default' : 'secondary'}>
                             {doc.status}
                           </Badge>
                           <Button variant="outline" size="sm">
@@ -455,7 +454,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
             Close
           </Button>
           <Button>
-            Edit Loan
+            Edit Account
           </Button>
         </div>
       </DialogContent>
