@@ -147,6 +147,11 @@ export const AddLoanAccountDialog = ({
   // Get selected product after form is initialized
   const selectedProductId = form.watch("loan_product_id");
   const selectedProduct = loanProducts.find(p => p.id === selectedProductId);
+  
+  // Watch form fields to trigger re-renders
+  const watchedFields = form.watch(["loan_product_id", "requested_amount", "loan_purpose", "fund_id", "interest_rate"]);
+  
+  console.log('Watched fields changed:', watchedFields);
 
   // Dynamic validation schema based on selected product
   const createDynamicSchema = (product?: any) => {
@@ -210,9 +215,29 @@ export const AddLoanAccountDialog = ({
     const formData = form.getValues();
     const errors = form.formState.errors;
     
+    console.log(`Validating tab: ${tab}`, { formData, errors });
+    
     switch (tab) {
       case "basic":
-        return formData.loan_product_id && formData.requested_amount && formData.loan_purpose && formData.fund_id && formData.interest_rate && !errors.loan_product_id && !errors.requested_amount && !errors.loan_purpose && !errors.fund_id && !errors.interest_rate;
+        const basicValid = formData.loan_product_id && 
+                          formData.requested_amount && 
+                          formData.loan_purpose && 
+                          formData.fund_id && 
+                          formData.interest_rate && 
+                          !errors.loan_product_id && 
+                          !errors.requested_amount && 
+                          !errors.loan_purpose && 
+                          !errors.fund_id && 
+                          !errors.interest_rate;
+        console.log(`Basic tab validation result: ${basicValid}`, {
+          loan_product_id: formData.loan_product_id,
+          requested_amount: formData.requested_amount,
+          loan_purpose: formData.loan_purpose,
+          fund_id: formData.fund_id,
+          interest_rate: formData.interest_rate,
+          errors: errors
+        });
+        return basicValid;
       case "terms":
         return formData.expected_disbursement_date && formData.loan_term && formData.number_of_repayments && formData.first_repayment_date && formData.interest_rate && !errors.expected_disbursement_date && !errors.loan_term && !errors.number_of_repayments && !errors.first_repayment_date && !errors.interest_rate;
       case "charges":
@@ -230,7 +255,9 @@ export const AddLoanAccountDialog = ({
   };
 
   const canProceedToNext = (currentTab: string) => {
-    return isTabValid(currentTab);
+    const result = isTabValid(currentTab);
+    console.log(`Can proceed to next from ${currentTab}: ${result}`);
+    return result;
   };
 
   const nextTab = () => {
