@@ -154,6 +154,39 @@ export const generateSampleSavingsProductData = () => {
   };
 };
 
+export const generateSampleLoanData = () => {
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + 7); // 7 days from now
+  
+  const firstRepaymentDate = new Date();
+  firstRepaymentDate.setMonth(firstRepaymentDate.getMonth() + 1); // 1 month from now
+
+  return {
+    requested_amount: "150000",
+    loan_purpose: "business_expansion",
+    fund_id: "general",
+    expected_disbursement_date: futureDate,
+    savings_linkage: false,
+    linked_savings_account: "",
+    loan_term: "12",
+    number_of_repayments: "12",
+    first_repayment_date: firstRepaymentDate,
+    interest_rate: "15.5",
+    loan_charges: [
+      { charge_type: "processing_fee", amount: "2500" },
+      { charge_type: "insurance", amount: "1200" }
+    ],
+    collateral_items: [
+      {
+        type: "property",
+        description: "Commercial shop in city center",
+        value: "500000"
+      }
+    ],
+    required_documents: ["id_copy", "business_permit", "bank_statements", "guarantor_forms"]
+  };
+};
+
 export const generateSampleTenantData = () => {
   const organizationNames = [
     'Sunrise Microfinance',

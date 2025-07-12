@@ -30,6 +30,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from "@/lib/utils";
+import { isDevelopment, generateSampleLoanData } from "@/lib/dev-utils";
+import { SampleDataButton } from "@/components/dev/SampleDataButton";
 
 const addLoanAccountSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
@@ -421,6 +423,32 @@ export const AddLoanAccountDialog = ({
           <DialogDescription>
             Create a comprehensive loan application for {clientName}
           </DialogDescription>
+          {isDevelopment() && (
+            <SampleDataButton
+              onFillSampleData={() => {
+                const sampleData = generateSampleLoanData();
+                
+                // Set form values
+                form.setValue("requested_amount", sampleData.requested_amount);
+                form.setValue("loan_purpose", sampleData.loan_purpose);
+                form.setValue("fund_id", sampleData.fund_id);
+                form.setValue("expected_disbursement_date", sampleData.expected_disbursement_date);
+                form.setValue("savings_linkage", sampleData.savings_linkage);
+                form.setValue("linked_savings_account", sampleData.linked_savings_account);
+                form.setValue("loan_term", sampleData.loan_term);
+                form.setValue("number_of_repayments", sampleData.number_of_repayments);
+                form.setValue("first_repayment_date", sampleData.first_repayment_date);
+                form.setValue("interest_rate", sampleData.interest_rate);
+                form.setValue("loan_charges", sampleData.loan_charges);
+                form.setValue("collateral_items", sampleData.collateral_items);
+                form.setValue("required_documents", sampleData.required_documents);
+                
+                // Update local state
+                setLoanCharges(sampleData.loan_charges);
+                setCollateralItems(sampleData.collateral_items);
+              }}
+            />
+          )}
         </DialogHeader>
 
         <Form {...form}>
