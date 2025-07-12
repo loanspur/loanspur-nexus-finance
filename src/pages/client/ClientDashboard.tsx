@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
 import { useClientDashboardData } from "@/hooks/useDashboardData";
 import { 
@@ -12,7 +13,13 @@ import {
   Calendar,
   TrendingUp,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  User,
+  FileText,
+  Phone,
+  Mail,
+  MapPin,
+  Edit
 } from "lucide-react";
 
 const ClientDashboard = () => {
@@ -115,52 +122,85 @@ const ClientDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">My Account</h1>
-          <p className="text-muted-foreground">Welcome to your LoanSpur client portal</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge 
-            variant={summary.repaymentRate >= 90 ? "default" : "secondary"}
-            className="flex items-center gap-1"
-          >
-            <CheckCircle className="h-3 w-3" />
-            {summary.repaymentRate >= 90 ? "Good Standing" : "Review Needed"}
-          </Badge>
-        </div>
-      </div>
+      {/* Client Profile Header */}
+      <Card className="shadow-card border-none bg-gradient-subtle">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20 border-2 border-primary/20">
+                <AvatarImage src="/placeholder.svg" />
+                <AvatarFallback className="text-lg bg-primary/10 text-primary">
+                  CL
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">
+                  Client Dashboard
+                </h1>
+                <p className="text-muted-foreground">Welcome to your LoanSpur portal</p>
+                <Badge 
+                  variant={summary.repaymentRate >= 90 ? "default" : "secondary"}
+                  className="mt-2 flex items-center gap-1 w-fit"
+                >
+                  <CheckCircle className="h-3 w-3" />
+                  {summary.repaymentRate >= 90 ? "Good Standing" : "Review Needed"}
+                </Badge>
+              </div>
+            </div>
+            
+            <div className="flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">client@example.com</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">+254 700 000 000</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">
+                    Nairobi, Kenya
+                  </span>
+                </div>
+              </div>
+            </div>
 
+            <Button variant="outline" size="sm" className="w-fit">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Financial Overview */}
       <DashboardKPIs kpis={kpis} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Quick Actions - Smaller Card */}
         <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
-            <CardDescription>Common tasks you can perform</CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               {quickActions.map((action, index) => {
                 const Icon = action.icon;
                 return (
                   <Button 
                     key={index}
                     variant={action.variant}
-                    className="justify-start h-auto p-4 group"
+                    size="sm"
+                    className="justify-start h-auto p-3 group"
                     onClick={action.action}
                   >
-                    <div className="flex items-center gap-3 text-left w-full">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center">
-                        <Icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{action.title}</div>
-                        <div className="text-xs text-muted-foreground">{action.description}</div>
-                      </div>
+                    <div className="flex items-center gap-2 text-left w-full">
+                      <Icon className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="text-sm font-medium">{action.title}</span>
                     </div>
                   </Button>
                 );
@@ -169,36 +209,37 @@ const ClientDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        {/* Recent Transactions - Spans 2 columns */}
+        <Card className="shadow-card lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Recent Transactions
+              Recent Activity
             </CardTitle>
-            <CardDescription>Your latest account activities</CardDescription>
+            <CardDescription>Your latest transactions and account activities</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {transactions && transactions.length > 0 ? (
-                transactions.slice(0, 5).map((transaction, index) => {
+                transactions.slice(0, 4).map((transaction, index) => {
                   const Icon = getTransactionIcon(transaction.transaction_type);
                   return (
-                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Icon className="h-5 w-5 text-primary" />
+                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-4 w-4 text-primary" />
                       </div>
-                      <div className="flex-1">
-                        <div className="font-medium">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">
                           {transaction.transaction_type.split('_').map(word => 
                             word.charAt(0).toUpperCase() + word.slice(1)
                           ).join(' ')}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           {new Date(transaction.created_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`font-medium ${getTransactionColor(transaction.transaction_type, transaction.amount)}`}>
+                      <div className="text-right flex-shrink-0">
+                        <div className={`font-medium text-sm ${getTransactionColor(transaction.transaction_type, transaction.amount)}`}>
                           ${Math.abs(transaction.amount).toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -209,9 +250,9 @@ const ClientDashboard = () => {
                   );
                 })
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                  <p>No recent transactions</p>
+                <div className="text-center py-6 text-muted-foreground">
+                  <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                  <p className="text-sm">No recent transactions</p>
                 </div>
               )}
             </div>
@@ -221,20 +262,21 @@ const ClientDashboard = () => {
 
       {/* Account Summary Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Loans Card */}
         {loans && loans.length > 0 && (
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
-                Active Loans
+                Loan Accounts
               </CardTitle>
-              <CardDescription>Your current loan accounts</CardDescription>
+              <CardDescription>Your current loans and balances</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {loans.map((loan, index) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={index} className="p-4 border rounded-lg bg-card">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="font-medium">Loan #{loan.loan_number}</div>
                         <div className="text-sm text-muted-foreground">
@@ -245,9 +287,10 @@ const ClientDashboard = () => {
                         {loan.status}
                       </Badge>
                     </div>
-                    <div className="text-lg font-semibold text-primary">
-                      ${(loan.outstanding_balance || 0).toLocaleString()} remaining
+                    <div className="text-xl font-semibold text-primary">
+                      ${(loan.outstanding_balance || 0).toLocaleString()}
                     </div>
+                    <div className="text-sm text-muted-foreground">Outstanding Balance</div>
                   </div>
                 ))}
               </div>
@@ -255,6 +298,7 @@ const ClientDashboard = () => {
           </Card>
         )}
 
+        {/* Savings Card */}
         {savingsAccounts && savingsAccounts.length > 0 && (
           <Card className="shadow-card">
             <CardHeader>
@@ -265,29 +309,75 @@ const ClientDashboard = () => {
               <CardDescription>Your savings account balances</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {savingsAccounts.map((account, index) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={index} className="p-4 border rounded-lg bg-card">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="font-medium">Account #{account.account_number}</div>
                         <div className="text-sm text-muted-foreground">
-                          Interest: ${(account.interest_earned || 0).toLocaleString()}
+                          Interest Earned: ${(account.interest_earned || 0).toLocaleString()}
                         </div>
                       </div>
                       <Badge variant={account.is_active ? 'default' : 'secondary'}>
                         {account.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <div className="text-lg font-semibold text-success">
+                    <div className="text-xl font-semibold text-success">
                       ${(account.account_balance || 0).toLocaleString()}
                     </div>
+                    <div className="text-sm text-muted-foreground">Available Balance</div>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Documents Card */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Documents
+            </CardTitle>
+            <CardDescription>Your uploaded documents and status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Identity Document</div>
+                    <div className="text-xs text-muted-foreground">National ID / Passport</div>
+                  </div>
+                </div>
+                <Badge variant="default" className="text-xs">Verified</Badge>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
+                    <FileText className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Proof of Income</div>
+                    <div className="text-xs text-muted-foreground">Salary slip / Bank statement</div>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-xs">Pending</Badge>
+              </div>
+
+              <Button variant="outline" size="sm" className="w-full mt-3">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
