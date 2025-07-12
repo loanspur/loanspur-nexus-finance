@@ -27,6 +27,7 @@ import {
   Minus
 } from "lucide-react";
 import { format } from "date-fns";
+import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
 
 interface SavingsDetailsDialogProps {
   savings: any;
@@ -36,6 +37,9 @@ interface SavingsDetailsDialogProps {
 }
 
 export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }: SavingsDetailsDialogProps) => {
+  const [depositFormOpen, setDepositFormOpen] = useState(false);
+  const [withdrawalFormOpen, setWithdrawalFormOpen] = useState(false);
+  
   if (!savings) return null;
 
   const formatCurrency = (amount: number) => {
@@ -304,11 +308,19 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                     <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setDepositFormOpen(true)}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Make Deposit
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setWithdrawalFormOpen(true)}
+                    >
                       <Minus className="h-4 w-4 mr-2" />
                       Make Withdrawal
                     </Button>
@@ -447,16 +459,24 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
           </Tabs>
         </div>
 
-        <Separator />
+        {/* Deposit Form Dialog */}
+        <QuickPaymentForm
+          open={depositFormOpen}
+          onOpenChange={setDepositFormOpen}
+          type="deposit"
+          accountId={savingsDetails.id}
+          clientName={clientName}
+        />
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button>
-            Edit Account
-          </Button>
-        </div>
+        {/* Withdrawal Form Dialog */}
+        <QuickPaymentForm
+          open={withdrawalFormOpen}
+          onOpenChange={setWithdrawalFormOpen}
+          type="withdrawal"
+          accountId={savingsDetails.id}
+          clientName={clientName}
+          maxAmount={savingsDetails.balance}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -26,6 +26,8 @@ import {
   Calculator
 } from "lucide-react";
 import { format } from "date-fns";
+import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
+import { LoanCalculatorDialog } from "@/components/forms/LoanCalculatorDialog";
 
 interface LoanDetailsDialogProps {
   loan: any;
@@ -35,6 +37,9 @@ interface LoanDetailsDialogProps {
 }
 
 export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: LoanDetailsDialogProps) => {
+  const [paymentFormOpen, setPaymentFormOpen] = useState(false);
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  
   if (!loan) return null;
 
   const formatCurrency = (amount: number) => {
@@ -305,7 +310,19 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                     <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setPaymentFormOpen(true)}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Record Payment
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setCalculatorOpen(true)}
+                    >
                       <Calculator className="h-4 w-4 mr-2" />
                       Calculate Payment
                     </Button>
@@ -448,16 +465,26 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
           </Tabs>
         </div>
 
-        <Separator />
+        {/* Payment Form Dialog */}
+        <QuickPaymentForm
+          open={paymentFormOpen}
+          onOpenChange={setPaymentFormOpen}
+          type="loan_payment"
+          accountId={loanDetails.id}
+          clientName={clientName}
+          maxAmount={loanDetails.outstanding}
+        />
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button>
-            Edit Loan
-          </Button>
-        </div>
+        {/* Loan Calculator Dialog */}
+        <LoanCalculatorDialog
+          open={calculatorOpen}
+          onOpenChange={setCalculatorOpen}
+          loanData={{
+            amount: loanDetails.amount,
+            interestRate: loanDetails.interestRate,
+            termMonths: loanDetails.totalTerm,
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
