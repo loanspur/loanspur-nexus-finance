@@ -123,6 +123,29 @@ export const AddLoanAccountDialog = ({
     enabled: !!clientId,
   });
 
+  // Initialize form first
+  const form = useForm<AddLoanAccountData>({
+    resolver: zodResolver(addLoanAccountSchema),
+    defaultValues: {
+      loan_product_id: "",
+      requested_amount: "",
+      loan_purpose: "",
+      fund_id: "",
+      savings_linkage: false,
+      linked_savings_account: "",
+      loan_term: "",
+      number_of_repayments: "",
+      interest_rate: "",
+      collateral_items: [],
+      loan_charges: [],
+      required_documents: [],
+    },
+  });
+
+  // Get selected product after form is initialized
+  const selectedProductId = form.watch("loan_product_id");
+  const selectedProduct = loanProducts.find(p => p.id === selectedProductId);
+
   // Dynamic validation schema based on selected product
   const createDynamicSchema = (product?: any) => {
     const baseSchema = addLoanAccountSchema;
@@ -153,39 +176,16 @@ export const AddLoanAccountDialog = ({
     });
   };
 
-  const form = useForm<AddLoanAccountData>({
-    resolver: zodResolver(addLoanAccountSchema), // Start with base schema
-    defaultValues: {
-      loan_product_id: "",
-      requested_amount: "",
-      loan_purpose: "",
-      fund_id: "",
-      savings_linkage: false,
-      linked_savings_account: "",
-      loan_term: "",
-      number_of_repayments: "",
-      interest_rate: "",
-      collateral_items: [],
-      loan_charges: [],
-      required_documents: [],
-    },
-  });
-
-  // Get selected product details after form is declared
-  const selectedProduct = loanProducts.find(p => p.id === form.watch("loan_product_id"));
-
   // Auto-populate defaults when product is selected
   const handleProductChange = (productId: string) => {
     const product = loanProducts.find(p => p.id === productId);
     if (product) {
-      setValue("interest_rate", product.default_nominal_interest_rate?.toString() || "");
-      setValue("loan_term", product.default_term?.toString() || "");
-      setValue("requested_amount", product.default_principal?.toString() || "");
+      form.setValue("interest_rate", product.default_nominal_interest_rate?.toString() || "");
+      form.setValue("loan_term", product.default_term?.toString() || "");
+      form.setValue("requested_amount", product.default_principal?.toString() || "");
+      form.setValue("number_of_repayments", product.default_term?.toString() || "");
     }
   };
-
-  // Update form validation when product changes  
-  const { setValue } = form;
 
   const addCollateralItem = () => {
     setCollateralItems([...collateralItems, { type: "", description: "", value: "" }]);
@@ -203,20 +203,48 @@ export const AddLoanAccountDialog = ({
     setLoanCharges(loanCharges.filter((_, i) => i !== index));
   };
 
+  // Check if current tab is valid
+  const isTabValid = (tab: string) => {
+    const formData = form.getValues();
+    const errors = form.formState.errors;
+    
+    switch (tab) {
+      case "basic":
+        return formData.loan_product_id && formData.requested_amount && formData.loan_purpose && formData.fund_id && !errors.loan_product_id && !errors.requested_amount && !errors.loan_purpose && !errors.fund_id;
+      case "terms":
+        return formData.expected_disbursement_date && formData.loan_term && formData.number_of_repayments && formData.first_repayment_date && formData.interest_rate && !errors.expected_disbursement_date && !errors.loan_term && !errors.number_of_repayments && !errors.first_repayment_date && !errors.interest_rate;
+      case "charges":
+        return true; // Optional tab
+      case "documents":
+        return true; // Optional tab
+      default:
+        return false;
+    }
+  };
+
   // Check if form is fully filled
   const isFormComplete = () => {
-    const formData = form.getValues();
-    return (
-      formData.loan_product_id &&
-      formData.requested_amount &&
-      formData.loan_purpose &&
-      formData.fund_id &&
-      formData.expected_disbursement_date &&
-      formData.loan_term &&
-      formData.number_of_repayments &&
-      formData.first_repayment_date &&
-      formData.interest_rate
-    );
+    return isTabValid("basic") && isTabValid("terms");
+  };
+
+  const canProceedToNext = (currentTab: string) => {
+    return isTabValid(currentTab);
+  };
+
+  const nextTab = () => {
+    const tabs = ["basic", "terms", "charges", "documents"];
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex < tabs.length - 1 && canProceedToNext(currentTab)) {
+      setCurrentTab(tabs[currentIndex + 1]);
+    }
+  };
+
+  const prevTab = () => {
+    const tabs = ["basic", "terms", "charges", "documents"];
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex > 0) {
+      setCurrentTab(tabs[currentIndex - 1]);
+    }
   };
 
   // Generate repayment schedule preview
@@ -397,12 +425,12 @@ export const AddLoanAccountDialog = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
+            <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">Basic Details</TabsTrigger>
-                <TabsTrigger value="terms">Loan Terms</TabsTrigger>
-                <TabsTrigger value="charges">Charges & Collateral</TabsTrigger>
-                <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="basic" disabled={false}>Basic Details</TabsTrigger>
+                <TabsTrigger value="terms" disabled={!isTabValid("basic")}>Loan Terms</TabsTrigger>
+                <TabsTrigger value="charges" disabled={!isTabValid("basic") || !isTabValid("terms")}>Charges & Collateral</TabsTrigger>
+                <TabsTrigger value="documents" disabled={!isTabValid("basic") || !isTabValid("terms")}>Documents</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -993,14 +1021,50 @@ export const AddLoanAccountDialog = ({
                 </Button>
               )}
 
-              {isFormComplete() ? (
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating Application..." : "Create Loan Application"}
-                </Button>
-              ) : (
+              {currentTab === "basic" && !canProceedToNext("basic") && (
                 <Button type="button" disabled>
                   Next
                 </Button>
+              )}
+              
+              {currentTab === "basic" && canProceedToNext("basic") && (
+                <Button type="button" onClick={nextTab}>
+                  Next
+                </Button>
+              )}
+              
+              {currentTab === "terms" && (
+                <>
+                  <Button type="button" variant="outline" onClick={prevTab}>
+                    Previous
+                  </Button>
+                  {canProceedToNext("terms") ? (
+                    <Button type="button" onClick={nextTab}>
+                      Next
+                    </Button>
+                  ) : (
+                    <Button type="button" disabled>
+                      Next
+                    </Button>
+                  )}
+                </>
+              )}
+              
+              {(currentTab === "charges" || currentTab === "documents") && (
+                <>
+                  <Button type="button" variant="outline" onClick={prevTab}>
+                    Previous
+                  </Button>
+                  {isFormComplete() ? (
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "Creating Application..." : "Create Loan Application"}
+                    </Button>
+                  ) : (
+                    <Button type="button" disabled>
+                      Complete Required Fields
+                    </Button>
+                  )}
+                </>
               )}
             </div>
 
