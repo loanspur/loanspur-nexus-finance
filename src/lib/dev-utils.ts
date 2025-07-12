@@ -211,11 +211,12 @@ export const seedDatabase = async () => {
   }
   
   try {
-    // Call the seed function
-    const response = await fetch('/api/seed-database', {
+    // Call the Supabase Edge Function
+    const response = await fetch('https://woqesvsopdgoikpatzxp.supabase.co/functions/v1/seed-database', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI`,
       },
     });
     
