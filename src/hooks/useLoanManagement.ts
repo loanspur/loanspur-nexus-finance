@@ -12,7 +12,7 @@ export interface LoanApplication {
   requested_amount: number;
   requested_term: number;
   purpose?: string;
-  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn' | 'pending_disbursement' | 'disbursed';
   submitted_at: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -63,6 +63,44 @@ export interface CollectionCase {
   next_action_date?: string;
   collection_notes?: string;
   assigned_to?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoanApproval {
+  id: string;
+  tenant_id: string;
+  loan_application_id: string;
+  approver_id: string;
+  approval_level: number;
+  action: 'approve' | 'reject' | 'request_changes';
+  status: string;
+  decision_notes?: string;
+  comments?: string;
+  approved_amount?: number;
+  approved_term?: number;
+  approved_interest_rate?: number;
+  conditions?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoanDisbursement {
+  id: string;
+  tenant_id: string;
+  loan_application_id: string;
+  loan_id?: string;
+  disbursed_amount: number;
+  disbursement_date: string;
+  disbursement_method: 'bank_transfer' | 'mpesa' | 'cash' | 'check';
+  bank_account_name?: string;
+  bank_account_number?: string;
+  bank_name?: string;
+  mpesa_phone?: string;
+  reference_number?: string;
+  disbursed_by?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  failure_reason?: string;
   created_at: string;
   updated_at: string;
 }
@@ -300,6 +338,213 @@ export const useProcessLoanPayment = () => {
       toast({
         title: "Success",
         description: "Payment processed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Loan Approvals Hook
+export const useLoanApprovals = () => {
+  const { profile } = useAuth();
+
+  return useQuery({
+    queryKey: ['loan-approvals', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      const { data, error } = await supabase
+        .from('loan_approvals')
+        .select(`
+          *,
+          loan_applications(application_number, requested_amount),
+          profiles!approver_id(first_name, last_name)
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!profile?.tenant_id,
+  });
+};
+
+// Approve/Reject Loan Application
+export const useProcessLoanApproval = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async (approval: {
+      loan_application_id: string;
+      action: 'approve' | 'reject' | 'request_changes';
+      comments?: string;
+      approved_amount?: number;
+      approved_term?: number;
+      approved_interest_rate?: number;
+      conditions?: string;
+    }) => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      // Create approval record
+      const { data: approvalData, error: approvalError } = await supabase
+        .from('loan_approvals')
+        .insert([{
+          tenant_id: profile.tenant_id,
+          loan_application_id: approval.loan_application_id,
+          approver_id: profile.id,
+          action: approval.action,
+          status: approval.action === 'approve' ? 'approved' : 'rejected',
+          comments: approval.comments,
+          approved_amount: approval.approved_amount,
+          approved_term: approval.approved_term,
+          approved_interest_rate: approval.approved_interest_rate,
+          conditions: approval.conditions,
+        }])
+        .select()
+        .single();
+      
+      if (approvalError) throw approvalError;
+
+      // Update loan application status
+      let newStatus: string;
+      if (approval.action === 'approve') {
+        newStatus = 'pending_disbursement';
+      } else if (approval.action === 'reject') {
+        newStatus = 'rejected';
+      } else {
+        newStatus = 'under_review';
+      }
+
+      const { error: updateError } = await supabase
+        .from('loan_applications')
+        .update({
+          status: newStatus,
+          reviewed_by: profile.id,
+          reviewed_at: new Date().toISOString(),
+          approval_notes: approval.comments,
+          final_approved_amount: approval.approved_amount,
+          final_approved_term: approval.approved_term,
+          final_approved_interest_rate: approval.approved_interest_rate,
+        })
+        .eq('id', approval.loan_application_id);
+
+      if (updateError) throw updateError;
+
+      return approvalData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-approvals'] });
+      toast({
+        title: "Success",
+        description: "Loan approval processed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Loan Disbursements Hook
+export const useLoanDisbursements = () => {
+  const { profile } = useAuth();
+
+  return useQuery({
+    queryKey: ['loan-disbursements', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      const { data, error } = await supabase
+        .from('loan_disbursements')
+        .select(`
+          *,
+          loan_applications(application_number, final_approved_amount),
+          profiles!disbursed_by(first_name, last_name)
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!profile?.tenant_id,
+  });
+};
+
+// Process Loan Disbursement
+export const useProcessLoanDisbursement = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async (disbursement: {
+      loan_application_id: string;
+      disbursed_amount: number;
+      disbursement_date: string;
+      disbursement_method: 'bank_transfer' | 'mpesa' | 'cash' | 'check';
+      bank_account_name?: string;
+      bank_account_number?: string;
+      bank_name?: string;
+      mpesa_phone?: string;
+      reference_number?: string;
+    }) => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      // Create disbursement record
+      const { data: disbursementData, error: disbursementError } = await supabase
+        .from('loan_disbursements')
+        .insert([{
+          tenant_id: profile.tenant_id,
+          loan_application_id: disbursement.loan_application_id,
+          disbursed_amount: disbursement.disbursed_amount,
+          disbursement_date: disbursement.disbursement_date,
+          disbursement_method: disbursement.disbursement_method,
+          bank_account_name: disbursement.bank_account_name,
+          bank_account_number: disbursement.bank_account_number,
+          bank_name: disbursement.bank_name,
+          mpesa_phone: disbursement.mpesa_phone,
+          reference_number: disbursement.reference_number,
+          disbursed_by: profile.id,
+          status: 'completed',
+        }])
+        .select()
+        .single();
+      
+      if (disbursementError) throw disbursementError;
+
+      // Update loan application status to disbursed
+      const { error: updateError } = await supabase
+        .from('loan_applications')
+        .update({
+          status: 'disbursed',
+        })
+        .eq('id', disbursement.loan_application_id);
+
+      if (updateError) throw updateError;
+
+      return disbursementData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-disbursements'] });
+      toast({
+        title: "Success",
+        description: "Loan disbursed successfully",
       });
     },
     onError: (error: any) => {

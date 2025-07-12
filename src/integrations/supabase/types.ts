@@ -3607,14 +3607,19 @@ export type Database = {
       loan_applications: {
         Row: {
           application_number: string
+          approval_level: number | null
           approval_notes: string | null
           client_id: string
           created_at: string
+          final_approved_amount: number | null
+          final_approved_interest_rate: number | null
+          final_approved_term: number | null
           id: string
           loan_product_id: string
           purpose: string | null
           requested_amount: number
           requested_term: number
+          requires_approval: boolean
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -3624,14 +3629,19 @@ export type Database = {
         }
         Insert: {
           application_number: string
+          approval_level?: number | null
           approval_notes?: string | null
           client_id: string
           created_at?: string
+          final_approved_amount?: number | null
+          final_approved_interest_rate?: number | null
+          final_approved_term?: number | null
           id?: string
           loan_product_id: string
           purpose?: string | null
           requested_amount: number
           requested_term: number
+          requires_approval?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -3641,14 +3651,19 @@ export type Database = {
         }
         Update: {
           application_number?: string
+          approval_level?: number | null
           approval_notes?: string | null
           client_id?: string
           created_at?: string
+          final_approved_amount?: number | null
+          final_approved_interest_rate?: number | null
+          final_approved_term?: number | null
           id?: string
           loan_product_id?: string
           purpose?: string | null
           requested_amount?: number
           requested_term?: number
+          requires_approval?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -3689,37 +3704,55 @@ export type Database = {
       }
       loan_approvals: {
         Row: {
+          action: string
           approval_level: number
           approved_amount: number | null
+          approved_interest_rate: number | null
           approved_term: number | null
           approver_id: string
+          comments: string | null
+          conditions: string | null
           created_at: string
           decision_notes: string | null
           id: string
           loan_application_id: string
           status: string
+          tenant_id: string
+          updated_at: string
         }
         Insert: {
+          action?: string
           approval_level?: number
           approved_amount?: number | null
+          approved_interest_rate?: number | null
           approved_term?: number | null
           approver_id: string
+          comments?: string | null
+          conditions?: string | null
           created_at?: string
           decision_notes?: string | null
           id?: string
           loan_application_id: string
           status: string
+          tenant_id: string
+          updated_at?: string
         }
         Update: {
+          action?: string
           approval_level?: number
           approved_amount?: number | null
+          approved_interest_rate?: number | null
           approved_term?: number | null
           approver_id?: string
+          comments?: string | null
+          conditions?: string | null
           created_at?: string
           decision_notes?: string | null
           id?: string
           loan_application_id?: string
           status?: string
+          tenant_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3734,6 +3767,13 @@ export type Database = {
             columns: ["loan_application_id"]
             isOneToOne: false
             referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_approvals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -3798,6 +3838,88 @@ export type Database = {
           },
           {
             foreignKeyName: "loan_collections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_disbursements: {
+        Row: {
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          created_at: string
+          disbursed_amount: number
+          disbursed_by: string | null
+          disbursement_date: string
+          disbursement_method: string
+          failure_reason: string | null
+          id: string
+          loan_application_id: string
+          loan_id: string | null
+          mpesa_phone: string | null
+          reference_number: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          disbursed_amount: number
+          disbursed_by?: string | null
+          disbursement_date: string
+          disbursement_method?: string
+          failure_reason?: string | null
+          id?: string
+          loan_application_id: string
+          loan_id?: string | null
+          mpesa_phone?: string | null
+          reference_number?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          created_at?: string
+          disbursed_amount?: number
+          disbursed_by?: string | null
+          disbursement_date?: string
+          disbursement_method?: string
+          failure_reason?: string | null
+          id?: string
+          loan_application_id?: string
+          loan_id?: string | null
+          mpesa_phone?: string | null
+          reference_number?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_disbursements_disbursed_by_fkey"
+            columns: ["disbursed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_disbursements_loan_application_id_fkey"
+            columns: ["loan_application_id"]
+            isOneToOne: false
+            referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_disbursements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6728,6 +6850,11 @@ export type Database = {
         | "closed"
         | "overdue"
         | "written_off"
+        | "under_review"
+        | "pending_disbursement"
+        | "disbursed"
+        | "rejected"
+        | "withdrawn"
       payment_status: "pending" | "completed" | "failed" | "cancelled"
       payment_type:
         | "cash"
@@ -6890,6 +7017,11 @@ export const Constants = {
         "closed",
         "overdue",
         "written_off",
+        "under_review",
+        "pending_disbursement",
+        "disbursed",
+        "rejected",
+        "withdrawn",
       ],
       payment_status: ["pending", "completed", "failed", "cancelled"],
       payment_type: [
