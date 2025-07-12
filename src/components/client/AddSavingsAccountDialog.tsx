@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { PiggyBank } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateSavingsAccount, useSavingsProducts } from "@/hooks/useSupabase";
+import { useAuth } from "@/hooks/useAuth";
 
 const addSavingsAccountSchema = z.object({
   savings_product_id: z.string().min(1, "Please select a savings product"),
@@ -42,6 +44,9 @@ export const AddSavingsAccountDialog = ({
 }: AddSavingsAccountDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { profile } = useAuth();
+  const createSavingsAccount = useCreateSavingsAccount();
+  const { data: savingsProducts = [], isLoading } = useSavingsProducts();
 
   const form = useForm<AddSavingsAccountData>({
     resolver: zodResolver(addSavingsAccountSchema),
@@ -53,23 +58,30 @@ export const AddSavingsAccountDialog = ({
   });
 
   const onSubmit = async (data: AddSavingsAccountData) => {
+    if (!profile?.tenant_id) {
+      toast({
+        title: "Error",
+        description: "No tenant information available",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Here you would call your API to create the savings account
       const savingsAccountData = {
         client_id: clientId,
         savings_product_id: data.savings_product_id,
-        initial_deposit: parseFloat(data.initial_deposit),
-        account_purpose: data.account_purpose,
-        status: 'pending_approval',
+        account_balance: parseFloat(data.initial_deposit),
+        available_balance: parseFloat(data.initial_deposit),
+        interest_earned: 0,
+        tenant_id: profile.tenant_id,
+        is_active: true,
+        opened_date: new Date().toISOString().split('T')[0],
+        account_number: `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
       };
 
-      console.log('Creating savings account:', savingsAccountData);
-
-      toast({
-        title: "Success",
-        description: `Savings account created successfully for ${clientName}`,
-      });
+      await createSavingsAccount.mutateAsync(savingsAccountData);
 
       form.reset();
       onOpenChange(false);
@@ -114,10 +126,17 @@ export const AddSavingsAccountDialog = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="regular">Regular Savings (3.5% p.a.)</SelectItem>
-                      <SelectItem value="premium">Premium Savings (5.0% p.a.)</SelectItem>
-                      <SelectItem value="fixed">Fixed Deposit (8.0% p.a.)</SelectItem>
-                      <SelectItem value="target">Target Savings (4.0% p.a.)</SelectItem>
+                      {isLoading ? (
+                        <SelectItem value="" disabled>Loading products...</SelectItem>
+                      ) : savingsProducts.length === 0 ? (
+                        <SelectItem value="" disabled>No savings products available</SelectItem>
+                      ) : (
+                        savingsProducts.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} ({product.nominal_annual_interest_rate}% p.a.)
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -689,6 +689,12 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           clientName={`${client.first_name} ${client.last_name}`}
           open={showAddSavingsDialog}
           onOpenChange={setShowAddSavingsDialog}
+          onSuccess={() => {
+            toast({
+              title: "Success",
+              description: "Savings account created successfully",
+            });
+          }}
         />
 
         <AddLoanAccountDialog
@@ -696,6 +702,12 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           clientName={`${client.first_name} ${client.last_name}`}
           open={showAddLoanDialog}
           onOpenChange={setShowAddLoanDialog}
+          onSuccess={() => {
+            toast({
+              title: "Success", 
+              description: "Loan application submitted successfully",
+            });
+          }}
         />
 
         <TransferClientDialog
