@@ -321,172 +321,168 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
             {/* Accounts Tab */}
             <TabsContent value="accounts" className="p-6 space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Loans Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      Loans
-                    </CardTitle>
-                    <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Loan
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {mockLoans.map((loan) => (
-                      <div key={loan.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
+              {/* Loans Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Loans ({mockLoans.length})
+                  </h3>
+                  <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Loan
+                  </Button>
+                </div>
+                
+                <div className="border rounded-lg divide-y">
+                  {mockLoans.map((loan) => (
+                    <div key={loan.id} className="p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
                           <div>
                             <h4 className="font-medium">{loan.type}</h4>
                             <p className="text-sm text-muted-foreground">{loan.id}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{formatCurrency(loan.amount)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Outstanding: {formatCurrency(loan.outstanding)}
+                            </div>
                           </div>
                           <Badge variant={getStatusColor(loan.status)}>
                             {loan.status}
                           </Badge>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Amount</span>
-                            <div className="font-medium">{formatCurrency(loan.amount)}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Outstanding</span>
-                            <div className="font-medium">{formatCurrency(loan.outstanding)}</div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              setSelectedLoan(loan);
-                              setShowLoanDetails(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
-                          
-                          {loan.status === 'pending' && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() => handleLoanAction('Approve', loan.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleLoanAction('Modify', loan.id)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Modify
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleLoanAction('Disburse', loan.id)}
-                              >
-                                <Wallet className="h-4 w-4 mr-2" />
-                                Disburse
-                              </Button>
-                            </>
-                          )}
-                        </div>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
 
-                {/* Savings Section */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <PiggyBank className="h-5 w-5" />
-                      Savings
-                    </CardTitle>
-                    <Button size="sm" onClick={() => setShowAddSavingsDialog(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Savings
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {mockSavings.map((savings) => (
-                      <div key={savings.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedLoan(loan);
+                            setShowLoanDetails(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        
+                        {loan.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleLoanAction('Approve', loan.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleLoanAction('Modify', loan.id)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modify
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleLoanAction('Disburse', loan.id)}
+                            >
+                              <Wallet className="h-4 w-4 mr-2" />
+                              Disburse
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Savings Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <PiggyBank className="h-5 w-5" />
+                    Savings Accounts ({mockSavings.length})
+                  </h3>
+                  <Button size="sm" onClick={() => setShowAddSavingsDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Savings
+                  </Button>
+                </div>
+                
+                <div className="border rounded-lg divide-y">
+                  {mockSavings.map((savings) => (
+                    <div key={savings.id} className="p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
                           <div>
                             <h4 className="font-medium">{savings.type}</h4>
                             <p className="text-sm text-muted-foreground">{savings.id}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{formatCurrency(savings.balance)}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Interest: {savings.interestRate}%
+                            </div>
                           </div>
                           <Badge variant={getStatusColor(savings.status)}>
                             {savings.status}
                           </Badge>
                         </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Balance</span>
-                            <div className="font-medium">{formatCurrency(savings.balance)}</div>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Interest Rate</span>
-                            <div className="font-medium">{savings.interestRate}%</div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => {
-                              setSelectedSavings(savings);
-                              setShowSavingsDetails(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
-                          
-                          {savings.status === 'pending' && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() => handleSavingsAction('Approve', savings.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSavingsAction('Modify', savings.id)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Modify
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleSavingsAction('Activate', savings.id)}
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Activate
-                              </Button>
-                            </>
-                          )}
-                        </div>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
+
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSavings(savings);
+                            setShowSavingsDetails(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
+                        
+                        {savings.status === 'pending' && (
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSavingsAction('Approve', savings.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSavingsAction('Modify', savings.id)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modify
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSavingsAction('Activate', savings.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Activate
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </TabsContent>
 
