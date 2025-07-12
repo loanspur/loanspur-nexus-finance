@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Dialog,
   DialogContent,
@@ -20,9 +22,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CreditCard, CalendarIcon, Upload, Plus, Trash2, Eye } from "lucide-react";
+import { CreditCard, CalendarIcon, Upload, Plus, Trash2, Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -99,6 +102,25 @@ export const AddLoanAccountDialog = ({
       return data;
     },
     enabled: !!profile?.tenant_id,
+  });
+
+  // Fetch global loan charges
+  const { data: feeStructures = [] } = useFeeStructures();
+  const loanFeeStructures = feeStructures.filter(fee => fee.fee_type === 'loan' && fee.is_active);
+
+  // Fetch client details for signature section
+  const { data: clientDetails } = useQuery({
+    queryKey: ['client-details', clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
   });
 
   // Dynamic validation schema based on selected product
@@ -209,6 +231,12 @@ export const AddLoanAccountDialog = ({
     const monthlyRate = annualRate / 12;
     const termMonths = parseInt(formData.loan_term);
     
+    // Calculate fees from selected charges
+    const totalFees = loanCharges.reduce((sum, charge) => {
+      return sum + (parseFloat(charge.amount) || 0);
+    }, 0);
+    const monthlyFees = totalFees / termMonths;
+    
     // Calculate monthly payment using standard loan formula
     const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
     
@@ -226,7 +254,8 @@ export const AddLoanAccountDialog = ({
         due_date: format(currentDate, "MMM dd, yyyy"),
         principal: principalAmount,
         interest: interestAmount,
-        total: monthlyPayment,
+        fees: monthlyFees,
+        total: monthlyPayment + monthlyFees,
         balance: Math.max(0, remainingBalance)
       });
 
@@ -236,6 +265,89 @@ export const AddLoanAccountDialog = ({
 
     setRepaymentSchedule(schedule);
     setShowSchedulePreview(true);
+  };
+
+  // Download repayment schedule as PDF
+  const downloadSchedulePDF = () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.width;
+    
+    // Add title
+    pdf.setFontSize(16);
+    pdf.text('LOAN REPAYMENT SCHEDULE', pageWidth / 2, 20, { align: 'center' });
+    
+    // Add client details
+    pdf.setFontSize(12);
+    const clientInfo = [
+      `Client Name: ${clientDetails?.first_name} ${clientDetails?.last_name}`,
+      `Client Number: ${clientDetails?.client_number}`,
+      `National ID: ${clientDetails?.national_id || 'N/A'}`,
+      `Phone: ${clientDetails?.phone || 'N/A'}`,
+      `Email: ${clientDetails?.email || 'N/A'}`,
+      `Address: ${clientDetails?.address ? JSON.stringify(clientDetails.address) : 'N/A'}`,
+    ];
+    
+    let yPosition = 35;
+    clientInfo.forEach(info => {
+      pdf.text(info, 20, yPosition);
+      yPosition += 6;
+    });
+    
+    // Add loan details
+    const formData = form.getValues();
+    const loanInfo = [
+      `Loan Product: ${selectedProduct?.name || 'N/A'}`,
+      `Loan Amount: KES ${parseFloat(formData.requested_amount).toLocaleString()}`,
+      `Interest Rate: ${formData.interest_rate}% p.a.`,
+      `Loan Term: ${formData.loan_term} months`,
+      `Purpose: ${formData.loan_purpose}`,
+    ];
+    
+    yPosition += 10;
+    loanInfo.forEach(info => {
+      pdf.text(info, 20, yPosition);
+      yPosition += 6;
+    });
+    
+    // Add repayment schedule table
+    const tableData = repaymentSchedule.map(payment => [
+      payment.installment.toString(),
+      payment.due_date,
+      payment.principal.toFixed(2),
+      payment.interest.toFixed(2),
+      payment.fees.toFixed(2),
+      payment.total.toFixed(2),
+      payment.balance.toFixed(2)
+    ]);
+    
+    autoTable(pdf, {
+      startY: yPosition + 10,
+      head: [['#', 'Due Date', 'Principal', 'Interest', 'Fees', 'Total Payment', 'Balance']],
+      body: tableData,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+    
+    // Add signature section
+    const finalY = (pdf as any).lastAutoTable.finalY + 20;
+    pdf.setFontSize(12);
+    pdf.text('CLIENT ACKNOWLEDGMENT & SIGNATURE', 20, finalY);
+    pdf.setFontSize(10);
+    pdf.text('I acknowledge that I have read and understood the terms of this loan repayment schedule.', 20, finalY + 10);
+    pdf.text('I agree to make payments as outlined above and understand the consequences of default.', 20, finalY + 18);
+    
+    // Signature lines
+    pdf.line(20, finalY + 40, 100, finalY + 40);
+    pdf.text('Client Signature', 20, finalY + 48);
+    pdf.text(`Date: ${format(new Date(), 'PPP')}`, 20, finalY + 56);
+    
+    pdf.line(120, finalY + 40, 200, finalY + 40);
+    pdf.text('Loan Officer Signature', 120, finalY + 48);
+    pdf.text(`Date: ${format(new Date(), 'PPP')}`, 120, finalY + 56);
+    
+    // Save the PDF
+    pdf.save(`${clientName}_loan_schedule_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
   const onSubmit = async (data: AddLoanAccountData) => {
@@ -671,12 +783,18 @@ export const AddLoanAccountDialog = ({
                             <SelectTrigger>
                               <SelectValue placeholder="Select charge type" />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="processing">Processing Fee</SelectItem>
-                              <SelectItem value="administration">Administration Fee</SelectItem>
-                              <SelectItem value="legal">Legal Fee</SelectItem>
-                              <SelectItem value="insurance">Insurance Fee</SelectItem>
-                              <SelectItem value="appraisal">Appraisal Fee</SelectItem>
+                           <SelectContent>
+                              {loanFeeStructures.length === 0 ? (
+                                <SelectItem value="" disabled>No loan charges configured</SelectItem>
+                              ) : (
+                                loanFeeStructures.map((fee) => (
+                                  <SelectItem key={fee.id} value={fee.id}>
+                                    {fee.fee_name} ({fee.calculation_method === 'fixed' ? 
+                                      `KES ${fee.fixed_amount}` : 
+                                      `${fee.percentage_rate}%`})
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
@@ -898,57 +1016,68 @@ export const AddLoanAccountDialog = ({
                   </DialogHeader>
                   
                   <div className="overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Installment</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead className="text-right">Principal (KES)</TableHead>
-                          <TableHead className="text-right">Interest (KES)</TableHead>
-                          <TableHead className="text-right">Total Payment (KES)</TableHead>
-                          <TableHead className="text-right">Balance (KES)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {repaymentSchedule.map((payment) => (
-                          <TableRow key={payment.installment}>
-                            <TableCell>{payment.installment}</TableCell>
-                            <TableCell>{payment.due_date}</TableCell>
-                            <TableCell className="text-right">
-                              {payment.principal.toLocaleString('en-KE', { 
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {payment.interest.toLocaleString('en-KE', { 
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {payment.total.toLocaleString('en-KE', { 
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {payment.balance.toLocaleString('en-KE', { 
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2 
-                              })}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                     <Table>
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead>Installment</TableHead>
+                           <TableHead>Due Date</TableHead>
+                           <TableHead className="text-right">Principal (KES)</TableHead>
+                           <TableHead className="text-right">Interest (KES)</TableHead>
+                           <TableHead className="text-right">Fees (KES)</TableHead>
+                           <TableHead className="text-right">Total Payment (KES)</TableHead>
+                           <TableHead className="text-right">Balance (KES)</TableHead>
+                         </TableRow>
+                       </TableHeader>
+                       <TableBody>
+                         {repaymentSchedule.map((payment) => (
+                           <TableRow key={payment.installment}>
+                             <TableCell>{payment.installment}</TableCell>
+                             <TableCell>{payment.due_date}</TableCell>
+                             <TableCell className="text-right">
+                               {payment.principal.toLocaleString('en-KE', { 
+                                 minimumFractionDigits: 2,
+                                 maximumFractionDigits: 2 
+                               })}
+                             </TableCell>
+                             <TableCell className="text-right">
+                               {payment.interest.toLocaleString('en-KE', { 
+                                 minimumFractionDigits: 2,
+                                 maximumFractionDigits: 2 
+                               })}
+                             </TableCell>
+                             <TableCell className="text-right">
+                               {payment.fees.toLocaleString('en-KE', { 
+                                 minimumFractionDigits: 2,
+                                 maximumFractionDigits: 2 
+                               })}
+                             </TableCell>
+                             <TableCell className="text-right">
+                               {payment.total.toLocaleString('en-KE', { 
+                                 minimumFractionDigits: 2,
+                                 maximumFractionDigits: 2 
+                               })}
+                             </TableCell>
+                             <TableCell className="text-right">
+                               {payment.balance.toLocaleString('en-KE', { 
+                                 minimumFractionDigits: 2,
+                                 maximumFractionDigits: 2 
+                               })}
+                             </TableCell>
+                           </TableRow>
+                         ))}
+                       </TableBody>
+                     </Table>
                   </div>
                   
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button variant="outline" onClick={() => setShowSchedulePreview(false)}>
-                      Close Preview
-                    </Button>
-                  </div>
+                   <div className="flex justify-end gap-2 pt-4">
+                     <Button variant="outline" onClick={() => setShowSchedulePreview(false)}>
+                       Close Preview
+                     </Button>
+                     <Button onClick={downloadSchedulePDF} className="flex items-center gap-2">
+                       <Download className="h-4 w-4" />
+                       Download PDF
+                     </Button>
+                   </div>
                 </DialogContent>
               </Dialog>
             )}
