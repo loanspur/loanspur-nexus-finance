@@ -19,8 +19,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, CalendarIcon, Upload, Plus, Trash2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CreditCard, CalendarIcon, Upload, Plus, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
 import { cn } from "@/lib/utils";
 
 const addLoanAccountSchema = z.object({
@@ -69,7 +71,11 @@ export const AddLoanAccountDialog = ({
   onSuccess 
 }: AddLoanAccountDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentTab, setCurrentTab] = useState("basic");
+  const [showSchedulePreview, setShowSchedulePreview] = useState(false);
+  const [repaymentSchedule, setRepaymentSchedule] = useState<any[]>([]);
   const { toast } = useToast();
+  const createLoanApplication = useCreateLoanApplication();
 
   const [collateralItems, setCollateralItems] = useState([{ type: "", description: "", value: "" }]);
   const [loanCharges, setLoanCharges] = useState([{ charge_type: "", amount: "" }]);
@@ -108,40 +114,81 @@ export const AddLoanAccountDialog = ({
     setLoanCharges(loanCharges.filter((_, i) => i !== index));
   };
 
+  // Check if form is fully filled
+  const isFormComplete = () => {
+    const formData = form.getValues();
+    return (
+      formData.loan_product_id &&
+      formData.requested_amount &&
+      formData.loan_purpose &&
+      formData.fund_id &&
+      formData.expected_disbursement_date &&
+      formData.loan_term &&
+      formData.number_of_repayments &&
+      formData.first_repayment_date &&
+      formData.interest_rate
+    );
+  };
+
+  // Generate repayment schedule preview
+  const generateSchedulePreview = () => {
+    const formData = form.getValues();
+    if (!formData.requested_amount || !formData.interest_rate || !formData.loan_term || !formData.first_repayment_date) {
+      return;
+    }
+
+    const principal = parseFloat(formData.requested_amount);
+    const annualRate = parseFloat(formData.interest_rate) / 100;
+    const monthlyRate = annualRate / 12;
+    const termMonths = parseInt(formData.loan_term);
+    
+    // Calculate monthly payment using standard loan formula
+    const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
+    
+    const schedule = [];
+    let remainingBalance = principal;
+    let currentDate = new Date(formData.first_repayment_date);
+
+    for (let i = 1; i <= termMonths; i++) {
+      const interestAmount = remainingBalance * monthlyRate;
+      const principalAmount = monthlyPayment - interestAmount;
+      remainingBalance -= principalAmount;
+
+      schedule.push({
+        installment: i,
+        due_date: format(currentDate, "MMM dd, yyyy"),
+        principal: principalAmount,
+        interest: interestAmount,
+        total: monthlyPayment,
+        balance: Math.max(0, remainingBalance)
+      });
+
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    setRepaymentSchedule(schedule);
+    setShowSchedulePreview(true);
+  };
+
   const onSubmit = async (data: AddLoanAccountData) => {
     setIsSubmitting(true);
     try {
-      // Here you would call your API to create the loan application
       const loanApplicationData = {
         client_id: clientId,
         loan_product_id: data.loan_product_id,
         requested_amount: parseFloat(data.requested_amount),
-        loan_purpose: data.loan_purpose,
-        fund_id: data.fund_id,
-        expected_disbursement_date: data.expected_disbursement_date?.toISOString(),
-        savings_linkage: data.savings_linkage,
-        linked_savings_account: data.linked_savings_account,
-        loan_term_months: parseInt(data.loan_term),
-        number_of_repayments: parseInt(data.number_of_repayments),
-        first_repayment_date: data.first_repayment_date?.toISOString(),
-        interest_rate: parseFloat(data.interest_rate),
-        loan_charges: loanCharges.filter(charge => charge.charge_type && charge.amount),
-        collateral_items: collateralItems.filter(item => item.type && item.description),
-        required_documents: data.required_documents || [],
-        status: 'pending_approval',
-        application_date: new Date().toISOString(),
+        requested_term: parseInt(data.loan_term),
+        purpose: data.loan_purpose,
+        status: 'pending' as const
       };
 
-      console.log('Creating comprehensive loan application:', loanApplicationData);
-
-      toast({
-        title: "Success",
-        description: `Comprehensive loan application submitted successfully for ${clientName}`,
-      });
+      await createLoanApplication.mutateAsync(loanApplicationData);
 
       form.reset();
       setCollateralItems([{ type: "", description: "", value: "" }]);
       setLoanCharges([{ charge_type: "", amount: "" }]);
+      setShowSchedulePreview(false);
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
@@ -276,12 +323,27 @@ export const AddLoanAccountDialog = ({
                     render={({ field }) => (
                       <FormItem className="col-span-2">
                         <FormLabel>Loan Purpose *</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g. Business expansion, School fees, Home improvement"
-                            {...field}
-                          />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select loan purpose" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="business_expansion">Business Expansion</SelectItem>
+                            <SelectItem value="working_capital">Working Capital</SelectItem>
+                            <SelectItem value="equipment_purchase">Equipment Purchase</SelectItem>
+                            <SelectItem value="inventory_financing">Inventory Financing</SelectItem>
+                            <SelectItem value="education">Education/School Fees</SelectItem>
+                            <SelectItem value="home_improvement">Home Improvement</SelectItem>
+                            <SelectItem value="medical_expenses">Medical Expenses</SelectItem>
+                            <SelectItem value="agriculture">Agriculture/Farming</SelectItem>
+                            <SelectItem value="vehicle_purchase">Vehicle Purchase</SelectItem>
+                            <SelectItem value="debt_consolidation">Debt Consolidation</SelectItem>
+                            <SelectItem value="emergency">Emergency</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -686,10 +748,96 @@ export const AddLoanAccountDialog = ({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Submitting..." : "Submit Loan Application"}
-              </Button>
+              
+              {isFormComplete() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateSchedulePreview}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Preview Schedule
+                </Button>
+              )}
+
+              {isFormComplete() ? (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating Application..." : "Create Loan Application"}
+                </Button>
+              ) : (
+                <Button type="button" disabled>
+                  Next
+                </Button>
+              )}
             </div>
+
+            {/* Schedule Preview Dialog */}
+            {showSchedulePreview && (
+              <Dialog open={showSchedulePreview} onOpenChange={setShowSchedulePreview}>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>Repayment Schedule Preview</DialogTitle>
+                    <DialogDescription>
+                      Preview of monthly repayments for {clientName}'s loan application
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Installment</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead className="text-right">Principal (KES)</TableHead>
+                          <TableHead className="text-right">Interest (KES)</TableHead>
+                          <TableHead className="text-right">Total Payment (KES)</TableHead>
+                          <TableHead className="text-right">Balance (KES)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {repaymentSchedule.map((payment) => (
+                          <TableRow key={payment.installment}>
+                            <TableCell>{payment.installment}</TableCell>
+                            <TableCell>{payment.due_date}</TableCell>
+                            <TableCell className="text-right">
+                              {payment.principal.toLocaleString('en-KE', { 
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 
+                              })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {payment.interest.toLocaleString('en-KE', { 
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 
+                              })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {payment.total.toLocaleString('en-KE', { 
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 
+                              })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {payment.balance.toLocaleString('en-KE', { 
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2 
+                              })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="outline" onClick={() => setShowSchedulePreview(false)}>
+                      Close Preview
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </form>
         </Form>
       </DialogContent>
