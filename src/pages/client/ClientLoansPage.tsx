@@ -70,9 +70,9 @@ const ClientLoansPage = () => {
   });
 
   // Categorize loans by status
-  const createdLoans = loans.filter(loan => ['approved', 'active', 'disbursed'].includes(loan.status));
+  const createdLoans = loans.filter(loan => ['approved', 'active', 'disbursed', 'pending_disbursement'].includes(loan.status));
   const pendingLoans = loanApplications.filter(app => ['pending', 'under_review'].includes(app.status));
-  const closedLoans = loans.filter(loan => ['closed', 'written_off', 'fully_paid'].includes(loan.status));
+  const closedLoans = loans.filter(loan => ['closed', 'written_off', 'fully_paid', 'rejected', 'withdrawn'].includes(loan.status));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,8 +86,12 @@ const ClientLoansPage = () => {
         return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
       case 'disbursed':
         return <Badge variant="default" className="bg-blue-600"><DollarSign className="w-3 h-3 mr-1" />Disbursed</Badge>;
+      case 'pending_disbursement':
+        return <Badge variant="outline" className="text-blue-600 border-blue-600"><Clock className="w-3 h-3 mr-1" />Pending Disbursement</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      case 'withdrawn':
+        return <Badge variant="outline" className="text-gray-600 border-gray-600"><XCircle className="w-3 h-3 mr-1" />Withdrawn</Badge>;
       case 'closed':
         return <Badge variant="secondary"><CheckCircle className="w-3 h-3 mr-1" />Closed</Badge>;
       case 'fully_paid':
@@ -143,6 +147,14 @@ const ClientLoansPage = () => {
             <Button key="schedule" variant="outline" size="sm">
               <Calendar className="w-4 h-4 mr-1" />
               View Schedule
+            </Button>
+          );
+          break;
+        case 'pending_disbursement':
+          buttons.push(
+            <Button key="track" variant="outline" size="sm">
+              <Clock className="w-4 h-4 mr-1" />
+              Track Disbursement
             </Button>
           );
           break;
