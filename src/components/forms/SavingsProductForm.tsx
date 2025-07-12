@@ -12,6 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useCreateSavingsProduct, useUpdateSavingsProduct, SavingsProduct } from "@/hooks/useSupabase";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Loader2 } from "lucide-react";
+import { SampleDataButton } from "@/components/dev/SampleDataButton";
+import { generateSampleSavingsProductData } from "@/lib/dev-utils";
 
 const savingsProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -108,13 +110,29 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
     }
   };
 
+  const fillSampleData = () => {
+    const sampleData = generateSampleSavingsProductData();
+    Object.entries(sampleData).forEach(([key, value]) => {
+      if (typeof value === 'string' && !isNaN(parseFloat(value))) {
+        form.setValue(key as keyof SavingsProductFormValues, parseFloat(value));
+      } else {
+        form.setValue(key as keyof SavingsProductFormValues, value);
+      }
+    });
+  };
+
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle>Create Savings Product</CardTitle>
-        <CardDescription>
-          Configure a new savings product with interest rates and minimum balance requirements
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Create Savings Product</CardTitle>
+            <CardDescription>
+              Configure a new savings product with interest rates and minimum balance requirements
+            </CardDescription>
+          </div>
+          <SampleDataButton onFillSampleData={fillSampleData} />
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>

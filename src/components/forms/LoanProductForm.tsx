@@ -13,6 +13,8 @@ import { LoanProductInterestRepaymentTab } from "./loan-product/LoanProductInter
 import { LoanProductArrearsTab } from "./loan-product/LoanProductArrearsTab";
 import { LoanProductAdvancedTab } from "./loan-product/LoanProductAdvancedTab";
 import { LoanProductAccountingTab } from "./loan-product/LoanProductAccountingTab";
+import { SampleDataButton } from "@/components/dev/SampleDataButton";
+import { generateSampleLoanProductData } from "@/lib/dev-utils";
 
 interface LoanProductFormProps {
   open: boolean;
@@ -87,11 +89,25 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
     }
   };
 
+  const fillSampleData = () => {
+    const sampleData = generateSampleLoanProductData();
+    Object.entries(sampleData).forEach(([key, value]) => {
+      if (typeof value === 'number') {
+        form.setValue(key as keyof LoanProductFormData, value.toString());
+      } else {
+        form.setValue(key as keyof LoanProductFormData, value as string);
+      }
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingProduct ? 'Edit Loan Product' : 'Create Loan Product'}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>{editingProduct ? 'Edit Loan Product' : 'Create Loan Product'}</DialogTitle>
+            {!editingProduct && <SampleDataButton onFillSampleData={fillSampleData} />}
+          </div>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

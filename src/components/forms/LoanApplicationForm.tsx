@@ -34,6 +34,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { CalendarDays, DollarSign, FileText } from "lucide-react";
+import { SampleDataButton } from "@/components/dev/SampleDataButton";
+import { generateSampleLoanApplicationData } from "@/lib/dev-utils";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Please select a client"),
@@ -120,6 +122,13 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
     }
   };
 
+  const fillSampleData = () => {
+    const sampleData = generateSampleLoanApplicationData();
+    Object.entries(sampleData).forEach(([key, value]) => {
+      form.setValue(key as keyof LoanApplicationFormData, value);
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -127,13 +136,18 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            New Loan Application
-          </DialogTitle>
-          <DialogDescription>
-            Submit a new loan application for review and processing
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                New Loan Application
+              </DialogTitle>
+              <DialogDescription>
+                Submit a new loan application for review and processing
+              </DialogDescription>
+            </div>
+            <SampleDataButton onFillSampleData={fillSampleData} />
+          </div>
         </DialogHeader>
 
         <Form {...form}>

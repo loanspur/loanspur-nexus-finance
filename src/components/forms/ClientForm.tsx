@@ -8,6 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateClient } from "@/hooks/useSupabase";
+import { SampleDataButton } from "@/components/dev/SampleDataButton";
+import { generateSampleClientData } from "@/lib/dev-utils";
 
 const clientSchema = z.object({
   client_number: z.string().min(1, "Client number is required"),
@@ -78,11 +80,21 @@ export const ClientForm = ({ open, onOpenChange, tenantId }: ClientFormProps) =>
     }
   };
 
+  const fillSampleData = () => {
+    const sampleData = generateSampleClientData();
+    Object.entries(sampleData).forEach(([key, value]) => {
+      form.setValue(key as keyof ClientFormData, value);
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Client</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Add New Client</DialogTitle>
+            <SampleDataButton onFillSampleData={fillSampleData} />
+          </div>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
