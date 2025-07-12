@@ -2274,6 +2274,62 @@ export type Database = {
           },
         ]
       }
+      fee_structures: {
+        Row: {
+          amount: number
+          calculation_type: string
+          created_at: string
+          description: string | null
+          fee_type: string
+          id: string
+          is_active: boolean
+          max_amount: number | null
+          min_amount: number | null
+          name: string
+          percentage_rate: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          calculation_type?: string
+          created_at?: string
+          description?: string | null
+          fee_type: string
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          name: string
+          percentage_rate?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          calculation_type?: string
+          created_at?: string
+          description?: string | null
+          fee_type?: string
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          name?: string
+          percentage_rate?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_fee_structures_tenant"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_reports: {
         Row: {
           created_at: string

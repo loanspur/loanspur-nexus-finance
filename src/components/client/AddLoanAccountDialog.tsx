@@ -447,9 +447,10 @@ export const AddLoanAccountDialog = ({
           {isDevelopment() && (
             <SampleDataButton
               onFillSampleData={() => {
-                const sampleData = generateSampleLoanData();
+                const sampleData = generateSampleLoanData(loanProducts);
                 
                 // Set form values
+                form.setValue("loan_product_id", sampleData.loan_product_id);
                 form.setValue("requested_amount", sampleData.requested_amount);
                 form.setValue("loan_purpose", sampleData.loan_purpose);
                 form.setValue("fund_id", sampleData.fund_id);
@@ -467,6 +468,11 @@ export const AddLoanAccountDialog = ({
                 // Update local state
                 setLoanCharges(sampleData.loan_charges);
                 setCollateralItems(sampleData.collateral_items);
+                
+                // Trigger the product change handler if product is selected
+                if (sampleData.loan_product_id) {
+                  handleProductChange(sampleData.loan_product_id);
+                }
               }}
             />
           )}

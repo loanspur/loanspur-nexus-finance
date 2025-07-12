@@ -154,24 +154,28 @@ export const generateSampleSavingsProductData = () => {
   };
 };
 
-export const generateSampleLoanData = () => {
+export const generateSampleLoanData = (loanProducts: any[] = []) => {
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 7); // 7 days from now
   
   const firstRepaymentDate = new Date();
   firstRepaymentDate.setMonth(firstRepaymentDate.getMonth() + 1); // 1 month from now
 
+  // Use first available loan product if any exist
+  const selectedProduct = loanProducts.length > 0 ? loanProducts[0] : null;
+
   return {
-    requested_amount: "150000",
+    loan_product_id: selectedProduct?.id || "",
+    requested_amount: selectedProduct?.default_principal?.toString() || "150000",
     loan_purpose: "business_expansion",
     fund_id: "general",
     expected_disbursement_date: futureDate,
     savings_linkage: false,
     linked_savings_account: "",
-    loan_term: "12",
-    number_of_repayments: "12",
+    loan_term: selectedProduct?.default_term?.toString() || "12",
+    number_of_repayments: selectedProduct?.default_term?.toString() || "12",
     first_repayment_date: firstRepaymentDate,
-    interest_rate: "15.5",
+    interest_rate: selectedProduct?.default_nominal_interest_rate?.toString() || "15.5",
     loan_charges: [
       { charge_type: "processing_fee", amount: "2500" },
       { charge_type: "insurance", amount: "1200" }
