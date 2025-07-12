@@ -911,7 +911,19 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               outstanding: 0, 
                               status: "pending_approval",
                               applicationDate: "2024-01-25",
-                              expectedDecision: "2024-02-10"
+                              expectedDecision: "2024-02-10",
+                              applicationStage: "Credit Assessment",
+                              approver: "Jane Smith",
+                              purpose: "Kitchen renovation and repairs",
+                              employmentStatus: "Employed",
+                              monthlyIncome: 85000,
+                              creditScore: 720,
+                              requiredDocuments: ["Income verification", "Property valuation", "Building permits"],
+                              submittedDocuments: ["Income verification", "Property valuation"],
+                              comments: "Application under review. Pending building permits submission.",
+                              loanOfficer: "John Kamau",
+                              term: 36,
+                              interestRate: 14.5
                             },
                             { 
                               id: "L005", 
@@ -920,35 +932,130 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               outstanding: 0, 
                               status: "pending_disbursement",
                               applicationDate: "2024-01-20",
-                              expectedDecision: "2024-02-05"
+                              expectedDecision: "2024-02-05",
+                              applicationStage: "Approved - Awaiting Disbursement",
+                              approver: "Sarah Mwangi",
+                              purpose: "University tuition fees",
+                              employmentStatus: "Student/Guardian Employed",
+                              monthlyIncome: 65000,
+                              creditScore: 680,
+                              approvedDate: "2024-01-30",
+                              disbursementDate: "2024-02-05",
+                              disbursementMethod: "Direct to Institution",
+                              loanOfficer: "Mary Njeri",
+                              term: 24,
+                              interestRate: 12.0
                             }
                           ].map((loan, index) => (
-                            <div key={index} className="p-4 border rounded-lg space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">{loan.type}</div>
-                                <Badge variant="secondary">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {loan.status.replace('_', ' ')}
-                                </Badge>
+                            <div key={index} className="border rounded-lg overflow-hidden bg-gradient-to-r from-yellow-50 to-orange-50">
+                              <div className="p-4 space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold text-lg">{loan.type}</div>
+                                    <div className="text-sm text-muted-foreground">Application ID: {loan.id}</div>
+                                  </div>
+                                  <Badge 
+                                    variant={loan.status === 'pending_disbursement' ? 'default' : 'secondary'}
+                                    className="animate-pulse"
+                                  >
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {loan.status.replace('_', ' ')}
+                                  </Badge>
+                                </div>
+
+                                {/* Application Summary */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white/50 rounded-lg">
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Requested Amount</span>
+                                    <div className="text-xl font-bold text-orange-600">{formatCurrency(loan.amount)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Term</span>
+                                    <div className="text-xl font-bold">{loan.term} months</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Interest Rate</span>
+                                    <div className="text-xl font-bold">{loan.interestRate}%</div>
+                                  </div>
+                                </div>
+
+                                {/* Application Details */}
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Application Date</span>
+                                      <div className="font-medium">{format(new Date(loan.applicationDate), 'MMM dd, yyyy')}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Current Stage</span>
+                                      <div className="font-medium">{loan.applicationStage}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Assigned Approver</span>
+                                      <div className="font-medium">{loan.approver}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Loan Officer</span>
+                                      <div className="font-medium">{loan.loanOfficer}</div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Purpose</span>
+                                    <div className="font-medium">{loan.purpose}</div>
+                                  </div>
+
+                                  {/* Document Status */}
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground mb-2 block">Document Status</span>
+                                    <div className="space-y-2">
+                                      {loan.requiredDocuments.map((doc, docIndex) => (
+                                        <div key={docIndex} className="flex items-center justify-between p-2 bg-white/50 rounded">
+                                          <span className="text-sm">{doc}</span>
+                                          <Badge variant={loan.submittedDocuments.includes(doc) ? 'default' : 'outline'}>
+                                            {loan.submittedDocuments.includes(doc) ? (
+                                              <CheckCircle className="h-3 w-3 mr-1" />
+                                            ) : (
+                                              <Clock className="h-3 w-3 mr-1" />
+                                            )}
+                                            {loan.submittedDocuments.includes(doc) ? 'Submitted' : 'Pending'}
+                                          </Badge>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Comments */}
+                                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="text-sm font-medium text-blue-800 mb-1">Latest Update</div>
+                                    <div className="text-sm text-blue-700">{loan.comments}</div>
+                                  </div>
+
+                                  {loan.status === 'pending_disbursement' && (
+                                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                      <div className="text-sm font-medium text-green-800 mb-1">Approved for Disbursement</div>
+                                      <div className="text-sm text-green-700">
+                                        Disbursement scheduled for {format(new Date(loan.disbursementDate), 'MMM dd, yyyy')}
+                                        {loan.disbursementMethod && ` via ${loan.disbursementMethod}`}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                                    setSelectedLoan(loan);
+                                    setShowLoanDetails(true);
+                                  }}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Full Application
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">Application ID: {loan.id}</div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground">Requested Amount:</span>
-                                  <div className="font-medium">{formatCurrency(loan.amount)}</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Application Date:</span>
-                                  <div className="font-medium">{format(new Date(loan.applicationDate), 'MMM dd, yyyy')}</div>
-                                </div>
-                                <div className="col-span-2">
-                                  <span className="text-muted-foreground">Expected Decision:</span>
-                                  <div className="font-medium">{format(new Date(loan.expectedDecision), 'MMM dd, yyyy')}</div>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" className="w-full">
-                                View Application
-                              </Button>
                             </div>
                           ))}
                         </div>
@@ -965,35 +1072,156 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               outstanding: 0, 
                               status: "closed",
                               closedDate: "2024-01-15",
-                              totalPaid: 52500
+                              totalPaid: 52500,
+                              disbursementDate: "2023-10-15",
+                              term: 6,
+                              interestRate: 15.0,
+                              actualTerm: 3,
+                              paymentHistory: {
+                                totalPayments: 3,
+                                onTimePayments: 3,
+                                latePayments: 0,
+                                missedPayments: 0
+                              },
+                              closureReason: "Early repayment",
+                              finalPayment: 25000,
+                              interestPaid: 2500,
+                              loanOfficer: "Mary Njeri",
+                              performance: "Excellent"
+                            },
+                            { 
+                              id: "L002", 
+                              type: "Business Loan", 
+                              amount: 300000, 
+                              outstanding: 0, 
+                              status: "closed",
+                              closedDate: "2023-12-31",
+                              totalPaid: 345000,
+                              disbursementDate: "2022-01-15",
+                              term: 24,
+                              interestRate: 16.0,
+                              actualTerm: 24,
+                              paymentHistory: {
+                                totalPayments: 24,
+                                onTimePayments: 22,
+                                latePayments: 2,
+                                missedPayments: 0
+                              },
+                              closureReason: "Full term completion",
+                              finalPayment: 14375,
+                              interestPaid: 45000,
+                              loanOfficer: "John Kamau",
+                              performance: "Good"
                             }
                           ].map((loan, index) => (
-                            <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/20">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-muted-foreground">{loan.type}</div>
-                                <Badge variant="outline">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  {loan.status}
-                                </Badge>
+                            <div key={index} className="border rounded-lg overflow-hidden bg-gradient-to-r from-gray-50 to-slate-50">
+                              <div className="p-4 space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold text-lg text-muted-foreground">{loan.type}</div>
+                                    <div className="text-sm text-muted-foreground">Loan ID: {loan.id}</div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant="outline" className="mb-2">
+                                      <XCircle className="h-3 w-3 mr-1" />
+                                      {loan.status}
+                                    </Badge>
+                                    <div className="text-sm text-muted-foreground">
+                                      Closed {format(new Date(loan.closedDate), 'MMM dd, yyyy')}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Loan Summary */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-white/50 rounded-lg">
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Original Amount</span>
+                                    <div className="text-lg font-bold">{formatCurrency(loan.amount)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Paid</span>
+                                    <div className="text-lg font-bold text-green-600">{formatCurrency(loan.totalPaid)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Interest Paid</span>
+                                    <div className="text-lg font-bold text-blue-600">{formatCurrency(loan.interestPaid)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Performance</span>
+                                    <div className={`text-lg font-bold ${
+                                      loan.performance === 'Excellent' ? 'text-green-600' : 
+                                      loan.performance === 'Good' ? 'text-blue-600' : 'text-yellow-600'
+                                    }`}>
+                                      {loan.performance}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Loan Details */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Disbursement Date</span>
+                                    <div className="font-medium">{format(new Date(loan.disbursementDate), 'MMM dd, yyyy')}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Term</span>
+                                    <div className="font-medium">{loan.actualTerm}/{loan.term} months</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Interest Rate</span>
+                                    <div className="font-medium">{loan.interestRate}% p.a.</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Closure Reason</span>
+                                    <div className="font-medium">{loan.closureReason}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Loan Officer</span>
+                                    <div className="font-medium">{loan.loanOfficer}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Final Payment</span>
+                                    <div className="font-medium">{formatCurrency(loan.finalPayment)}</div>
+                                  </div>
+                                </div>
+
+                                {/* Payment Performance */}
+                                <div className="p-4 bg-white/50 rounded-lg">
+                                  <div className="text-sm font-medium text-muted-foreground mb-3">Payment Performance</div>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div>
+                                      <div className="text-xl font-bold text-green-600">{loan.paymentHistory.onTimePayments}</div>
+                                      <div className="text-xs text-muted-foreground">On Time</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xl font-bold text-yellow-600">{loan.paymentHistory.latePayments}</div>
+                                      <div className="text-xs text-muted-foreground">Late</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xl font-bold text-red-600">{loan.paymentHistory.missedPayments}</div>
+                                      <div className="text-xs text-muted-foreground">Missed</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xl font-bold">{loan.paymentHistory.totalPayments}</div>
+                                      <div className="text-xs text-muted-foreground">Total</div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                                    setSelectedLoan(loan);
+                                    setShowLoanDetails(true);
+                                  }}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Complete History
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Certificate
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">Loan ID: {loan.id}</div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground">Original Amount:</span>
-                                  <div className="font-medium">{formatCurrency(loan.amount)}</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Total Paid:</span>
-                                  <div className="font-medium text-green-600">{formatCurrency(loan.totalPaid)}</div>
-                                </div>
-                                <div className="col-span-2">
-                                  <span className="text-muted-foreground">Closed Date:</span>
-                                  <div className="font-medium">{format(new Date(loan.closedDate), 'MMM dd, yyyy')}</div>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" className="w-full">
-                                View History
-                              </Button>
                             </div>
                           ))}
                         </div>
@@ -1105,35 +1333,146 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               initialDeposit: 50000, 
                               status: "pending_approval",
                               applicationDate: "2024-01-30",
-                              expectedDecision: "2024-02-15"
+                              expectedDecision: "2024-02-15",
+                              applicationStage: "Documentation Review",
+                              approver: "Sarah Mwangi",
+                              purpose: "Long-term investment savings",
+                              interestRate: 6.5,
+                              minimumBalance: 10000,
+                              requiredDocuments: ["ID copy", "Income statement", "Initial deposit slip"],
+                              submittedDocuments: ["ID copy", "Income statement"],
+                              comments: "Application under review. Pending initial deposit confirmation.",
+                              accountOfficer: "Mary Njeri"
+                            },
+                            { 
+                              id: "S005", 
+                              type: "Children Education Fund", 
+                              initialDeposit: 25000, 
+                              status: "pending_activation",
+                              applicationDate: "2024-01-25",
+                              expectedDecision: "2024-02-10",
+                              applicationStage: "Approved - Awaiting Activation",
+                              approver: "John Kamau",
+                              purpose: "Education savings for children",
+                              interestRate: 5.0,
+                              minimumBalance: 5000,
+                              approvedDate: "2024-02-01",
+                              activationDate: "2024-02-10",
+                              accountOfficer: "Sarah Njeri"
                             }
                           ].map((savings, index) => (
-                            <div key={index} className="p-4 border rounded-lg space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">{savings.type}</div>
-                                <Badge variant="secondary">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {savings.status.replace('_', ' ')}
-                                </Badge>
+                            <div key={index} className="border rounded-lg overflow-hidden bg-gradient-to-r from-green-50 to-blue-50">
+                              <div className="p-4 space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold text-lg">{savings.type}</div>
+                                    <div className="text-sm text-muted-foreground">Application ID: {savings.id}</div>
+                                  </div>
+                                  <Badge 
+                                    variant={savings.status === 'pending_activation' ? 'default' : 'secondary'}
+                                    className="animate-pulse"
+                                  >
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    {savings.status.replace('_', ' ')}
+                                  </Badge>
+                                </div>
+
+                                {/* Application Summary */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-white/50 rounded-lg">
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Initial Deposit</span>
+                                    <div className="text-xl font-bold text-green-600">{formatCurrency(savings.initialDeposit)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Interest Rate</span>
+                                    <div className="text-xl font-bold">{savings.interestRate}%</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Min Balance</span>
+                                    <div className="text-xl font-bold">{formatCurrency(savings.minimumBalance)}</div>
+                                  </div>
+                                </div>
+
+                                {/* Application Details */}
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Application Date</span>
+                                      <div className="font-medium">{format(new Date(savings.applicationDate), 'MMM dd, yyyy')}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Current Stage</span>
+                                      <div className="font-medium">{savings.applicationStage}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Assigned Approver</span>
+                                      <div className="font-medium">{savings.approver}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Account Officer</span>
+                                      <div className="font-medium">{savings.accountOfficer}</div>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Purpose</span>
+                                    <div className="font-medium">{savings.purpose}</div>
+                                  </div>
+
+                                  {/* Document Status */}
+                                  {savings.requiredDocuments && (
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground mb-2 block">Document Status</span>
+                                      <div className="space-y-2">
+                                        {savings.requiredDocuments.map((doc: string, docIndex: number) => (
+                                          <div key={docIndex} className="flex items-center justify-between p-2 bg-white/50 rounded">
+                                            <span className="text-sm">{doc}</span>
+                                            <Badge variant={savings.submittedDocuments?.includes(doc) ? 'default' : 'outline'}>
+                                              {savings.submittedDocuments?.includes(doc) ? (
+                                                <CheckCircle className="h-3 w-3 mr-1" />
+                                              ) : (
+                                                <Clock className="h-3 w-3 mr-1" />
+                                              )}
+                                              {savings.submittedDocuments?.includes(doc) ? 'Submitted' : 'Pending'}
+                                            </Badge>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Comments */}
+                                  {savings.comments && (
+                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                      <div className="text-sm font-medium text-blue-800 mb-1">Latest Update</div>
+                                      <div className="text-sm text-blue-700">{savings.comments}</div>
+                                    </div>
+                                  )}
+
+                                  {savings.status === 'pending_activation' && (
+                                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                      <div className="text-sm font-medium text-green-800 mb-1">Approved for Activation</div>
+                                      <div className="text-sm text-green-700">
+                                        Account activation scheduled for {format(new Date(savings.activationDate), 'MMM dd, yyyy')}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                                    setSelectedSavings(savings);
+                                    setShowSavingsDetails(true);
+                                  }}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Full Application
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">Application ID: {savings.id}</div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground">Initial Deposit:</span>
-                                  <div className="font-medium">{formatCurrency(savings.initialDeposit)}</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Application Date:</span>
-                                  <div className="font-medium">{format(new Date(savings.applicationDate), 'MMM dd, yyyy')}</div>
-                                </div>
-                                <div className="col-span-2">
-                                  <span className="text-muted-foreground">Expected Decision:</span>
-                                  <div className="font-medium">{format(new Date(savings.expectedDecision), 'MMM dd, yyyy')}</div>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" className="w-full">
-                                View Application
-                              </Button>
                             </div>
                           ))}
                         </div>
@@ -1151,39 +1490,143 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               interestRate: 2.0,
                               status: "closed",
                               closedDate: "2023-12-15",
-                              reason: "Account matured"
+                              reason: "Account matured",
+                              openingDate: "2022-12-15",
+                              totalDeposits: 24000,
+                              totalWithdrawals: 0,
+                              interestEarned: 1000,
+                              accountOfficer: "John Kamau",
+                              performance: "Excellent",
+                              closureReason: "Maturity reached",
+                              transferredTo: "Primary Savings Account"
+                            },
+                            { 
+                              id: "S002", 
+                              type: "Fixed Deposit", 
+                              balance: 0, 
+                              closedBalance: 105000,
+                              interestRate: 8.0,
+                              status: "closed",
+                              closedDate: "2023-06-30",
+                              reason: "Customer request",
+                              openingDate: "2022-06-30",
+                              totalDeposits: 100000,
+                              totalWithdrawals: 105000,
+                              interestEarned: 5000,
+                              accountOfficer: "Sarah Mwangi",
+                              performance: "Good",
+                              closureReason: "Early withdrawal",
+                              penaltyCharge: 500
                             }
                           ].map((savings, index) => (
-                            <div key={index} className="p-4 border rounded-lg space-y-3 bg-muted/20">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-muted-foreground">{savings.type}</div>
-                                <Badge variant="outline">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  {savings.status}
-                                </Badge>
+                            <div key={index} className="border rounded-lg overflow-hidden bg-gradient-to-r from-gray-50 to-slate-50">
+                              <div className="p-4 space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="font-semibold text-lg text-muted-foreground">{savings.type}</div>
+                                    <div className="text-sm text-muted-foreground">Account ID: {savings.id}</div>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge variant="outline" className="mb-2">
+                                      <XCircle className="h-3 w-3 mr-1" />
+                                      {savings.status}
+                                    </Badge>
+                                    <div className="text-sm text-muted-foreground">
+                                      Closed {format(new Date(savings.closedDate), 'MMM dd, yyyy')}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Account Summary */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-white/50 rounded-lg">
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Final Balance</span>
+                                    <div className="text-lg font-bold text-green-600">{formatCurrency(savings.closedBalance)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total Deposits</span>
+                                    <div className="text-lg font-bold">{formatCurrency(savings.totalDeposits)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Interest Earned</span>
+                                    <div className="text-lg font-bold text-blue-600">{formatCurrency(savings.interestEarned)}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Performance</span>
+                                    <div className={`text-lg font-bold ${
+                                      savings.performance === 'Excellent' ? 'text-green-600' : 
+                                      savings.performance === 'Good' ? 'text-blue-600' : 'text-yellow-600'
+                                    }`}>
+                                      {savings.performance}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Account Details */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Opening Date</span>
+                                    <div className="font-medium">{format(new Date(savings.openingDate), 'MMM dd, yyyy')}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Interest Rate</span>
+                                    <div className="font-medium">{savings.interestRate}% p.a.</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Account Officer</span>
+                                    <div className="font-medium">{savings.accountOfficer}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium text-muted-foreground">Closure Reason</span>
+                                    <div className="font-medium">{savings.closureReason}</div>
+                                  </div>
+                                  {savings.transferredTo && (
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Transferred To</span>
+                                      <div className="font-medium">{savings.transferredTo}</div>
+                                    </div>
+                                  )}
+                                  {savings.penaltyCharge && (
+                                    <div>
+                                      <span className="text-sm font-medium text-muted-foreground">Penalty Charge</span>
+                                      <div className="font-medium text-red-600">{formatCurrency(savings.penaltyCharge)}</div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Account Performance */}
+                                <div className="p-4 bg-white/50 rounded-lg">
+                                  <div className="text-sm font-medium text-muted-foreground mb-3">Account Summary</div>
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                                    <div>
+                                      <div className="text-xl font-bold text-green-600">{formatCurrency(savings.totalDeposits)}</div>
+                                      <div className="text-xs text-muted-foreground">Total Deposits</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xl font-bold text-blue-600">{formatCurrency(savings.interestEarned)}</div>
+                                      <div className="text-xs text-muted-foreground">Interest Earned</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xl font-bold text-green-600">{formatCurrency(savings.closedBalance)}</div>
+                                      <div className="text-xs text-muted-foreground">Final Balance</div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                                    setSelectedSavings(savings);
+                                    setShowSavingsDetails(true);
+                                  }}>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Complete History
+                                  </Button>
+                                  <Button variant="outline" size="sm">
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Certificate
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">Account ID: {savings.id}</div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground">Final Balance:</span>
-                                  <div className="font-medium">{formatCurrency(savings.closedBalance)}</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Interest Rate:</span>
-                                  <div className="font-medium">{savings.interestRate}% p.a.</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Closed Date:</span>
-                                  <div className="font-medium">{format(new Date(savings.closedDate), 'MMM dd, yyyy')}</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Reason:</span>
-                                  <div className="font-medium">{savings.reason}</div>
-                                </div>
-                              </div>
-                              <Button variant="outline" size="sm" className="w-full">
-                                View History
-                              </Button>
                             </div>
                           ))}
                         </div>
