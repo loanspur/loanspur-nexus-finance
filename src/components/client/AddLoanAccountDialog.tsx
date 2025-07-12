@@ -23,6 +23,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CreditCard, CalendarIcon, Upload, Plus, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from "@/lib/utils";
 
 const addLoanAccountSchema = z.object({
@@ -75,13 +78,61 @@ export const AddLoanAccountDialog = ({
   const [showSchedulePreview, setShowSchedulePreview] = useState(false);
   const [repaymentSchedule, setRepaymentSchedule] = useState<any[]>([]);
   const { toast } = useToast();
+  const { profile } = useAuth();
   const createLoanApplication = useCreateLoanApplication();
 
   const [collateralItems, setCollateralItems] = useState([{ type: "", description: "", value: "" }]);
   const [loanCharges, setLoanCharges] = useState([{ charge_type: "", amount: "" }]);
 
+  // Fetch loan products
+  const { data: loanProducts = [], isLoading: isLoadingProducts } = useQuery({
+    queryKey: ['loan-products', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) return [];
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.tenant_id,
+  });
+
+  // Dynamic validation schema based on selected product
+  const createDynamicSchema = (product?: any) => {
+    const baseSchema = addLoanAccountSchema;
+    
+    if (!product) return baseSchema;
+
+    return baseSchema.extend({
+      requested_amount: z.string()
+        .min(1, "Loan amount is required")
+        .refine((val) => {
+          const amount = parseFloat(val);
+          return amount >= product.min_principal && amount <= product.max_principal;
+        }, `Amount must be between ${product.min_principal?.toLocaleString()} and ${product.max_principal?.toLocaleString()}`),
+      
+      interest_rate: z.string()
+        .min(1, "Interest rate is required")
+        .refine((val) => {
+          const rate = parseFloat(val);
+          return rate >= product.min_nominal_interest_rate && rate <= product.max_nominal_interest_rate;
+        }, `Interest rate must be between ${product.min_nominal_interest_rate}% and ${product.max_nominal_interest_rate}%`),
+      
+      loan_term: z.string()
+        .min(1, "Loan term is required")
+        .refine((val) => {
+          const term = parseInt(val);
+          return term >= product.min_term && term <= product.max_term;
+        }, `Loan term must be between ${product.min_term} and ${product.max_term} months`),
+    });
+  };
+
   const form = useForm<AddLoanAccountData>({
-    resolver: zodResolver(addLoanAccountSchema),
+    resolver: zodResolver(addLoanAccountSchema), // Start with base schema
     defaultValues: {
       loan_product_id: "",
       requested_amount: "",
@@ -97,6 +148,22 @@ export const AddLoanAccountDialog = ({
       required_documents: [],
     },
   });
+
+  // Get selected product details after form is declared
+  const selectedProduct = loanProducts.find(p => p.id === form.watch("loan_product_id"));
+
+  // Auto-populate defaults when product is selected
+  const handleProductChange = (productId: string) => {
+    const product = loanProducts.find(p => p.id === productId);
+    if (product) {
+      setValue("interest_rate", product.default_nominal_interest_rate?.toString() || "");
+      setValue("loan_term", product.default_term?.toString() || "");
+      setValue("requested_amount", product.default_principal?.toString() || "");
+    }
+  };
+
+  // Update form validation when product changes  
+  const { setValue } = form;
 
   const addCollateralItem = () => {
     setCollateralItems([...collateralItems, { type: "", description: "", value: "" }]);
@@ -234,19 +301,38 @@ export const AddLoanAccountDialog = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Loan Product *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            handleProductChange(value);
+                          }} 
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a loan product" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="personal">Personal Loan (12% p.a.)</SelectItem>
-                            <SelectItem value="business">Business Loan (10% p.a.)</SelectItem>
-                            <SelectItem value="emergency">Emergency Loan (15% p.a.)</SelectItem>
-                            <SelectItem value="asset">Asset Finance (14% p.a.)</SelectItem>
+                            {isLoadingProducts ? (
+                              <SelectItem value="" disabled>Loading products...</SelectItem>
+                            ) : loanProducts.length === 0 ? (
+                              <SelectItem value="" disabled>No active products found</SelectItem>
+                            ) : (
+                              loanProducts.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} ({product.min_nominal_interest_rate}% - {product.max_nominal_interest_rate}% p.a.)
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
+                        {selectedProduct && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Amount: {selectedProduct.min_principal?.toLocaleString()} - {selectedProduct.max_principal?.toLocaleString()} | 
+                            Term: {selectedProduct.min_term} - {selectedProduct.max_term} months
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -282,12 +368,16 @@ export const AddLoanAccountDialog = ({
                     name="requested_amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Requested Amount (KES) *</FormLabel>
+                        <FormLabel>Requested Amount ({selectedProduct?.currency_code || 'KES'}) *</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="e.g. 100000"
-                            min="0"
+                            placeholder={selectedProduct ? 
+                              `Min: ${selectedProduct.min_principal?.toLocaleString()}, Max: ${selectedProduct.max_principal?.toLocaleString()}` : 
+                              "e.g. 100000"
+                            }
+                            min={selectedProduct?.min_principal || 0}
+                            max={selectedProduct?.max_principal || undefined}
                             step="0.01"
                             {...field}
                           />
@@ -306,8 +396,12 @@ export const AddLoanAccountDialog = ({
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="e.g. 12.5"
-                            min="0"
+                            placeholder={selectedProduct ? 
+                              `Min: ${selectedProduct.min_nominal_interest_rate}%, Max: ${selectedProduct.max_nominal_interest_rate}%` : 
+                              "e.g. 12.5"
+                            }
+                            min={selectedProduct?.min_nominal_interest_rate || 0}
+                            max={selectedProduct?.max_nominal_interest_rate || undefined}
                             step="0.01"
                             {...field}
                           />
@@ -455,16 +549,36 @@ export const AddLoanAccountDialog = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="3">3 months</SelectItem>
-                            <SelectItem value="6">6 months</SelectItem>
-                            <SelectItem value="12">12 months</SelectItem>
-                            <SelectItem value="18">18 months</SelectItem>
-                            <SelectItem value="24">24 months</SelectItem>
-                            <SelectItem value="36">36 months</SelectItem>
-                            <SelectItem value="48">48 months</SelectItem>
-                            <SelectItem value="60">60 months</SelectItem>
+                            {selectedProduct ? (
+                              // Generate options based on product min/max terms
+                              Array.from({ length: Math.floor((selectedProduct.max_term - selectedProduct.min_term) / 6) + 1 }, (_, i) => {
+                                const term = selectedProduct.min_term + (i * 6);
+                                return term <= selectedProduct.max_term ? (
+                                  <SelectItem key={term} value={term.toString()}>
+                                    {term} months
+                                  </SelectItem>
+                                ) : null;
+                              }).filter(Boolean)
+                            ) : (
+                              // Default options if no product selected
+                              <>
+                                <SelectItem value="3">3 months</SelectItem>
+                                <SelectItem value="6">6 months</SelectItem>
+                                <SelectItem value="12">12 months</SelectItem>
+                                <SelectItem value="18">18 months</SelectItem>
+                                <SelectItem value="24">24 months</SelectItem>
+                                <SelectItem value="36">36 months</SelectItem>
+                                <SelectItem value="48">48 months</SelectItem>
+                                <SelectItem value="60">60 months</SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
+                        {selectedProduct && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Allowed range: {selectedProduct.min_term} - {selectedProduct.max_term} months
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
