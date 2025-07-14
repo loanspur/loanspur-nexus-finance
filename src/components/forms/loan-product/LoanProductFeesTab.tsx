@@ -6,8 +6,7 @@ import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
-import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
-import { X, Plus } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface LoanProductFeesTabProps {
@@ -15,474 +14,194 @@ interface LoanProductFeesTabProps {
   tenantId: string;
 }
 
-interface FeeMapping {
+interface Charge {
   id: string;
-  feeId: string;
-  incomeAccountId: string;
-  amount: string;
-  percentage: string;
+  name: string;
+  type: string;
+  amount: number;
+  collectedOn: string;
+  date: string;
 }
 
-interface PaymentChannelMapping {
+interface OverdueCharge {
   id: string;
-  paymentType: string;
-  fundSourceAccountId: string;
-}
-
-interface PenaltyMapping {
-  id: string;
-  penaltyType: string;
-  incomeAccountId: string;
+  name: string;
+  type: string;
+  amount: number;
+  collectedOn: string;
+  date: string;
 }
 
 export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) => {
   const { data: feeStructures = [] } = useFeeStructures();
-  const { data: chartOfAccounts = [] } = useChartOfAccounts();
   const activeFeeStructures = feeStructures.filter(fee => fee.is_active);
-  const incomeAccounts = chartOfAccounts.filter(account => account.account_type === 'income');
-  const assetAccounts = chartOfAccounts.filter(account => account.account_type === 'asset');
 
-  const [feeMappings, setFeeMappings] = useState<FeeMapping[]>([]);
-  const [paymentChannels, setPaymentChannels] = useState<PaymentChannelMapping[]>([]);
-  const [penaltyMappings, setPenaltyMappings] = useState<PenaltyMapping[]>([]);
+  const [charges, setCharges] = useState<Charge[]>([]);
+  const [overdueCharges, setOverdueCharges] = useState<OverdueCharge[]>([]);
+  const [selectedCharge, setSelectedCharge] = useState<string>('');
+  const [selectedOverdueCharge, setSelectedOverdueCharge] = useState<string>('');
 
-  const addFeeMapping = () => {
-    setFeeMappings([...feeMappings, {
+  const addCharge = () => {
+    if (!selectedCharge) return;
+    
+    const feeStructure = activeFeeStructures.find(f => f.id === selectedCharge);
+    if (!feeStructure) return;
+
+    const newCharge: Charge = {
       id: Math.random().toString(),
-      feeId: '',
-      incomeAccountId: '',
-      amount: '0',
-      percentage: '0'
-    }]);
+      name: feeStructure.name,
+      type: feeStructure.calculation_type,
+      amount: feeStructure.amount,
+      collectedOn: 'One time',
+      date: new Date().toLocaleDateString()
+    };
+
+    setCharges([...charges, newCharge]);
+    setSelectedCharge('');
   };
 
-  const removeFeeMapping = (id: string) => {
-    setFeeMappings(feeMappings.filter(mapping => mapping.id !== id));
+  const removeCharge = (id: string) => {
+    setCharges(charges.filter(charge => charge.id !== id));
   };
 
-  const addPaymentChannel = () => {
-    setPaymentChannels([...paymentChannels, {
+  const addOverdueCharge = () => {
+    if (!selectedOverdueCharge) return;
+    
+    const feeStructure = activeFeeStructures.find(f => f.id === selectedOverdueCharge);
+    if (!feeStructure) return;
+
+    const newCharge: OverdueCharge = {
       id: Math.random().toString(),
-      paymentType: '',
-      fundSourceAccountId: ''
-    }]);
+      name: feeStructure.name,
+      type: feeStructure.calculation_type,
+      amount: feeStructure.amount,
+      collectedOn: 'One time',
+      date: new Date().toLocaleDateString()
+    };
+
+    setOverdueCharges([...overdueCharges, newCharge]);
+    setSelectedOverdueCharge('');
   };
 
-  const removePaymentChannel = (id: string) => {
-    setPaymentChannels(paymentChannels.filter(mapping => mapping.id !== id));
-  };
-
-  const addPenaltyMapping = () => {
-    setPenaltyMappings([...penaltyMappings, {
-      id: Math.random().toString(),
-      penaltyType: '',
-      incomeAccountId: ''
-    }]);
-  };
-
-  const removePenaltyMapping = (id: string) => {
-    setPenaltyMappings(penaltyMappings.filter(mapping => mapping.id !== id));
+  const removeOverdueCharge = (id: string) => {
+    setOverdueCharges(overdueCharges.filter(charge => charge.id !== id));
   };
 
   return (
     <div className="space-y-6">
-      {/* Configure Fund Sources for Payment Channels */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Configure Fund Sources for Payment Channels</CardTitle>
-            <CardDescription>
-              Map payment types to their corresponding fund source accounts
-            </CardDescription>
-          </div>
-          <Button onClick={addPaymentChannel} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
+      {/* Charges Section */}
+      <div>
+        <h3 className="text-lg font-medium text-muted-foreground mb-4">Charges</h3>
+        
+        <div className="flex gap-2 mb-4">
+          <Select value={selectedCharge} onValueChange={setSelectedCharge}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select charge" />
+            </SelectTrigger>
+            <SelectContent>
+              {activeFeeStructures.map((fee) => (
+                <SelectItem key={fee.id} value={fee.id}>
+                  {fee.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={addCharge} disabled={!selectedCharge}>
             Add
           </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground">
-              <div className="col-span-5">Payment Type</div>
-              <div className="col-span-6">Fund Source</div>
-              <div className="col-span-1">Actions</div>
-            </div>
-            {paymentChannels.map((channel) => (
-              <div key={channel.id} className="grid grid-cols-12 gap-4">
-                <div className="col-span-5">
-                  <Select 
-                    value={channel.paymentType} 
-                    onValueChange={(value) => {
-                      setPaymentChannels(prev => prev.map(c => 
-                        c.id === channel.id ? { ...c, paymentType: value } : c
-                      ));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mpesa">M-PESA</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="check">Check</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-6">
-                  <Select 
-                    value={channel.fundSourceAccountId} 
-                    onValueChange={(value) => {
-                      setPaymentChannels(prev => prev.map(c => 
-                        c.id === channel.id ? { ...c, fundSourceAccountId: value } : c
-                      ));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select fund source account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {assetAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => removePaymentChannel(channel.id)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Map Fees to Income Accounts */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Map Fees to Income Accounts</CardTitle>
-            <CardDescription>
-              Configure fee structures with customizable amounts and income account mappings
-            </CardDescription>
+        <div className="border rounded-lg overflow-hidden">
+          <div className="grid grid-cols-6 gap-4 p-3 bg-muted text-sm font-medium text-muted-foreground">
+            <div>Name</div>
+            <div>Type</div>
+            <div>Amount</div>
+            <div>Collected On</div>
+            <div>Date</div>
+            <div>Actions</div>
           </div>
-          <Button onClick={addFeeMapping} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
+          {charges.map((charge) => (
+            <div key={charge.id} className="grid grid-cols-6 gap-4 p-3 border-t">
+              <div className="text-sm">{charge.name}</div>
+              <div className="text-sm">{charge.type}</div>
+              <div className="text-sm">{charge.amount}</div>
+              <div className="text-sm">{charge.collectedOn}</div>
+              <div className="text-sm">{charge.date}</div>
+              <div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeCharge(charge.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {charges.length === 0 && (
+            <div className="p-8 text-center text-muted-foreground">
+              No charges added yet
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Overdue Charges Section */}
+      <div>
+        <h3 className="text-lg font-medium text-muted-foreground mb-4">Overdue Charges</h3>
+        
+        <div className="flex gap-2 mb-4">
+          <Select value={selectedOverdueCharge} onValueChange={setSelectedOverdueCharge}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Select Overdue Charge" />
+            </SelectTrigger>
+            <SelectContent>
+              {activeFeeStructures.map((fee) => (
+                <SelectItem key={fee.id} value={fee.id}>
+                  {fee.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={addOverdueCharge} disabled={!selectedOverdueCharge}>
             Add
           </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground">
-              <div className="col-span-3">Fee Type</div>
-              <div className="col-span-2">Amount</div>
-              <div className="col-span-2">Percentage</div>
-              <div className="col-span-4">Income Account</div>
-              <div className="col-span-1">Actions</div>
-            </div>
-            {feeMappings.map((mapping) => (
-              <div key={mapping.id} className="grid grid-cols-12 gap-4">
-                <div className="col-span-3">
-                  <Select 
-                    value={mapping.feeId} 
-                    onValueChange={(value) => {
-                      const selectedFee = activeFeeStructures.find(f => f.id === value);
-                      setFeeMappings(prev => prev.map(m => 
-                        m.id === mapping.id ? { 
-                          ...m, 
-                          feeId: value,
-                          amount: selectedFee?.amount.toString() || '0',
-                          percentage: selectedFee?.percentage_rate?.toString() || '0'
-                        } : m
-                      ));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select fee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeFeeStructures.map((fee) => (
-                        <SelectItem key={fee.id} value={fee.id}>
-                          {fee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    value={mapping.amount}
-                    onChange={(e) => {
-                      setFeeMappings(prev => prev.map(m => 
-                        m.id === mapping.id ? { ...m, amount: e.target.value } : m
-                      ));
-                    }}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Input 
-                    type="number" 
-                    step="0.01" 
-                    value={mapping.percentage}
-                    onChange={(e) => {
-                      setFeeMappings(prev => prev.map(m => 
-                        m.id === mapping.id ? { ...m, percentage: e.target.value } : m
-                      ));
-                    }}
-                  />
-                </div>
-                <div className="col-span-4">
-                  <Select 
-                    value={mapping.incomeAccountId} 
-                    onValueChange={(value) => {
-                      setFeeMappings(prev => prev.map(m => 
-                        m.id === mapping.id ? { ...m, incomeAccountId: value } : m
-                      ));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select income account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {incomeAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => removeFeeMapping(mapping.id)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
+        </div>
+
+        <div className="border rounded-lg overflow-hidden">
+          <div className="grid grid-cols-6 gap-4 p-3 bg-muted text-sm font-medium text-muted-foreground">
+            <div>Name</div>
+            <div>Type</div>
+            <div>Amount</div>
+            <div>Collected On</div>
+            <div>Date</div>
+            <div>Actions</div>
+          </div>
+          {overdueCharges.map((charge) => (
+            <div key={charge.id} className="grid grid-cols-6 gap-4 p-3 border-t">
+              <div className="text-sm">{charge.name}</div>
+              <div className="text-sm">{charge.type}</div>
+              <div className="text-sm">{charge.amount}</div>
+              <div className="text-sm">{charge.collectedOn}</div>
+              <div className="text-sm">{charge.date}</div>
+              <div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeOverdueCharge(charge.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Map Penalties to Specific Income Accounts */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Map Penalties to Specific Income Accounts</CardTitle>
-            <CardDescription>
-              Configure penalty types and their corresponding income accounts
-            </CardDescription>
-          </div>
-          <Button onClick={addPenaltyMapping} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground">
-              <div className="col-span-5">Penalty Type</div>
-              <div className="col-span-6">Income Account</div>
-              <div className="col-span-1">Actions</div>
             </div>
-            {penaltyMappings.map((penalty) => (
-              <div key={penalty.id} className="grid grid-cols-12 gap-4">
-                <div className="col-span-5">
-                  <Select 
-                    value={penalty.penaltyType} 
-                    onValueChange={(value) => {
-                      setPenaltyMappings(prev => prev.map(p => 
-                        p.id === penalty.id ? { ...p, penaltyType: value } : p
-                      ));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select penalty type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="late_payment">Late Payment Penalty</SelectItem>
-                      <SelectItem value="early_repayment">Early Repayment Penalty</SelectItem>
-                      <SelectItem value="default_charges">Default Charges</SelectItem>
-                      <SelectItem value="overdue_interest">Overdue Interest</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-6">
-                  <Select 
-                    value={penalty.incomeAccountId} 
-                    onValueChange={(value) => {
-                      setPenaltyMappings(prev => prev.map(p => 
-                        p.id === penalty.id ? { ...p, incomeAccountId: value } : p
-                      ));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select income account" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {incomeAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => removePenaltyMapping(penalty.id)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Processing Fees</CardTitle>
-          <CardDescription>
-            Configure fees charged during loan origination and processing
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="processing_fee_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Processing Fee Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="processing_fee_percentage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Processing Fee Percentage (%)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            If both amount and percentage are specified, the higher value will be applied.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Late Payment Penalties</CardTitle>
-          <CardDescription>
-            Configure penalties for late or missed payments
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="late_payment_penalty_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Late Payment Penalty Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="late_payment_penalty_percentage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Late Payment Penalty Percentage (%)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Penalty applied when payments are made after the due date.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Early Repayment Penalties</CardTitle>
-          <CardDescription>
-            Configure penalties for early loan repayment or prepayment
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="early_repayment_penalty_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Early Repayment Penalty Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="early_repayment_penalty_percentage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Early Repayment Penalty Percentage (%)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Penalty applied when loans are paid off before the scheduled maturity date.
-          </p>
-        </CardContent>
-      </Card>
+          ))}
+          {overdueCharges.length === 0 && (
+            <div className="p-8 text-center text-muted-foreground">
+              No overdue charges added yet
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
