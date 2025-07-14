@@ -151,9 +151,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   };
 
   const fetchClientAccounts = async () => {
+    console.log('Fetching client accounts for client:', client?.id);
     try {
       // Fetch client loans with product info
-      const { data: loans } = await supabase
+      const { data: loans, error: loansError } = await supabase
         .from('loans')
         .select(`
           *,
@@ -162,8 +163,14 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         .eq('client_id', client.id)
         .order('created_at', { ascending: false });
 
+      if (loansError) {
+        console.error('Error fetching loans:', loansError);
+      } else {
+        console.log('Fetched loans:', loans);
+      }
+
       // Fetch client savings accounts with product info
-      const { data: savings } = await supabase
+      const { data: savings, error: savingsError } = await supabase
         .from('savings_accounts')
         .select(`
           *,
@@ -171,6 +178,12 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         `)
         .eq('client_id', client.id)
         .order('created_at', { ascending: false });
+
+      if (savingsError) {
+        console.error('Error fetching savings:', savingsError);
+      } else {
+        console.log('Fetched savings:', savings);
+      }
 
       setClientLoans(loans || []);
       setClientSavings(savings || []);
@@ -194,9 +207,19 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   const handleLoanCreated = () => {
     fetchClientAccounts(); // Refresh the client accounts data
+    console.log('Loan created, refreshing client accounts');
     toast({
       title: "Success", 
       description: "Loan application submitted successfully",
+    });
+  };
+
+  const handleLoanWorkflowCompleted = () => {
+    fetchClientAccounts(); // Refresh after loan workflow completion
+    console.log('Loan workflow completed, refreshing client accounts');
+    toast({
+      title: "Success",
+      description: "Loan workflow completed successfully",
     });
   };
   
@@ -466,7 +489,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <CreditCard className="h-5 w-5" />
-                    Loans ({filteredLoans.length})
+                    Loans ({clientLoans.length})
                   </h3>
                   <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -475,45 +498,49 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 </div>
                 
                 <div className="border rounded-lg divide-y">
-                  {filteredLoans.map((loan) => (
-                    <div key={loan.id} className="p-4 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <h4 className="font-medium">{loan.type}</h4>
-                            <p className="text-sm text-muted-foreground">{loan.id}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <div className="text-sm font-medium">{formatCurrency(loan.amount)}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Outstanding: {formatCurrency(loan.outstanding)}
+                  {clientLoans.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No loans yet</p>
+                      <p className="text-sm">Create a loan application to get started</p>
+                    </div>
+                  ) : (
+                    clientLoans.map((loan) => (
+                      <div key={loan.id} className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h4 className="font-medium">{loan.loan_products?.name || 'Unknown Product'}</h4>
+                              <p className="text-sm text-muted-foreground">{loan.loan_number}</p>
                             </div>
                           </div>
-                          <Badge variant={getStatusColor(loan.status)}>
-                            {loan.status}
-                          </Badge>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-sm font-medium">{formatCurrency(loan.principal_amount)}</div>
+                              <div className="text-xs text-muted-foreground">
+                                Outstanding: {formatCurrency(loan.outstanding_balance)}
+                              </div>
+                            </div>
+                            <Badge variant={getStatusColor(loan.status)}>
+                              {loan.status}
+                            </Badge>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLoan(loan);
-                            setShowLoanDetails(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                        
-//... keep existing code for charges, documents, etc.
-
-                        {loan.status === 'pending' && (
-                          <>
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedLoan(loan);
+                              setShowLoanDetails(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          
+                          {(loan.status === 'pending_disbursement' || loan.status === 'approved') && (
                             <Button
                               size="sm"
                               onClick={() => {
@@ -521,27 +548,14 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                 setShowLoanWorkflowDialog(true);
                               }}
                             >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Process
+                              <Wallet className="h-4 w-4 mr-2" />
+                              Disburse
                             </Button>
-                          </>
-                        )}
-                        
-                        {(loan.status === 'approved' || loan.status === 'pending_disbursement') && (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedLoan(loan);
-                              setShowLoanWorkflowDialog(true);
-                            }}
-                          >
-                            <Wallet className="h-4 w-4 mr-2" />
-                            Disburse
-                          </Button>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -928,10 +942,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             loanApplication={selectedLoan}
             open={showLoanWorkflowDialog}
             onOpenChange={setShowLoanWorkflowDialog}
-            onSuccess={() => {
-              // Refresh loan data if needed
-              fetchClientAccounts();
-            }}
+            onSuccess={handleLoanWorkflowCompleted}
           />
         )}
       </DialogContent>
