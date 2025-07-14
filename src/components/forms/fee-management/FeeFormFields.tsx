@@ -141,6 +141,7 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                   { value: "upfront", label: "Application Fee" },
                   { value: "on_disbursement", label: "On Disbursement" },
                   { value: "monthly", label: "Monthly Service" },
+                  { value: "instalment", label: "Per Instalment" },
                   { value: "on_maturity", label: "On Maturity" },
                   { value: "late_payment", label: "Late Payment" },
                   { value: "early_settlement", label: "Early Settlement" },

@@ -16,7 +16,7 @@ const feeSchema = z.object({
     message: "Amount must be a positive number",
   }),
   category: z.enum(['loan', 'savings', 'account', 'transaction', 'penalty']),
-  chargeTimeType: z.enum(['upfront', 'monthly', 'quarterly', 'annually', 'on_maturity', 'on_disbursement', 'on_transaction', 'on_withdrawal', 'on_deposit', 'late_payment', 'early_settlement']),
+  chargeTimeType: z.enum(['upfront', 'monthly', 'quarterly', 'annually', 'instalment', 'on_maturity', 'on_disbursement', 'on_transaction', 'on_withdrawal', 'on_deposit', 'late_payment', 'early_settlement']),
   chargePaymentBy: z.enum(['regular', 'transfer', 'client', 'system', 'automatic', 'manual']),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
