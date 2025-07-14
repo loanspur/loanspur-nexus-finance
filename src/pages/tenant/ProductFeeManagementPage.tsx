@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, PiggyBank, RefreshCw, Settings, Eye } from "lucide-react";
+import { TrendingUp, PiggyBank, RefreshCw, Settings } from "lucide-react";
 import { LoanProductManagement } from "@/components/loan/LoanProductManagement";
 import { SavingsProductManagement } from "@/components/savings/SavingsProductManagement";
 import { FeeStructureManagement } from "@/components/fees/FeeStructureManagement";
-import { ProductDetailsView } from "@/components/products/ProductDetailsView";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -193,10 +192,6 @@ const ProductFeeManagementPage = () => {
             <PiggyBank className="h-4 w-4 mr-2" />  
             Savings Products
           </TabsTrigger>
-          <TabsTrigger value="product-details" className="flex-1">
-            <Eye className="h-4 w-4 mr-2" />
-            Product Details
-          </TabsTrigger>
           <TabsTrigger value="fee-management" className="flex-1">
             <Settings className="h-4 w-4 mr-2" />
             Fee Management
@@ -209,10 +204,6 @@ const ProductFeeManagementPage = () => {
 
         <TabsContent value="savings-products" className="space-y-4">
           <SavingsProductManagement />
-        </TabsContent>
-
-        <TabsContent value="product-details" className="space-y-4">
-          <ProductDetailsView />
         </TabsContent>
 
         <TabsContent value="fee-management" className="space-y-4">
