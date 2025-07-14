@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCreateLoanProduct, useUpdateLoanProduct, LoanProduct } from "@/hooks/useSupabase";
 import { loanProductSchema, defaultValues, type LoanProductFormData } from "./loan-product/LoanProductSchema";
 import { LoanProductBasicInfoTab } from "./loan-product/LoanProductBasicInfoTab";
@@ -24,8 +25,22 @@ interface LoanProductFormProps {
 
 export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }: LoanProductFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentTab, setCurrentTab] = useState("basic");
   const createLoanProductMutation = useCreateLoanProduct();
   const updateLoanProductMutation = useUpdateLoanProduct();
+
+  const tabs = [
+    { value: "basic", label: "Basic Info" },
+    { value: "terms", label: "Loan Terms" },
+    { value: "interest", label: "Interest" },
+    { value: "fees", label: "Fees" },
+    { value: "accounting", label: "Accounting" },
+    { value: "advanced", label: "Advanced" },
+  ];
+
+  const currentTabIndex = tabs.findIndex(tab => tab.value === currentTab);
+  const isLastTab = currentTabIndex === tabs.length - 1;
+  const isFirstTab = currentTabIndex === 0;
 
   const form = useForm<LoanProductFormData>({
     resolver: zodResolver(loanProductSchema),
@@ -107,6 +122,10 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         early_repayment_penalty_amount: parseFloat(data.early_repayment_penalty_amount),
         early_repayment_penalty_percentage: parseFloat(data.early_repayment_penalty_percentage),
         
+        // Fee mappings
+        linked_fee_ids: data.linked_fee_ids,
+        accounting_type: data.accounting_type,
+        
         // Accounting journal mappings
         loan_portfolio_account_id: data.loan_portfolio_account_id || null,
         interest_receivable_account_id: data.interest_receivable_account_id || null,
@@ -118,6 +137,12 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         overpayment_liability_account_id: data.overpayment_liability_account_id || null,
         suspended_income_account_id: data.suspended_income_account_id || null,
         fund_source_account_id: data.fund_source_account_id || null,
+        
+        // Advanced payment account mappings
+        principal_payment_account_id: data.principal_payment_account_id || null,
+        interest_payment_account_id: data.interest_payment_account_id || null,
+        fee_payment_account_id: data.fee_payment_account_id || null,
+        penalty_payment_account_id: data.penalty_payment_account_id || null,
         
         is_active: true,
         mifos_product_id: null,
@@ -164,25 +189,47 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
     });
   };
 
+  const handleNext = () => {
+    if (currentTabIndex < tabs.length - 1) {
+      setCurrentTab(tabs[currentTabIndex + 1].value);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentTabIndex > 0) {
+      setCurrentTab(tabs[currentTabIndex - 1].value);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>{editingProduct ? 'Edit Loan Product' : 'Create Loan Product'}</DialogTitle>
             {!editingProduct && <SampleDataButton onFillSampleData={fillSampleData} />}
           </div>
+          <div className="flex items-center space-x-2 mt-4">
+            <div className="text-sm text-muted-foreground">
+              Step {currentTabIndex + 1} of {tabs.length}: {tabs[currentTabIndex].label}
+            </div>
+            <div className="flex-1 bg-muted rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-200"
+                style={{ width: `${((currentTabIndex + 1) / tabs.length) * 100}%` }}
+              />
+            </div>
+          </div>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
+          <div className="space-y-6">
+            <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
               <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="basic">Basic</TabsTrigger>
-                <TabsTrigger value="terms">Terms</TabsTrigger>
-                <TabsTrigger value="interest">Interest</TabsTrigger>
-                <TabsTrigger value="fees">Fees</TabsTrigger>
-                <TabsTrigger value="accounting">Accounting</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                {tabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -198,7 +245,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
               </TabsContent>
 
               <TabsContent value="fees" className="space-y-4">
-                <LoanProductFeesTab form={form} />
+                <LoanProductFeesTab form={form} tenantId={tenantId} />
               </TabsContent>
 
               <TabsContent value="accounting" className="space-y-4">
@@ -206,22 +253,46 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-4">
-                <LoanProductAdvancedTab form={form} />
+                <LoanProductAdvancedTab form={form} tenantId={tenantId} />
               </TabsContent>
             </Tabs>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+            <div className="flex justify-between">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handlePrevious}
+                disabled={isFirstTab}
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Previous
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting 
-                  ? (editingProduct ? "Updating..." : "Creating...") 
-                  : (editingProduct ? "Update Product" : "Create Product")
-                }
-              </Button>
-            </DialogFooter>
-          </form>
+              
+              <div className="flex space-x-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                
+                {isLastTab ? (
+                  <Button 
+                    type="button"
+                    onClick={form.handleSubmit(onSubmit)} 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting 
+                      ? (editingProduct ? "Updating..." : "Creating...") 
+                      : (editingProduct ? "Update Product" : "Create Product")
+                    }
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={handleNext}>
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </Form>
       </DialogContent>
     </Dialog>

@@ -4,14 +4,89 @@ import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 
 interface LoanProductFeesTabProps {
   form: UseFormReturn<LoanProductFormData>;
+  tenantId: string;
 }
 
-export const LoanProductFeesTab = ({ form }: LoanProductFeesTabProps) => {
+export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) => {
+  const { data: feeStructures = [] } = useFeeStructures();
+  const activeFeeStructures = feeStructures.filter(fee => fee.is_active);
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Fee Structure Mappings</CardTitle>
+          <CardDescription>
+            Link active fee structures to this loan product
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={form.control}
+            name="linked_fee_ids"
+            render={() => (
+              <FormItem>
+                <div className="grid grid-cols-1 gap-4 max-h-60 overflow-y-auto">
+                  {activeFeeStructures.map((fee) => (
+                    <FormField
+                      key={fee.id}
+                      control={form.control}
+                      name="linked_fee_ids"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={fee.id}
+                            className="flex flex-row items-start space-x-3 space-y-0 p-3 border rounded-lg"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(fee.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, fee.id])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== fee.id
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="font-medium">
+                                {fee.name}
+                              </FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                {fee.description || `${fee.fee_type} - ${fee.calculation_type}`}
+                              </p>
+                              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                <span>Amount: {fee.amount}</span>
+                                {fee.percentage_rate && <span>Rate: {fee.percentage_rate}%</span>}
+                                <span>Charge Time: {fee.charge_time_type}</span>
+                              </div>
+                            </div>
+                          </FormItem>
+                        )
+                      }}
+                    />
+                  ))}
+                </div>
+                {activeFeeStructures.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No active fee structures available. Create fee structures first to link them to this product.
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Processing Fees</CardTitle>

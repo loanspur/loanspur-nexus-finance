@@ -4,6 +4,7 @@ import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface LoanProductAccountingTabProps {
   form: UseFormReturn<LoanProductFormData>;
@@ -23,11 +24,46 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Asset Accounts</h3>
-        <p className="text-sm text-muted-foreground mb-4">Configure asset account mappings for loan operations</p>
-        
-        <div className="grid grid-cols-2 gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Accounting Configuration</CardTitle>
+          <CardDescription>
+            Select the accounting method for this loan product
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={form.control}
+            name="accounting_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Accounting Type *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select accounting type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash Accounting</SelectItem>
+                    <SelectItem value="accrual_periodic">Accrual Periodic</SelectItem>
+                    <SelectItem value="accrual_upfront">Accrual Upfront</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Asset Accounts</CardTitle>
+          <CardDescription>Configure asset account mappings for loan operations</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="loan_portfolio_account_id"
@@ -102,16 +138,17 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
               </FormItem>
             )}
           />
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Separator />
-
-      <div>
-        <h3 className="text-lg font-medium">Income Accounts</h3>
-        <p className="text-sm text-muted-foreground mb-4">Configure income account mappings for loan revenue</p>
-        
-        <div className="grid grid-cols-2 gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Income Accounts</CardTitle>
+          <CardDescription>Configure income account mappings for loan revenue</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="interest_income_account_id"
@@ -211,16 +248,17 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
               </FormItem>
             )}
           />
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Separator />
-
-      <div>
-        <h3 className="text-lg font-medium">Expense & Liability Accounts</h3>
-        <p className="text-sm text-muted-foreground mb-4">Configure expense and liability account mappings</p>
-        
-        <div className="grid grid-cols-2 gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Expense & Liability Accounts</CardTitle>
+          <CardDescription>Configure expense and liability account mappings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="provision_account_id"
@@ -295,8 +333,9 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
               </FormItem>
             )}
           />
-        </div>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

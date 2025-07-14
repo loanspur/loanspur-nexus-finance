@@ -48,6 +48,12 @@ export const loanProductSchema = z.object({
   early_repayment_penalty_amount: z.string().default("0"),
   early_repayment_penalty_percentage: z.string().default("0"),
   
+  // Fee Structure Mappings
+  linked_fee_ids: z.array(z.string()).default([]),
+  
+  // Accounting Configuration
+  accounting_type: z.string().default("cash"),
+  
   // Accounting Journal Mappings
   loan_portfolio_account_id: z.string().optional(),
   interest_receivable_account_id: z.string().optional(),
@@ -59,6 +65,12 @@ export const loanProductSchema = z.object({
   overpayment_liability_account_id: z.string().optional(),
   suspended_income_account_id: z.string().optional(),
   fund_source_account_id: z.string().optional(),
+  
+  // Advanced Payment Account Mappings
+  principal_payment_account_id: z.string().optional(),
+  interest_payment_account_id: z.string().optional(),
+  fee_payment_account_id: z.string().optional(),
+  penalty_payment_account_id: z.string().optional(),
 });
 
 export type LoanProductFormData = z.infer<typeof loanProductSchema>;
@@ -110,6 +122,12 @@ export const defaultValues: LoanProductFormData = {
   early_repayment_penalty_amount: "0",
   early_repayment_penalty_percentage: "0",
   
+  // Fee Structure Mappings
+  linked_fee_ids: [],
+  
+  // Accounting Configuration
+  accounting_type: "cash",
+  
   // Accounting Journal Mappings
   loan_portfolio_account_id: "",
   interest_receivable_account_id: "",
@@ -121,4 +139,10 @@ export const defaultValues: LoanProductFormData = {
   overpayment_liability_account_id: "",
   suspended_income_account_id: "",
   fund_source_account_id: "",
+  
+  // Advanced Payment Account Mappings
+  principal_payment_account_id: "",
+  interest_payment_account_id: "",
+  fee_payment_account_id: "",
+  penalty_payment_account_id: "",
 };

@@ -1,16 +1,140 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
+import { Separator } from "@/components/ui/separator";
 
 interface LoanProductAdvancedTabProps {
   form: UseFormReturn<LoanProductFormData>;
+  tenantId: string;
 }
 
-export const LoanProductAdvancedTab = ({ form }: LoanProductAdvancedTabProps) => {
+export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTabProps) => {
+  const { data: chartOfAccounts = [] } = useChartOfAccounts();
+
+  const getAccountsByType = (type: string) => 
+    chartOfAccounts.filter(account => account.account_type === type);
+
+  const assetAccounts = getAccountsByType('asset');
+  const incomeAccounts = getAccountsByType('income');
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Account Mappings</CardTitle>
+          <CardDescription>
+            Configure advanced payment account mappings for different payment types
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="principal_payment_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Principal Payment Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select principal payment account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="interest_payment_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Interest Payment Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select interest payment account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="fee_payment_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fee Payment Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select fee payment account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="penalty_payment_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Penalty Payment Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select penalty payment account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Prepayment Settings</CardTitle>
