@@ -21,6 +21,7 @@ const feeSchema = z.object({
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   applicableFor: z.enum(['all', 'new_clients', 'existing_clients']),
+  isOverdueCharge: z.boolean().default(false),
 });
 
 type FeeFormData = z.infer<typeof feeSchema>;
@@ -49,6 +50,7 @@ export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps
       description: editingFee?.description || "",
       isActive: editingFee?.isActive ?? true,
       applicableFor: editingFee?.applicableFor || "all",
+      isOverdueCharge: editingFee?.isOverdueCharge ?? false,
     },
   });
 
@@ -66,7 +68,7 @@ export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps
         charge_time_type: data.chargeTimeType,
         charge_payment_by: data.chargePaymentBy,
         is_active: data.isActive,
-        is_overdue_charge: ['late_payment', 'overdue_payment'].includes(data.chargeTimeType),
+        is_overdue_charge: data.isOverdueCharge,
       };
 
       if (editingFee) {
