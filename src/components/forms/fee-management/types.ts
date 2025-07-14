@@ -7,6 +7,6 @@ export interface Fee {
   description?: string;
   isActive: boolean;
   applicableFor: "all" | "new_clients" | "existing_clients";
-  chargeTimeType?: "upfront" | "monthly" | "annually" | "on_maturity" | "on_disbursement";
-  chargePaymentBy?: "client" | "system" | "automatic" | "manual";
+  chargeTimeType: "upfront" | "monthly" | "quarterly" | "annually" | "on_maturity" | "on_disbursement" | "on_transaction" | "on_withdrawal" | "on_deposit" | "late_payment" | "early_settlement";
+  chargePaymentBy: "regular" | "transfer" | "client" | "system" | "automatic" | "manual";
 }

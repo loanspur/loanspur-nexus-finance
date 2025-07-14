@@ -15,7 +15,9 @@ const existingFees: Fee[] = [
     category: "loan",
     description: "Fee charged for processing new loan applications",
     isActive: true,
-    applicableFor: "all"
+    applicableFor: "all",
+    chargeTimeType: "upfront",
+    chargePaymentBy: "regular"
   },
   {
     id: "fee_002",
@@ -25,7 +27,9 @@ const existingFees: Fee[] = [
     category: "account",
     description: "Monthly account maintenance fee",
     isActive: true,
-    applicableFor: "all"
+    applicableFor: "all",
+    chargeTimeType: "monthly",
+    chargePaymentBy: "automatic"
   },
   {
     id: "fee_003",
@@ -35,7 +39,9 @@ const existingFees: Fee[] = [
     category: "penalty",
     description: "Penalty for late loan repayments",
     isActive: true,
-    applicableFor: "all"
+    applicableFor: "all",
+    chargeTimeType: "late_payment",
+    chargePaymentBy: "system"
   },
   {
     id: "fee_004",
@@ -45,7 +51,9 @@ const existingFees: Fee[] = [
     category: "savings",
     description: "Fee for early savings withdrawal",
     isActive: false,
-    applicableFor: "all"
+    applicableFor: "all",
+    chargeTimeType: "on_withdrawal",
+    chargePaymentBy: "transfer"
   }
 ];
 
