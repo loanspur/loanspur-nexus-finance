@@ -48,6 +48,7 @@ import { UpdateLoanOfficerDialog } from "./UpdateLoanOfficerDialog";
 import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
 import { SavingsDetailsDialog } from "@/components/savings/SavingsDetailsDialog";
 import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
+import { TransactionHistoryDialog } from "@/components/statements/TransactionHistoryDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -109,6 +110,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [clientLoans, setClientLoans] = useState<any[]>([]);
   const [clientSavings, setClientSavings] = useState<any[]>([]);
   const [showSavingsTransactionDialog, setShowSavingsTransactionDialog] = useState(false);
+  const [showTransactionHistoryDialog, setShowTransactionHistoryDialog] = useState(false);
   const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
   const { toast } = useToast();
   
@@ -650,11 +652,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                 size="sm"
                                 onClick={() => {
                                   setSelectedSavings(savings);
-                                  // TODO: Implement show transactions dialog
-                                  toast({
-                                    title: "Coming Soon",
-                                    description: "Transaction history view will be available soon.",
-                                  });
+                                  setShowTransactionHistoryDialog(true);
                                 }}
                                 className="hover-scale"
                               >
@@ -909,6 +907,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
               fetchClientAccounts();
               setShowSavingsTransactionDialog(false);
             }}
+          />
+        )}
+
+        {selectedSavings && (
+          <TransactionHistoryDialog
+            open={showTransactionHistoryDialog}
+            onOpenChange={setShowTransactionHistoryDialog}
+            savingsAccount={selectedSavings}
+            clientName={`${client.first_name} ${client.last_name}`}
           />
         )}
       </DialogContent>
