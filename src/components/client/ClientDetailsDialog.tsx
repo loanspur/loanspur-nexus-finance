@@ -38,7 +38,10 @@ import {
   ArrowRightLeft,
   UserMinus,
   Receipt,
-  ScrollText
+  ScrollText,
+  TrendingUp,
+  DollarSign,
+  AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
@@ -279,6 +282,37 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         return 'outline';
       default:
         return 'secondary';
+    }
+  };
+
+  const getLoanStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case 'under_review':
+        return <Badge variant="outline" className="text-blue-600 border-blue-600 bg-blue-50"><Eye className="w-3 h-3 mr-1" />Under Review</Badge>;
+      case 'approved':
+        return <Badge variant="default" className="bg-green-600 hover:bg-green-700"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+      case 'active':
+        return <Badge variant="default" className="bg-blue-600 hover:bg-blue-700"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
+      case 'disbursed':
+        return <Badge variant="default" className="bg-blue-600 hover:bg-blue-700"><DollarSign className="w-3 h-3 mr-1" />Disbursed</Badge>;
+      case 'pending_disbursement':
+        return <Badge variant="outline" className="text-blue-600 border-blue-600 bg-blue-50"><Clock className="w-3 h-3 mr-1" />Pending Disbursement</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Overdue</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      case 'withdrawn':
+        return <Badge variant="outline" className="text-gray-600 border-gray-600 bg-gray-50"><XCircle className="w-3 h-3 mr-1" />Withdrawn</Badge>;
+      case 'closed':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800"><CheckCircle className="w-3 h-3 mr-1" />Closed</Badge>;
+      case 'fully_paid':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Fully Paid</Badge>;
+      case 'written_off':
+        return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Written Off</Badge>;
+      default:
+        return <Badge variant="outline" className="capitalize">{status}</Badge>;
     }
   };
 
@@ -537,17 +571,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               <p className="text-sm text-muted-foreground">{loan.loan_number}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <div className="text-sm font-medium">{formatCurrency(loan.principal_amount)}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Outstanding: {formatCurrency(loan.outstanding_balance)}
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <div className="text-sm font-medium">{formatCurrency(loan.principal_amount)}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Outstanding: {formatCurrency(loan.outstanding_balance)}
+                                </div>
                               </div>
+                              {getLoanStatusBadge(loan.status)}
                             </div>
-                            <Badge variant={getStatusColor(loan.status)}>
-                              {loan.status}
-                            </Badge>
-                          </div>
                         </div>
 
                         <div className="flex gap-2 mt-3">
