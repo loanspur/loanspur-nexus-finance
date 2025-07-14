@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/form";
 import { DollarSign, ArrowUpRight, ArrowDownRight, ArrowRightLeft, AlertCircle, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState as useReactState } from "react";
 
@@ -72,8 +73,13 @@ export const SavingsTransactionForm = ({
   onSuccess
 }: SavingsTransactionFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [feeStructures, setFeeStructures] = useReactState<any[]>([]);
   const { toast } = useToast();
+  
+  // Fetch all fee structures and filter for savings-related charges
+  const { data: allFeeStructures } = useFeeStructures();
+  const feeStructures = allFeeStructures?.filter(fee => 
+    fee.is_active && ['savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
+  ) || [];
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -88,36 +94,6 @@ export const SavingsTransactionForm = ({
     },
   });
 
-  // Fetch fee structures for savings accounts
-  useEffect(() => {
-    const fetchFeeStructures = async () => {
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('tenant_id')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-          .single();
-
-        if (profile?.tenant_id) {
-          const { data: fees } = await supabase
-            .from('fee_structures')
-            .select('*')
-            .eq('tenant_id', profile.tenant_id)
-            .eq('is_active', true)
-            .in('fee_type', ['savings_maintenance', 'savings_charge', 'account_charge'])
-            .order('name');
-
-          setFeeStructures(fees || []);
-        }
-      } catch (error) {
-        console.error('Error fetching fee structures:', error);
-      }
-    };
-
-    if (open) {
-      fetchFeeStructures();
-    }
-  }, [open]);
 
   const watchedTransactionType = form.watch("transactionType");
   const watchedAmount = form.watch("amount");
