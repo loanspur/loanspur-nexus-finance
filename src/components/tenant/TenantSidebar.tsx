@@ -46,6 +46,11 @@ const TenantSidebar = () => {
           icon: CreditCard
         },
         {
+          title: "Loan Workflow",
+          path: "/tenant/loan-workflow",
+          icon: CreditCard
+        },
+        {
           title: "Savings",
           path: "/tenant/savings",
           icon: PiggyBank

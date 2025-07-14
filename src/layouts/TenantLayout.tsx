@@ -20,6 +20,7 @@ import CurrencyConfigPage from "@/pages/tenant/CurrencyConfigPage";
 import FundsManagementPage from "@/pages/tenant/FundsManagementPage";
 import ProductFeeManagementPage from "@/pages/tenant/ProductFeeManagementPage";
 import AccountingPage from "@/pages/tenant/AccountingPage";
+import LoanWorkflowPage from "@/pages/tenant/LoanWorkflowPage";
 import ActivityTracker from "@/components/audit/ActivityTracker";
 
 const TenantLayout = () => {
@@ -49,6 +50,7 @@ const TenantLayout = () => {
               <Route path="/dashboard" element={<TenantDashboard />} />
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/loans" element={<LoansPage />} />
+              <Route path="/loan-workflow" element={<LoanWorkflowPage />} />
               <Route path="/savings" element={<SavingsPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/groups" element={<GroupsPage />} />
