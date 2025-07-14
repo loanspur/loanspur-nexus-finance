@@ -3616,22 +3616,32 @@ export type Database = {
       loan_applications: {
         Row: {
           application_number: string
+          application_step: string | null
           approval_level: number | null
           approval_notes: string | null
+          business_information: Json | null
           client_id: string
+          co_borrower_id: string | null
           created_at: string
+          credit_score: number | null
+          debt_to_income_ratio: number | null
+          employment_verification: Json | null
           final_approved_amount: number | null
           final_approved_interest_rate: number | null
           final_approved_term: number | null
+          financial_data: Json | null
           fund_id: string | null
           id: string
+          is_joint_application: boolean | null
           loan_product_id: string
           purpose: string | null
+          repayment_schedule: Json | null
           requested_amount: number
           requested_term: number
           requires_approval: boolean
           reviewed_at: string | null
           reviewed_by: string | null
+          risk_assessment: Json | null
           status: string
           submitted_at: string
           tenant_id: string
@@ -3639,22 +3649,32 @@ export type Database = {
         }
         Insert: {
           application_number: string
+          application_step?: string | null
           approval_level?: number | null
           approval_notes?: string | null
+          business_information?: Json | null
           client_id: string
+          co_borrower_id?: string | null
           created_at?: string
+          credit_score?: number | null
+          debt_to_income_ratio?: number | null
+          employment_verification?: Json | null
           final_approved_amount?: number | null
           final_approved_interest_rate?: number | null
           final_approved_term?: number | null
+          financial_data?: Json | null
           fund_id?: string | null
           id?: string
+          is_joint_application?: boolean | null
           loan_product_id: string
           purpose?: string | null
+          repayment_schedule?: Json | null
           requested_amount: number
           requested_term: number
           requires_approval?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
+          risk_assessment?: Json | null
           status?: string
           submitted_at?: string
           tenant_id: string
@@ -3662,22 +3682,32 @@ export type Database = {
         }
         Update: {
           application_number?: string
+          application_step?: string | null
           approval_level?: number | null
           approval_notes?: string | null
+          business_information?: Json | null
           client_id?: string
+          co_borrower_id?: string | null
           created_at?: string
+          credit_score?: number | null
+          debt_to_income_ratio?: number | null
+          employment_verification?: Json | null
           final_approved_amount?: number | null
           final_approved_interest_rate?: number | null
           final_approved_term?: number | null
+          financial_data?: Json | null
           fund_id?: string | null
           id?: string
+          is_joint_application?: boolean | null
           loan_product_id?: string
           purpose?: string | null
+          repayment_schedule?: Json | null
           requested_amount?: number
           requested_term?: number
           requires_approval?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
+          risk_assessment?: Json | null
           status?: string
           submitted_at?: string
           tenant_id?: string
@@ -3687,6 +3717,13 @@ export type Database = {
           {
             foreignKeyName: "loan_applications_client_id_fkey"
             columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_co_borrower_id_fkey"
+            columns: ["co_borrower_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
@@ -4075,9 +4112,12 @@ export type Database = {
         Row: {
           accounting_type: string | null
           advance_payments_adjustment_type: string | null
+          allow_joint_applications: boolean | null
           allow_partial_period_interest: boolean | null
+          application_steps: Json | null
           arrears_tolerance_amount: number | null
           arrears_tolerance_days: number | null
+          auto_calculate_repayment: boolean | null
           compounding_frequency: string | null
           created_at: string
           currency_code: string
@@ -4105,10 +4145,12 @@ export type Database = {
           late_payment_penalty_percentage: number | null
           linked_fee_ids: string[] | null
           loan_portfolio_account_id: string | null
+          max_debt_to_income_ratio: number | null
           max_nominal_interest_rate: number
           max_principal: number
           max_term: number
           mifos_product_id: number | null
+          min_credit_score: number | null
           min_nominal_interest_rate: number
           min_principal: number
           min_term: number
@@ -4124,6 +4166,14 @@ export type Database = {
           processing_fee_percentage: number | null
           provision_account_id: string | null
           repayment_frequency: string
+          require_bank_statements: boolean | null
+          require_business_plan: boolean | null
+          require_collateral: boolean | null
+          require_financial_statements: boolean | null
+          require_guarantor: boolean | null
+          require_income_proof: boolean | null
+          require_insurance: boolean | null
+          required_documents: Json | null
           reschedule_strategy: string | null
           short_name: string
           suspended_income_account_id: string | null
@@ -4134,9 +4184,12 @@ export type Database = {
         Insert: {
           accounting_type?: string | null
           advance_payments_adjustment_type?: string | null
+          allow_joint_applications?: boolean | null
           allow_partial_period_interest?: boolean | null
+          application_steps?: Json | null
           arrears_tolerance_amount?: number | null
           arrears_tolerance_days?: number | null
+          auto_calculate_repayment?: boolean | null
           compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
@@ -4164,10 +4217,12 @@ export type Database = {
           late_payment_penalty_percentage?: number | null
           linked_fee_ids?: string[] | null
           loan_portfolio_account_id?: string | null
+          max_debt_to_income_ratio?: number | null
           max_nominal_interest_rate: number
           max_principal: number
           max_term: number
           mifos_product_id?: number | null
+          min_credit_score?: number | null
           min_nominal_interest_rate: number
           min_principal: number
           min_term: number
@@ -4183,6 +4238,14 @@ export type Database = {
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
           repayment_frequency?: string
+          require_bank_statements?: boolean | null
+          require_business_plan?: boolean | null
+          require_collateral?: boolean | null
+          require_financial_statements?: boolean | null
+          require_guarantor?: boolean | null
+          require_income_proof?: boolean | null
+          require_insurance?: boolean | null
+          required_documents?: Json | null
           reschedule_strategy?: string | null
           short_name: string
           suspended_income_account_id?: string | null
@@ -4193,9 +4256,12 @@ export type Database = {
         Update: {
           accounting_type?: string | null
           advance_payments_adjustment_type?: string | null
+          allow_joint_applications?: boolean | null
           allow_partial_period_interest?: boolean | null
+          application_steps?: Json | null
           arrears_tolerance_amount?: number | null
           arrears_tolerance_days?: number | null
+          auto_calculate_repayment?: boolean | null
           compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
@@ -4223,10 +4289,12 @@ export type Database = {
           late_payment_penalty_percentage?: number | null
           linked_fee_ids?: string[] | null
           loan_portfolio_account_id?: string | null
+          max_debt_to_income_ratio?: number | null
           max_nominal_interest_rate?: number
           max_principal?: number
           max_term?: number
           mifos_product_id?: number | null
+          min_credit_score?: number | null
           min_nominal_interest_rate?: number
           min_principal?: number
           min_term?: number
@@ -4242,6 +4310,14 @@ export type Database = {
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
           repayment_frequency?: string
+          require_bank_statements?: boolean | null
+          require_business_plan?: boolean | null
+          require_collateral?: boolean | null
+          require_financial_statements?: boolean | null
+          require_guarantor?: boolean | null
+          require_income_proof?: boolean | null
+          require_insurance?: boolean | null
+          required_documents?: Json | null
           reschedule_strategy?: string | null
           short_name?: string
           suspended_income_account_id?: string | null
