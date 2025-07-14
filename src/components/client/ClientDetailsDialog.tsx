@@ -37,7 +37,8 @@ import {
   Minus,
   ArrowRightLeft,
   UserMinus,
-  Receipt
+  Receipt,
+  ScrollText
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
@@ -643,6 +644,22 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               >
                                 <Receipt className="h-4 w-4 mr-2" />
                                 Charge
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedSavings(savings);
+                                  // TODO: Implement show transactions dialog
+                                  toast({
+                                    title: "Coming Soon",
+                                    description: "Transaction history view will be available soon.",
+                                  });
+                                }}
+                                className="hover-scale"
+                              >
+                                <ScrollText className="h-4 w-4 mr-2" />
+                                History
                               </Button>
                             </>
                           )}

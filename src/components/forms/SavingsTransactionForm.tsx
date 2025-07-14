@@ -168,6 +168,25 @@ export const SavingsTransactionForm = ({
       };
     }
 
+    // Enforce min/max limits for charges
+    if (data.transactionType === 'fee_charge' && data.feeStructureId) {
+      const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
+      if (selectedFee) {
+        if (selectedFee.min_amount && amount < selectedFee.min_amount) {
+          return {
+            isValid: false,
+            message: `Charge amount cannot be less than minimum ${formatCurrency(selectedFee.min_amount)}`
+          };
+        }
+        if (selectedFee.max_amount && amount > selectedFee.max_amount) {
+          return {
+            isValid: false,
+            message: `Charge amount cannot exceed maximum ${formatCurrency(selectedFee.max_amount)}`
+          };
+        }
+      }
+    }
+
     if (data.transactionType === "withdrawal" || data.transactionType === "transfer" || data.transactionType === "fee_charge") {
       const newBalance = savingsAccount.account_balance - amount;
       if (newBalance < minBalance) {
@@ -235,6 +254,20 @@ export const SavingsTransactionForm = ({
 
       if (!profile?.tenant_id) {
         throw new Error('Unable to identify tenant');
+      }
+
+      // Check for unique reference number if provided
+      if (data.reference && data.reference.trim()) {
+        const { data: existingTransaction } = await supabase
+          .from('savings_transactions')
+          .select('id')
+          .eq('tenant_id', profile.tenant_id)
+          .eq('reference_number', data.reference.trim())
+          .maybeSingle();
+
+        if (existingTransaction) {
+          throw new Error('Transaction reference number must be unique. This reference already exists.');
+        }
       }
 
       // Insert transaction record with additional fields for charges
