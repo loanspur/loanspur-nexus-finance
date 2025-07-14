@@ -152,6 +152,17 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   const fetchClientAccounts = async () => {
     console.log('Fetching client accounts for client:', client?.id);
+    console.log('Client details:', client);
+    
+    // Check current user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .single();
+    
+    console.log('Current user profile:', profile, 'Profile Error:', profileError);
+    
     try {
       // Fetch client loans with product info
       const { data: loans, error: loansError } = await supabase
@@ -165,8 +176,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
       if (loansError) {
         console.error('Error fetching loans:', loansError);
+        console.error('Loans error details:', JSON.stringify(loansError, null, 2));
       } else {
         console.log('Fetched loans:', loans);
+        console.log('Loans query executed successfully, count:', loans?.length || 0);
       }
 
       // Fetch client savings accounts with product info
@@ -248,12 +261,22 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       case 'active':
       case 'approved':
       case 'completed':
+      case 'disbursed':
         return 'default';
       case 'pending':
+      case 'pending_approval':
+      case 'pending_disbursement':
+      case 'under_review':
         return 'secondary';
+      case 'overdue':
+      case 'written_off':
+      case 'rejected':
+        return 'destructive';
       case 'inactive':
       case 'suspended':
-        return 'destructive';
+      case 'closed':
+      case 'fully_paid':
+        return 'outline';
       default:
         return 'secondary';
     }
