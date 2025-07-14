@@ -66,6 +66,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       default_nominal_interest_rate: editingProduct.default_nominal_interest_rate?.toString() || "",
       
       // Use defaults for new fields if not present
+      fund_id: (editingProduct as any).fund_id || "",
       ...defaultValues,
     } : defaultValues,
   });
@@ -143,6 +144,9 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         interest_payment_account_id: data.interest_payment_account_id || null,
         fee_payment_account_id: data.fee_payment_account_id || null,
         penalty_payment_account_id: data.penalty_payment_account_id || null,
+        
+        // Fund mapping
+        fund_id: data.fund_id || null,
         
         is_active: true,
         mifos_product_id: null,
@@ -233,7 +237,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
-                <LoanProductBasicInfoTab form={form} />
+                <LoanProductBasicInfoTab form={form} tenantId={tenantId} />
               </TabsContent>
 
               <TabsContent value="terms" className="space-y-4">

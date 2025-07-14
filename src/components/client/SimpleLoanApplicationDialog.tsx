@@ -21,11 +21,13 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
+import { useFunds } from "@/hooks/useFundsManagement";
 
 const simpleLoanSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
   requested_amount: z.string().min(1, "Loan amount is required"),
   loan_purpose: z.string().min(10, "Please provide a detailed purpose (min 10 characters)"),
+  fund_id: z.string().min(1, "Fund selection is required"),
 });
 
 type SimpleLoanData = z.infer<typeof simpleLoanSchema>;
@@ -56,10 +58,11 @@ export const SimpleLoanApplicationDialog = ({
       loan_product_id: "",
       requested_amount: "",
       loan_purpose: "",
+      fund_id: "",
     },
   });
 
-  // Fetch loan products
+  // Fetch loan products and funds
   const { data: loanProducts = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ['loan-products', profile?.tenant_id],
     queryFn: async () => {
@@ -76,6 +79,8 @@ export const SimpleLoanApplicationDialog = ({
     enabled: !!profile?.tenant_id,
   });
 
+  const { data: funds = [], isLoading: fundsLoading } = useFunds();
+
   const selectedProduct = loanProducts.find(p => p.id === form.watch("loan_product_id"));
 
   // Auto-populate defaults when product is selected
@@ -87,10 +92,11 @@ export const SimpleLoanApplicationDialog = ({
   };
 
   const fillSampleData = () => {
-    if (loanProducts.length > 0) {
+    if (loanProducts.length > 0 && funds.length > 0) {
       form.setValue("loan_product_id", loanProducts[0].id);
       form.setValue("requested_amount", loanProducts[0].default_principal?.toString() || "5000");
       form.setValue("loan_purpose", "Business expansion and working capital requirements");
+      form.setValue("fund_id", funds[0].id);
       handleProductChange(loanProducts[0].id);
     }
   };
@@ -106,6 +112,7 @@ export const SimpleLoanApplicationDialog = ({
         requested_amount: parseFloat(data.requested_amount),
         requested_term: selectedProduct?.default_term || 12,
         purpose: data.loan_purpose,
+        fund_id: data.fund_id,
         status: 'pending' as const
       };
 
@@ -176,6 +183,35 @@ export const SimpleLoanApplicationDialog = ({
                       {loanProducts.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
                           {product.name} - {product.default_nominal_interest_rate}% ({product.default_term} months)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="fund_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fund Source *</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                    disabled={fundsLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={fundsLoading ? "Loading funds..." : "Select fund source"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {funds.map((fund) => (
+                        <SelectItem key={fund.id} value={fund.id}>
+                          {fund.fund_name} ({fund.fund_code}) - Balance: {fund.current_balance.toLocaleString()}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -266,7 +302,7 @@ export const SimpleLoanApplicationDialog = ({
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSubmitting || isLoadingProducts}
+                disabled={isSubmitting || isLoadingProducts || fundsLoading}
                 className="bg-orange-600 hover:bg-orange-700"
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}

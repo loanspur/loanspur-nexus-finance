@@ -7,13 +7,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PiggyBank, Plus, DollarSign, TrendingUp, RefreshCw } from "lucide-react";
+import { PiggyBank, Plus, DollarSign, TrendingUp, RefreshCw, Edit, MoreHorizontal } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { useFunds, useCreateFund } from "@/hooks/useFundsManagement";
+import { useFunds, useCreateFund, useUpdateFund } from "@/hooks/useFundsManagement";
 import { useCurrencies, formatCurrency, useTenantCurrencySettings } from "@/hooks/useCurrencyManagement";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const fundSchema = z.object({
   fund_name: z.string().min(1, "Fund name is required"),
@@ -29,15 +30,26 @@ const fundSchema = z.object({
 
 const FundsManagementPage = () => {
   const [showCreateFund, setShowCreateFund] = useState(false);
+  const [editingFund, setEditingFund] = useState<any>(null);
 
   const { data: funds = [], isLoading: fundsLoading } = useFunds();
   const { data: currencies = [] } = useCurrencies();
   const { data: currencySettings } = useTenantCurrencySettings();
   const createFundMutation = useCreateFund();
+  const updateFundMutation = useUpdateFund();
 
   const fundForm = useForm<z.infer<typeof fundSchema>>({
     resolver: zodResolver(fundSchema),
-    defaultValues: {
+    defaultValues: editingFund ? {
+      fund_name: editingFund.fund_name,
+      fund_code: editingFund.fund_code,
+      description: editingFund.description || "",
+      fund_type: editingFund.fund_type,
+      currency_id: editingFund.currency_id || "",
+      initial_balance: editingFund.initial_balance?.toString() || "",
+      minimum_balance: editingFund.minimum_balance?.toString() || "",
+      maximum_balance: editingFund.maximum_balance?.toString() || "",
+    } : {
       fund_type: 'general',
     },
   });
@@ -82,22 +94,47 @@ const FundsManagementPage = () => {
   }, [fundForm, funds]);
 
 
-  const onCreateFund = async (values: z.infer<typeof fundSchema>) => {
+  const onSubmitFund = async (values: z.infer<typeof fundSchema>) => {
     const fundCode = values.fund_code || generateFundCode(values.fund_type);
     
-    await createFundMutation.mutateAsync({
-      fund_name: values.fund_name,
-      fund_code: fundCode,
-      description: values.description,
-      fund_type: values.fund_type,
-      currency_id: values.currency_id,
-      initial_balance: parseFloat(values.initial_balance),
-      current_balance: parseFloat(values.initial_balance),
-      minimum_balance: values.minimum_balance ? parseFloat(values.minimum_balance) : undefined,
-      maximum_balance: values.maximum_balance ? parseFloat(values.maximum_balance) : undefined,
-      is_active: true,
-    });
+    if (editingFund) {
+      await updateFundMutation.mutateAsync({
+        id: editingFund.id,
+        fund_name: values.fund_name,
+        fund_code: fundCode,
+        description: values.description,
+        fund_type: values.fund_type,
+        currency_id: values.currency_id,
+        minimum_balance: values.minimum_balance ? parseFloat(values.minimum_balance) : undefined,
+        maximum_balance: values.maximum_balance ? parseFloat(values.maximum_balance) : undefined,
+      });
+    } else {
+      await createFundMutation.mutateAsync({
+        fund_name: values.fund_name,
+        fund_code: fundCode,
+        description: values.description,
+        fund_type: values.fund_type,
+        currency_id: values.currency_id,
+        initial_balance: parseFloat(values.initial_balance),
+        current_balance: parseFloat(values.initial_balance),
+        minimum_balance: values.minimum_balance ? parseFloat(values.minimum_balance) : undefined,
+        maximum_balance: values.maximum_balance ? parseFloat(values.maximum_balance) : undefined,
+        is_active: true,
+      });
+    }
     setShowCreateFund(false);
+    setEditingFund(null);
+    fundForm.reset();
+  };
+
+  const handleEditFund = (fund: any) => {
+    setEditingFund(fund);
+    setShowCreateFund(true);
+  };
+
+  const handleCloseDialog = () => {
+    setShowCreateFund(false);
+    setEditingFund(null);
     fundForm.reset();
   };
 
@@ -133,7 +170,7 @@ const FundsManagementPage = () => {
           <h1 className="text-2xl font-bold text-foreground">Funds Management</h1>
           <p className="text-muted-foreground">Manage your organization's funds and allocations</p>
         </div>
-        <Dialog open={showCreateFund} onOpenChange={setShowCreateFund}>
+        <Dialog open={showCreateFund} onOpenChange={handleCloseDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -142,10 +179,10 @@ const FundsManagementPage = () => {
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Create New Fund</DialogTitle>
+                <DialogTitle>{editingFund ? 'Edit Fund' : 'Create New Fund'}</DialogTitle>
               </DialogHeader>
               <Form {...fundForm}>
-                <form onSubmit={fundForm.handleSubmit(onCreateFund)} className="space-y-4">
+                <form onSubmit={fundForm.handleSubmit(onSubmitFund)} className="space-y-4">
                   <FormField
                     control={fundForm.control}
                     name="fund_name"
@@ -196,19 +233,21 @@ const FundsManagementPage = () => {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={fundForm.control}
-                    name="initial_balance"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Initial Balance</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {!editingFund && (
+                    <FormField
+                      control={fundForm.control}
+                      name="initial_balance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Initial Balance</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <FormField
                     control={fundForm.control}
                     name="description"
@@ -222,8 +261,15 @@ const FundsManagementPage = () => {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={createFundMutation.isPending}>
-                    {createFundMutation.isPending ? "Creating..." : "Create Fund"}
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={createFundMutation.isPending || updateFundMutation.isPending}
+                  >
+                    {createFundMutation.isPending || updateFundMutation.isPending 
+                      ? (editingFund ? "Updating..." : "Creating...") 
+                      : (editingFund ? "Update Fund" : "Create Fund")
+                    }
                   </Button>
                 </form>
               </Form>
@@ -316,13 +362,28 @@ const FundsManagementPage = () => {
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-semibold">
-                    {formatCurrency(fund.current_balance, currencySettings)}
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="text-lg font-semibold">
+                      {formatCurrency(fund.current_balance, currencySettings)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Initial: {formatCurrency(fund.initial_balance, currencySettings)}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Initial: {formatCurrency(fund.initial_balance, currencySettings)}
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditFund(fund)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Fund
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}

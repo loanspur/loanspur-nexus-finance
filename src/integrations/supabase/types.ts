@@ -3623,6 +3623,7 @@ export type Database = {
           final_approved_amount: number | null
           final_approved_interest_rate: number | null
           final_approved_term: number | null
+          fund_id: string | null
           id: string
           loan_product_id: string
           purpose: string | null
@@ -3645,6 +3646,7 @@ export type Database = {
           final_approved_amount?: number | null
           final_approved_interest_rate?: number | null
           final_approved_term?: number | null
+          fund_id?: string | null
           id?: string
           loan_product_id: string
           purpose?: string | null
@@ -3667,6 +3669,7 @@ export type Database = {
           final_approved_amount?: number | null
           final_approved_interest_rate?: number | null
           final_approved_term?: number | null
+          fund_id?: string | null
           id?: string
           loan_product_id?: string
           purpose?: string | null
@@ -3686,6 +3689,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
             referencedColumns: ["id"]
           },
           {
@@ -4080,6 +4090,7 @@ export type Database = {
           fee_income_account_id: string | null
           fee_payment_account_id: string | null
           fee_receivable_account_id: string | null
+          fund_id: string | null
           fund_source_account_id: string | null
           grace_period_duration: number | null
           grace_period_type: string | null
@@ -4138,6 +4149,7 @@ export type Database = {
           fee_income_account_id?: string | null
           fee_payment_account_id?: string | null
           fee_receivable_account_id?: string | null
+          fund_id?: string | null
           fund_source_account_id?: string | null
           grace_period_duration?: number | null
           grace_period_type?: string | null
@@ -4196,6 +4208,7 @@ export type Database = {
           fee_income_account_id?: string | null
           fee_payment_account_id?: string | null
           fee_receivable_account_id?: string | null
+          fund_id?: string | null
           fund_source_account_id?: string | null
           grace_period_duration?: number | null
           grace_period_type?: string | null
@@ -4277,6 +4290,13 @@ export type Database = {
             columns: ["fee_receivable_account_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_fund_id_fkey"
+            columns: ["fund_id"]
+            isOneToOne: false
+            referencedRelation: "funds"
             referencedColumns: ["id"]
           },
           {

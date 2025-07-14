@@ -4,12 +4,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
+import { useFunds } from "@/hooks/useFundsManagement";
 
 interface LoanProductBasicInfoTabProps {
   form: UseFormReturn<LoanProductFormData>;
+  tenantId: string;
 }
 
-export const LoanProductBasicInfoTab = ({ form }: LoanProductBasicInfoTabProps) => {
+export const LoanProductBasicInfoTab = ({ form, tenantId }: LoanProductBasicInfoTabProps) => {
+  const { data: funds = [], isLoading: fundsLoading } = useFunds();
+  
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -73,6 +77,31 @@ export const LoanProductBasicInfoTab = ({ form }: LoanProductBasicInfoTabProps) 
                 <SelectItem value="KES">KES</SelectItem>
                 <SelectItem value="EUR">EUR</SelectItem>
                 <SelectItem value="GBP">GBP</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="fund_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Fund Source *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={fundsLoading}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder={fundsLoading ? "Loading funds..." : "Select fund source"} />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {funds.map((fund) => (
+                  <SelectItem key={fund.id} value={fund.id}>
+                    {fund.fund_name} ({fund.fund_code}) - {fund.fund_type}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <FormMessage />
