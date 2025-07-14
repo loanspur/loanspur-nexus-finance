@@ -4076,6 +4076,7 @@ export type Database = {
           early_repayment_penalty_percentage: number | null
           fee_income_account_id: string | null
           fee_payment_account_id: string | null
+          fee_receivable_account_id: string | null
           fund_source_account_id: string | null
           grace_period_duration: number | null
           grace_period_type: string | null
@@ -4102,6 +4103,7 @@ export type Database = {
           overpayment_liability_account_id: string | null
           penalty_income_account_id: string | null
           penalty_payment_account_id: string | null
+          penalty_receivable_account_id: string | null
           pre_closure_interest_calculation_rule: string | null
           principal_payment_account_id: string | null
           processing_fee_amount: number | null
@@ -4132,6 +4134,7 @@ export type Database = {
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
           fee_payment_account_id?: string | null
+          fee_receivable_account_id?: string | null
           fund_source_account_id?: string | null
           grace_period_duration?: number | null
           grace_period_type?: string | null
@@ -4158,6 +4161,7 @@ export type Database = {
           overpayment_liability_account_id?: string | null
           penalty_income_account_id?: string | null
           penalty_payment_account_id?: string | null
+          penalty_receivable_account_id?: string | null
           pre_closure_interest_calculation_rule?: string | null
           principal_payment_account_id?: string | null
           processing_fee_amount?: number | null
@@ -4188,6 +4192,7 @@ export type Database = {
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
           fee_payment_account_id?: string | null
+          fee_receivable_account_id?: string | null
           fund_source_account_id?: string | null
           grace_period_duration?: number | null
           grace_period_type?: string | null
@@ -4214,6 +4219,7 @@ export type Database = {
           overpayment_liability_account_id?: string | null
           penalty_income_account_id?: string | null
           penalty_payment_account_id?: string | null
+          penalty_receivable_account_id?: string | null
           pre_closure_interest_calculation_rule?: string | null
           principal_payment_account_id?: string | null
           processing_fee_amount?: number | null
@@ -4264,6 +4270,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "loan_products_fee_receivable_account_id_fkey"
+            columns: ["fee_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "loan_products_fund_source_account_id_fkey"
             columns: ["fund_source_account_id"]
             isOneToOne: false
@@ -4301,6 +4314,13 @@ export type Database = {
           {
             foreignKeyName: "loan_products_penalty_income_account_id_fkey"
             columns: ["penalty_income_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_penalty_receivable_account_id_fkey"
+            columns: ["penalty_receivable_account_id"]
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
