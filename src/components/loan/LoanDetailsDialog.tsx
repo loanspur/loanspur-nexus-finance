@@ -28,6 +28,7 @@ import {
 import { format } from "date-fns";
 import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
 import { LoanCalculatorDialog } from "@/components/forms/LoanCalculatorDialog";
+import { TransactionStatement } from "@/components/statements/TransactionStatement";
 
 interface LoanDetailsDialogProps {
   loan: any;
@@ -387,48 +388,32 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
               </div>
             </TabsContent>
 
-            {/* Payment History Tab */}
+            {/* Payment History Tab - Statement Format */}
             <TabsContent value="payments" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Payment History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {paymentHistory.map((payment, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-3 h-3 rounded-full ${
-                            payment.status === 'Paid' ? 'bg-green-500' : 
-                            payment.status === 'Missed' ? 'bg-red-500' : 'bg-yellow-500'
-                          }`} />
-                          <div>
-                            <div className="font-medium">{payment.type}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'MMM dd, yyyy')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(payment.amount)}</div>
-                          <div className={`text-sm ${
-                            payment.status === 'Paid' ? 'text-green-600' : 
-                            payment.status === 'Missed' ? 'text-red-600' : 'text-yellow-600'
-                          }`}>
-                            {payment.status}
-                          </div>
-                        </div>
-                        <div className="text-right text-sm text-muted-foreground">
-                          Balance: {formatCurrency(payment.balance)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <TransactionStatement
+                transactions={paymentHistory.map(payment => ({
+                  date: payment.date,
+                  type: payment.type,
+                  amount: payment.amount,
+                  balance: payment.balance,
+                  reference: `PAY${payment.date.replace(/-/g, '')}`,
+                  status: payment.status,
+                  description: payment.type === 'Regular Payment' ? 'Monthly loan payment' : payment.type
+                }))}
+                accountType="loan"
+                accountNumber={loanDetails.id}
+                clientName={clientName}
+                accountDetails={{
+                  balance: loanDetails.outstanding,
+                  interestRate: loanDetails.interestRate,
+                  openingDate: loanDetails.disbursementDate || undefined,
+                  accountOfficer: loanDetails.loanOfficer
+                }}
+                statementPeriod={{
+                  from: paymentHistory.length > 0 ? paymentHistory[paymentHistory.length - 1].date : new Date().toISOString(),
+                  to: paymentHistory.length > 0 ? paymentHistory[0].date : new Date().toISOString()
+                }}
+              />
             </TabsContent>
 
             {/* Schedule Tab */}

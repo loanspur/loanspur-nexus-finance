@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
+import { TransactionStatement } from "@/components/statements/TransactionStatement";
+import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 
 interface SavingsDetailsDialogProps {
   savings: any;
@@ -37,8 +39,7 @@ interface SavingsDetailsDialogProps {
 }
 
 export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }: SavingsDetailsDialogProps) => {
-  const [depositFormOpen, setDepositFormOpen] = useState(false);
-  const [withdrawalFormOpen, setWithdrawalFormOpen] = useState(false);
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   
   if (!savings) return null;
 
@@ -348,18 +349,10 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                     <Button 
                       variant="outline" 
                       className="w-full justify-start"
-                      onClick={() => setDepositFormOpen(true)}
+                      onClick={() => setTransactionFormOpen(true)}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Make Deposit
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => setWithdrawalFormOpen(true)}
-                    >
-                      <Minus className="h-4 w-4 mr-2" />
-                      Make Withdrawal
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      New Transaction
                     </Button>
                     <Button 
                       variant="outline" 
@@ -387,46 +380,32 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
               </div>
             </TabsContent>
 
-            {/* Transactions Tab */}
+            {/* Transactions Tab - Statement Format */}
             <TabsContent value="transactions" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Transaction History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {transactionHistory.map((transaction, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-3 h-3 rounded-full ${
-                            transaction.type === 'Deposit' || transaction.type === 'Interest' ? 'bg-green-500' : 'bg-red-500'
-                          }`} />
-                          <div>
-                            <div className="font-medium">{transaction.type}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {format(new Date(transaction.date), 'MMM dd, yyyy')} • {transaction.method}
-                            </div>
-                            <div className="text-xs text-muted-foreground">Ref: {transaction.reference}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`font-medium ${
-                            transaction.type === 'Deposit' || transaction.type === 'Interest' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'Deposit' || transaction.type === 'Interest' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Balance: {formatCurrency(transaction.balance)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              <TransactionStatement
+                transactions={transactionHistory.map(transaction => ({
+                  date: transaction.date,
+                  type: transaction.type,
+                  amount: transaction.amount,
+                  balance: transaction.balance,
+                  method: transaction.method,
+                  reference: transaction.reference,
+                  description: transaction.type === 'Interest' ? 'Monthly interest posting' : undefined
+                }))}
+                accountType="savings"
+                accountNumber={savingsDetails.id}
+                clientName={clientName}
+                accountDetails={{
+                  balance: savingsDetails.balance,
+                  interestRate: savingsDetails.interestRate,
+                  openingDate: savingsDetails.openingDate || undefined,
+                  accountOfficer: savingsDetails.accountOfficer
+                }}
+                statementPeriod={{
+                  from: transactionHistory.length > 0 ? transactionHistory[transactionHistory.length - 1].date : new Date().toISOString(),
+                  to: transactionHistory.length > 0 ? transactionHistory[0].date : new Date().toISOString()
+                }}
+              />
             </TabsContent>
 
             {/* Interest History Tab */}
@@ -689,23 +668,21 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
           </Tabs>
         </div>
 
-        {/* Deposit Form Dialog */}
-        <QuickPaymentForm
-          open={depositFormOpen}
-          onOpenChange={setDepositFormOpen}
-          type="deposit"
-          accountId={savingsDetails.id}
+        {/* Savings Transaction Form */}
+        <SavingsTransactionForm
+          open={transactionFormOpen}
+          onOpenChange={setTransactionFormOpen}
+          savingsAccount={{
+            id: savings?.id || "",
+            balance: savingsDetails.balance,
+            type: savingsDetails.type,
+            minimumBalance: savingsDetails.minimumBalance
+          }}
           clientName={clientName}
-        />
-
-        {/* Withdrawal Form Dialog */}
-        <QuickPaymentForm
-          open={withdrawalFormOpen}
-          onOpenChange={setWithdrawalFormOpen}
-          type="withdrawal"
-          accountId={savingsDetails.id}
-          clientName={clientName}
-          maxAmount={savingsDetails.balance}
+          onTransactionComplete={() => {
+            // Refresh savings data
+            console.log("Transaction completed, refreshing data...");
+          }}
         />
       </DialogContent>
     </Dialog>
