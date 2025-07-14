@@ -191,6 +191,8 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="regular">Regular</SelectItem>
+                  <SelectItem value="transfer">Transfer</SelectItem>
                   <SelectItem value="client">Client</SelectItem>
                   <SelectItem value="system">System</SelectItem>
                   <SelectItem value="automatic">Automatic</SelectItem>
