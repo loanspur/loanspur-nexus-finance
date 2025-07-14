@@ -13,6 +13,7 @@ interface LoanProductAccountingTabProps {
 
 export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccountingTabProps) => {
   const { data: chartOfAccounts = [] } = useChartOfAccounts();
+  const accountingType = form.watch('accounting_type');
 
   const getAccountsByType = (type: string) => 
     chartOfAccounts.filter(account => account.account_type === type);
@@ -21,6 +22,9 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
   const incomeAccounts = getAccountsByType('income');
   const expenseAccounts = getAccountsByType('expense');
   const liabilityAccounts = getAccountsByType('liability');
+
+  const isCashAccounting = accountingType === 'cash';
+  const isAccrualAccounting = accountingType === 'accrual_periodic' || accountingType === 'accrual_upfront';
 
   return (
     <div className="space-y-6">
@@ -89,30 +93,32 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="interest_receivable_account_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Interest Receivable Account</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select interest receivable account" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {assetAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {isAccrualAccounting && (
+            <FormField
+              control={form.control}
+              name="interest_receivable_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Interest Receivable Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select interest receivable account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -138,6 +144,60 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
               </FormItem>
             )}
           />
+
+          {isAccrualAccounting && (
+            <FormField
+              control={form.control}
+              name="fee_receivable_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fee Receivable Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select fee receivable account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          {isAccrualAccounting && (
+            <FormField
+              control={form.control}
+              name="penalty_receivable_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Penalty Receivable Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select penalty receivable account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assetAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           </div>
         </CardContent>
       </Card>
@@ -224,30 +284,32 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="suspended_income_account_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Suspended Income Account</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select suspended income account" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {incomeAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {isAccrualAccounting && (
+            <FormField
+              control={form.control}
+              name="suspended_income_account_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Suspended Income Account</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select suspended income account" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {incomeAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.account_code} - {account.account_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           </div>
         </CardContent>
       </Card>

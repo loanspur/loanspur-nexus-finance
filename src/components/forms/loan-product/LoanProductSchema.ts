@@ -57,6 +57,8 @@ export const loanProductSchema = z.object({
   // Accounting Journal Mappings
   loan_portfolio_account_id: z.string().optional(),
   interest_receivable_account_id: z.string().optional(),
+  fee_receivable_account_id: z.string().optional(),
+  penalty_receivable_account_id: z.string().optional(),
   interest_income_account_id: z.string().optional(),
   fee_income_account_id: z.string().optional(),
   penalty_income_account_id: z.string().optional(),
@@ -131,6 +133,8 @@ export const defaultValues: LoanProductFormData = {
   // Accounting Journal Mappings
   loan_portfolio_account_id: "",
   interest_receivable_account_id: "",
+  fee_receivable_account_id: "",
+  penalty_receivable_account_id: "",
   interest_income_account_id: "",
   fee_income_account_id: "",
   penalty_income_account_id: "",
