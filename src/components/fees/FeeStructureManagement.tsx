@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, DollarSign, Percent } from "lucide-react";
@@ -32,7 +32,7 @@ const feeSchema = z.object({
 type FeeFormData = z.infer<typeof feeSchema>;
 
 export const FeeStructureManagement = () => {
-  const [activeTab, setActiveTab] = useState("list");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFee, setEditingFee] = useState<FeeStructure | null>(null);
   
   const { data: feeStructures = [], isLoading } = useFeeStructures();
@@ -82,7 +82,13 @@ export const FeeStructureManagement = () => {
 
     form.reset();
     setEditingFee(null);
-    setActiveTab("list");
+    setIsModalOpen(false);
+  };
+
+  const handleCreateNew = () => {
+    setEditingFee(null);
+    form.reset();
+    setIsModalOpen(true);
   };
 
   const handleEdit = (fee: FeeStructure) => {
@@ -100,7 +106,7 @@ export const FeeStructureManagement = () => {
       charge_payment_by: (fee as any).charge_payment_by || "regular",
       is_active: fee.is_active,
     });
-    setActiveTab("form");
+    setIsModalOpen(true);
   };
 
   const handleDelete = (feeId: string) => {
@@ -143,396 +149,397 @@ export const FeeStructureManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list">Fee Structures</TabsTrigger>
-              <TabsTrigger value="form">
-                {editingFee ? "Edit Fee" : "Create New Fee"}
-              </TabsTrigger>
-            </TabsList>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">All Fee Structures</h3>
+              <Button onClick={handleCreateNew}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Fee
+              </Button>
+            </div>
 
-            <TabsContent value="list" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">All Fee Structures</h3>
-                <Button onClick={() => {
-                  setEditingFee(null);
-                  form.reset();
-                  setActiveTab("form");
-                }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create New Fee
-                </Button>
+            {feeStructures.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No fee structures found</p>
+                <p className="text-sm text-muted-foreground">Create your first fee structure to get started</p>
               </div>
-
-              {feeStructures.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No fee structures found</p>
-                  <p className="text-sm text-muted-foreground">Create your first fee structure to get started</p>
-                </div>
-              ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fee Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {feeStructures.map((fee) => (
-                        <TableRow key={fee.id}>
-                           <TableCell>
-                            <div>
-                              <p className="font-medium">{fee.name}</p>
-                              {fee.description && (
-                                <p className="text-sm text-muted-foreground">{fee.description}</p>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getCategoryColor(fee.fee_type)}>
-                              {fee.fee_type.charAt(0).toUpperCase() + fee.fee_type.slice(1)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              {fee.calculation_type === 'percentage' ? (
-                                <Percent className="h-4 w-4" />
-                              ) : (
-                                <DollarSign className="h-4 w-4" />
-                              )}
-                              {fee.calculation_type}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {fee.calculation_type === 'percentage' 
-                              ? `${fee.percentage_rate || 0}%` 
-                              : `$${fee.amount}`
-                            }
-                            {fee.min_amount && fee.min_amount > 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                Min: ${fee.min_amount}
-                              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fee Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Frequency</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {feeStructures.map((fee) => (
+                      <TableRow key={fee.id}>
+                         <TableCell>
+                          <div>
+                            <p className="font-medium">{fee.name}</p>
+                            {fee.description && (
+                              <p className="text-sm text-muted-foreground">{fee.description}</p>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            One Time
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={fee.is_active ? "default" : "secondary"}>
-                              {fee.is_active ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleEdit(fee)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleDelete(fee.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="form" className="space-y-4">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fee Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Loan Processing Fee" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="fee_type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fee Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select fee type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="loan">Loan</SelectItem>
-                              <SelectItem value="savings">Savings</SelectItem>
-                              <SelectItem value="account">Account</SelectItem>
-                              <SelectItem value="transaction">Transaction</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="calculation_type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Calculation Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="fixed">Fixed Amount</SelectItem>
-                              <SelectItem value="percentage">Percentage</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Amount {watchCalculationType === "percentage" ? "(%)" : "(KSh)"}
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              step="0.01" 
-                              placeholder={watchCalculationType === "percentage" ? "2.5" : "100.00"} 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {watchCalculationType === 'percentage' && (
-                      <FormField
-                        control={form.control}
-                        name="percentage_rate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Percentage Rate (%)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="2.5" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="min_amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Minimum Amount (KSh)</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="max_amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Maximum Amount (KSh) - Optional</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" placeholder="1000.00" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="charge_time_type"
-                      render={({ field }) => {
-                        const feeType = form.watch("fee_type");
-                        const getChargeTimeOptions = () => {
-                          if (feeType === "savings") {
-                            return [
-                              { value: "upfront", label: "Account Opening" },
-                              { value: "monthly", label: "Monthly Maintenance" },
-                              { value: "quarterly", label: "Quarterly" },
-                              { value: "annually", label: "Annual Service" },
-                              { value: "on_transaction", label: "Per Transaction" },
-                              { value: "on_withdrawal", label: "On Withdrawal" },
-                              { value: "on_deposit", label: "On Deposit" },
-                            ];
-                          } else if (feeType === "loan") {
-                            return [
-                              { value: "upfront", label: "Application Fee" },
-                              { value: "on_disbursement", label: "On Disbursement" },
-                              { value: "monthly", label: "Monthly Service" },
-                              { value: "on_maturity", label: "On Maturity" },
-                              { value: "late_payment", label: "Late Payment" },
-                              { value: "early_settlement", label: "Early Settlement" },
-                            ];
-                          } else {
-                            return [
-                              { value: "upfront", label: "Upfront" },
-                              { value: "monthly", label: "Monthly" },
-                              { value: "annually", label: "Annually" },
-                              { value: "on_transaction", label: "Per Transaction" },
-                            ];
-                          }
-                        };
-
-                        return (
-                          <FormItem>
-                            <FormLabel>Charge Time Type *</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select charge time" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {getChargeTimeOptions().map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="charge_payment_by"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Charge Payment By</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select payment method" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="regular">Regular</SelectItem>
-                              <SelectItem value="transfer">Transfer</SelectItem>
-                              <SelectItem value="client">Client</SelectItem>
-                              <SelectItem value="system">System</SelectItem>
-                              <SelectItem value="automatic">Automatic</SelectItem>
-                              <SelectItem value="manual">Manual</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Describe when this fee applies and any conditions..."
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-
-                  <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">Active Status</FormLabel>
-                          <div className="text-sm text-muted-foreground">
-                            Enable this fee to be automatically applied
                           </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setActiveTab("list")}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createFeeMutation.isPending || updateFeeMutation.isPending}
-                    >
-                      {createFeeMutation.isPending || updateFeeMutation.isPending
-                        ? (editingFee ? "Updating..." : "Creating...") 
-                        : (editingFee ? "Update Fee" : "Create Fee")
-                      }
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getCategoryColor(fee.fee_type)}>
+                            {fee.fee_type.charAt(0).toUpperCase() + fee.fee_type.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {fee.calculation_type === 'percentage' ? (
+                              <Percent className="h-4 w-4" />
+                            ) : (
+                              <DollarSign className="h-4 w-4" />
+                            )}
+                            {fee.calculation_type}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          {fee.calculation_type === 'percentage' 
+                            ? `${fee.percentage_rate || 0}%` 
+                            : `$${fee.amount}`
+                          }
+                          {fee.min_amount && fee.min_amount > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              Min: ${fee.min_amount}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          One Time
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={fee.is_active ? "default" : "secondary"}>
+                            {fee.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleEdit(fee)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDelete(fee.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Fee Form Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingFee ? "Edit Fee Structure" : "Create New Fee Structure"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingFee 
+                ? "Update the fee structure details below." 
+                : "Fill in the details to create a new fee structure."
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fee Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Loan Processing Fee" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="fee_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fee Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select fee type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="loan">Loan</SelectItem>
+                          <SelectItem value="savings">Savings</SelectItem>
+                          <SelectItem value="account">Account</SelectItem>
+                          <SelectItem value="transaction">Transaction</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="calculation_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Calculation Type</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="fixed">Fixed Amount</SelectItem>
+                          <SelectItem value="percentage">Percentage</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Amount {watchCalculationType === "percentage" ? "(%)" : "(KSh)"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder={watchCalculationType === "percentage" ? "2.5" : "100.00"} 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {watchCalculationType === 'percentage' && (
+                  <FormField
+                    control={form.control}
+                    name="percentage_rate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Percentage Rate (%)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="2.5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="min_amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Minimum Amount (KSh)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="max_amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Maximum Amount (KSh) - Optional</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="1000.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="charge_time_type"
+                  render={({ field }) => {
+                    const feeType = form.watch("fee_type");
+                    const getChargeTimeOptions = () => {
+                      if (feeType === "savings") {
+                        return [
+                          { value: "upfront", label: "Account Opening" },
+                          { value: "monthly", label: "Monthly Maintenance" },
+                          { value: "quarterly", label: "Quarterly" },
+                          { value: "annually", label: "Annual Service" },
+                          { value: "on_transaction", label: "Per Transaction" },
+                          { value: "on_withdrawal", label: "On Withdrawal" },
+                          { value: "on_deposit", label: "On Deposit" },
+                        ];
+                      } else if (feeType === "loan") {
+                        return [
+                          { value: "upfront", label: "Application Fee" },
+                          { value: "on_disbursement", label: "On Disbursement" },
+                          { value: "monthly", label: "Monthly Service" },
+                          { value: "on_maturity", label: "On Maturity" },
+                          { value: "late_payment", label: "Late Payment" },
+                          { value: "early_settlement", label: "Early Settlement" },
+                        ];
+                      } else {
+                        return [
+                          { value: "upfront", label: "Upfront" },
+                          { value: "monthly", label: "Monthly" },
+                          { value: "annually", label: "Annually" },
+                          { value: "on_transaction", label: "Per Transaction" },
+                        ];
+                      }
+                    };
+
+                    return (
+                      <FormItem>
+                        <FormLabel>Charge Time Type *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select charge time" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {getChargeTimeOptions().map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="charge_payment_by"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Charge Payment By</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="regular">Regular</SelectItem>
+                          <SelectItem value="transfer">Transfer</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                          <SelectItem value="system">System</SelectItem>
+                          <SelectItem value="automatic">Automatic</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe when this fee applies and any conditions..."
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Active Status</FormLabel>
+                      <div className="text-sm text-muted-foreground">
+                        Enable this fee to be automatically applied
+                      </div>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createFeeMutation.isPending || updateFeeMutation.isPending}
+                >
+                  {createFeeMutation.isPending || updateFeeMutation.isPending
+                    ? (editingFee ? "Updating..." : "Creating...") 
+                    : (editingFee ? "Update Fee" : "Create Fee")
+                  }
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
