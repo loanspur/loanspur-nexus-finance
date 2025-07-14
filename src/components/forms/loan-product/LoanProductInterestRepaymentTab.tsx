@@ -246,13 +246,13 @@ export const LoanProductInterestRepaymentTab = ({ form }: LoanProductInterestRep
                             field.onChange(updatedCharges.join(','));
                           }}
                         />
-                        <div className="flex-1">
-                          <div className="font-medium">{charge.fee_name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {charge.description} - {charge.calculation_method === 'fixed' 
-                              ? `Fixed: ${charge.fixed_amount}` 
-                              : `${charge.percentage_rate}%`}
-                          </div>
+                         <div className="flex-1">
+                           <div className="font-medium">{charge.name}</div>
+                           <div className="text-sm text-muted-foreground">
+                             {charge.description} - {charge.calculation_type === 'fixed' 
+                               ? `Fixed: ${charge.amount}` 
+                               : `${charge.percentage_rate || charge.amount}%`}
+                           </div>
                         </div>
                       </div>
                     );

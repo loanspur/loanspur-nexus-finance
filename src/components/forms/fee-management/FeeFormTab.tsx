@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FeeFormFields } from "./FeeFormFields";
 import { Fee } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateFeeStructure, useUpdateFeeStructure } from "@/hooks/useFeeManagement";
 
 const feeSchema = z.object({
   name: z.string().min(1, "Fee name is required"),
@@ -15,7 +16,7 @@ const feeSchema = z.object({
     message: "Amount must be a positive number",
   }),
   category: z.enum(['loan', 'savings', 'account', 'transaction', 'penalty']),
-  chargeTimeType: z.enum(['upfront', 'monthly', 'annually', 'on_maturity', 'on_disbursement']),
+  chargeTimeType: z.enum(['upfront', 'monthly', 'quarterly', 'annually', 'on_maturity', 'on_disbursement', 'on_transaction', 'on_withdrawal', 'on_deposit', 'late_payment', 'early_settlement']),
   chargePaymentBy: z.enum(['client', 'system', 'automatic', 'manual']),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -33,6 +34,8 @@ interface FeeFormTabProps {
 export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const createFeeStructure = useCreateFeeStructure();
+  const updateFeeStructure = useUpdateFeeStructure();
 
   const form = useForm<FeeFormData>({
     resolver: zodResolver(feeSchema),
@@ -52,26 +55,45 @@ export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps
   const onSubmit = async (data: FeeFormData) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast({
-        title: editingFee ? "Fee Updated" : "Fee Created",
-        description: editingFee 
-          ? "The fee has been successfully updated." 
-          : "The new fee has been successfully created.",
-      });
+      const feeData = {
+        name: data.name,
+        description: data.description,
+        fee_type: data.category,
+        calculation_type: data.type,
+        amount: Number(data.amount),
+        percentage_rate: data.type === 'percentage' ? Number(data.amount) : undefined,
+        min_amount: 0,
+        is_active: data.isActive,
+      };
+
+      if (editingFee) {
+        await updateFeeStructure.mutateAsync({ 
+          id: editingFee.id, 
+          data: feeData 
+        });
+      } else {
+        await createFeeStructure.mutateAsync(feeData);
+      }
       
       form.reset();
       onComplete();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save fee. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error saving fee:', error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const mapChargeTimeToFrequency = (chargeTime: string): 'one_time' | 'monthly' | 'quarterly' | 'annually' => {
+    switch (chargeTime) {
+      case 'monthly':
+        return 'monthly';
+      case 'quarterly':
+        return 'quarterly';
+      case 'annually':
+        return 'annually';
+      default:
+        return 'one_time';
     }
   };
 

@@ -16,18 +16,14 @@ import { Plus, Edit, Trash2, DollarSign, Percent } from "lucide-react";
 import { useFeeStructures, useCreateFeeStructure, useUpdateFeeStructure, useDeleteFeeStructure, FeeStructure } from "@/hooks/useFeeManagement";
 
 const feeSchema = z.object({
-  fee_name: z.string().min(1, "Fee name is required"),
-  fee_code: z.string().min(1, "Fee code is required"),
+  name: z.string().min(1, "Fee name is required"),
   description: z.string().optional(),
-  fee_type: z.enum(['loan', 'savings', 'transaction', 'account']),
-  calculation_method: z.enum(['fixed', 'percentage', 'tiered']),
-  fixed_amount: z.string().optional(),
+  fee_type: z.string(),
+  calculation_type: z.string(),
+  amount: z.string().min(1, "Amount is required"),
   percentage_rate: z.string().optional(),
-  minimum_fee: z.string().optional(),
-  maximum_fee: z.string().optional(),
-  frequency: z.enum(['one_time', 'monthly', 'quarterly', 'annually']),
-  charge_time_type: z.enum(['upfront', 'monthly', 'annually', 'on_maturity', 'on_disbursement']),
-  charge_payment_by: z.enum(['regular', 'transfer_from_savings']),
+  min_amount: z.string().optional(),
+  max_amount: z.string().optional(),
   is_active: z.boolean().default(true),
 });
 
@@ -45,36 +41,30 @@ export const FeeStructureManagement = () => {
   const form = useForm<FeeFormData>({
     resolver: zodResolver(feeSchema),
     defaultValues: {
-      fee_name: "",
-      fee_code: "",
+      name: "",
       description: "",
       fee_type: "loan",
-      calculation_method: "fixed",
-      fixed_amount: "",
+      calculation_type: "fixed",
+      amount: "",
       percentage_rate: "",
-      minimum_fee: "",
-      maximum_fee: "",
-      frequency: "one_time",
-      charge_time_type: "upfront",
-      charge_payment_by: "regular",
+      min_amount: "",
+      max_amount: "",
       is_active: true,
     },
   });
 
-  const watchCalculationMethod = form.watch("calculation_method");
+  const watchCalculationType = form.watch("calculation_type");
 
   const onSubmit = async (data: FeeFormData) => {
     const feeData = {
-      fee_name: data.fee_name,
-      fee_code: data.fee_code,
+      name: data.name,
       description: data.description || "",
       fee_type: data.fee_type,
-      calculation_method: data.calculation_method,
-      fixed_amount: data.fixed_amount ? parseFloat(data.fixed_amount) : 0,
-      percentage_rate: data.percentage_rate ? parseFloat(data.percentage_rate) : 0,
-      minimum_fee: data.minimum_fee ? parseFloat(data.minimum_fee) : 0,
-      maximum_fee: data.maximum_fee ? parseFloat(data.maximum_fee) : undefined,
-      frequency: data.frequency,
+      calculation_type: data.calculation_type,
+      amount: parseFloat(data.amount),
+      percentage_rate: data.percentage_rate ? parseFloat(data.percentage_rate) : undefined,
+      min_amount: data.min_amount ? parseFloat(data.min_amount) : undefined,
+      max_amount: data.max_amount ? parseFloat(data.max_amount) : undefined,
       is_active: data.is_active,
     };
 
@@ -92,18 +82,14 @@ export const FeeStructureManagement = () => {
   const handleEdit = (fee: FeeStructure) => {
     setEditingFee(fee);
     form.reset({
-      fee_name: fee.fee_name,
-      fee_code: fee.fee_code,
+      name: fee.name,
       description: fee.description || "",
       fee_type: fee.fee_type,
-      calculation_method: fee.calculation_method,
-      fixed_amount: fee.fixed_amount.toString(),
-      percentage_rate: fee.percentage_rate.toString(),
-      minimum_fee: fee.minimum_fee.toString(),
-      maximum_fee: fee.maximum_fee?.toString() || "",
-      frequency: fee.frequency,
-      charge_time_type: (fee as any).charge_time_type || "upfront",
-      charge_payment_by: (fee as any).charge_payment_by || "regular",
+      calculation_type: fee.calculation_type,
+      amount: fee.amount.toString(),
+      percentage_rate: fee.percentage_rate?.toString() || "",
+      min_amount: fee.min_amount?.toString() || "",
+      max_amount: fee.max_amount?.toString() || "",
       is_active: fee.is_active,
     });
     setActiveTab("form");
@@ -192,10 +178,9 @@ export const FeeStructureManagement = () => {
                     <TableBody>
                       {feeStructures.map((fee) => (
                         <TableRow key={fee.id}>
-                          <TableCell>
+                           <TableCell>
                             <div>
-                              <p className="font-medium">{fee.fee_name}</p>
-                              <p className="text-xs text-muted-foreground">{fee.fee_code}</p>
+                              <p className="font-medium">{fee.name}</p>
                               {fee.description && (
                                 <p className="text-sm text-muted-foreground">{fee.description}</p>
                               )}
@@ -208,27 +193,27 @@ export const FeeStructureManagement = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
-                              {fee.calculation_method === 'percentage' ? (
+                              {fee.calculation_type === 'percentage' ? (
                                 <Percent className="h-4 w-4" />
                               ) : (
                                 <DollarSign className="h-4 w-4" />
                               )}
-                              {fee.calculation_method}
+                              {fee.calculation_type}
                             </div>
                           </TableCell>
                           <TableCell className="font-semibold">
-                            {fee.calculation_method === 'percentage' 
-                              ? `${fee.percentage_rate}%` 
-                              : `$${fee.fixed_amount}`
+                            {fee.calculation_type === 'percentage' 
+                              ? `${fee.percentage_rate || 0}%` 
+                              : `$${fee.amount}`
                             }
-                            {fee.minimum_fee > 0 && (
+                            {fee.min_amount && fee.min_amount > 0 && (
                               <div className="text-xs text-muted-foreground">
-                                Min: ${fee.minimum_fee}
+                                Min: ${fee.min_amount}
                               </div>
                             )}
                           </TableCell>
                           <TableCell>
-                            {fee.frequency.replace('_', ' ')}
+                            One Time
                           </TableCell>
                           <TableCell>
                             <Badge variant={fee.is_active ? "default" : "secondary"}>
@@ -264,35 +249,19 @@ export const FeeStructureManagement = () => {
             <TabsContent value="form" className="space-y-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="fee_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fee Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Loan Processing Fee" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="fee_code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Fee Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., LPF001" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fee Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Loan Processing Fee" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -321,20 +290,19 @@ export const FeeStructureManagement = () => {
 
                     <FormField
                       control={form.control}
-                      name="calculation_method"
+                      name="calculation_type"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Calculation Method</FormLabel>
+                          <FormLabel>Calculation Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select method" />
+                                <SelectValue placeholder="Select type" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="fixed">Fixed Amount</SelectItem>
                               <SelectItem value="percentage">Percentage</SelectItem>
-                              <SelectItem value="tiered">Tiered</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -344,23 +312,28 @@ export const FeeStructureManagement = () => {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    {watchCalculationMethod === 'fixed' && (
-                      <FormField
-                        control={form.control}
-                        name="fixed_amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Fixed Amount ($)</FormLabel>
-                            <FormControl>
-                              <Input type="number" step="0.01" placeholder="100.00" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Amount {watchCalculationType === "percentage" ? "(%)" : "(KSh)"}
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="0.01" 
+                              placeholder={watchCalculationType === "percentage" ? "2.5" : "100.00"} 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                    {watchCalculationMethod === 'percentage' && (
+                    {watchCalculationType === 'percentage' && (
                       <FormField
                         control={form.control}
                         name="percentage_rate"
@@ -375,39 +348,15 @@ export const FeeStructureManagement = () => {
                         )}
                       />
                     )}
-
-                    <FormField
-                      control={form.control}
-                      name="frequency"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Frequency</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select frequency" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="one_time">One Time</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="quarterly">Quarterly</SelectItem>
-                              <SelectItem value="annually">Annually</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="minimum_fee"
+                      name="min_amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Minimum Fee ($)</FormLabel>
+                          <FormLabel>Minimum Amount (KSh)</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" placeholder="0.00" {...field} />
                           </FormControl>
@@ -418,10 +367,10 @@ export const FeeStructureManagement = () => {
 
                     <FormField
                       control={form.control}
-                      name="maximum_fee"
+                      name="max_amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Maximum Fee ($) - Optional</FormLabel>
+                          <FormLabel>Maximum Amount (KSh) - Optional</FormLabel>
                           <FormControl>
                             <Input type="number" step="0.01" placeholder="1000.00" {...field} />
                           </FormControl>
@@ -448,54 +397,6 @@ export const FeeStructureManagement = () => {
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="charge_time_type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Charge Time Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select charge time" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="upfront">Upfront</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="annually">Annually</SelectItem>
-                              <SelectItem value="on_maturity">On Maturity</SelectItem>
-                              <SelectItem value="on_disbursement">On Disbursement</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="charge_payment_by"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Charge Payment By</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select payment method" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="regular">Regular</SelectItem>
-                              <SelectItem value="transfer_from_savings">Transfer from Savings</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
 
                   <FormField
                     control={form.control}

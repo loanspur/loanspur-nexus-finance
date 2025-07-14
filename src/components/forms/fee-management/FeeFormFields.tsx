@@ -123,26 +123,59 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
         <FormField
           control={form.control}
           name="chargeTimeType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Charge Time Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select charge time" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="upfront">Upfront</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                  <SelectItem value="on_maturity">On Maturity</SelectItem>
-                  <SelectItem value="on_disbursement">On Disbursement</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const category = form.watch("category");
+            const getChargeTimeOptions = () => {
+              if (category === "savings") {
+                return [
+                  { value: "upfront", label: "Account Opening" },
+                  { value: "monthly", label: "Monthly Maintenance" },
+                  { value: "quarterly", label: "Quarterly" },
+                  { value: "annually", label: "Annual Service" },
+                  { value: "on_transaction", label: "Per Transaction" },
+                  { value: "on_withdrawal", label: "On Withdrawal" },
+                  { value: "on_deposit", label: "On Deposit" },
+                ];
+              } else if (category === "loan") {
+                return [
+                  { value: "upfront", label: "Application Fee" },
+                  { value: "on_disbursement", label: "On Disbursement" },
+                  { value: "monthly", label: "Monthly Service" },
+                  { value: "on_maturity", label: "On Maturity" },
+                  { value: "late_payment", label: "Late Payment" },
+                  { value: "early_settlement", label: "Early Settlement" },
+                ];
+              } else {
+                return [
+                  { value: "upfront", label: "Upfront" },
+                  { value: "monthly", label: "Monthly" },
+                  { value: "annually", label: "Annually" },
+                  { value: "on_transaction", label: "Per Transaction" },
+                ];
+              }
+            };
+
+            return (
+              <FormItem>
+                <FormLabel>Charge Time Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select charge time" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {getChargeTimeOptions().map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField

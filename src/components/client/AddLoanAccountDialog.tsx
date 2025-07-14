@@ -870,13 +870,13 @@ export const AddLoanAccountDialog = ({
                               {loanFeeStructures.length === 0 ? (
                                 <SelectItem value="no-charges" disabled>No loan charges configured</SelectItem>
                               ) : (
-                                loanFeeStructures.map((fee) => (
-                                  <SelectItem key={fee.id} value={fee.id}>
-                                    {fee.fee_name} ({fee.calculation_method === 'fixed' ? 
-                                      `KES ${fee.fixed_amount}` : 
-                                      `${fee.percentage_rate}%`})
-                                  </SelectItem>
-                                ))
+                                 loanFeeStructures.map((fee) => (
+                                   <SelectItem key={fee.id} value={fee.id}>
+                                     {fee.name} ({fee.calculation_type === 'fixed' ? 
+                                       `KES ${fee.amount}` : 
+                                       `${fee.percentage_rate || fee.amount}%`})
+                                   </SelectItem>
+                                 ))
                               )}
                             </SelectContent>
                           </Select>

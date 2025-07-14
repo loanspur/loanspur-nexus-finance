@@ -6,35 +6,28 @@ import { useToast } from './use-toast';
 export interface FeeStructure {
   id: string;
   tenant_id: string;
-  fee_name: string;
-  fee_code: string;
+  name: string;
   description?: string;
-  fee_type: 'loan' | 'savings' | 'transaction' | 'account';
-  product_id?: string;
-  calculation_method: 'fixed' | 'percentage' | 'tiered';
-  fixed_amount: number;
-  percentage_rate: number;
-  minimum_fee: number;
-  maximum_fee?: number;
-  frequency: 'one_time' | 'monthly' | 'quarterly' | 'annually';
+  fee_type: string;
+  calculation_type: string;
+  amount: number;
+  percentage_rate?: number;
+  min_amount?: number;
+  max_amount?: number;
   is_active: boolean;
-  created_by?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateFeeStructureData {
-  fee_name: string;
-  fee_code: string;
+  name: string;
   description?: string;
-  fee_type: 'loan' | 'savings' | 'transaction' | 'account';
-  product_id?: string;
-  calculation_method: 'fixed' | 'percentage' | 'tiered';
-  fixed_amount?: number;
+  fee_type: string;
+  calculation_type: string;
+  amount: number;
   percentage_rate?: number;
-  minimum_fee?: number;
-  maximum_fee?: number;
-  frequency: 'one_time' | 'monthly' | 'quarterly' | 'annually';
+  min_amount?: number;
+  max_amount?: number;
   is_active: boolean;
 }
 
@@ -47,7 +40,7 @@ export const useFeeStructures = () => {
       if (!profile?.tenant_id) return [];
       
       const { data, error } = await supabase
-        .from('fee_structures' as any)
+        .from('fee_structures')
         .select('*')
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -71,14 +64,10 @@ export const useCreateFeeStructure = () => {
       }
 
       const { data: result, error } = await supabase
-        .from('fee_structures' as any)
+        .from('fee_structures')
         .insert({
           ...data,
           tenant_id: profile.tenant_id,
-          created_by: profile.id,
-          fixed_amount: data.fixed_amount || 0,
-          percentage_rate: data.percentage_rate || 0,
-          minimum_fee: data.minimum_fee || 0,
         })
         .select()
         .single();
@@ -111,7 +100,7 @@ export const useUpdateFeeStructure = () => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CreateFeeStructureData> }) => {
       const { data: result, error } = await supabase
-        .from('fee_structures' as any)
+        .from('fee_structures')
         .update(data)
         .eq('id', id)
         .select()
@@ -145,7 +134,7 @@ export const useDeleteFeeStructure = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('fee_structures' as any)
+        .from('fee_structures')
         .delete()
         .eq('id', id);
 
