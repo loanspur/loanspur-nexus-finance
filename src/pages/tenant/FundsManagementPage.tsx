@@ -17,7 +17,7 @@ import { useCurrencies, formatCurrency, useTenantCurrencySettings } from "@/hook
 
 const fundSchema = z.object({
   fund_name: z.string().min(1, "Fund name is required"),
-  fund_code: z.string().min(1, "Fund code is required"),
+  fund_code: z.string().optional(),
   description: z.string().optional(),
   fund_type: z.enum(['general', 'loan', 'savings', 'operational', 'reserve']),
   currency_id: z.string().optional(),
@@ -42,11 +42,52 @@ const FundsManagementPage = () => {
     },
   });
 
+  // Auto-generate fund code based on fund type
+  const generateFundCode = (fundType: string) => {
+    const prefixes = {
+      general: 'GEN',
+      loan: 'LON',
+      savings: 'SAV',
+      operational: 'OPR',
+      reserve: 'RSV',
+    };
+    
+    const prefix = prefixes[fundType as keyof typeof prefixes] || 'GEN';
+    const existingCodes = funds
+      .filter(f => f.fund_code.startsWith(prefix))
+      .map(f => parseInt(f.fund_code.split('-')[1]) || 0)
+      .sort((a, b) => b - a);
+    
+    const nextNumber = existingCodes.length > 0 ? existingCodes[0] + 1 : 1;
+    return `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
+  };
+
+  // Watch fund type changes to auto-generate code
+  React.useEffect(() => {
+    const subscription = fundForm.watch((value, { name }) => {
+      if (name === 'fund_type' && value.fund_type) {
+        const newCode = generateFundCode(value.fund_type);
+        fundForm.setValue('fund_code', newCode);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [fundForm, funds]);
+
+  // Set initial fund code when form loads
+  React.useEffect(() => {
+    if (fundForm.getValues('fund_type') && !fundForm.getValues('fund_code')) {
+      const initialCode = generateFundCode(fundForm.getValues('fund_type'));
+      fundForm.setValue('fund_code', initialCode);
+    }
+  }, [fundForm, funds]);
+
 
   const onCreateFund = async (values: z.infer<typeof fundSchema>) => {
+    const fundCode = values.fund_code || generateFundCode(values.fund_type);
+    
     await createFundMutation.mutateAsync({
       fund_name: values.fund_name,
-      fund_code: values.fund_code,
+      fund_code: fundCode,
       description: values.description,
       fund_type: values.fund_type,
       currency_id: values.currency_id,
@@ -123,9 +164,9 @@ const FundsManagementPage = () => {
                     name="fund_code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Fund Code</FormLabel>
+                        <FormLabel>Fund Code (Auto-generated)</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} readOnly className="bg-muted" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
