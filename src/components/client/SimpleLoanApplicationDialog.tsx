@@ -222,11 +222,17 @@ export const SimpleLoanApplicationDialog = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {funds.map((fund) => (
-                        <SelectItem key={fund.id} value={fund.id}>
-                          {fund.fund_name} ({fund.fund_code}) - Balance: {fund.current_balance.toLocaleString()}
+                      {funds && funds.length > 0 ? (
+                        funds.map((fund) => (
+                          <SelectItem key={fund.id} value={fund.id}>
+                            {fund.fund_name} ({fund.fund_code}) - Balance: {fund.current_balance?.toLocaleString() || 0}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="" disabled>
+                          No funds available
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
