@@ -223,26 +223,28 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="isOverdueCharge"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <FormLabel className="text-base">Overdue Charge</FormLabel>
-              <div className="text-sm text-muted-foreground">
-                Mark this fee as an overdue/penalty charge
+      <div className="space-y-4">
+        <FormField
+          control={form.control}
+          name="isOverdueCharge"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-orange-50 dark:bg-orange-950">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base font-semibold">Overdue/Penalty Charge</FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  Mark this fee as an overdue or penalty charge that applies when payments are late
+                </div>
               </div>
-            </div>
-            <FormControl>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-          </FormItem>
-        )}
-      />
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      </div>
 
       <FormField
         control={form.control}
