@@ -24,6 +24,8 @@ const feeSchema = z.object({
   percentage_rate: z.string().optional(),
   min_amount: z.string().optional(),
   max_amount: z.string().optional(),
+  charge_time_type: z.string(),
+  charge_payment_by: z.string(),
   is_active: z.boolean().default(true),
 });
 
@@ -49,6 +51,8 @@ export const FeeStructureManagement = () => {
       percentage_rate: "",
       min_amount: "",
       max_amount: "",
+      charge_time_type: "upfront",
+      charge_payment_by: "regular",
       is_active: true,
     },
   });
@@ -65,6 +69,8 @@ export const FeeStructureManagement = () => {
       percentage_rate: data.percentage_rate ? parseFloat(data.percentage_rate) : undefined,
       min_amount: data.min_amount ? parseFloat(data.min_amount) : undefined,
       max_amount: data.max_amount ? parseFloat(data.max_amount) : undefined,
+      charge_time_type: data.charge_time_type,
+      charge_payment_by: data.charge_payment_by,
       is_active: data.is_active,
     };
 
@@ -90,6 +96,8 @@ export const FeeStructureManagement = () => {
       percentage_rate: fee.percentage_rate?.toString() || "",
       min_amount: fee.min_amount?.toString() || "",
       max_amount: fee.max_amount?.toString() || "",
+      charge_time_type: (fee as any).charge_time_type || "upfront",
+      charge_payment_by: (fee as any).charge_payment_by || "regular",
       is_active: fee.is_active,
     });
     setActiveTab("form");
@@ -374,6 +382,92 @@ export const FeeStructureManagement = () => {
                           <FormControl>
                             <Input type="number" step="0.01" placeholder="1000.00" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="charge_time_type"
+                      render={({ field }) => {
+                        const feeType = form.watch("fee_type");
+                        const getChargeTimeOptions = () => {
+                          if (feeType === "savings") {
+                            return [
+                              { value: "upfront", label: "Account Opening" },
+                              { value: "monthly", label: "Monthly Maintenance" },
+                              { value: "quarterly", label: "Quarterly" },
+                              { value: "annually", label: "Annual Service" },
+                              { value: "on_transaction", label: "Per Transaction" },
+                              { value: "on_withdrawal", label: "On Withdrawal" },
+                              { value: "on_deposit", label: "On Deposit" },
+                            ];
+                          } else if (feeType === "loan") {
+                            return [
+                              { value: "upfront", label: "Application Fee" },
+                              { value: "on_disbursement", label: "On Disbursement" },
+                              { value: "monthly", label: "Monthly Service" },
+                              { value: "on_maturity", label: "On Maturity" },
+                              { value: "late_payment", label: "Late Payment" },
+                              { value: "early_settlement", label: "Early Settlement" },
+                            ];
+                          } else {
+                            return [
+                              { value: "upfront", label: "Upfront" },
+                              { value: "monthly", label: "Monthly" },
+                              { value: "annually", label: "Annually" },
+                              { value: "on_transaction", label: "Per Transaction" },
+                            ];
+                          }
+                        };
+
+                        return (
+                          <FormItem>
+                            <FormLabel>Charge Time Type *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select charge time" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {getChargeTimeOptions().map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="charge_payment_by"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Charge Payment By</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select payment method" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="regular">Regular</SelectItem>
+                              <SelectItem value="transfer">Transfer</SelectItem>
+                              <SelectItem value="client">Client</SelectItem>
+                              <SelectItem value="system">System</SelectItem>
+                              <SelectItem value="automatic">Automatic</SelectItem>
+                              <SelectItem value="manual">Manual</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
