@@ -394,6 +394,15 @@ export const useProcessLoanApproval = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
+      // Get loan application details
+      const { data: loanApplication, error: fetchError } = await supabase
+        .from('loan_applications')
+        .select('*')
+        .eq('id', approval.loan_application_id)
+        .single();
+      
+      if (fetchError || !loanApplication) throw new Error('Loan application not found');
+
       // Create approval record
       const { data: approvalData, error: approvalError } = await supabase
         .from('loan_approvals')
@@ -438,6 +447,31 @@ export const useProcessLoanApproval = () => {
         .eq('id', approval.loan_application_id);
 
       if (updateError) throw updateError;
+
+      // If approved, create loan record immediately
+      if (approval.action === 'approve') {
+        const loanNumber = `LN-${Date.now()}`;
+        
+        const { data: loanData, error: loanError } = await supabase
+          .from('loans')
+          .insert([{
+            tenant_id: profile.tenant_id,
+            client_id: loanApplication.client_id,
+            loan_product_id: loanApplication.loan_product_id,
+            loan_number: loanNumber,
+            principal_amount: approval.approved_amount || loanApplication.requested_amount,
+            interest_rate: approval.approved_interest_rate || 10,
+            term_months: approval.approved_term || loanApplication.requested_term,
+            outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
+            status: 'pending_disbursement',
+            loan_officer_id: profile.id,
+            application_id: approval.loan_application_id,
+          }])
+          .select()
+          .single();
+        
+        if (loanError) throw loanError;
+      }
 
       return approvalData;
     },
@@ -496,47 +530,97 @@ export const useProcessLoanDisbursement = () => {
       loan_application_id: string;
       disbursed_amount: number;
       disbursement_date: string;
-      disbursement_method: 'bank_transfer' | 'mpesa' | 'cash' | 'check';
+      disbursement_method: 'bank_transfer' | 'mpesa' | 'cash' | 'check' | 'transfer_to_savings';
       bank_account_name?: string;
       bank_account_number?: string;
       bank_name?: string;
       mpesa_phone?: string;
       reference_number?: string;
+      savings_account_id?: string;
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
-      // First, get the loan application details
-      const { data: loanApplication, error: fetchError } = await supabase
-        .from('loan_applications')
-        .select('*')
-        .eq('id', disbursement.loan_application_id)
-        .single();
-      
-      if (fetchError || !loanApplication) throw new Error('Loan application not found');
-
-      // Generate loan number
-      const loanNumber = `LN-${Date.now()}`;
-
-      // Create the actual loan record
-      const { data: loanData, error: loanError } = await supabase
+      // Get the existing loan record
+      const { data: existingLoan, error: loanFetchError } = await supabase
         .from('loans')
-        .insert([{
-          tenant_id: profile.tenant_id,
-          client_id: loanApplication.client_id,
-          loan_product_id: loanApplication.loan_product_id,
-          loan_number: loanNumber,
-          principal_amount: disbursement.disbursed_amount,
-          interest_rate: loanApplication.final_approved_interest_rate || 10, // Default rate if not specified
-          term_months: loanApplication.final_approved_term || loanApplication.requested_term,
-          disbursement_date: disbursement.disbursement_date,
-          outstanding_balance: disbursement.disbursed_amount,
-          status: 'active',
-          loan_officer_id: profile.id,
-        }])
-        .select()
+        .select('*')
+        .eq('application_id', disbursement.loan_application_id)
         .single();
       
-      if (loanError) throw loanError;
+      if (loanFetchError || !existingLoan) throw new Error('Approved loan not found');
+
+      // Process charges if any (mapped on disbursement)
+      const { data: loanProduct, error: productError } = await supabase
+        .from('loan_products')
+        .select(`
+          *,
+          product_fees(*)
+        `)
+        .eq('id', existingLoan.loan_product_id)
+        .single();
+
+      let totalCharges = 0;
+      const chargeTransactions = [];
+
+      if (loanProduct?.product_fees) {
+        for (const charge of loanProduct.product_fees) {
+          if (charge.charge_applies_to === 'loan' && charge.charge_option === 'on_disbursement') {
+            const chargeAmount = charge.charge_type === 'percentage' 
+              ? (disbursement.disbursed_amount * charge.amount / 100)
+              : charge.amount;
+            
+            totalCharges += chargeAmount;
+            chargeTransactions.push({
+              tenant_id: profile.tenant_id,
+              loan_id: existingLoan.id,
+              charge_type: charge.name,
+              amount: chargeAmount,
+              payment_method: charge.charge_payment_option || 'deduct_from_loan',
+            });
+          }
+        }
+      }
+
+      // If disbursing to savings account
+      if (disbursement.disbursement_method === 'transfer_to_savings' && disbursement.savings_account_id) {
+        const netAmount = disbursement.disbursed_amount - totalCharges;
+        
+        // Get current balance first
+        const { data: savingsAccount, error: fetchError } = await supabase
+          .from('savings_accounts')
+          .select('account_balance')
+          .eq('id', disbursement.savings_account_id)
+          .single();
+
+        if (fetchError) throw fetchError;
+        
+        const newBalance = (savingsAccount.account_balance || 0) + netAmount;
+        
+        // Update savings account balance
+        const { error: savingsError } = await supabase
+          .from('savings_accounts')
+          .update({
+            account_balance: newBalance
+          })
+          .eq('id', disbursement.savings_account_id);
+
+        if (savingsError) throw savingsError;
+
+        // Create savings transaction
+        const { error: transactionError } = await supabase
+          .from('savings_transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            savings_account_id: disbursement.savings_account_id,
+            transaction_type: 'credit',
+            amount: netAmount,
+            balance_after: newBalance,
+            description: `Loan disbursement - ${existingLoan.loan_number}`,
+            processed_by: profile.id,
+          });
+
+        if (transactionError) throw transactionError;
+      }
 
       // Create disbursement record
       const { data: disbursementData, error: disbursementError } = await supabase
@@ -544,7 +628,7 @@ export const useProcessLoanDisbursement = () => {
         .insert([{
           tenant_id: profile.tenant_id,
           loan_application_id: disbursement.loan_application_id,
-          loan_id: loanData.id,
+          loan_id: existingLoan.id,
           disbursed_amount: disbursement.disbursed_amount,
           disbursement_date: disbursement.disbursement_date,
           disbursement_method: disbursement.disbursement_method,
@@ -561,6 +645,17 @@ export const useProcessLoanDisbursement = () => {
       
       if (disbursementError) throw disbursementError;
 
+      // Update loan status to active and set disbursement date
+      const { error: loanUpdateError } = await supabase
+        .from('loans')
+        .update({
+          status: 'active',
+          disbursement_date: disbursement.disbursement_date,
+        })
+        .eq('id', existingLoan.id);
+
+      if (loanUpdateError) throw loanUpdateError;
+
       // Update loan application status to disbursed
       const { error: updateError } = await supabase
         .from('loan_applications')
@@ -571,13 +666,14 @@ export const useProcessLoanDisbursement = () => {
 
       if (updateError) throw updateError;
 
-      return { loan: loanData, disbursement: disbursementData };
+      return { loan: existingLoan, disbursement: disbursementData, charges: chargeTransactions };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
       queryClient.invalidateQueries({ queryKey: ['loan-disbursements'] });
       queryClient.invalidateQueries({ queryKey: ['client-loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
       toast({
         title: "Success",
         description: "Loan disbursed successfully",
@@ -590,5 +686,72 @@ export const useProcessLoanDisbursement = () => {
         variant: "destructive",
       });
     },
+  });
+};
+
+// Client Loans Hook - for fetching loans for a specific client
+export const useClientLoans = (clientId?: string) => {
+  const { profile } = useAuth();
+
+  return useQuery({
+    queryKey: ['client-loans', clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      
+      const { data, error } = await supabase
+        .from('loans')
+        .select(`
+          *,
+          loan_products(name, short_name),
+          loan_schedules(*),
+          loan_applications(application_number, status)
+        `)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+};
+
+// Update Client Details Dialog to show both loans and applications
+export const useClientLoansForDialog = (clientId?: string) => {
+  return useQuery({
+    queryKey: ['client-loans-dialog', clientId],
+    queryFn: async () => {
+      if (!clientId) return { loans: [], loanApplications: [] };
+      
+      // Fetch both loans and loan applications
+      const [loansResult, applicationsResult] = await Promise.all([
+        supabase
+          .from('loans')
+          .select(`
+            *,
+            loan_products(name, short_name)
+          `)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false }),
+        
+        supabase
+          .from('loan_applications')
+          .select(`
+            *,
+            loan_products(name, short_name)
+          `)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false })
+      ]);
+      
+      if (loansResult.error) throw loansResult.error;
+      if (applicationsResult.error) throw applicationsResult.error;
+      
+      return {
+        loans: loansResult.data || [],
+        loanApplications: applicationsResult.data || []
+      };
+    },
+    enabled: !!clientId,
   });
 };
