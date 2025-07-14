@@ -176,8 +176,7 @@ export const SavingsTransactionForm = ({
           amount: amount,
           balance_after: newBalance,
           description: data.description || `${data.transactionType} transaction`,
-          reference_number: data.reference,
-          status: 'completed'
+          reference_number: data.reference
         });
 
       if (transactionError) throw transactionError;
