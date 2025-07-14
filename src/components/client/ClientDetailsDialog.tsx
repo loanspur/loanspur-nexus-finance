@@ -102,12 +102,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showSavingsDetails, setShowSavingsDetails] = useState(false);
   const [activeLoanProducts, setActiveLoanProducts] = useState<any[]>([]);
   const [activeSavingsProducts, setActiveSavingsProducts] = useState<any[]>([]);
+  const [clientLoans, setClientLoans] = useState<any[]>([]);
+  const [clientSavings, setClientSavings] = useState<any[]>([]);
   const { toast } = useToast();
   
-  // Fetch active products when dialog opens
+  // Fetch active products and client accounts when dialog opens
   useEffect(() => {
     if (open && client) {
       fetchActiveProducts();
+      fetchClientAccounts();
     }
   }, [open, client]);
 
@@ -135,6 +138,56 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         variant: "destructive",
       });
     }
+  };
+
+  const fetchClientAccounts = async () => {
+    try {
+      // Fetch client loans with product info
+      const { data: loans } = await supabase
+        .from('loans')
+        .select(`
+          *,
+          loan_products(name, currency_code)
+        `)
+        .eq('client_id', client.id)
+        .order('created_at', { ascending: false });
+
+      // Fetch client savings accounts with product info
+      const { data: savings } = await supabase
+        .from('savings_accounts')
+        .select(`
+          *,
+          savings_products(name, currency_code, nominal_annual_interest_rate)
+        `)
+        .eq('client_id', client.id)
+        .order('created_at', { ascending: false });
+
+      setClientLoans(loans || []);
+      setClientSavings(savings || []);
+    } catch (error) {
+      console.error('Error fetching client accounts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load client accounts",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSavingsCreated = () => {
+    fetchClientAccounts(); // Refresh the client accounts data
+    toast({
+      title: "Success",
+      description: "Savings account created successfully",
+    });
+  };
+
+  const handleLoanCreated = () => {
+    fetchClientAccounts(); // Refresh the client accounts data
+    toast({
+      title: "Success", 
+      description: "Loan application submitted successfully",
+    });
   };
   
   if (!client) return null;
@@ -254,11 +307,37 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     });
   };
 
-  const handleSavingsAction = (action: string, savingsId: string) => {
-    toast({
-      title: `Savings ${action}`,
-      description: `${action} action completed for savings ${savingsId}`,
-    });
+  const handleSavingsAction = async (action: string, savingsId: string) => {
+    try {
+      if (action === 'Activate') {
+        const { error } = await supabase
+          .from('savings_accounts')
+          .update({ is_active: true })
+          .eq('id', savingsId);
+
+        if (error) throw error;
+
+        // Refresh the client accounts data
+        fetchClientAccounts();
+        
+        toast({
+          title: "Success",
+          description: "Savings account activated successfully",
+        });
+      } else {
+        toast({
+          title: `Savings ${action}`,
+          description: `${action} action completed for savings ${savingsId}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error performing savings action:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${action.toLowerCase()} savings account`,
+        variant: "destructive",
+      });
+    }
   };
 
   // Filter mock data to only show products that are active
@@ -459,7 +538,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <PiggyBank className="h-5 w-5" />
-                    Savings Accounts ({filteredSavings.length})
+                    Savings Accounts ({clientSavings.length})
                   </h3>
                   <Button size="sm" onClick={() => setShowAddSavingsDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -468,71 +547,61 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                 </div>
                 
                 <div className="border rounded-lg divide-y">
-                  {filteredSavings.map((savings) => (
-                    <div key={savings.id} className="p-4 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <h4 className="font-medium">{savings.type}</h4>
-                            <p className="text-sm text-muted-foreground">{savings.id}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <div className="text-sm font-medium">{formatCurrency(savings.balance)}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Interest: {savings.interestRate}%
+                  {clientSavings.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <PiggyBank className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No savings accounts yet</p>
+                      <p className="text-sm">Create a savings account to get started</p>
+                    </div>
+                  ) : (
+                    clientSavings.map((savings) => (
+                      <div key={savings.id} className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h4 className="font-medium">{savings.savings_products?.name || 'Unknown Product'}</h4>
+                              <p className="text-sm text-muted-foreground">{savings.account_number}</p>
                             </div>
                           </div>
-                          <Badge variant={getStatusColor(savings.status)}>
-                            {savings.status}
-                          </Badge>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className="text-sm font-medium">{formatCurrency(savings.account_balance)}</div>
+                              <div className="text-xs text-muted-foreground">
+                                Interest: {savings.savings_products?.nominal_annual_interest_rate || 0}%
+                              </div>
+                            </div>
+                            <Badge variant={savings.is_active ? "default" : "secondary"}>
+                              {savings.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedSavings(savings);
-                            setShowSavingsDetails(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                        
-                        {savings.status === 'pending' && (
-                          <>
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedSavings(savings);
+                              setShowSavingsDetails(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          
+                          {!savings.is_active && (
                             <Button
-                              size="sm"
-                              onClick={() => handleSavingsAction('Approve', savings.id)}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleSavingsAction('Modify', savings.id)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Modify
-                            </Button>
-                            <Button
-                              variant="outline"
                               size="sm"
                               onClick={() => handleSavingsAction('Activate', savings.id)}
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Activate
                             </Button>
-                          </>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -689,12 +758,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           clientName={`${client.first_name} ${client.last_name}`}
           open={showAddSavingsDialog}
           onOpenChange={setShowAddSavingsDialog}
-          onSuccess={() => {
-            toast({
-              title: "Success",
-              description: "Savings account created successfully",
-            });
-          }}
+          onSuccess={handleSavingsCreated}
         />
 
         <AddLoanAccountDialog
@@ -702,12 +766,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           clientName={`${client.first_name} ${client.last_name}`}
           open={showAddLoanDialog}
           onOpenChange={setShowAddLoanDialog}
-          onSuccess={() => {
-            toast({
-              title: "Success", 
-              description: "Loan application submitted successfully",
-            });
-          }}
+          onSuccess={handleLoanCreated}
         />
 
         <TransferClientDialog
