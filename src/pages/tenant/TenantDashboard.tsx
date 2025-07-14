@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
+import { PendingApprovalsCard } from "@/components/loan/PendingApprovalsCard";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { 
   Users, 
@@ -121,9 +122,15 @@ const TenantDashboard = () => {
         </div>
       </div>
 
-      <DashboardKPIs kpis={kpis} />
-
-      <DashboardCharts {...chartData} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <DashboardKPIs kpis={kpis} />
+          <DashboardCharts {...chartData} />
+        </div>
+        <div className="space-y-6">
+          <PendingApprovalsCard />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-card">

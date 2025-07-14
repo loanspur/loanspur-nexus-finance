@@ -36,6 +36,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { CalendarDays, DollarSign, FileText } from "lucide-react";
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { generateSampleLoanApplicationData } from "@/lib/dev-utils";
+import { useGetApprovalWorkflow, useCreateApprovalRequest } from "@/hooks/useApprovalRequests";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Please select a client"),
@@ -57,6 +58,10 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
   const [open, setOpen] = useState(false);
   const { profile } = useAuth();
   const createLoanApplication = useCreateLoanApplication();
+  const createApprovalRequest = useCreateApprovalRequest();
+  
+  // Get loan application approval workflow
+  const { data: approvalWorkflow } = useGetApprovalWorkflow('loan_applications', 'loan_approval');
 
   const form = useForm<LoanApplicationFormData>({
     resolver: zodResolver(loanApplicationSchema),
@@ -107,14 +112,33 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
 
   const onSubmit = async (data: LoanApplicationFormData) => {
     try {
-      await createLoanApplication.mutateAsync({
+      // Create the loan application
+      const application = await createLoanApplication.mutateAsync({
         client_id: data.client_id,
         loan_product_id: data.loan_product_id,
         requested_amount: data.requested_amount,
         requested_term: data.requested_term,
         purpose: data.purpose,
-        status: 'pending',
+        status: approvalWorkflow ? 'under_review' : 'pending',
       });
+
+      // If approval workflow exists, create approval request
+      if (approvalWorkflow && application) {
+        await createApprovalRequest.mutateAsync({
+          workflow_id: approvalWorkflow.id,
+          record_id: application.id,
+          record_data: {
+            client_id: data.client_id,
+            loan_product_id: data.loan_product_id,
+            requested_amount: data.requested_amount,
+            requested_term: data.requested_term,
+            purpose: data.purpose,
+          },
+          priority: data.requested_amount > 100000 ? 'high' : 'normal',
+          reason: `Loan application for $${data.requested_amount.toLocaleString()}`,
+        });
+      }
+      
       form.reset();
       setOpen(false);
     } catch (error) {
