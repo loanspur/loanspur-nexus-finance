@@ -36,7 +36,8 @@ import {
   Plus,
   Minus,
   ArrowRightLeft,
-  UserMinus
+  UserMinus,
+  Receipt
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
@@ -107,7 +108,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [clientLoans, setClientLoans] = useState<any[]>([]);
   const [clientSavings, setClientSavings] = useState<any[]>([]);
   const [showSavingsTransactionDialog, setShowSavingsTransactionDialog] = useState(false);
-  const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer'>('deposit');
+  const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'charge'>('deposit');
   const { toast } = useToast();
   
   // Fetch active products and client accounts when dialog opens
@@ -630,6 +631,18 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               >
                                 <ArrowRightLeft className="h-4 w-4 mr-2" />
                                 Transfer
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedSavings(savings);
+                                  setTransactionType('charge');
+                                  setShowSavingsTransactionDialog(true);
+                                }}
+                              >
+                                <Receipt className="h-4 w-4 mr-2" />
+                                Charge
                               </Button>
                             </>
                           )}
