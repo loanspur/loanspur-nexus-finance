@@ -125,6 +125,36 @@ export const AddLoanAccountDialog = ({
     enabled: !!clientId,
   });
 
+  // Fetch client's savings accounts
+  const { data: clientSavingsAccounts = [] } = useQuery({
+    queryKey: ['client-savings-accounts', clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      const { data, error } = await supabase
+        .from('savings_accounts')
+        .select(`
+          *,
+          savings_products(name)
+        `)
+        .eq('client_id', clientId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
+  // Check if product has charges that can be paid by transfer
+  const hasTransferCharges = () => {
+    const selectedProductId = form?.watch("loan_product_id");
+    const selectedProduct = loanProducts.find(p => p.id === selectedProductId);
+    if (!selectedProduct) return false;
+    return loanFeeStructures.some(fee => 
+      fee.charge_payment_by === 'transfer' || fee.charge_payment_by.includes('transfer')
+    );
+  };
+
   // Initialize form first
   const form = useForm<AddLoanAccountData>({
     resolver: zodResolver(addLoanAccountSchema),
@@ -153,13 +183,14 @@ export const AddLoanAccountDialog = ({
   
   console.log('Watched fields changed:', watchedFields);
 
+
   // Dynamic validation schema based on selected product
   const createDynamicSchema = (product?: any) => {
     const baseSchema = addLoanAccountSchema;
     
     if (!product) return baseSchema;
 
-    return baseSchema.extend({
+    const extendedSchema = baseSchema.extend({
       requested_amount: z.string()
         .min(1, "Loan amount is required")
         .refine((val) => {
@@ -181,6 +212,18 @@ export const AddLoanAccountDialog = ({
           return term >= product.min_term && term <= product.max_term;
         }, `Loan term must be between ${product.min_term} and ${product.max_term} months`),
     });
+
+    // If product has transfer charges, make linked savings account required
+    if (hasTransferCharges()) {
+      return extendedSchema.extend({
+        savings_linkage: z.boolean().refine(val => val === true, {
+          message: "Savings account linkage is required for loans with transfer charges"
+        }),
+        linked_savings_account: z.string().min(1, "Please select a linked savings account")
+      });
+    }
+
+    return extendedSchema;
   };
 
   // Auto-populate defaults when product is selected
@@ -693,22 +736,31 @@ export const AddLoanAccountDialog = ({
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Link to Savings Account</FormLabel>
+                          <FormLabel>
+                            Link to Savings Account
+                            {hasTransferCharges() && <span className="text-red-500 ml-1">*</span>}
+                          </FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Link this loan to an existing savings account for automatic deductions
+                            {hasTransferCharges() ? 
+                              "Required: This loan has charges that can be paid by transfer" :
+                              "Link this loan to an existing savings account for automatic deductions"
+                            }
                           </p>
                         </div>
                       </FormItem>
                     )}
                   />
 
-                  {form.watch("savings_linkage") && (
+                  {(form.watch("savings_linkage") || hasTransferCharges()) && (
                     <FormField
                       control={form.control}
                       name="linked_savings_account"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Linked Savings Account</FormLabel>
+                          <FormLabel>
+                            Linked Savings Account
+                            {hasTransferCharges() && <span className="text-red-500 ml-1">*</span>}
+                          </FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
@@ -716,11 +768,30 @@ export const AddLoanAccountDialog = ({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="savings-001">Regular Savings - ACC001</SelectItem>
-                              <SelectItem value="savings-002">Business Savings - ACC002</SelectItem>
-                              <SelectItem value="savings-003">Fixed Deposit - ACC003</SelectItem>
+                              {clientSavingsAccounts.length === 0 ? (
+                                <SelectItem value="no-accounts" disabled>
+                                  No active savings accounts found
+                                </SelectItem>
+                              ) : (
+                                clientSavingsAccounts.map((account) => (
+                                  <SelectItem key={account.id} value={account.id}>
+                                    {account.savings_products?.name || 'Unknown Product'} - {account.account_number} 
+                                    (Balance: KES {account.account_balance?.toLocaleString() || '0'})
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
+                          {hasTransferCharges() && (
+                            <p className="text-xs text-orange-600 mt-1">
+                              Required: This loan has charges that can be paid by transfer
+                            </p>
+                          )}
+                          {clientSavingsAccounts.length === 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              No active savings accounts available. Create a savings account first.
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}

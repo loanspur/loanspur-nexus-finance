@@ -49,6 +49,7 @@ import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
 import { SavingsDetailsDialog } from "@/components/savings/SavingsDetailsDialog";
 import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 import { TransactionHistoryDialog } from "@/components/statements/TransactionHistoryDialog";
+import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -111,6 +112,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [clientSavings, setClientSavings] = useState<any[]>([]);
   const [showSavingsTransactionDialog, setShowSavingsTransactionDialog] = useState(false);
   const [showTransactionHistoryDialog, setShowTransactionHistoryDialog] = useState(false);
+  const [showLoanWorkflowDialog, setShowLoanWorkflowDialog] = useState(false);
   const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
   const { toast } = useToast();
   
@@ -508,32 +510,34 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                           View
                         </Button>
                         
+//... keep existing code for charges, documents, etc.
+
                         {loan.status === 'pending' && (
                           <>
                             <Button
                               size="sm"
-                              onClick={() => handleLoanAction('Approve', loan.id)}
+                              onClick={() => {
+                                setSelectedLoan(loan);
+                                setShowLoanWorkflowDialog(true);
+                              }}
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLoanAction('Modify', loan.id)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Modify
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLoanAction('Disburse', loan.id)}
-                            >
-                              <Wallet className="h-4 w-4 mr-2" />
-                              Disburse
+                              Process
                             </Button>
                           </>
+                        )}
+                        
+                        {(loan.status === 'approved' || loan.status === 'pending_disbursement') && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedLoan(loan);
+                              setShowLoanWorkflowDialog(true);
+                            }}
+                          >
+                            <Wallet className="h-4 w-4 mr-2" />
+                            Disburse
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -916,6 +920,18 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             onOpenChange={setShowTransactionHistoryDialog}
             savingsAccount={selectedSavings}
             clientName={`${client.first_name} ${client.last_name}`}
+          />
+        )}
+
+        {selectedLoan && (
+          <LoanWorkflowDialog
+            loanApplication={selectedLoan}
+            open={showLoanWorkflowDialog}
+            onOpenChange={setShowLoanWorkflowDialog}
+            onSuccess={() => {
+              // Refresh loan data if needed
+              fetchClientAccounts();
+            }}
           />
         )}
       </DialogContent>
