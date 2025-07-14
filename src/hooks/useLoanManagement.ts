@@ -505,12 +505,46 @@ export const useProcessLoanDisbursement = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
+      // First, get the loan application details
+      const { data: loanApplication, error: fetchError } = await supabase
+        .from('loan_applications')
+        .select('*')
+        .eq('id', disbursement.loan_application_id)
+        .single();
+      
+      if (fetchError || !loanApplication) throw new Error('Loan application not found');
+
+      // Generate loan number
+      const loanNumber = `LN-${Date.now()}`;
+
+      // Create the actual loan record
+      const { data: loanData, error: loanError } = await supabase
+        .from('loans')
+        .insert([{
+          tenant_id: profile.tenant_id,
+          client_id: loanApplication.client_id,
+          loan_product_id: loanApplication.loan_product_id,
+          loan_number: loanNumber,
+          principal_amount: disbursement.disbursed_amount,
+          interest_rate: loanApplication.final_approved_interest_rate || 10, // Default rate if not specified
+          term_months: loanApplication.final_approved_term || loanApplication.requested_term,
+          disbursement_date: disbursement.disbursement_date,
+          outstanding_balance: disbursement.disbursed_amount,
+          status: 'active',
+          loan_officer_id: profile.id,
+        }])
+        .select()
+        .single();
+      
+      if (loanError) throw loanError;
+
       // Create disbursement record
       const { data: disbursementData, error: disbursementError } = await supabase
         .from('loan_disbursements')
         .insert([{
           tenant_id: profile.tenant_id,
           loan_application_id: disbursement.loan_application_id,
+          loan_id: loanData.id,
           disbursed_amount: disbursement.disbursed_amount,
           disbursement_date: disbursement.disbursement_date,
           disbursement_method: disbursement.disbursement_method,
@@ -537,11 +571,13 @@ export const useProcessLoanDisbursement = () => {
 
       if (updateError) throw updateError;
 
-      return disbursementData;
+      return { loan: loanData, disbursement: disbursementData };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
       queryClient.invalidateQueries({ queryKey: ['loan-disbursements'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
       toast({
         title: "Success",
         description: "Loan disbursed successfully",
