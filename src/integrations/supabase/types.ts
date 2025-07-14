@@ -4060,6 +4060,7 @@ export type Database = {
       }
       loan_products: {
         Row: {
+          accounting_type: string | null
           advance_payments_adjustment_type: string | null
           allow_partial_period_interest: boolean | null
           arrears_tolerance_amount: number | null
@@ -4074,6 +4075,7 @@ export type Database = {
           early_repayment_penalty_amount: number | null
           early_repayment_penalty_percentage: number | null
           fee_income_account_id: string | null
+          fee_payment_account_id: string | null
           fund_source_account_id: string | null
           grace_period_duration: number | null
           grace_period_type: string | null
@@ -4081,10 +4083,12 @@ export type Database = {
           interest_calculation_method: string | null
           interest_calculation_period: string | null
           interest_income_account_id: string | null
+          interest_payment_account_id: string | null
           interest_receivable_account_id: string | null
           is_active: boolean
           late_payment_penalty_amount: number | null
           late_payment_penalty_percentage: number | null
+          linked_fee_ids: string[] | null
           loan_portfolio_account_id: string | null
           max_nominal_interest_rate: number
           max_principal: number
@@ -4097,7 +4101,9 @@ export type Database = {
           name: string
           overpayment_liability_account_id: string | null
           penalty_income_account_id: string | null
+          penalty_payment_account_id: string | null
           pre_closure_interest_calculation_rule: string | null
+          principal_payment_account_id: string | null
           processing_fee_amount: number | null
           processing_fee_percentage: number | null
           provision_account_id: string | null
@@ -4110,6 +4116,7 @@ export type Database = {
           writeoff_expense_account_id: string | null
         }
         Insert: {
+          accounting_type?: string | null
           advance_payments_adjustment_type?: string | null
           allow_partial_period_interest?: boolean | null
           arrears_tolerance_amount?: number | null
@@ -4124,6 +4131,7 @@ export type Database = {
           early_repayment_penalty_amount?: number | null
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
+          fee_payment_account_id?: string | null
           fund_source_account_id?: string | null
           grace_period_duration?: number | null
           grace_period_type?: string | null
@@ -4131,10 +4139,12 @@ export type Database = {
           interest_calculation_method?: string | null
           interest_calculation_period?: string | null
           interest_income_account_id?: string | null
+          interest_payment_account_id?: string | null
           interest_receivable_account_id?: string | null
           is_active?: boolean
           late_payment_penalty_amount?: number | null
           late_payment_penalty_percentage?: number | null
+          linked_fee_ids?: string[] | null
           loan_portfolio_account_id?: string | null
           max_nominal_interest_rate: number
           max_principal: number
@@ -4147,7 +4157,9 @@ export type Database = {
           name: string
           overpayment_liability_account_id?: string | null
           penalty_income_account_id?: string | null
+          penalty_payment_account_id?: string | null
           pre_closure_interest_calculation_rule?: string | null
+          principal_payment_account_id?: string | null
           processing_fee_amount?: number | null
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
@@ -4160,6 +4172,7 @@ export type Database = {
           writeoff_expense_account_id?: string | null
         }
         Update: {
+          accounting_type?: string | null
           advance_payments_adjustment_type?: string | null
           allow_partial_period_interest?: boolean | null
           arrears_tolerance_amount?: number | null
@@ -4174,6 +4187,7 @@ export type Database = {
           early_repayment_penalty_amount?: number | null
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
+          fee_payment_account_id?: string | null
           fund_source_account_id?: string | null
           grace_period_duration?: number | null
           grace_period_type?: string | null
@@ -4181,10 +4195,12 @@ export type Database = {
           interest_calculation_method?: string | null
           interest_calculation_period?: string | null
           interest_income_account_id?: string | null
+          interest_payment_account_id?: string | null
           interest_receivable_account_id?: string | null
           is_active?: boolean
           late_payment_penalty_amount?: number | null
           late_payment_penalty_percentage?: number | null
+          linked_fee_ids?: string[] | null
           loan_portfolio_account_id?: string | null
           max_nominal_interest_rate?: number
           max_principal?: number
@@ -4197,7 +4213,9 @@ export type Database = {
           name?: string
           overpayment_liability_account_id?: string | null
           penalty_income_account_id?: string | null
+          penalty_payment_account_id?: string | null
           pre_closure_interest_calculation_rule?: string | null
+          principal_payment_account_id?: string | null
           processing_fee_amount?: number | null
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
@@ -4210,6 +4228,34 @@ export type Database = {
           writeoff_expense_account_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_loan_products_fee_payment_account"
+            columns: ["fee_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_loan_products_interest_payment_account"
+            columns: ["interest_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_loan_products_penalty_payment_account"
+            columns: ["penalty_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_loan_products_principal_payment_account"
+            columns: ["principal_payment_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loan_products_fee_income_account_id_fkey"
             columns: ["fee_income_account_id"]
