@@ -37,7 +37,7 @@ const addLoanAccountSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
   requested_amount: z.string().min(1, "Loan amount is required"),
   loan_purpose: z.string().min(1, "Loan purpose is required"),
-  fund_id: z.string().min(1, "Please select a fund"),
+  fund_id: z.string().optional(), // Make optional since funds might not be available
   expected_disbursement_date: z.date({
     required_error: "Expected disbursement date is required",
   }),
@@ -109,6 +109,26 @@ export const AddLoanAccountDialog = ({
   // Fetch global loan charges
   const { data: feeStructures = [] } = useFeeStructures();
   const loanFeeStructures = feeStructures.filter(fee => fee.fee_type === 'loan' && fee.is_active);
+
+  // Fetch funds
+  const { data: funds = [] } = useQuery({
+    queryKey: ['funds', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) return [];
+      const { data, error } = await supabase
+        .from('funds')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true)
+        .order('fund_name');
+      if (error) {
+        console.error('Error fetching funds:', error);
+        return [];
+      }
+      return data;
+    },
+    enabled: !!profile?.tenant_id,
+  });
 
   // Fetch client details for signature section
   const { data: clientDetails } = useQuery({
@@ -263,12 +283,13 @@ export const AddLoanAccountDialog = ({
         const hasBasicFields = !!(formData.loan_product_id && 
                                   formData.requested_amount && 
                                   formData.loan_purpose && 
-                                  formData.fund_id);
+                                  (formData.fund_id || funds.length === 0)); // Allow if no funds available
         console.log(`Basic tab validation:`, {
           loan_product_id: formData.loan_product_id,
           requested_amount: formData.requested_amount,
           loan_purpose: formData.loan_purpose,
           fund_id: formData.fund_id,
+          funds_available: funds.length,
           result: hasBasicFields
         });
         return hasBasicFields;
@@ -588,13 +609,19 @@ export const AddLoanAccountDialog = ({
                               <SelectValue placeholder="Select fund source" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="general">General Fund</SelectItem>
-                            <SelectItem value="microfinance">Microfinance Fund</SelectItem>
-                            <SelectItem value="women">Women's Fund</SelectItem>
-                            <SelectItem value="youth">Youth Fund</SelectItem>
-                            <SelectItem value="agriculture">Agriculture Fund</SelectItem>
-                          </SelectContent>
+                        <SelectContent>
+                          {funds.length > 0 ? (
+                            funds.map((fund) => (
+                              <SelectItem key={fund.id} value={fund.id}>
+                                {fund.fund_name} ({fund.fund_code}) - Balance: {fund.current_balance?.toLocaleString() || '0'}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="default" disabled>
+                              No funds available
+                            </SelectItem>
+                          )}
+                        </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>

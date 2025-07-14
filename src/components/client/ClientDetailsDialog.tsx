@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
-import { AddLoanAccountDialog } from "./AddLoanAccountDialog";
+import { SimpleLoanApplicationDialog } from "./SimpleLoanApplicationDialog";
 import { TransferClientDialog } from "./TransferClientDialog";
 import { UpdateLoanOfficerDialog } from "./UpdateLoanOfficerDialog";
 import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
@@ -907,7 +907,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           onSuccess={handleSavingsCreated}
         />
 
-        <AddLoanAccountDialog
+        <SimpleLoanApplicationDialog
           clientId={client.id}
           clientName={`${client.first_name} ${client.last_name}`}
           open={showAddLoanDialog}
