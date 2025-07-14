@@ -72,6 +72,7 @@ export const FeeStructureManagement = () => {
       charge_time_type: data.charge_time_type,
       charge_payment_by: data.charge_payment_by,
       is_active: data.is_active,
+      is_overdue_charge: ['late_payment', 'overdue_payment'].includes(data.charge_time_type),
     };
 
     if (editingFee) {
@@ -180,11 +181,16 @@ export const FeeStructureManagement = () => {
                   <TableBody>
                     {feeStructures.map((fee) => (
                       <TableRow key={fee.id}>
-                         <TableCell>
+                        <TableCell>
                           <div>
                             <p className="font-medium">{fee.name}</p>
                             {fee.description && (
                               <p className="text-sm text-muted-foreground">{fee.description}</p>
+                            )}
+                            {fee.is_overdue_charge && (
+                              <Badge variant="secondary" className="text-xs mt-1">
+                                Overdue Charge
+                              </Badge>
                             )}
                           </div>
                         </TableCell>

@@ -66,6 +66,7 @@ export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps
         charge_time_type: data.chargeTimeType,
         charge_payment_by: data.chargePaymentBy,
         is_active: data.isActive,
+        is_overdue_charge: ['late_payment', 'overdue_payment'].includes(data.chargeTimeType),
       };
 
       if (editingFee) {

@@ -2285,6 +2285,7 @@ export type Database = {
           fee_type: string
           id: string
           is_active: boolean
+          is_overdue_charge: boolean
           max_amount: number | null
           min_amount: number | null
           name: string
@@ -2302,6 +2303,7 @@ export type Database = {
           fee_type: string
           id?: string
           is_active?: boolean
+          is_overdue_charge?: boolean
           max_amount?: number | null
           min_amount?: number | null
           name: string
@@ -2319,6 +2321,7 @@ export type Database = {
           fee_type?: string
           id?: string
           is_active?: boolean
+          is_overdue_charge?: boolean
           max_amount?: number | null
           min_amount?: number | null
           name?: string

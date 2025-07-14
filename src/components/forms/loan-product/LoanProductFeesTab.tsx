@@ -35,16 +35,18 @@ interface OverdueCharge {
 export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) => {
   const { data: feeStructures = [] } = useFeeStructures();
   const activeFeeStructures = feeStructures.filter(fee => fee.is_active);
+  const regularCharges = activeFeeStructures.filter(fee => !fee.is_overdue_charge);
+  const overdueCharges = activeFeeStructures.filter(fee => fee.is_overdue_charge);
 
   const [charges, setCharges] = useState<Charge[]>([]);
-  const [overdueCharges, setOverdueCharges] = useState<OverdueCharge[]>([]);
+  const [overdueChargesState, setOverdueChargesState] = useState<OverdueCharge[]>([]);
   const [selectedCharge, setSelectedCharge] = useState<string>('');
   const [selectedOverdueCharge, setSelectedOverdueCharge] = useState<string>('');
 
   const addCharge = () => {
     if (!selectedCharge) return;
     
-    const feeStructure = activeFeeStructures.find(f => f.id === selectedCharge);
+    const feeStructure = regularCharges.find(f => f.id === selectedCharge);
     if (!feeStructure) return;
 
     const newCharge: Charge = {
@@ -67,7 +69,7 @@ export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) 
   const addOverdueCharge = () => {
     if (!selectedOverdueCharge) return;
     
-    const feeStructure = activeFeeStructures.find(f => f.id === selectedOverdueCharge);
+    const feeStructure = overdueCharges.find(f => f.id === selectedOverdueCharge);
     if (!feeStructure) return;
 
     const newCharge: OverdueCharge = {
@@ -79,12 +81,12 @@ export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) 
       date: new Date().toLocaleDateString()
     };
 
-    setOverdueCharges([...overdueCharges, newCharge]);
+    setOverdueChargesState([...overdueChargesState, newCharge]);
     setSelectedOverdueCharge('');
   };
 
   const removeOverdueCharge = (id: string) => {
-    setOverdueCharges(overdueCharges.filter(charge => charge.id !== id));
+    setOverdueChargesState(overdueChargesState.filter(charge => charge.id !== id));
   };
 
   return (
@@ -99,7 +101,7 @@ export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) 
               <SelectValue placeholder="Select charge" />
             </SelectTrigger>
             <SelectContent>
-              {activeFeeStructures.map((fee) => (
+              {regularCharges.map((fee) => (
                 <SelectItem key={fee.id} value={fee.id}>
                   {fee.name}
                 </SelectItem>
@@ -156,7 +158,7 @@ export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) 
               <SelectValue placeholder="Select Overdue Charge" />
             </SelectTrigger>
             <SelectContent>
-              {activeFeeStructures.map((fee) => (
+              {overdueCharges.map((fee) => (
                 <SelectItem key={fee.id} value={fee.id}>
                   {fee.name}
                 </SelectItem>
@@ -177,7 +179,7 @@ export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) 
             <div>Date</div>
             <div>Actions</div>
           </div>
-          {overdueCharges.map((charge) => (
+          {overdueChargesState.map((charge) => (
             <div key={charge.id} className="grid grid-cols-6 gap-4 p-3 border-t">
               <div className="text-sm">{charge.name}</div>
               <div className="text-sm">{charge.type}</div>
@@ -195,7 +197,7 @@ export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) 
               </div>
             </div>
           ))}
-          {overdueCharges.length === 0 && (
+          {overdueChargesState.length === 0 && (
             <div className="p-8 text-center text-muted-foreground">
               No overdue charges added yet
             </div>
