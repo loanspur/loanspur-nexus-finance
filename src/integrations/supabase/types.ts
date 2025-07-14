@@ -2278,6 +2278,8 @@ export type Database = {
         Row: {
           amount: number
           calculation_type: string
+          charge_payment_by: string
+          charge_time_type: string
           created_at: string
           description: string | null
           fee_type: string
@@ -2293,6 +2295,8 @@ export type Database = {
         Insert: {
           amount?: number
           calculation_type?: string
+          charge_payment_by?: string
+          charge_time_type?: string
           created_at?: string
           description?: string | null
           fee_type: string
@@ -2308,6 +2312,8 @@ export type Database = {
         Update: {
           amount?: number
           calculation_type?: string
+          charge_payment_by?: string
+          charge_time_type?: string
           created_at?: string
           description?: string | null
           fee_type?: string

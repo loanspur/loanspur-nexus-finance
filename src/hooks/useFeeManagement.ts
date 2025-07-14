@@ -14,6 +14,8 @@ export interface FeeStructure {
   percentage_rate?: number;
   min_amount?: number;
   max_amount?: number;
+  charge_time_type: string;
+  charge_payment_by: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -28,6 +30,8 @@ export interface CreateFeeStructureData {
   percentage_rate?: number;
   min_amount?: number;
   max_amount?: number;
+  charge_time_type: string;
+  charge_payment_by: string;
   is_active: boolean;
 }
 
