@@ -391,15 +391,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
             {/* Payment History Tab - Statement Format */}
             <TabsContent value="payments" className="space-y-6">
               <TransactionStatement
-                transactions={paymentHistory.map(payment => ({
-                  date: payment.date,
-                  type: payment.type,
-                  amount: payment.amount,
-                  balance: payment.balance,
-                  reference: `PAY${payment.date.replace(/-/g, '')}`,
-                  status: payment.status,
-                  description: payment.type === 'Regular Payment' ? 'Monthly loan payment' : payment.type
-                }))}
+                accountId={loanDetails.id}
                 accountType="loan"
                 accountNumber={loanDetails.id}
                 clientName={clientName}
@@ -408,10 +400,6 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                   interestRate: loanDetails.interestRate,
                   openingDate: loanDetails.disbursementDate || undefined,
                   accountOfficer: loanDetails.loanOfficer
-                }}
-                statementPeriod={{
-                  from: paymentHistory.length > 0 ? paymentHistory[paymentHistory.length - 1].date : new Date().toISOString(),
-                  to: paymentHistory.length > 0 ? paymentHistory[0].date : new Date().toISOString()
                 }}
               />
             </TabsContent>

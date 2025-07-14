@@ -383,15 +383,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
             {/* Transactions Tab - Statement Format */}
             <TabsContent value="transactions" className="space-y-6">
               <TransactionStatement
-                transactions={transactionHistory.map(transaction => ({
-                  date: transaction.date,
-                  type: transaction.type,
-                  amount: transaction.amount,
-                  balance: transaction.balance,
-                  method: transaction.method,
-                  reference: transaction.reference,
-                  description: transaction.type === 'Interest' ? 'Monthly interest posting' : undefined
-                }))}
+                accountId={savingsDetails.id}
                 accountType="savings"
                 accountNumber={savingsDetails.id}
                 clientName={clientName}
@@ -399,11 +391,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                   balance: savingsDetails.balance,
                   interestRate: savingsDetails.interestRate,
                   openingDate: savingsDetails.openingDate || undefined,
-                  accountOfficer: savingsDetails.accountOfficer
-                }}
-                statementPeriod={{
-                  from: transactionHistory.length > 0 ? transactionHistory[transactionHistory.length - 1].date : new Date().toISOString(),
-                  to: transactionHistory.length > 0 ? transactionHistory[0].date : new Date().toISOString()
+                  accountOfficer: "N/A"
                 }}
               />
             </TabsContent>

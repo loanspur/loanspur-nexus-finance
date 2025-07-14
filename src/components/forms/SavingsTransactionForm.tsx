@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/form";
 import { DollarSign, ArrowUpRight, ArrowDownRight, ArrowRightLeft, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const transactionSchema = z.object({
   transactionType: z.enum(["deposit", "withdrawal", "transfer"]),
@@ -144,26 +145,69 @@ export const SavingsTransactionForm = ({
         return;
       }
 
-      // TODO: Implement actual transaction processing
-      console.log("Processing transaction:", data);
+      const amount = parseFloat(data.amount);
+      let newBalance = savingsAccount.account_balance;
+      
+      // Calculate new balance based on transaction type
+      if (data.transactionType === 'deposit') {
+        newBalance = savingsAccount.account_balance + amount;
+      } else if (data.transactionType === 'withdrawal' || data.transactionType === 'transfer') {
+        newBalance = savingsAccount.account_balance - amount;
+      }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get current user's tenant_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        throw new Error('Unable to identify tenant');
+      }
+
+      // Insert transaction record
+      const { error: transactionError } = await supabase
+        .from('savings_transactions')
+        .insert({
+          tenant_id: profile.tenant_id,
+          savings_account_id: savingsAccount.id,
+          transaction_type: data.transactionType,
+          amount: amount,
+          balance_after: newBalance,
+          description: data.description || `${data.transactionType} transaction`,
+          reference_number: data.reference,
+          payment_method: data.method,
+          status: 'completed'
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update savings account balance
+      const { error: updateError } = await supabase
+        .from('savings_accounts')
+        .update({ 
+          account_balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', savingsAccount.id);
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Transaction Successful",
-        description: `${data.transactionType} of ${formatCurrency(parseFloat(data.amount))} has been processed successfully.`,
+        description: `${data.transactionType} of ${formatCurrency(amount)} has been processed successfully.`,
       });
 
       form.reset();
       onOpenChange(false);
       onSuccess?.();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Transaction failed:", error);
       toast({
         title: "Transaction Failed",
-        description: "There was an error processing your transaction. Please try again.",
+        description: error.message || "There was an error processing your transaction. Please try again.",
         variant: "destructive",
       });
     } finally {
