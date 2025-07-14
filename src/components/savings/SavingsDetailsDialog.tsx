@@ -49,6 +49,13 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
     }).format(amount);
   };
 
+  const formatDate = (dateValue: string | null | undefined) => {
+    if (!dateValue) return 'N/A';
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return 'N/A';
+    return format(date, 'MMM dd, yyyy');
+  };
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'active':
@@ -242,7 +249,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                       </div>
                       <div>
                         <span className="text-muted-foreground">Opening Date</span>
-                        <div className="font-medium">{format(new Date(savingsDetails.openingDate), 'MMM dd, yyyy')}</div>
+                        <div className="font-medium">{formatDate(savingsDetails.openingDate)}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Interest Rate</span>
@@ -259,7 +266,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                       {savingsDetails.type === 'Fixed Deposit' && savingsDetails.maturityDate && (
                         <div>
                           <span className="text-muted-foreground">Maturity Date</span>
-                          <div className="font-medium">{format(new Date(savingsDetails.maturityDate), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{formatDate(savingsDetails.maturityDate)}</div>
                         </div>
                       )}
                       <div>
@@ -299,7 +306,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                       </div>
                       <div>
                         <span className="text-muted-foreground">Last Transaction</span>
-                        <div className="font-medium">{format(new Date(savingsDetails.lastTransaction), 'MMM dd, yyyy')}</div>
+                        <div className="font-medium">{formatDate(savingsDetails.lastTransaction)}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -322,11 +329,11 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
                       </div>
                       <div>
                         <span className="text-muted-foreground">Last Interest Posting</span>
-                        <div className="font-medium">{format(new Date(savingsDetails.lastInterestPosting), 'MMM dd, yyyy')}</div>
+                        <div className="font-medium">{formatDate(savingsDetails.lastInterestPosting)}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Next Interest Posting</span>
-                        <div className="font-medium">{format(new Date(savingsDetails.nextInterestPosting), 'MMM dd, yyyy')}</div>
+                        <div className="font-medium">{formatDate(savingsDetails.nextInterestPosting)}</div>
                       </div>
                     </div>
                   </CardContent>
