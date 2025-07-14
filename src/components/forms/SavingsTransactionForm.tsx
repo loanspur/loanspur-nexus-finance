@@ -177,7 +177,6 @@ export const SavingsTransactionForm = ({
           balance_after: newBalance,
           description: data.description || `${data.transactionType} transaction`,
           reference_number: data.reference,
-          payment_method: data.method,
           status: 'completed'
         });
 
