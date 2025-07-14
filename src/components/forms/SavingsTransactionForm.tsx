@@ -474,26 +474,60 @@ export const SavingsTransactionForm = ({
                       <FormField
                         control={form.control}
                         name="customChargeAmount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              Custom Amount (KES) 
-                              <span className="text-xs text-muted-foreground ml-1">
-                                (Leave empty to use calculated: {formatCurrency(getChargeAmount())})
-                              </span>
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder={`Calculated: ${formatCurrency(getChargeAmount())}`}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          const selectedFee = feeStructures.find(f => f.id === watchedFeeStructureId);
+                          const calculatedAmount = getChargeAmount();
+                          const hasLimits = selectedFee?.min_amount || selectedFee?.max_amount;
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>
+                                Custom Amount (KES) 
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  (Default: {formatCurrency(calculatedAmount)})
+                                </span>
+                              </FormLabel>
+                              {hasLimits && (
+                                <div className="text-xs text-muted-foreground mb-1">
+                                  Limits: {selectedFee?.min_amount ? `Min ${formatCurrency(selectedFee.min_amount)}` : 'No minimum'}
+                                  {selectedFee?.min_amount && selectedFee?.max_amount && ' • '}
+                                  {selectedFee?.max_amount ? `Max ${formatCurrency(selectedFee.max_amount)}` : 'No maximum'}
+                                </div>
+                              )}
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={selectedFee?.min_amount || 0}
+                                  max={selectedFee?.max_amount || undefined}
+                                  placeholder={`Default: ${formatCurrency(calculatedAmount)}`}
+                                  className={`${
+                                    watchedCustomChargeAmount && selectedFee && (
+                                      (selectedFee.min_amount && parseFloat(watchedCustomChargeAmount) < selectedFee.min_amount) ||
+                                      (selectedFee.max_amount && parseFloat(watchedCustomChargeAmount) > selectedFee.max_amount)
+                                    ) ? 'border-destructive focus:border-destructive' : ''
+                                  }`}
+                                  {...field}
+                                />
+                              </FormControl>
+                              {watchedCustomChargeAmount && selectedFee && (
+                                <>
+                                  {selectedFee.min_amount && parseFloat(watchedCustomChargeAmount) < selectedFee.min_amount && (
+                                    <p className="text-xs text-destructive">
+                                      Amount must be at least {formatCurrency(selectedFee.min_amount)}
+                                    </p>
+                                  )}
+                                  {selectedFee.max_amount && parseFloat(watchedCustomChargeAmount) > selectedFee.max_amount && (
+                                    <p className="text-xs text-destructive">
+                                      Amount cannot exceed {formatCurrency(selectedFee.max_amount)}
+                                    </p>
+                                  )}
+                                </>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
                     )}
                   </>
