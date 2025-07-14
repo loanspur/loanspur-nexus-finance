@@ -51,20 +51,22 @@ interface SavingsTransactionFormProps {
   onOpenChange: (open: boolean) => void;
   savingsAccount: {
     id: string;
-    balance: number;
-    type: string;
-    minimumBalance?: number;
+    account_balance: number;
+    savings_products?: {
+      name: string;
+    };
+    account_number: string;
   };
-  clientName: string;
-  onTransactionComplete?: () => void;
+  transactionType?: 'deposit' | 'withdrawal' | 'transfer';
+  onSuccess?: () => void;
 }
 
 export const SavingsTransactionForm = ({
   open,
   onOpenChange,
   savingsAccount,
-  clientName,
-  onTransactionComplete
+  transactionType = 'deposit',
+  onSuccess
 }: SavingsTransactionFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -72,7 +74,7 @@ export const SavingsTransactionForm = ({
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
-      transactionType: "deposit",
+      transactionType: transactionType,
       amount: "",
       method: "",
       reference: "",
@@ -106,10 +108,10 @@ export const SavingsTransactionForm = ({
 
   const validateTransaction = (data: TransactionFormData) => {
     const amount = parseFloat(data.amount);
-    const minBalance = savingsAccount.minimumBalance || 0;
+    const minBalance = 0; // Default minimum balance
 
     if (data.transactionType === "withdrawal") {
-      const newBalance = savingsAccount.balance - amount;
+      const newBalance = savingsAccount.account_balance - amount;
       if (newBalance < minBalance) {
         return {
           isValid: false,
@@ -155,7 +157,7 @@ export const SavingsTransactionForm = ({
 
       form.reset();
       onOpenChange(false);
-      onTransactionComplete?.();
+      onSuccess?.();
 
     } catch (error) {
       console.error("Transaction failed:", error);
@@ -173,18 +175,18 @@ export const SavingsTransactionForm = ({
     const amount = parseFloat(watchedAmount) || 0;
     switch (watchedTransactionType) {
       case "deposit":
-        return savingsAccount.balance + amount;
+        return savingsAccount.account_balance + amount;
       case "withdrawal":
-        return savingsAccount.balance - amount;
+        return savingsAccount.account_balance - amount;
       case "transfer":
-        return savingsAccount.balance - amount;
+        return savingsAccount.account_balance - amount;
       default:
-        return savingsAccount.balance;
+        return savingsAccount.account_balance;
     }
   };
 
   const newBalance = getNewBalance();
-  const minBalance = savingsAccount.minimumBalance || 0;
+  const minBalance = 0; // Default minimum balance
   const isBalanceValid = newBalance >= minBalance;
 
   return (
@@ -196,7 +198,7 @@ export const SavingsTransactionForm = ({
             Savings Account Transaction
           </DialogTitle>
           <DialogDescription>
-            Process a transaction for {clientName}'s savings account
+            Process a transaction for savings account {savingsAccount.account_number}
           </DialogDescription>
         </DialogHeader>
 
@@ -210,18 +212,18 @@ export const SavingsTransactionForm = ({
               <CardContent className="pt-0">
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Account ID</span>
-                    <div className="font-medium">{savingsAccount.id}</div>
+                    <span className="text-muted-foreground">Account Number</span>
+                    <div className="font-medium">{savingsAccount.account_number}</div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Current Balance</span>
                     <div className="font-bold text-green-600">
-                      {formatCurrency(savingsAccount.balance)}
+                      {formatCurrency(savingsAccount.account_balance)}
                     </div>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Account Type</span>
-                    <div className="font-medium">{savingsAccount.type}</div>
+                    <span className="text-muted-foreground">Product</span>
+                    <div className="font-medium">{savingsAccount.savings_products?.name || 'N/A'}</div>
                   </div>
                 </div>
               </CardContent>
@@ -348,7 +350,7 @@ export const SavingsTransactionForm = ({
                   <CardContent className="pt-0 space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Current Balance:</span>
-                      <span className="font-medium">{formatCurrency(savingsAccount.balance)}</span>
+                      <span className="font-medium">{formatCurrency(savingsAccount.account_balance)}</span>
                     </div>
                     
                     {watchedAmount && (

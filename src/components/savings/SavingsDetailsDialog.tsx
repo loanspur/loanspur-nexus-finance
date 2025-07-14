@@ -674,12 +674,12 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
           onOpenChange={setTransactionFormOpen}
           savingsAccount={{
             id: savings?.id || "",
-            balance: savingsDetails.balance,
-            type: savingsDetails.type,
-            minimumBalance: savingsDetails.minimumBalance
+            account_balance: savings?.account_balance || 0,
+            savings_products: savings?.savings_products,
+            account_number: savings?.account_number || "",
           }}
-          clientName={clientName}
-          onTransactionComplete={() => {
+          onSuccess={() => {
+            setTransactionFormOpen(false);
             // Refresh savings data
             console.log("Transaction completed, refreshing data...");
           }}

@@ -34,6 +34,7 @@ import {
   XCircle,
   Clock,
   Plus,
+  Minus,
   ArrowRightLeft,
   UserMinus
 } from "lucide-react";
@@ -44,6 +45,7 @@ import { TransferClientDialog } from "./TransferClientDialog";
 import { UpdateLoanOfficerDialog } from "./UpdateLoanOfficerDialog";
 import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
 import { SavingsDetailsDialog } from "@/components/savings/SavingsDetailsDialog";
+import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -104,6 +106,8 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [activeSavingsProducts, setActiveSavingsProducts] = useState<any[]>([]);
   const [clientLoans, setClientLoans] = useState<any[]>([]);
   const [clientSavings, setClientSavings] = useState<any[]>([]);
+  const [showSavingsTransactionDialog, setShowSavingsTransactionDialog] = useState(false);
+  const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer'>('deposit');
   const { toast } = useToast();
   
   // Fetch active products and client accounts when dialog opens
@@ -589,6 +593,47 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                             View
                           </Button>
                           
+                          {savings.is_active && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedSavings(savings);
+                                  setTransactionType('deposit');
+                                  setShowSavingsTransactionDialog(true);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Deposit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedSavings(savings);
+                                  setTransactionType('withdrawal');
+                                  setShowSavingsTransactionDialog(true);
+                                }}
+                              >
+                                <Minus className="h-4 w-4 mr-2" />
+                                Withdraw
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedSavings(savings);
+                                  setTransactionType('transfer');
+                                  setShowSavingsTransactionDialog(true);
+                                }}
+                              >
+                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                Transfer
+                              </Button>
+                            </>
+                          )}
+                          
                           {!savings.is_active && (
                             <Button
                               size="sm"
@@ -823,6 +868,19 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           open={showSavingsDetails}
           onOpenChange={setShowSavingsDetails}
         />
+
+        {selectedSavings && (
+          <SavingsTransactionForm
+            savingsAccount={selectedSavings}
+            transactionType={transactionType}
+            open={showSavingsTransactionDialog}
+            onOpenChange={setShowSavingsTransactionDialog}
+            onSuccess={() => {
+              fetchClientAccounts();
+              setShowSavingsTransactionDialog(false);
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
