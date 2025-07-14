@@ -52,6 +52,9 @@ export const SimpleLoanApplicationDialog = ({
   const { profile } = useAuth();
   const createLoanApplication = useCreateLoanApplication();
 
+  // Debug logging
+  console.log('SimpleLoanApplicationDialog render:', { open, clientId, clientName });
+
   const form = useForm<SimpleLoanData>({
     resolver: zodResolver(simpleLoanSchema),
     defaultValues: {
@@ -80,6 +83,16 @@ export const SimpleLoanApplicationDialog = ({
   });
 
   const { data: funds = [], isLoading: fundsLoading } = useFunds();
+
+  // Debug logging for data
+  console.log('SimpleLoanApplicationDialog data:', { 
+    loanProducts: loanProducts.length, 
+    funds: funds.length, 
+    isLoadingProducts, 
+    fundsLoading,
+    loanProductsData: loanProducts,
+    fundsData: funds
+  });
 
   const selectedProduct = loanProducts.find(p => p.id === form.watch("loan_product_id"));
 
