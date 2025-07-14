@@ -108,7 +108,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [clientLoans, setClientLoans] = useState<any[]>([]);
   const [clientSavings, setClientSavings] = useState<any[]>([]);
   const [showSavingsTransactionDialog, setShowSavingsTransactionDialog] = useState(false);
-  const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'charge'>('deposit');
+  const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
   const { toast } = useToast();
   
   // Fetch active products and client accounts when dialog opens
@@ -637,7 +637,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                 size="sm"
                                 onClick={() => {
                                   setSelectedSavings(savings);
-                                  setTransactionType('charge');
+                                  setTransactionType('fee_charge');
                                   setShowSavingsTransactionDialog(true);
                                 }}
                               >

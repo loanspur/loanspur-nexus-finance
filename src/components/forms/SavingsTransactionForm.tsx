@@ -39,13 +39,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState as useReactState } from "react";
 
 const transactionSchema = z.object({
-  transactionType: z.enum(["deposit", "withdrawal", "transfer", "charge"]),
+  transactionType: z.enum(["deposit", "withdrawal", "transfer", "fee_charge"]),
   amount: z.string().optional(),
   method: z.string().optional(),
   reference: z.string().optional(),
   description: z.string().optional(),
   transferTo: z.string().optional(),
   feeStructureId: z.string().optional(),
+  customChargeAmount: z.string().optional(),
 });
 
 type TransactionFormData = z.infer<typeof transactionSchema>;
@@ -61,7 +62,7 @@ interface SavingsTransactionFormProps {
     };
     account_number: string;
   };
-  transactionType?: 'deposit' | 'withdrawal' | 'transfer' | 'charge';
+  transactionType?: 'deposit' | 'withdrawal' | 'transfer' | 'fee_charge';
   onSuccess?: () => void;
 }
 
@@ -91,6 +92,7 @@ export const SavingsTransactionForm = ({
       description: "",
       transferTo: "",
       feeStructureId: "",
+      customChargeAmount: "",
     },
   });
 
@@ -98,6 +100,8 @@ export const SavingsTransactionForm = ({
   const watchedTransactionType = form.watch("transactionType");
   const watchedAmount = form.watch("amount");
   const watchedFeeStructureId = form.watch("feeStructureId");
+
+  const watchedCustomChargeAmount = form.watch("customChargeAmount");
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -114,16 +118,21 @@ export const SavingsTransactionForm = ({
         return <ArrowUpRight className="h-4 w-4 text-red-600" />;
       case "transfer":
         return <ArrowRightLeft className="h-4 w-4 text-blue-600" />;
-      case "charge":
+      case "fee_charge":
         return <Receipt className="h-4 w-4 text-orange-600" />;
       default:
         return <DollarSign className="h-4 w-4" />;
     }
   };
 
-  // Calculate amount for charges based on fee structure
+  // Calculate amount for charges based on fee structure or custom amount
   const getChargeAmount = () => {
-    if (watchedTransactionType !== 'charge' || !watchedFeeStructureId) return 0;
+    if (watchedTransactionType !== 'fee_charge' || !watchedFeeStructureId) return 0;
+    
+    // If custom amount is provided, use it
+    if (watchedCustomChargeAmount && parseFloat(watchedCustomChargeAmount) > 0) {
+      return parseFloat(watchedCustomChargeAmount);
+    }
     
     const selectedFee = feeStructures.find(f => f.id === watchedFeeStructureId);
     if (!selectedFee) return 0;
@@ -149,17 +158,17 @@ export const SavingsTransactionForm = ({
   };
 
   const validateTransaction = (data: TransactionFormData) => {
-    const amount = data.transactionType === 'charge' ? getChargeAmount() : parseFloat(data.amount || "0");
+    const amount = data.transactionType === 'fee_charge' ? getChargeAmount() : parseFloat(data.amount || "0");
     const minBalance = 0; // Default minimum balance
 
-    if (data.transactionType !== 'charge' && (!data.amount || amount <= 0)) {
+    if (data.transactionType !== 'fee_charge' && (!data.amount || amount <= 0)) {
       return {
         isValid: false,
         message: "Please enter a valid amount"
       };
     }
 
-    if (data.transactionType === "withdrawal" || data.transactionType === "transfer" || data.transactionType === "charge") {
+    if (data.transactionType === "withdrawal" || data.transactionType === "transfer" || data.transactionType === "fee_charge") {
       const newBalance = savingsAccount.account_balance - amount;
       if (newBalance < minBalance) {
         return {
@@ -176,14 +185,14 @@ export const SavingsTransactionForm = ({
       };
     }
 
-    if (data.transactionType === "charge" && !data.feeStructureId) {
+    if (data.transactionType === "fee_charge" && !data.feeStructureId) {
       return {
         isValid: false,
         message: "Please select a charge/fee to apply"
       };
     }
 
-    if (data.transactionType !== 'charge' && !data.method) {
+    if (data.transactionType !== 'fee_charge' && !data.method) {
       return {
         isValid: false,
         message: "Please select a payment method"
@@ -207,13 +216,13 @@ export const SavingsTransactionForm = ({
         return;
       }
 
-      const amount = data.transactionType === 'charge' ? getChargeAmount() : parseFloat(data.amount || "0");
+      const amount = data.transactionType === 'fee_charge' ? getChargeAmount() : parseFloat(data.amount || "0");
       let newBalance = savingsAccount.account_balance;
       
       // Calculate new balance based on transaction type
       if (data.transactionType === 'deposit') {
         newBalance = savingsAccount.account_balance + amount;
-      } else if (data.transactionType === 'withdrawal' || data.transactionType === 'transfer' || data.transactionType === 'charge') {
+      } else if (data.transactionType === 'withdrawal' || data.transactionType === 'transfer' || data.transactionType === 'fee_charge') {
         newBalance = savingsAccount.account_balance - amount;
       }
 
@@ -241,7 +250,7 @@ export const SavingsTransactionForm = ({
       };
 
       // Add fee structure reference for charges
-      if (data.transactionType === 'charge' && data.feeStructureId) {
+      if (data.transactionType === 'fee_charge' && data.feeStructureId) {
         const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
         if (selectedFee) {
           transactionData.description = `${selectedFee.name} - ${selectedFee.description || 'Account charge'}`;
@@ -287,13 +296,13 @@ export const SavingsTransactionForm = ({
   };
 
   const getNewBalance = () => {
-    const amount = watchedTransactionType === 'charge' ? getChargeAmount() : (parseFloat(watchedAmount || "0") || 0);
+    const amount = watchedTransactionType === 'fee_charge' ? getChargeAmount() : (parseFloat(watchedAmount || "0") || 0);
     switch (watchedTransactionType) {
       case "deposit":
         return savingsAccount.account_balance + amount;
       case "withdrawal":
       case "transfer":
-      case "charge":
+      case "fee_charge":
         return savingsAccount.account_balance - amount;
       default:
         return savingsAccount.account_balance;
@@ -378,7 +387,7 @@ export const SavingsTransactionForm = ({
                               Transfer
                             </div>
                           </SelectItem>
-                          <SelectItem value="charge">
+                          <SelectItem value="fee_charge">
                             <div className="flex items-center gap-2">
                               <Receipt className="h-4 w-4 text-orange-600" />
                               Apply Charge
@@ -392,43 +401,73 @@ export const SavingsTransactionForm = ({
                 />
 
                 {/* Fee Structure Selection (only for charges) */}
-                {watchedTransactionType === "charge" && (
-                  <FormField
-                    control={form.control}
-                    name="feeStructureId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Select Charge/Fee</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a charge to apply" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {feeStructures.map((fee) => (
-                              <SelectItem key={fee.id} value={fee.id}>
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{fee.name}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {fee.calculation_type === 'fixed' 
-                                      ? formatCurrency(fee.amount)
-                                      : `${fee.percentage_rate}%${fee.min_amount ? ` (min ${formatCurrency(fee.min_amount)})` : ''}${fee.max_amount ? ` (max ${formatCurrency(fee.max_amount)})` : ''}`
-                                    }
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                {watchedTransactionType === "fee_charge" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="feeStructureId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Charge/Fee</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a charge to apply" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {feeStructures.map((fee) => (
+                                <SelectItem key={fee.id} value={fee.id}>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{fee.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {fee.calculation_type === 'fixed' 
+                                        ? formatCurrency(fee.amount)
+                                        : `${fee.percentage_rate}%${fee.min_amount ? ` (min ${formatCurrency(fee.min_amount)})` : ''}${fee.max_amount ? ` (max ${formatCurrency(fee.max_amount)})` : ''}`
+                                      }
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Custom Charge Amount (editable override) */}
+                    {watchedFeeStructureId && (
+                      <FormField
+                        control={form.control}
+                        name="customChargeAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              Custom Amount (KES) 
+                              <span className="text-xs text-muted-foreground ml-1">
+                                (Leave empty to use calculated: {formatCurrency(getChargeAmount())})
+                              </span>
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder={`Calculated: ${formatCurrency(getChargeAmount())}`}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  />
+                  </>
                 )}
 
                 {/* Amount (disabled for charges as it's auto-calculated) */}
-                {watchedTransactionType !== 'charge' && (
+                {watchedTransactionType !== 'fee_charge' && (
                   <FormField
                     control={form.control}
                     name="amount"
@@ -451,7 +490,7 @@ export const SavingsTransactionForm = ({
                 )}
 
                 {/* Payment Method (not applicable for charges) */}
-                {watchedTransactionType !== 'charge' && (
+                {watchedTransactionType !== 'fee_charge' && (
                   <FormField
                     control={form.control}
                     name="method"
@@ -514,21 +553,21 @@ export const SavingsTransactionForm = ({
                       <span className="font-medium">{formatCurrency(savingsAccount.account_balance)}</span>
                     </div>
                      
-                    {((watchedAmount && parseFloat(watchedAmount) > 0) || watchedTransactionType === 'charge') && (
-                      <>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {watchedTransactionType === "deposit" ? "Amount to Deposit:" : 
-                             watchedTransactionType === "charge" ? "Charge Amount:" :
-                             "Amount to Withdraw:"}
-                          </span>
-                          <span className={`font-medium ${
-                            watchedTransactionType === "deposit" ? "text-green-600" : "text-red-600"
-                          }`}>
-                            {watchedTransactionType === "deposit" ? "+" : "-"}
-                            {formatCurrency(watchedTransactionType === 'charge' ? getChargeAmount() : parseFloat(watchedAmount || "0"))}
-                          </span>
-                        </div>
+                     {((watchedAmount && parseFloat(watchedAmount) > 0) || watchedTransactionType === 'fee_charge') && (
+                       <>
+                         <div className="flex justify-between text-sm">
+                           <span className="text-muted-foreground">
+                             {watchedTransactionType === "deposit" ? "Amount to Deposit:" : 
+                              watchedTransactionType === "fee_charge" ? "Charge Amount:" :
+                              "Amount to Withdraw:"}
+                           </span>
+                           <span className={`font-medium ${
+                             watchedTransactionType === "deposit" ? "text-green-600" : "text-red-600"
+                           }`}>
+                             {watchedTransactionType === "deposit" ? "+" : "-"}
+                             {formatCurrency(watchedTransactionType === 'fee_charge' ? getChargeAmount() : parseFloat(watchedAmount || "0"))}
+                           </span>
+                         </div>
                         
                         <Separator />
                         
