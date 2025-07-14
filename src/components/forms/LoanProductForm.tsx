@@ -9,12 +9,7 @@ import { useCreateLoanProduct, useUpdateLoanProduct, LoanProduct } from "@/hooks
 import { loanProductSchema, defaultValues, type LoanProductFormData } from "./loan-product/LoanProductSchema";
 import { LoanProductBasicInfoTab } from "./loan-product/LoanProductBasicInfoTab";
 import { LoanProductTermsTab } from "./loan-product/LoanProductTermsTab";
-import { LoanProductInterestRepaymentTab } from "./loan-product/LoanProductInterestRepaymentTab";
-import { LoanProductArrearsTab } from "./loan-product/LoanProductArrearsTab";
-import { LoanProductAdvancedTab } from "./loan-product/LoanProductAdvancedTab";
-import { LoanProductAccountingTab } from "./loan-product/LoanProductAccountingTab";
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
-import { generateSampleLoanProductData } from "@/lib/dev-utils";
 
 interface LoanProductFormProps {
   open: boolean;
@@ -90,13 +85,25 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
   };
 
   const fillSampleData = () => {
-    const sampleData = generateSampleLoanProductData();
+    const sampleData = {
+      name: "Sample Personal Loan",
+      short_name: "SPL",
+      description: "A sample personal loan product for testing",
+      currency_code: "USD",
+      min_principal: "1000",
+      max_principal: "50000",
+      default_principal: "10000",
+      min_term: "6",
+      max_term: "60",
+      default_term: "24",
+      min_nominal_interest_rate: "5.0",
+      max_nominal_interest_rate: "25.0",
+      default_nominal_interest_rate: "12.0",
+      repayment_frequency: "monthly"
+    };
+    
     Object.entries(sampleData).forEach(([key, value]) => {
-      if (typeof value === 'number') {
-        form.setValue(key as keyof LoanProductFormData, value.toString());
-      } else {
-        form.setValue(key as keyof LoanProductFormData, value as string);
-      }
+      form.setValue(key as keyof LoanProductFormData, value);
     });
   };
 
@@ -112,13 +119,9 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="terms">Loan Terms</TabsTrigger>
-                <TabsTrigger value="interest">Interest & Repayment</TabsTrigger>
-                <TabsTrigger value="arrears">Arrears & NPA</TabsTrigger>
-                <TabsTrigger value="accounting">Accounting</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -127,22 +130,6 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
 
               <TabsContent value="terms" className="space-y-4">
                 <LoanProductTermsTab form={form} />
-              </TabsContent>
-
-              <TabsContent value="interest" className="space-y-4">
-                <LoanProductInterestRepaymentTab form={form} />
-              </TabsContent>
-
-              <TabsContent value="arrears" className="space-y-4">
-                <LoanProductArrearsTab form={form} />
-              </TabsContent>
-
-              <TabsContent value="accounting" className="space-y-4">
-                <LoanProductAccountingTab form={form} />
-              </TabsContent>
-
-              <TabsContent value="advanced" className="space-y-4">
-                <LoanProductAdvancedTab form={form} />
               </TabsContent>
             </Tabs>
 

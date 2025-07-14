@@ -55,66 +55,13 @@ export const LoanProductTermsTab = ({ form }: LoanProductTermsTabProps) => {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="term_unit"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Term Unit</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select term unit" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="days">Days</SelectItem>
-                  <SelectItem value="weeks">Weeks</SelectItem>
-                  <SelectItem value="months">Months</SelectItem>
-                  <SelectItem value="years">Years</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="repayment_frequency"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Repayment Frequency</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="bi_weekly">Bi-Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="semi_annually">Semi-Annually</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
       <div className="grid grid-cols-3 gap-4">
         <FormField
           control={form.control}
           name="min_term"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Min Term</FormLabel>
+              <FormLabel>Min Term (Months)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="1" {...field} />
               </FormControl>
@@ -128,7 +75,7 @@ export const LoanProductTermsTab = ({ form }: LoanProductTermsTabProps) => {
           name="max_term"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Max Term</FormLabel>
+              <FormLabel>Max Term (Months)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="60" {...field} />
               </FormControl>
@@ -142,9 +89,53 @@ export const LoanProductTermsTab = ({ form }: LoanProductTermsTabProps) => {
           name="default_term"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Default Term</FormLabel>
+              <FormLabel>Default Term (Months)</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="12" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <FormField
+          control={form.control}
+          name="min_nominal_interest_rate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Min Interest Rate (%)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="5.0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="max_nominal_interest_rate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Max Interest Rate (%)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="25.0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="default_nominal_interest_rate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default Interest Rate (%)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="12.0" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

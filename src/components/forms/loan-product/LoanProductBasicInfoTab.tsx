@@ -56,77 +56,48 @@ export const LoanProductBasicInfoTab = ({ form }: LoanProductBasicInfoTabProps) 
         )}
       />
 
-      <div className="grid grid-cols-3 gap-4">
-        <FormField
-          control={form.control}
-          name="currency_code"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Currency</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="KES">KES</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="start_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Start Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="end_date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>End Date (Optional)</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
       <FormField
         control={form.control}
-        name="fund_type"
+        name="currency_code"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Fund Type</FormLabel>
+            <FormLabel>Currency</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select fund type" />
+                  <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="internal">Internal Fund</SelectItem>
-                <SelectItem value="external">External Fund</SelectItem>
-                <SelectItem value="donor">Donor Fund</SelectItem>
-                <SelectItem value="government">Government Fund</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="KES">KES</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="GBP">GBP</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="repayment_frequency"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Repayment Frequency</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="annually">Annually</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
