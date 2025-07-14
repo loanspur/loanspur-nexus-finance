@@ -4060,14 +4060,32 @@ export type Database = {
       }
       loan_products: {
         Row: {
+          advance_payments_adjustment_type: string | null
+          allow_partial_period_interest: boolean | null
+          arrears_tolerance_amount: number | null
+          arrears_tolerance_days: number | null
+          compounding_frequency: string | null
           created_at: string
           currency_code: string
           default_nominal_interest_rate: number | null
           default_principal: number | null
           default_term: number | null
           description: string | null
+          early_repayment_penalty_amount: number | null
+          early_repayment_penalty_percentage: number | null
+          fee_income_account_id: string | null
+          fund_source_account_id: string | null
+          grace_period_duration: number | null
+          grace_period_type: string | null
           id: string
+          interest_calculation_method: string | null
+          interest_calculation_period: string | null
+          interest_income_account_id: string | null
+          interest_receivable_account_id: string | null
           is_active: boolean
+          late_payment_penalty_amount: number | null
+          late_payment_penalty_percentage: number | null
+          loan_portfolio_account_id: string | null
           max_nominal_interest_rate: number
           max_principal: number
           max_term: number
@@ -4075,21 +4093,49 @@ export type Database = {
           min_nominal_interest_rate: number
           min_principal: number
           min_term: number
+          moratorium_period: number | null
           name: string
+          overpayment_liability_account_id: string | null
+          penalty_income_account_id: string | null
+          pre_closure_interest_calculation_rule: string | null
+          processing_fee_amount: number | null
+          processing_fee_percentage: number | null
+          provision_account_id: string | null
           repayment_frequency: string
+          reschedule_strategy: string | null
           short_name: string
+          suspended_income_account_id: string | null
           tenant_id: string
           updated_at: string
+          writeoff_expense_account_id: string | null
         }
         Insert: {
+          advance_payments_adjustment_type?: string | null
+          allow_partial_period_interest?: boolean | null
+          arrears_tolerance_amount?: number | null
+          arrears_tolerance_days?: number | null
+          compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
           default_nominal_interest_rate?: number | null
           default_principal?: number | null
           default_term?: number | null
           description?: string | null
+          early_repayment_penalty_amount?: number | null
+          early_repayment_penalty_percentage?: number | null
+          fee_income_account_id?: string | null
+          fund_source_account_id?: string | null
+          grace_period_duration?: number | null
+          grace_period_type?: string | null
           id?: string
+          interest_calculation_method?: string | null
+          interest_calculation_period?: string | null
+          interest_income_account_id?: string | null
+          interest_receivable_account_id?: string | null
           is_active?: boolean
+          late_payment_penalty_amount?: number | null
+          late_payment_penalty_percentage?: number | null
+          loan_portfolio_account_id?: string | null
           max_nominal_interest_rate: number
           max_principal: number
           max_term: number
@@ -4097,21 +4143,49 @@ export type Database = {
           min_nominal_interest_rate: number
           min_principal: number
           min_term: number
+          moratorium_period?: number | null
           name: string
+          overpayment_liability_account_id?: string | null
+          penalty_income_account_id?: string | null
+          pre_closure_interest_calculation_rule?: string | null
+          processing_fee_amount?: number | null
+          processing_fee_percentage?: number | null
+          provision_account_id?: string | null
           repayment_frequency?: string
+          reschedule_strategy?: string | null
           short_name: string
+          suspended_income_account_id?: string | null
           tenant_id: string
           updated_at?: string
+          writeoff_expense_account_id?: string | null
         }
         Update: {
+          advance_payments_adjustment_type?: string | null
+          allow_partial_period_interest?: boolean | null
+          arrears_tolerance_amount?: number | null
+          arrears_tolerance_days?: number | null
+          compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
           default_nominal_interest_rate?: number | null
           default_principal?: number | null
           default_term?: number | null
           description?: string | null
+          early_repayment_penalty_amount?: number | null
+          early_repayment_penalty_percentage?: number | null
+          fee_income_account_id?: string | null
+          fund_source_account_id?: string | null
+          grace_period_duration?: number | null
+          grace_period_type?: string | null
           id?: string
+          interest_calculation_method?: string | null
+          interest_calculation_period?: string | null
+          interest_income_account_id?: string | null
+          interest_receivable_account_id?: string | null
           is_active?: boolean
+          late_payment_penalty_amount?: number | null
+          late_payment_penalty_percentage?: number | null
+          loan_portfolio_account_id?: string | null
           max_nominal_interest_rate?: number
           max_principal?: number
           max_term?: number
@@ -4119,18 +4193,98 @@ export type Database = {
           min_nominal_interest_rate?: number
           min_principal?: number
           min_term?: number
+          moratorium_period?: number | null
           name?: string
+          overpayment_liability_account_id?: string | null
+          penalty_income_account_id?: string | null
+          pre_closure_interest_calculation_rule?: string | null
+          processing_fee_amount?: number | null
+          processing_fee_percentage?: number | null
+          provision_account_id?: string | null
           repayment_frequency?: string
+          reschedule_strategy?: string | null
           short_name?: string
+          suspended_income_account_id?: string | null
           tenant_id?: string
           updated_at?: string
+          writeoff_expense_account_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "loan_products_fee_income_account_id_fkey"
+            columns: ["fee_income_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_fund_source_account_id_fkey"
+            columns: ["fund_source_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_interest_income_account_id_fkey"
+            columns: ["interest_income_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_interest_receivable_account_id_fkey"
+            columns: ["interest_receivable_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_loan_portfolio_account_id_fkey"
+            columns: ["loan_portfolio_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_overpayment_liability_account_id_fkey"
+            columns: ["overpayment_liability_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_penalty_income_account_id_fkey"
+            columns: ["penalty_income_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_provision_account_id_fkey"
+            columns: ["provision_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_suspended_income_account_id_fkey"
+            columns: ["suspended_income_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loan_products_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_products_writeoff_expense_account_id_fkey"
+            columns: ["writeoff_expense_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]
