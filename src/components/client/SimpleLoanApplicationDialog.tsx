@@ -10,10 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
@@ -22,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { useFunds } from "@/hooks/useFundsManagement";
+import { LoanApplicationFormFields } from "./loan-application/LoanApplicationFormFields";
 
 const simpleLoanSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
@@ -96,21 +94,17 @@ export const SimpleLoanApplicationDialog = ({
 
   const selectedProduct = loanProducts.find(p => p.id === form.watch("loan_product_id"));
 
-  // Auto-populate defaults when product is selected
-  const handleProductChange = (productId: string) => {
-    const product = loanProducts.find(p => p.id === productId);
-    if (product) {
-      form.setValue("requested_amount", product.default_principal?.toString() || "");
-    }
-  };
-
   const fillSampleData = () => {
     if (loanProducts.length > 0 && funds.length > 0) {
       form.setValue("loan_product_id", loanProducts[0].id);
       form.setValue("requested_amount", loanProducts[0].default_principal?.toString() || "5000");
       form.setValue("loan_purpose", "Business expansion and working capital requirements");
       form.setValue("fund_id", funds[0].id);
-      handleProductChange(loanProducts[0].id);
+      // Auto-populate amount based on selected product
+      const product = loanProducts.find(p => p.id === loanProducts[0].id);
+      if (product) {
+        form.setValue("requested_amount", product.default_principal?.toString() || "");
+      }
     }
   };
 
@@ -173,141 +167,14 @@ export const SimpleLoanApplicationDialog = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
+            <LoanApplicationFormFields
               control={form.control}
-              name="loan_product_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Loan Product *</FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleProductChange(value);
-                    }} 
-                    value={field.value}
-                    disabled={isLoadingProducts}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingProducts ? "Loading products..." : "Select a loan product"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {loanProducts.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} - {product.default_nominal_interest_rate}% ({product.default_term} months)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="fund_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fund Source *</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                    disabled={fundsLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={fundsLoading ? "Loading funds..." : "Select fund source"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {funds && funds.length > 0 ? (
-                        funds.map((fund) => (
-                          <SelectItem key={fund.id} value={fund.id}>
-                            {fund.fund_name} ({fund.fund_code}) - Balance: {fund.current_balance?.toLocaleString() || 0}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="" disabled>
-                          No funds available
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {selectedProduct && (
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Product Details</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Interest Rate:</span>
-                    <span className="ml-2 font-medium">{selectedProduct.default_nominal_interest_rate}%</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Default Term:</span>
-                    <span className="ml-2 font-medium">{selectedProduct.default_term} months</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Min Amount:</span>
-                    <span className="ml-2 font-medium">{selectedProduct.min_principal?.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Max Amount:</span>
-                    <span className="ml-2 font-medium">{selectedProduct.max_principal?.toLocaleString()}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <FormField
-              control={form.control}
-              name="requested_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Requested Amount *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter loan amount"
-                      {...field}
-                      step="0.01"
-                    />
-                  </FormControl>
-                  {selectedProduct && (
-                    <p className="text-sm text-muted-foreground">
-                      Amount must be between {selectedProduct.min_principal?.toLocaleString()} and {selectedProduct.max_principal?.toLocaleString()}
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="loan_purpose"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Loan Purpose *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe the purpose of this loan in detail..."
-                      className="resize-none"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-sm text-muted-foreground">
-                    Please provide a detailed explanation of how the loan will be used
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
+              setValue={form.setValue}
+              loanProducts={loanProducts}
+              funds={funds}
+              isLoadingProducts={isLoadingProducts}
+              fundsLoading={fundsLoading}
+              selectedProduct={selectedProduct}
             />
 
             <div className="flex justify-end space-x-2">
