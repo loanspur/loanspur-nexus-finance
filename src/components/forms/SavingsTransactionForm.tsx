@@ -78,7 +78,7 @@ export const SavingsTransactionForm = ({
   // Fetch all fee structures and filter for savings-related charges
   const { data: allFeeStructures } = useFeeStructures();
   const feeStructures = allFeeStructures?.filter(fee => 
-    fee.is_active && ['savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
+    fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
   ) || [];
 
   const form = useForm<TransactionFormData>({
