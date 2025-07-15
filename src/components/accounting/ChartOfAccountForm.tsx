@@ -64,6 +64,21 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
     return nextCode.toString();
   };
 
+  // Reset form data when account prop changes (for editing)
+  useEffect(() => {
+    if (account) {
+      setFormData({
+        account_code: account.account_code || "",
+        account_name: account.account_name || "",
+        account_type: account.account_type || "",
+        account_usage: account.account_category || "details",
+        parent_account_id: account.parent_account_id || "",
+        description: account.description || "",
+        is_active: account.is_active ?? true,
+      });
+    }
+  }, [account]);
+
   // Auto-generate code when account type changes (for new accounts only)
   useEffect(() => {
     if (!account && formData.account_type) {

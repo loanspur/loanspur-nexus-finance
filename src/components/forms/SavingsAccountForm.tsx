@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -57,6 +57,21 @@ export const SavingsAccountForm = ({ open, onOpenChange, editingAccount }: Savin
       opened_date: new Date().toISOString().split('T')[0],
     },
   });
+
+  // Reset form when editingAccount changes
+  useEffect(() => {
+    if (editingAccount) {
+      form.reset({
+        client_id: editingAccount.client_id,
+        savings_product_id: editingAccount.savings_product_id,
+        account_number: editingAccount.account_number,
+        account_balance: editingAccount.account_balance,
+        available_balance: editingAccount.available_balance,
+        is_active: editingAccount.is_active,
+        opened_date: editingAccount.opened_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      });
+    }
+  }, [editingAccount, form]);
 
   // Generate account number when product is selected
   const generateAccountNumber = (productId: string) => {

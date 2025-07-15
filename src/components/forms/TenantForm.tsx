@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -75,6 +75,29 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
       postal_code: "",
     },
   });
+
+  // Reset form when editingTenant changes
+  useEffect(() => {
+    if (editingTenant) {
+      form.reset({
+        name: editingTenant.name,
+        slug: editingTenant.slug,
+        domain: editingTenant.domain || "",
+        pricing_tier: editingTenant.pricing_tier,
+        status: editingTenant.status,
+        contact_person_name: editingTenant.contact_person_name || "",
+        contact_person_email: editingTenant.contact_person_email || "",
+        contact_person_phone: editingTenant.contact_person_phone || "",
+        billing_cycle: editingTenant.billing_cycle || "monthly",
+        country: editingTenant.country || "",
+        timezone: editingTenant.timezone || "UTC",
+        currency_code: editingTenant.currency_code || "USD",
+        city: editingTenant.city || "",
+        state_province: editingTenant.state_province || "",
+        postal_code: editingTenant.postal_code || "",
+      });
+    }
+  }, [editingTenant, form]);
 
   const onSubmit = async (data: TenantFormData) => {
     setIsSubmitting(true);

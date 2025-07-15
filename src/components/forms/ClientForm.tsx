@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -60,6 +60,23 @@ export const ClientForm = ({ open, onOpenChange, tenantId, editingClient }: Clie
       monthly_income: "",
     },
   });
+
+  // Reset form when editingClient changes
+  useEffect(() => {
+    if (editingClient) {
+      form.reset({
+        client_number: editingClient.client_number,
+        first_name: editingClient.first_name,
+        last_name: editingClient.last_name,
+        email: editingClient.email || "",
+        phone: editingClient.phone || "",
+        national_id: editingClient.national_id || "",
+        gender: editingClient.gender || "",
+        occupation: editingClient.occupation || "",
+        monthly_income: editingClient.monthly_income?.toString() || "",
+      });
+    }
+  }, [editingClient, form]);
 
   const onSubmit = async (data: ClientFormData) => {
     setIsSubmitting(true);
