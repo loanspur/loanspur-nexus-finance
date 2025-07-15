@@ -551,7 +551,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                   </h3>
                   <Button size="sm" onClick={() => setShowLoanWorkflowDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Full Application
+                    Add Loan
                   </Button>
                 </div>
                 
