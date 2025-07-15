@@ -42,13 +42,19 @@ export const useCreatePaymentType = () => {
       is_active: boolean;
       position: number;
     }) => {
-      // Get tenant_id from the current user
-      const { data: profile } = await supabase
+      // Get current user first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to create payment types');
+      
+      // Get tenant_id from the current user's profile
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('tenant_id')
+        .eq('user_id', user.id)
         .single();
       
-      if (!profile?.tenant_id) throw new Error('No tenant found');
+      if (profileError) throw new Error('Unable to find user profile');
+      if (!profile?.tenant_id) throw new Error('Your account is not associated with any tenant');
       
       // Auto-generate code from name
       const code = paymentType.name.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z_]/g, '');
