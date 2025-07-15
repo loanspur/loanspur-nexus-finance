@@ -7,6 +7,8 @@ import { LoanProductFormData } from "./LoanProductSchema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { useFunds } from "@/hooks/useFundsManagement";
+import { useMPesaCredentials } from "@/hooks/useIntegrations";
 import { X } from "lucide-react";
 
 interface LoanProductAdvancedTabProps {
@@ -29,41 +31,36 @@ interface FeeMapping {
 export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTabProps) => {
   const { data: chartOfAccounts = [] } = useChartOfAccounts();
   const { data: feeStructures = [] } = useFeeStructures();
+  const { data: funds = [] } = useFunds();
+  const { data: mpesaCredentials = [] } = useMPesaCredentials(tenantId);
 
-  const [paymentChannelMappings, setPaymentChannelMappings] = useState<PaymentChannelMapping[]>([
-    { id: "1", paymentType: "M-PESA PAYBILL - 4048161", fundSource: "M-pesa Paybill - 4048161" },
-    { id: "2", paymentType: "EQUITY BANK ACCOUNT", fundSource: "Equity Bank Account" },
-    { id: "3", paymentType: "PROPERTY M-PESA - 4083601", fundSource: "PROPERTY M-PESA - 4083..." },
-    { id: "4", paymentType: "NCBA BANK - BGM", fundSource: "NCBA Bank Account" },
-  ]);
-
-  const [feeMappings, setFeeMappings] = useState<FeeMapping[]>([
-    { id: "1", feeType: "Application Fee", incomeAccount: "Application Fee Income" },
-    { id: "2", feeType: "Appraisal Fees", incomeAccount: "Appraisal Fee Income" },
-    { id: "3", feeType: "CRB CHARGES", incomeAccount: "CRB CHARGE INCOME" },
-    { id: "4", feeType: "Credit Life Insurance", incomeAccount: "Credit Life Insurance Income" },
-    { id: "5", feeType: "Disbursement Charges", incomeAccount: "Disbursement Income" },
-  ]);
+  const [paymentChannelMappings, setPaymentChannelMappings] = useState<PaymentChannelMapping[]>([]);
+  const [feeMappings, setFeeMappings] = useState<FeeMapping[]>([]);
 
   const assetAccounts = chartOfAccounts.filter(account => account.account_type === 'asset');
   const incomeAccounts = chartOfAccounts.filter(account => account.account_type === 'income');
 
+  // Generate payment types from available M-Pesa credentials and common bank accounts
   const paymentTypes = [
-    "M-PESA PAYBILL - 4048161",
-    "EQUITY BANK ACCOUNT", 
-    "PROPERTY M-PESA - 4083601",
-    "NCBA BANK - BGM",
-    "KCB BANK ACCOUNT",
-    "ABSA BANK ACCOUNT"
+    ...mpesaCredentials.map(cred => `M-PESA ${cred.business_short_code ? `PAYBILL - ${cred.business_short_code}` : 'TILL'}`),
+    "EQUITY BANK ACCOUNT",
+    "KCB BANK ACCOUNT", 
+    "NCBA BANK ACCOUNT",
+    "ABSA BANK ACCOUNT",
+    "COOPERATIVE BANK ACCOUNT",
+    "FAMILY BANK ACCOUNT"
   ];
 
+  // Generate fund sources from available funds and M-Pesa accounts
   const fundSources = [
-    "M-pesa Paybill - 4048161",
+    ...funds.map(fund => `${fund.fund_name} (${fund.fund_code})`),
+    ...mpesaCredentials.map(cred => `M-pesa ${cred.business_short_code ? `Paybill - ${cred.business_short_code}` : 'Till'}`),
     "Equity Bank Account",
-    "PROPERTY M-PESA - 4083...",
-    "NCBA Bank Account",
     "KCB Bank Account",
-    "ABSA Bank Account"
+    "NCBA Bank Account", 
+    "ABSA Bank Account",
+    "Cooperative Bank Account",
+    "Family Bank Account"
   ];
 
   const addPaymentChannelMapping = () => {
@@ -216,11 +213,6 @@ export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTa
                             {fee.name}
                           </SelectItem>
                         ))}
-                        <SelectItem value="Application Fee">Application Fee</SelectItem>
-                        <SelectItem value="Appraisal Fees">Appraisal Fees</SelectItem>
-                        <SelectItem value="CRB CHARGES">CRB CHARGES</SelectItem>
-                        <SelectItem value="Credit Life Insurance">Credit Life Insurance</SelectItem>
-                        <SelectItem value="Disbursement Charges">Disbursement Charges</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -238,11 +230,6 @@ export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTa
                             {account.account_code} - {account.account_name}
                           </SelectItem>
                         ))}
-                        <SelectItem value="Application Fee Income">Application Fee Income</SelectItem>
-                        <SelectItem value="Appraisal Fee Income">Appraisal Fee Income</SelectItem>
-                        <SelectItem value="CRB CHARGE INCOME">CRB CHARGE INCOME</SelectItem>
-                        <SelectItem value="Credit Life Insurance Income">Credit Life Insurance Income</SelectItem>
-                        <SelectItem value="Disbursement Income">Disbursement Income</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
