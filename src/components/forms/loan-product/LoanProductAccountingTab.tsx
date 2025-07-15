@@ -30,6 +30,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
   const expenseAccounts = getAccountsByType('expense');
   const liabilityAccounts = getAccountsByType('liability');
 
+  // Debug: Log account data
+  console.log('Chart of accounts data:', chartOfAccounts);
+  console.log('Income accounts found:', incomeAccounts);
+  console.log('Total accounts:', chartOfAccounts.length);
+  console.log('Available account types:', [...new Set(chartOfAccounts.map(acc => acc.account_type))]);
+
   // Get specific account categories
   const cashAccounts = getAccountsByCategory('cash_and_cash_equivalents');
   const loanAccounts = getAccountsByCategory('loans_and_advances');
