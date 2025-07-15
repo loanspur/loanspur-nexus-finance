@@ -33,40 +33,40 @@ interface LoanDetailsStepProps {
 }
 
 export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [repaymentSchedule, setRepaymentSchedule] = useState<any[]>([]);
   const [showSchedule, setShowSchedule] = useState(false);
 
   const { data: loanPurposes = [] } = useQuery({
-    queryKey: ['loan-purposes', user?.tenant_id],
+    queryKey: ['loan-purposes', profile?.tenant_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('loan_purposes')
         .select('*')
-        .eq('tenant_id', user?.tenant_id)
+        .eq('tenant_id', profile?.tenant_id)
         .eq('is_active', true)
         .order('name');
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.tenant_id,
+    enabled: !!profile?.tenant_id,
   });
 
   const { data: loanOfficers = [] } = useQuery({
-    queryKey: ['loan-officers', user?.tenant_id],
+    queryKey: ['loan-officers', profile?.tenant_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('tenant_id', user?.tenant_id)
+        .eq('tenant_id', profile?.tenant_id)
         .in('role', ['loan_officer', 'tenant_admin'])
         .order('first_name');
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.tenant_id,
+    enabled: !!profile?.tenant_id,
   });
 
   // Watch form values for calculations

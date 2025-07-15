@@ -27,39 +27,39 @@ interface LoanProductSelectionStepProps {
 }
 
 export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps) {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const { data: loanProducts = [], isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['loan-products', user?.tenant_id],
+    queryKey: ['loan-products', profile?.tenant_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('loan_products')
         .select('*')
-        .eq('tenant_id', user?.tenant_id)
+        .eq('tenant_id', profile?.tenant_id)
         .eq('is_active', true)
         .order('name');
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.tenant_id,
+    enabled: !!profile?.tenant_id,
   });
 
   const { data: funds = [], isLoading: isLoadingFunds } = useQuery({
-    queryKey: ['funds', user?.tenant_id],
+    queryKey: ['funds', profile?.tenant_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('funds')
-        .select('*')
-        .eq('tenant_id', user?.tenant_id)
-        .eq('status', 'active')
-        .order('name');
+        .select('id, fund_name, current_balance, is_active, tenant_id')
+        .eq('tenant_id', profile?.tenant_id)
+        .eq('is_active', true)
+        .order('fund_name');
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.tenant_id,
+    enabled: !!profile?.tenant_id,
   });
 
   const formatCurrency = (amount: number) => {
@@ -246,9 +246,9 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
                     funds.map((fund) => (
                       <SelectItem key={fund.id} value={fund.id}>
                         <div className="flex flex-col">
-                          <span className="font-medium">{fund.name}</span>
+                          <span className="font-medium">{fund.fund_name}</span>
                           <span className="text-xs text-muted-foreground">
-                            Available: {formatCurrency(fund.available_amount || 0)}
+                            Available: {formatCurrency(fund.current_balance || 0)}
                           </span>
                         </div>
                       </SelectItem>

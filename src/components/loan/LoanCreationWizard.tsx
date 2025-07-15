@@ -166,7 +166,7 @@ export function LoanCreationWizard({ onApplicationCreated, onCancel }: LoanCreat
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const createLoanApplication = useCreateLoanApplication();
 
   const form = useForm<LoanCreationFormData>({
@@ -227,8 +227,8 @@ export function LoanCreationWizard({ onApplicationCreated, onCancel }: LoanCreat
         collateral_description: formData.collateral_description,
         linked_savings_account_id: formData.linked_savings_account_id,
         selected_charges: formData.selected_charges || [],
-        status: 'pending',
-        loan_officer_id: formData.loan_officer_id || user?.id,
+        status: 'pending' as const,
+        loan_officer_id: formData.loan_officer_id || profile?.id,
         expected_disbursement_date: formData.expected_disbursement_date,
         grace_period_duration: formData.grace_period_duration,
         grace_period_type: formData.grace_period_type,

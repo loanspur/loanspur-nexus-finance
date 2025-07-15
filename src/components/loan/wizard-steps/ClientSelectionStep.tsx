@@ -28,24 +28,24 @@ interface ClientSelectionStepProps {
 }
 
 export function ClientSelectionStep({ form }: ClientSelectionStepProps) {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState<any>(null);
 
   const { data: clients = [], isLoading } = useQuery({
-    queryKey: ['clients', user?.tenant_id],
+    queryKey: ['clients', profile?.tenant_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .eq('tenant_id', user?.tenant_id)
+        .eq('tenant_id', profile?.tenant_id)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.tenant_id,
+    enabled: !!profile?.tenant_id,
   });
 
   const filteredClients = clients.filter(client => 
