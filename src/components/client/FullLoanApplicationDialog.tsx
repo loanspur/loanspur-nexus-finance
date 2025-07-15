@@ -72,6 +72,7 @@ const loanApplicationSchema = z.object({
   collateral_type: z.string().optional(),
   collateral_value: z.number().min(0).optional(),
   collateral_description: z.string().optional(),
+  linked_savings_account_id: z.string().optional(),
   employment_type: z.string().min(1, "Please select employment type"),
   monthly_income: z.number().min(0, "Monthly income must be 0 or greater"),
   existing_debt: z.number().min(0, "Existing debt must be 0 or greater"),
@@ -79,6 +80,12 @@ const loanApplicationSchema = z.object({
   bank_account_number: z.string().optional(),
   preferred_disbursement_method: z.string().min(1, "Please select disbursement method"),
   selected_charges: z.array(z.string()).optional(),
+  custom_charges: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    amount: z.number(),
+    frequency: z.string(),
+  })).optional(),
 });
 
 type LoanApplicationFormData = z.infer<typeof loanApplicationSchema>;
@@ -97,6 +104,7 @@ export const FullLoanApplicationDialog = ({
   onApplicationCreated 
 }: FullLoanApplicationDialogProps) => {
   const [currentTab, setCurrentTab] = useState("basic");
+  const [customCharges, setCustomCharges] = useState<Array<{id: string, name: string, amount: number, frequency: string}>>([]);
   const { profile } = useAuth();
   const { toast } = useToast();
   const createLoanApplication = useCreateLoanApplication();
@@ -121,6 +129,7 @@ export const FullLoanApplicationDialog = ({
       collateral_type: "",
       collateral_value: 0,
       collateral_description: "",
+      linked_savings_account_id: "",
       employment_type: "",
       monthly_income: 0,
       existing_debt: 0,
@@ -128,6 +137,7 @@ export const FullLoanApplicationDialog = ({
       bank_account_number: "",
       preferred_disbursement_method: "",
       selected_charges: [],
+      custom_charges: [],
     },
   });
 
@@ -178,7 +188,35 @@ export const FullLoanApplicationDialog = ({
     { id: '1', name: 'Processing Fee', amount: 2500, frequency: 'One Time' },
     { id: '2', name: 'Insurance Premium', amount: 500, frequency: 'Monthly' },
     { id: '3', name: 'Application Fee', amount: 1000, frequency: 'One Time' },
+    { id: '4', name: 'Transfer Charge', amount: 50, frequency: 'One Time' },
   ] : [];
+
+  // Fetch client's savings accounts for linking
+  const { data: clientSavingsAccounts } = useQuery({
+    queryKey: ['client-savings', preSelectedClientId],
+    queryFn: async () => {
+      if (!preSelectedClientId) return [];
+      const { data, error } = await supabase
+        .from('savings_accounts')
+        .select(`
+          id, 
+          account_number, 
+          account_balance, 
+          savings_products!inner(name)
+        `)
+        .eq('client_id', preSelectedClientId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!preSelectedClientId,
+  });
+
+  // Check if there are transfer charges selected
+  const hasTransferCharges = form.watch('selected_charges')?.some(chargeId => 
+    productCharges.find(charge => charge.id === chargeId && charge.name.toLowerCase().includes('transfer'))
+  );
   const requestedAmount = form.watch('requested_amount');
   const numberOfInstallments = form.watch('number_of_installments');
   const interestRate = form.watch('interest_rate');
@@ -529,6 +567,52 @@ export const FullLoanApplicationDialog = ({
                         </Card>
                       )}
 
+                      {/* Linked Savings Account Section - Only show if transfer charges are selected */}
+                      {hasTransferCharges && (
+                        <Card className="bg-blue-50/50 border-blue-200">
+                          <CardHeader>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                              <CreditCard className="w-4 h-4" />
+                              Linked Savings Account
+                            </CardTitle>
+                            <CardDescription>
+                              Select a savings account for transfer charges and disbursement
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <FormField
+                              control={form.control}
+                              name="linked_savings_account_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Savings Account</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select savings account" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {clientSavingsAccounts?.map((account) => (
+                                        <SelectItem key={account.id} value={account.id}>
+                                          {account.account_number} - {account.savings_products?.name} 
+                                          (Balance: {formatCurrency(account.account_balance)})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                  {clientSavingsAccounts?.length === 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                      No active savings accounts found for this client
+                                    </p>
+                                  )}
+                                </FormItem>
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
+                      )}
 
                       <FormField
                         control={form.control}
@@ -846,8 +930,10 @@ export const FullLoanApplicationDialog = ({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {productCharges && productCharges.length > 0 ? (
+                        {/* Product Mapped Charges */}
+                        {productCharges && productCharges.length > 0 && (
                           <div className="space-y-3">
+                            <h4 className="text-sm font-medium text-muted-foreground">Product Mapped Charges</h4>
                             {productCharges.map((charge: any) => (
                               <div key={charge.id} className="flex items-center space-x-3 p-3 border rounded-lg">
                                 <div className="flex items-center space-x-2">
@@ -875,14 +961,97 @@ export const FullLoanApplicationDialog = ({
                               </div>
                             ))}
                           </div>
-                        ) : (
-                          <div className="text-center text-muted-foreground py-8">
-                            {form.watch('loan_product_id') 
-                              ? 'No charges configured for this product'
-                              : 'Please select a loan product to view available charges'
-                            }
-                          </div>
                         )}
+
+                        {/* Custom Charges Section */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-muted-foreground">Additional Charges</h4>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newCharge = {
+                                  id: `custom-${Date.now()}`,
+                                  name: '',
+                                  amount: 0,
+                                  frequency: 'One Time'
+                                };
+                                setCustomCharges([...customCharges, newCharge]);
+                              }}
+                            >
+                              Add Charge
+                            </Button>
+                          </div>
+
+                          {customCharges.map((charge, index) => (
+                            <div key={charge.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg bg-muted/30">
+                              <Input
+                                type="text"
+                                placeholder="Charge name"
+                                value={charge.name}
+                                onChange={(e) => {
+                                  const updated = [...customCharges];
+                                  updated[index] = { ...charge, name: e.target.value };
+                                  setCustomCharges(updated);
+                                  form.setValue('custom_charges', updated);
+                                }}
+                                className="h-8"
+                              />
+                              <Input
+                                type="number"
+                                placeholder="Amount"
+                                value={charge.amount || ''}
+                                onChange={(e) => {
+                                  const updated = [...customCharges];
+                                  updated[index] = { ...charge, amount: parseFloat(e.target.value) || 0 };
+                                  setCustomCharges(updated);
+                                  form.setValue('custom_charges', updated);
+                                }}
+                                className="h-8"
+                              />
+                              <Select
+                                value={charge.frequency}
+                                onValueChange={(value) => {
+                                  const updated = [...customCharges];
+                                  updated[index] = { ...charge, frequency: value };
+                                  setCustomCharges(updated);
+                                  form.setValue('custom_charges', updated);
+                                }}
+                              >
+                                <SelectTrigger className="h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="One Time">One Time</SelectItem>
+                                  <SelectItem value="Monthly">Monthly</SelectItem>
+                                  <SelectItem value="Quarterly">Quarterly</SelectItem>
+                                  <SelectItem value="Annually">Annually</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const updated = customCharges.filter((_, i) => i !== index);
+                                  setCustomCharges(updated);
+                                  form.setValue('custom_charges', updated);
+                                }}
+                                className="h-8"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))}
+
+                          {customCharges.length === 0 && (
+                            <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+                              No additional charges added. Click "Add Charge" to include custom fees.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
