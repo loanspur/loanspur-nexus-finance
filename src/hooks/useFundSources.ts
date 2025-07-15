@@ -42,23 +42,23 @@ export const useFundSources = () => {
         })));
       }
 
-      // Fetch M-Pesa credentials if available
-      const { data: mpesaCredentials } = await supabase
-        .from('mpesa_credentials')
+      // Fetch M-Pesa configurations if available (use correct table name)
+      const { data: mpesaConfigs } = await supabase
+        .from('tenant_mpesa_config')
         .select('*')
         .eq('tenant_id', profile.tenant_id)
         .eq('is_active', true);
 
-      if (mpesaCredentials) {
-        fundSources.push(...mpesaCredentials.map(cred => ({
-          id: cred.id,
-          name: `M-pesa ${cred.business_short_code ? `Paybill - ${cred.business_short_code}` : 'Till'}`,
+      if (mpesaConfigs) {
+        fundSources.push(...mpesaConfigs.map(config => ({
+          id: config.id,
+          name: `M-Pesa ${config.business_short_code ? `Paybill - ${config.business_short_code}` : 'Configuration'}`,
           type: 'mpesa' as const,
-          details: cred.till_number || cred.business_short_code || undefined
+          details: config.business_short_code || undefined
         })));
       }
 
-      // Add some default bank account options (these would ideally come from a bank_accounts table)
+      // Add default bank account options
       const defaultBankAccounts = [
         "Equity Bank Account",
         "KCB Bank Account", 
