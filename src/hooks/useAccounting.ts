@@ -100,7 +100,7 @@ export interface ClosingEntry {
   closing_date: string;
   description?: string;
   status: 'draft' | 'posted' | 'finalized';
-  total_income: number;
+  total_revenue: number;
   total_expenses: number;
   net_income: number;
   retained_earnings_account_id?: string;
