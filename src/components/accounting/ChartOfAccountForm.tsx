@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useCreateAccount, useUpdateAccount, type ChartOfAccount } from "@/hooks/useChartOfAccounts";
+import { useCreateAccount, useUpdateAccount, useChartOfAccounts, type ChartOfAccount } from "@/hooks/useChartOfAccounts";
 
 interface ChartOfAccountFormProps {
   open: boolean;
@@ -23,24 +23,26 @@ const ACCOUNT_TYPES = [
   { value: "expense", label: "Expense" },
 ];
 
-const ACCOUNT_CATEGORIES = [
-  { value: "current_asset", label: "Current Asset" },
-  { value: "fixed_asset", label: "Fixed Asset" },
-  { value: "current_liability", label: "Current Liability" },
-  { value: "long_term_liability", label: "Long Term Liability" },
-  { value: "equity", label: "Equity" },
-  { value: "operating_income", label: "Operating Income" },
-  { value: "other_income", label: "Other Income" },
-  { value: "operating_expense", label: "Operating Expense" },
-  { value: "other_expense", label: "Other Expense" },
+const ACCOUNT_USAGE = [
+  { value: "general_ledger", label: "General Ledger" },
+  { value: "loan_principal", label: "Loan Principal" },
+  { value: "loan_interest", label: "Loan Interest" },
+  { value: "loan_fees", label: "Loan Fees" },
+  { value: "loan_penalties", label: "Loan Penalties" },
+  { value: "savings_deposits", label: "Savings Deposits" },
+  { value: "savings_interest", label: "Savings Interest" },
+  { value: "client_receivables", label: "Client Receivables" },
+  { value: "suspense_account", label: "Suspense Account" },
+  { value: "fund_source", label: "Fund Source" },
 ];
 
 export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts = [] }: ChartOfAccountFormProps) => {
+  const { data: chartOfAccounts = [] } = useChartOfAccounts();
   const [formData, setFormData] = useState({
     account_code: account?.account_code || "",
     account_name: account?.account_name || "",
     account_type: account?.account_type || "",
-    account_category: account?.account_category || "",
+    account_usage: account?.account_category || "general_ledger", // Map category to usage
     parent_account_id: account?.parent_account_id || "",
     description: account?.description || "",
     is_active: account?.is_active ?? true,
@@ -49,11 +51,41 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
 
+  // Auto-generate account code based on account type
+  const generateAccountCode = (accountType: string) => {
+    const typePrefix = {
+      asset: "1",
+      liability: "2", 
+      equity: "3",
+      income: "4",
+      expense: "5"
+    }[accountType] || "1";
+
+    // Find highest existing code for this type
+    const existingCodes = chartOfAccounts
+      .filter(acc => acc.account_code.startsWith(typePrefix))
+      .map(acc => parseInt(acc.account_code))
+      .filter(code => !isNaN(code))
+      .sort((a, b) => b - a);
+
+    const nextCode = existingCodes.length > 0 ? existingCodes[0] + 1 : parseInt(typePrefix + "000");
+    return nextCode.toString();
+  };
+
+  // Auto-generate code when account type changes (for new accounts only)
+  useEffect(() => {
+    if (!account && formData.account_type && !formData.account_code) {
+      const newCode = generateAccountCode(formData.account_type);
+      setFormData(prev => ({ ...prev, account_code: newCode }));
+    }
+  }, [formData.account_type, account, chartOfAccounts]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const submitData = {
       ...formData,
+      account_category: formData.account_usage, // Map usage back to category for DB
       parent_account_id: formData.parent_account_id || undefined,
     };
 
@@ -68,7 +100,7 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
       account_code: "",
       account_name: "",
       account_type: "",
-      account_category: "",
+      account_usage: "general_ledger",
       parent_account_id: "",
       description: "",
       is_active: true,
@@ -94,8 +126,9 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
                 id="account_code"
                 value={formData.account_code}
                 onChange={(e) => setFormData({ ...formData, account_code: e.target.value })}
-                placeholder="e.g. 1000"
+                placeholder="Auto-generated"
                 required
+                readOnly={!account} // Make read-only for new accounts (auto-generated)
               />
             </div>
 
@@ -129,15 +162,15 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="account_category">Account Category *</Label>
-              <Select value={formData.account_category} onValueChange={(value) => setFormData({ ...formData, account_category: value })}>
+              <Label htmlFor="account_usage">Account Usage *</Label>
+              <Select value={formData.account_usage} onValueChange={(value) => setFormData({ ...formData, account_usage: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select usage" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ACCOUNT_CATEGORIES.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
+                  {ACCOUNT_USAGE.map((usage) => (
+                    <SelectItem key={usage.value} value={usage.value}>
+                      {usage.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
