@@ -23,7 +23,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 const paymentTypeSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  code: z.string().min(1, "Code is required").regex(/^[A-Z_]+$/, "Code must be uppercase letters and underscores only"),
   description: z.string().optional(),
   is_cash_payment: z.boolean(),
   is_active: z.boolean(),
@@ -43,7 +42,6 @@ const PaymentTypesManagement = () => {
     resolver: zodResolver(paymentTypeSchema),
     defaultValues: {
       name: "",
-      code: "",
       description: "",
       is_cash_payment: false,
       is_active: true,
@@ -57,7 +55,6 @@ const PaymentTypesManagement = () => {
     } else {
       await createMutation.mutateAsync({
         name: values.name,
-        code: values.code,
         description: values.description,
         is_cash_payment: values.is_cash_payment,
         is_active: values.is_active,
@@ -71,7 +68,6 @@ const PaymentTypesManagement = () => {
     setEditingPaymentType(paymentType);
     form.reset({
       name: paymentType.name,
-      code: paymentType.code,
       description: paymentType.description || "",
       is_cash_payment: paymentType.is_cash_payment,
       is_active: paymentType.is_active,
@@ -85,7 +81,6 @@ const PaymentTypesManagement = () => {
     setEditingPaymentType(null);
     form.reset({
       name: "",
-      code: "",
       description: "",
       is_cash_payment: false,
       is_active: true,
@@ -130,19 +125,6 @@ const PaymentTypesManagement = () => {
                       <FormLabel>Name</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="e.g., Credit Card" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., CREDIT_CARD" className="uppercase" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -253,7 +235,6 @@ const PaymentTypesManagement = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium">{paymentType.name}</h3>
-                      <Badge variant="outline">{paymentType.code}</Badge>
                       {paymentType.is_cash_payment && (
                         <Badge variant="secondary">Cash</Badge>
                       )}

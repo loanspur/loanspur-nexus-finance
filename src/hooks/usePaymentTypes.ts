@@ -37,7 +37,6 @@ export const useCreatePaymentType = () => {
   return useMutation({
     mutationFn: async (paymentType: {
       name: string;
-      code: string;
       description?: string;
       is_cash_payment: boolean;
       is_active: boolean;
@@ -51,9 +50,12 @@ export const useCreatePaymentType = () => {
       
       if (!profile?.tenant_id) throw new Error('No tenant found');
       
+      // Auto-generate code from name
+      const code = paymentType.name.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z_]/g, '');
+      
       const { data, error } = await supabase
         .from('payment_types')
-        .insert({ ...paymentType, tenant_id: profile.tenant_id })
+        .insert({ ...paymentType, code, tenant_id: profile.tenant_id })
         .select()
         .single();
       
