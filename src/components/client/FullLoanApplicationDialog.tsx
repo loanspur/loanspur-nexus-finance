@@ -203,12 +203,12 @@ export const FullLoanApplicationDialog = ({
       if (!preSelectedClientId) return [];
       const { data, error } = await supabase
         .from('savings_accounts')
-        .select('*, savings_products(name)')
+        .select('id, account_number, account_balance, is_active, savings_products(name)')
         .eq('client_id', preSelectedClientId)
-        .eq('status', 'active');
+        .eq('is_active', true);
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!preSelectedClientId,
   });
@@ -226,8 +226,8 @@ export const FullLoanApplicationDialog = ({
   useEffect(() => {
     if (preSelectedProductId && selectedProduct) {
       form.setValue('loan_product_id', preSelectedProductId);
-      form.setValue('interest_rate', selectedProduct.default_interest_rate || 0);
-      form.setValue('calculation_method', selectedProduct.calculation_method || 'flat');
+      form.setValue('interest_rate', selectedProduct.default_nominal_interest_rate || 0);
+      form.setValue('calculation_method', selectedProduct.interest_calculation_method || 'flat');
       form.setValue('repayment_frequency', selectedProduct.repayment_frequency || 'monthly');
     }
   }, [preSelectedProductId, selectedProduct, form]);
@@ -548,15 +548,15 @@ export const FullLoanApplicationDialog = ({
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <span className="text-muted-foreground">Min Amount:</span>
-                              <p className="font-medium">{formatCurrency(selectedProduct.min_amount)}</p>
+                              <p className="font-medium">{formatCurrency(selectedProduct.min_principal)}</p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Max Amount:</span>
-                              <p className="font-medium">{formatCurrency(selectedProduct.max_amount)}</p>
+                              <p className="font-medium">{formatCurrency(selectedProduct.max_principal)}</p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Interest Rate:</span>
-                              <p className="font-medium">{selectedProduct.default_interest_rate}%</p>
+                              <p className="font-medium">{selectedProduct.default_nominal_interest_rate}%</p>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Max Term:</span>
@@ -937,8 +937,8 @@ export const FullLoanApplicationDialog = ({
                                       if (selectedFee) {
                                         setNewCharge({
                                           name: selectedFee.name,
-                                          type: selectedFee.type,
-                                          amount: selectedFee.type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
+                                          type: selectedFee.fee_type,
+                                          amount: selectedFee.fee_type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
                                           collected_on: selectedFee.charge_time_type === 'upfront' ? 'Disbursement' : 'Specified due date',
                                           due_date: ''
                                         });
@@ -968,7 +968,7 @@ export const FullLoanApplicationDialog = ({
                                           <div className="flex flex-col">
                                             <span>{charge.name}</span>
                                             <span className="text-xs text-muted-foreground">
-                                              {charge.type} - {charge.description || 'No description'}
+                                              {charge.fee_type} - {charge.description || 'No description'}
                                             </span>
                                           </div>
                                         </SelectItem>
