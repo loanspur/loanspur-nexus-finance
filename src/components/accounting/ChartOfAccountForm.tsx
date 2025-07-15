@@ -24,16 +24,8 @@ const ACCOUNT_TYPES = [
 ];
 
 const ACCOUNT_USAGE = [
-  { value: "general_ledger", label: "General Ledger" },
-  { value: "loan_principal", label: "Loan Principal" },
-  { value: "loan_interest", label: "Loan Interest" },
-  { value: "loan_fees", label: "Loan Fees" },
-  { value: "loan_penalties", label: "Loan Penalties" },
-  { value: "savings_deposits", label: "Savings Deposits" },
-  { value: "savings_interest", label: "Savings Interest" },
-  { value: "client_receivables", label: "Client Receivables" },
-  { value: "suspense_account", label: "Suspense Account" },
-  { value: "fund_source", label: "Fund Source" },
+  { value: "header", label: "Header" },
+  { value: "details", label: "Details" },
 ];
 
 export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts = [] }: ChartOfAccountFormProps) => {
@@ -42,7 +34,7 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
     account_code: account?.account_code || "",
     account_name: account?.account_name || "",
     account_type: account?.account_type || "",
-    account_usage: account?.account_category || "general_ledger", // Map category to usage
+    account_usage: account?.account_category || "details", // Map category to usage, default to details
     parent_account_id: account?.parent_account_id || "",
     description: account?.description || "",
     is_active: account?.is_active ?? true,
@@ -100,7 +92,7 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
       account_code: "",
       account_name: "",
       account_type: "",
-      account_usage: "general_ledger",
+      account_usage: "details",
       parent_account_id: "",
       description: "",
       is_active: true,
