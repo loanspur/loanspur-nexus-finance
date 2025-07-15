@@ -495,7 +495,7 @@ export const FullLoanApplicationDialog = ({
         </DialogHeader>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Basic Info
@@ -503,10 +503,6 @@ export const FullLoanApplicationDialog = ({
             <TabsTrigger value="financial" className="flex items-center gap-2">
               <Calculator className="w-4 h-4" />
               Financial
-            </TabsTrigger>
-            <TabsTrigger value="guarantor" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Guarantor
             </TabsTrigger>
             <TabsTrigger value="review" className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
@@ -1311,25 +1307,6 @@ export const FullLoanApplicationDialog = ({
                   )}
                 </TabsContent>
 
-                {/* Guarantor Information Tab - removed as per request */}
-                <TabsContent value="guarantor" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Shield className="w-5 h-5" />
-                        Additional Information
-                      </CardTitle>
-                      <CardDescription>
-                        Review loan details and associated charges
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
-                        All loan details and charges are configured in the previous tabs.
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
 
                 {/* Review Tab */}
                 <TabsContent value="review" className="space-y-6">
@@ -1420,7 +1397,7 @@ export const FullLoanApplicationDialog = ({
                         type="button"
                         variant="outline"
                         onClick={() => {
-                          const tabs = ["basic", "financial", "guarantor", "review"];
+                          const tabs = ["basic", "financial", "review"];
                           const currentIndex = tabs.indexOf(currentTab);
                           if (currentIndex > 0) {
                             setCurrentTab(tabs[currentIndex - 1]);
@@ -1445,7 +1422,7 @@ export const FullLoanApplicationDialog = ({
                       <Button
                         type="button"
                         onClick={() => {
-                          const tabs = ["basic", "financial", "guarantor", "review"];
+                          const tabs = ["basic", "financial", "review"];
                           const currentIndex = tabs.indexOf(currentTab);
                           if (currentIndex < tabs.length - 1) {
                             setCurrentTab(tabs[currentIndex + 1]);
