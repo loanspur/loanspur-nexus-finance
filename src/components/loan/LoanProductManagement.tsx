@@ -52,32 +52,28 @@ export const LoanProductManagement = () => {
           <h2 className="text-2xl font-bold text-foreground">Loan Products</h2>
           <p className="text-muted-foreground">Manage your loan product offerings</p>
         </div>
-        <Dialog open={formOpen} onOpenChange={setFormOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create Loan Product</DialogTitle>
-              <DialogDescription>
-                Define a new loan product with specific terms and conditions
-              </DialogDescription>
-            </DialogHeader>
-             <LoanProductForm 
-               open={formOpen} 
-               onOpenChange={(open) => {
-                 setFormOpen(open);
-                 if (!open) setEditingProduct(null);
-               }}
-               tenantId={profile?.tenant_id || ''} 
-               editingProduct={editingProduct}
-             />
-          </DialogContent>
-        </Dialog>
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => {
+            setEditingProduct(null);
+            setFormOpen(true);
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          Add Product
+        </Button>
       </div>
+
+      {/* Loan Product Form Dialog */}
+      <LoanProductForm 
+        open={formOpen} 
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setEditingProduct(null);
+        }}
+        tenantId={profile?.tenant_id || ''} 
+        editingProduct={editingProduct}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
