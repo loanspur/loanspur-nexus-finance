@@ -1092,69 +1092,88 @@ export const FullLoanApplicationDialog = ({
                                     Values are pre-filled from fee structure but can be modified
                                   </div>
                                 </div>
+                                 <div>
+                                   <label className="text-sm font-medium">Charge Name</label>
+                                   <Input
+                                     value={newCharge.name}
+                                     onChange={(e) => newCharge.name === '' ? setNewCharge({ ...newCharge, name: e.target.value }) : null}
+                                     placeholder="Enter charge name"
+                                     className="mt-1"
+                                     readOnly={newCharge.name !== ''}
+                                   />
+                                 </div>
+                                 <div>
+                                   <label className="text-sm font-medium">Type</label>
+                                   <Select
+                                     value={newCharge.type}
+                                     onValueChange={(value) => newCharge.name === '' ? setNewCharge({ ...newCharge, type: value }) : null}
+                                     disabled={newCharge.name !== ''}
+                                   >
+                                     <SelectTrigger className="mt-1">
+                                       <SelectValue />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                       <SelectItem value="Flat">Flat</SelectItem>
+                                       <SelectItem value="Percentage">Percentage</SelectItem>
+                                     </SelectContent>
+                                   </Select>
+                                 </div>
+                                 <div>
+                                   <label className="text-sm font-medium">
+                                     {newCharge.type === 'Flat' ? 'Amount' : 'Rate (%)'}
+                                   </label>
+                                   <Input
+                                     type="number"
+                                     value={newCharge.amount}
+                                     onChange={(e) => setNewCharge({ ...newCharge, amount: e.target.value })}
+                                     placeholder="0.00"
+                                     className="mt-1"
+                                   />
+                                 </div>
+                                 <div>
+                                   <label className="text-sm font-medium">Charge Time</label>
+                                   <Select
+                                     value={newCharge.collected_on}
+                                     onValueChange={(value) => newCharge.name === '' ? setNewCharge({ ...newCharge, collected_on: value }) : null}
+                                     disabled={newCharge.name !== ''}
+                                   >
+                                     <SelectTrigger className="mt-1">
+                                       <SelectValue />
+                                     </SelectTrigger>
+                                     <SelectContent>
+                                       <SelectItem value="Disbursement">Disbursement</SelectItem>
+                                       <SelectItem value="Specified due date">Specified due date</SelectItem>
+                                       <SelectItem value="Instalment Fee">Instalment Fee</SelectItem>
+                                       <SelectItem value="Overdue Fees">Overdue Fees</SelectItem>
+                                     </SelectContent>
+                                   </Select>
+                                 </div>
                                 <div>
-                                  <label className="text-sm font-medium">Charge Name</label>
-                                  <Input
-                                    value={newCharge.name}
-                                    onChange={(e) => setNewCharge({ ...newCharge, name: e.target.value })}
-                                    placeholder="Enter charge name"
-                                    className="mt-1"
-                                  />
+                                  <label className="text-sm font-medium">Due Date</label>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        className={cn(
+                                          "w-full justify-start text-left font-normal mt-1",
+                                          !newCharge.due_date && "text-muted-foreground"
+                                        )}
+                                      >
+                                        <CalendarDays className="mr-2 h-4 w-4" />
+                                        {newCharge.due_date ? format(new Date(newCharge.due_date), "PPP") : "Pick a due date"}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={newCharge.due_date ? new Date(newCharge.due_date) : undefined}
+                                        onSelect={(date) => setNewCharge({ ...newCharge, due_date: date ? date.toISOString().split('T')[0] : '' })}
+                                        initialFocus
+                                        className="p-3 pointer-events-auto"
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
                                 </div>
-                                <div>
-                                  <label className="text-sm font-medium">Type</label>
-                                  <Select
-                                    value={newCharge.type}
-                                    onValueChange={(value) => setNewCharge({ ...newCharge, type: value })}
-                                  >
-                                    <SelectTrigger className="mt-1">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Flat">Flat</SelectItem>
-                                      <SelectItem value="Percentage">Percentage</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium">
-                                    {newCharge.type === 'Flat' ? 'Amount' : 'Rate (%)'}
-                                  </label>
-                                  <Input
-                                    type="number"
-                                    value={newCharge.amount}
-                                    onChange={(e) => setNewCharge({ ...newCharge, amount: e.target.value })}
-                                    placeholder="0.00"
-                                    className="mt-1"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium">Collected On</label>
-                                  <Select
-                                    value={newCharge.collected_on}
-                                    onValueChange={(value) => setNewCharge({ ...newCharge, collected_on: value })}
-                                  >
-                                    <SelectTrigger className="mt-1">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Disbursement">Disbursement</SelectItem>
-                                      <SelectItem value="Specified due date">Specified due date</SelectItem>
-                                      <SelectItem value="Instalment Fee">Instalment Fee</SelectItem>
-                                      <SelectItem value="Overdue Fees">Overdue Fees</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                               <div>
-                                 <label className="text-sm font-medium">Date</label>
-                                 <Input
-                                   type="text"
-                                   placeholder="Due date"
-                                   value={newCharge.due_date}
-                                   onChange={(e) => setNewCharge({ ...newCharge, due_date: e.target.value })}
-                                   className="mt-1"
-                                 />
-                               </div>
                              </div>
                            )}
                         </div>
@@ -1169,12 +1188,12 @@ export const FullLoanApplicationDialog = ({
                               <table className="w-full">
                                 <thead className="bg-muted/50">
                                   <tr>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Type</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Amount</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Collected On</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Date</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
+                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
+                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Type</th>
+                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Amount</th>
+                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Charge Time</th>
+                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Due Date</th>
+                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -1187,8 +1206,8 @@ export const FullLoanApplicationDialog = ({
                                       <td className="px-4 py-3 text-sm">
                                         {charge.type === 'Percentage' ? `${charge.amount}%` : formatCurrency(charge.amount)}
                                       </td>
-                                      <td className="px-4 py-3 text-sm">{charge.collected_on}</td>
-                                      <td className="px-4 py-3 text-sm">{charge.due_date || 'Due date'}</td>
+                                       <td className="px-4 py-3 text-sm">{charge.collected_on}</td>
+                                       <td className="px-4 py-3 text-sm">{charge.due_date ? format(new Date(charge.due_date), "PPP") : 'No due date'}</td>
                                       <td className="px-4 py-3">
                                         <Button
                                           type="button"
