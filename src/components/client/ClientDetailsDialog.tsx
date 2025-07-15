@@ -53,6 +53,7 @@ import { SavingsDetailsDialog } from "@/components/savings/SavingsDetailsDialog"
 import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 import { TransactionHistoryDialog } from "@/components/statements/TransactionHistoryDialog";
 import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
+import { FullLoanApplicationDialog } from "./FullLoanApplicationDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -548,10 +549,16 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     <CreditCard className="h-5 w-5" />
                     Loans ({clientLoans.length})
                   </h3>
-                  <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Loan
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => setShowAddLoanDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Quick Application
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowLoanWorkflowDialog(true)}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Full Application
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="border rounded-lg divide-y">
@@ -992,14 +999,12 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           />
         )}
 
-        {selectedLoan && (
-          <LoanWorkflowDialog
-            loanApplication={selectedLoan}
-            open={showLoanWorkflowDialog}
-            onOpenChange={setShowLoanWorkflowDialog}
-            onSuccess={handleLoanWorkflowCompleted}
-          />
-        )}
+        <FullLoanApplicationDialog
+          open={showLoanWorkflowDialog}
+          onOpenChange={setShowLoanWorkflowDialog}
+          preSelectedClientId={client.id}
+          onApplicationCreated={handleLoanWorkflowCompleted}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search, Eye } from "lucide-react";
+import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search, Eye, FileText } from "lucide-react";
 import { useClients, type Client } from "@/hooks/useSupabase";
 import { ClientDetailsDialog } from "@/components/client/ClientDetailsDialog";
+import { FullLoanApplicationDialog } from "@/components/client/FullLoanApplicationDialog";
 import { format } from "date-fns";
 
 interface ClientsTableProps {
@@ -20,6 +21,8 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const [itemsPerPage, setItemsPerPage] = useState("10");
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isLoanApplicationDialogOpen, setIsLoanApplicationDialogOpen] = useState(false);
+  const [selectedClientForLoan, setSelectedClientForLoan] = useState<string>("");
 
   // Filter and limit clients
   const filteredClients = clients?.filter((client: any) => {
@@ -38,6 +41,17 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const handleViewClient = (client: any) => {
     setSelectedClient(client);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleCreateLoan = (client: any) => {
+    setSelectedClientForLoan(client.id);
+    setIsLoanApplicationDialogOpen(true);
+  };
+
+  const handleLoanApplicationCreated = () => {
+    // Refresh clients data or show success message
+    setIsLoanApplicationDialogOpen(false);
+    setSelectedClientForLoan("");
   };
 
   const formatCurrency = (amount: number | null) => {
@@ -191,6 +205,14 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleCreateLoan(client)}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Apply Loan
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -225,6 +247,13 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
         client={selectedClient}
         open={isDetailsDialogOpen}
         onOpenChange={setIsDetailsDialogOpen}
+      />
+
+      <FullLoanApplicationDialog
+        open={isLoanApplicationDialogOpen}
+        onOpenChange={setIsLoanApplicationDialogOpen}
+        preSelectedClientId={selectedClientForLoan}
+        onApplicationCreated={handleLoanApplicationCreated}
       />
     </Card>
   );
