@@ -173,7 +173,7 @@ export const FeeStructureManagement = () => {
                       <TableHead>Type</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead>Amount</TableHead>
-                      <TableHead>Frequency</TableHead>
+                      <TableHead>Charge Time</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -221,7 +221,7 @@ export const FeeStructureManagement = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          One Time
+                          {fee.charge_time_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Upfront'}
                         </TableCell>
                         <TableCell>
                           <Badge variant={fee.is_active ? "default" : "secondary"}>
