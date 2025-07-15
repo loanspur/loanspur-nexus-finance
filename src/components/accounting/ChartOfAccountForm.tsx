@@ -167,9 +167,9 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
                 <SelectTrigger>
                   <SelectValue placeholder="Select usage" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border shadow-md z-50">
                   {ACCOUNT_USAGE.map((usage) => (
-                    <SelectItem key={usage.value} value={usage.value}>
+                    <SelectItem key={usage.value} value={usage.value} className="hover:bg-muted">
                       {usage.label}
                     </SelectItem>
                   ))}
