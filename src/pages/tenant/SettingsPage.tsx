@@ -1,5 +1,6 @@
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { TenantProfileManagement } from "@/components/tenant/TenantProfileManagement";
+import { SystemCodesManagement } from "@/components/tenant/SystemCodesManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SettingsPage = () => {
@@ -13,9 +14,10 @@ const SettingsPage = () => {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="profile">Personal Profile</TabsTrigger>
           <TabsTrigger value="organization">Organization</TabsTrigger>
+          <TabsTrigger value="system-codes">System Codes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile" className="space-y-6">
@@ -24,6 +26,10 @@ const SettingsPage = () => {
         
         <TabsContent value="organization" className="space-y-6">
           <TenantProfileManagement />
+        </TabsContent>
+        
+        <TabsContent value="system-codes" className="space-y-6">
+          <SystemCodesManagement />
         </TabsContent>
       </Tabs>
     </div>

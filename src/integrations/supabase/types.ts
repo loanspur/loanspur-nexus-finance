@@ -6332,6 +6332,107 @@ export type Database = {
           },
         ]
       }
+      system_code_categories: {
+        Row: {
+          code_name: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system_defined: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          code_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_defined?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          code_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_defined?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_code_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_code_values: {
+        Row: {
+          category_id: string
+          code_value: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system_defined: boolean
+          name: string
+          position: number | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          code_value: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_defined?: boolean
+          name: string
+          position?: number | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          code_value?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_defined?: boolean
+          name?: string
+          position?: number | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_code_values_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "system_code_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_code_values_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_health_metrics: {
         Row: {
           created_at: string
