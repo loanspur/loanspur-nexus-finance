@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -70,6 +70,39 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       ...defaultValues,
     } : defaultValues,
   });
+
+  // Reset form when editingProduct changes
+  useEffect(() => {
+    if (editingProduct) {
+      form.reset({
+        // Basic Information
+        name: editingProduct.name,
+        short_name: editingProduct.short_name,
+        description: editingProduct.description || "",
+        currency_code: editingProduct.currency_code,
+        repayment_frequency: editingProduct.repayment_frequency || "monthly",
+        
+        // Loan Terms
+        min_principal: editingProduct.min_principal?.toString() || "",
+        max_principal: editingProduct.max_principal?.toString() || "",
+        default_principal: editingProduct.default_principal?.toString() || "",
+        min_term: editingProduct.min_term?.toString() || "",
+        max_term: editingProduct.max_term?.toString() || "",
+        default_term: editingProduct.default_term?.toString() || "",
+        
+        // Interest & Repayment
+        min_nominal_interest_rate: editingProduct.min_nominal_interest_rate?.toString() || "",
+        max_nominal_interest_rate: editingProduct.max_nominal_interest_rate?.toString() || "",
+        default_nominal_interest_rate: editingProduct.default_nominal_interest_rate?.toString() || "",
+        
+        // Use defaults for new fields if not present
+        fund_id: (editingProduct as any).fund_id || "",
+        ...defaultValues,
+      });
+    } else {
+      form.reset(defaultValues);
+    }
+  }, [editingProduct, form]);
 
   const onSubmit = async (data: LoanProductFormData) => {
     setIsSubmitting(true);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,6 +53,37 @@ export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps
       isOverdueCharge: editingFee?.isOverdueCharge ?? false,
     },
   });
+
+  // Reset form when editingFee changes
+  useEffect(() => {
+    if (editingFee) {
+      form.reset({
+        name: editingFee.name || "",
+        type: editingFee.type || "fixed",
+        amount: editingFee.amount?.toString() || "",
+        category: editingFee.category || "loan",
+        chargeTimeType: editingFee.chargeTimeType || "upfront",
+        chargePaymentBy: editingFee.chargePaymentBy || "regular",
+        description: editingFee.description || "",
+        isActive: editingFee.isActive ?? true,
+        applicableFor: editingFee.applicableFor || "all",
+        isOverdueCharge: editingFee.isOverdueCharge ?? false,
+      });
+    } else {
+      form.reset({
+        name: "",
+        type: "fixed",
+        amount: "",
+        category: "loan",
+        chargeTimeType: "upfront",
+        chargePaymentBy: "regular",
+        description: "",
+        isActive: true,
+        applicableFor: "all",
+        isOverdueCharge: false,
+      });
+    }
+  }, [editingFee, form]);
 
   const onSubmit = async (data: FeeFormData) => {
     setIsSubmitting(true);

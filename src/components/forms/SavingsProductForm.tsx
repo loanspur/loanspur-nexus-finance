@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -107,6 +107,59 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
       savings_operation_expense_account_id: "",
     },
   });
+
+  // Reset form when editingProduct changes
+  useEffect(() => {
+    if (editingProduct) {
+      form.reset({
+        name: editingProduct.name,
+        short_name: editingProduct.short_name,
+        description: editingProduct.description || "",
+        currency_code: editingProduct.currency_code,
+        nominal_annual_interest_rate: editingProduct.nominal_annual_interest_rate,
+        min_required_opening_balance: editingProduct.min_required_opening_balance,
+        min_balance_for_interest_calculation: editingProduct.min_balance_for_interest_calculation,
+        is_active: editingProduct.is_active,
+        
+        // Accounting & General Ledger - use existing or default values
+        accounting_method: (editingProduct as any).accounting_method || "accrual_periodic",
+        savings_reference_account_id: (editingProduct as any).savings_reference_account_id || "",
+        savings_control_account_id: (editingProduct as any).savings_control_account_id || "",
+        interest_on_savings_account_id: (editingProduct as any).interest_on_savings_account_id || "",
+        income_from_fees_account_id: (editingProduct as any).income_from_fees_account_id || "",
+        income_from_penalties_account_id: (editingProduct as any).income_from_penalties_account_id || "",
+        overdraft_portfolio_control_id: (editingProduct as any).overdraft_portfolio_control_id || "",
+        escheatment_liability_account_id: (editingProduct as any).escheatment_liability_account_id || "",
+        dormancy_tracking_account_id: (editingProduct as any).dormancy_tracking_account_id || "",
+        withholding_tax_account_id: (editingProduct as any).withholding_tax_account_id || "",
+        savings_operation_expense_account_id: (editingProduct as any).savings_operation_expense_account_id || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        short_name: "",
+        description: "",
+        currency_code: "USD",
+        nominal_annual_interest_rate: 5.0,
+        min_required_opening_balance: 100,
+        min_balance_for_interest_calculation: 50,
+        is_active: true,
+        
+        // Accounting & General Ledger
+        accounting_method: "accrual_periodic",
+        savings_reference_account_id: "",
+        savings_control_account_id: "",
+        interest_on_savings_account_id: "",
+        income_from_fees_account_id: "",
+        income_from_penalties_account_id: "",
+        overdraft_portfolio_control_id: "",
+        escheatment_liability_account_id: "",
+        dormancy_tracking_account_id: "",
+        withholding_tax_account_id: "",
+        savings_operation_expense_account_id: "",
+      });
+    }
+  }, [editingProduct, form]);
 
   const onSubmit = async (values: SavingsProductFormValues) => {
     setIsSubmitting(true);
