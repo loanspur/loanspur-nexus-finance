@@ -26,6 +26,8 @@ import { CreditCard, CalendarIcon, Upload, Plus, Trash2, Eye, Download } from "l
 import { useToast } from "@/hooks/use-toast";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { useLoanPurposes } from "@/hooks/useLoanPurposes";
+import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -106,6 +108,10 @@ export const AddLoanAccountDialog = ({
     enabled: !!profile?.tenant_id,
   });
 
+  // Fetch loan purposes and collateral types
+  const { data: loanPurposes = [] } = useLoanPurposes();
+  const { data: collateralTypes = [] } = useCollateralTypes();
+  
   // Fetch global loan charges
   const { data: feeStructures = [] } = useFeeStructures();
   const loanFeeStructures = feeStructures.filter(fee => fee.fee_type === 'loan' && fee.is_active);
@@ -689,18 +695,16 @@ export const AddLoanAccountDialog = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="business_expansion">Business Expansion</SelectItem>
-                            <SelectItem value="working_capital">Working Capital</SelectItem>
-                            <SelectItem value="equipment_purchase">Equipment Purchase</SelectItem>
-                            <SelectItem value="inventory_financing">Inventory Financing</SelectItem>
-                            <SelectItem value="education">Education/School Fees</SelectItem>
-                            <SelectItem value="home_improvement">Home Improvement</SelectItem>
-                            <SelectItem value="medical_expenses">Medical Expenses</SelectItem>
-                            <SelectItem value="agriculture">Agriculture/Farming</SelectItem>
-                            <SelectItem value="vehicle_purchase">Vehicle Purchase</SelectItem>
-                            <SelectItem value="debt_consolidation">Debt Consolidation</SelectItem>
-                            <SelectItem value="emergency">Emergency</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            {loanPurposes.length === 0 ? (
+                              <SelectItem value="no-purposes" disabled>No loan purposes configured</SelectItem>
+                            ) : (
+                              loanPurposes.map((purpose) => (
+                                <SelectItem key={purpose.id} value={purpose.id}>
+                                  {purpose.name}
+                                  {purpose.description && ` - ${purpose.description}`}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1030,12 +1034,16 @@ export const AddLoanAccountDialog = ({
                             <SelectValue placeholder="Type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="property">Property</SelectItem>
-                            <SelectItem value="vehicle">Vehicle</SelectItem>
-                            <SelectItem value="machinery">Machinery</SelectItem>
-                            <SelectItem value="inventory">Inventory</SelectItem>
-                            <SelectItem value="accounts_receivable">Accounts Receivable</SelectItem>
-                            <SelectItem value="guarantor">Personal Guarantor</SelectItem>
+                            {collateralTypes.length === 0 ? (
+                              <SelectItem value="no-collateral" disabled>No collateral types configured</SelectItem>
+                            ) : (
+                              collateralTypes.map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                  {type.name}
+                                  {type.requires_valuation && " (Requires Valuation)"}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <Input
