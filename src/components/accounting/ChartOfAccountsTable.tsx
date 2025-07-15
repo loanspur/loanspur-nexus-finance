@@ -38,7 +38,7 @@ export const ChartOfAccountsTable = () => {
       asset: "bg-green-100 text-green-800",
       liability: "bg-red-100 text-red-800",
       equity: "bg-blue-100 text-blue-800",
-      revenue: "bg-purple-100 text-purple-800",
+      income: "bg-purple-100 text-purple-800",
       expense: "bg-orange-100 text-orange-800",
     };
     const colorClass = typeColors[type as keyof typeof typeColors] || "bg-gray-100 text-gray-800";
@@ -97,7 +97,7 @@ export const ChartOfAccountsTable = () => {
                 <SelectItem value="asset">Asset</SelectItem>
                 <SelectItem value="liability">Liability</SelectItem>
                 <SelectItem value="equity">Equity</SelectItem>
-                <SelectItem value="revenue">Revenue</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
               </SelectContent>
             </Select>

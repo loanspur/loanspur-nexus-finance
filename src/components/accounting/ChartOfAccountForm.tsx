@@ -19,7 +19,7 @@ const ACCOUNT_TYPES = [
   { value: "asset", label: "Asset" },
   { value: "liability", label: "Liability" },
   { value: "equity", label: "Equity" },
-  { value: "revenue", label: "Revenue" },
+  { value: "income", label: "Income" },
   { value: "expense", label: "Expense" },
 ];
 
@@ -29,8 +29,8 @@ const ACCOUNT_CATEGORIES = [
   { value: "current_liability", label: "Current Liability" },
   { value: "long_term_liability", label: "Long Term Liability" },
   { value: "equity", label: "Equity" },
-  { value: "operating_revenue", label: "Operating Revenue" },
-  { value: "other_revenue", label: "Other Revenue" },
+  { value: "operating_income", label: "Operating Income" },
+  { value: "other_income", label: "Other Income" },
   { value: "operating_expense", label: "Operating Expense" },
   { value: "other_expense", label: "Other Expense" },
 ];

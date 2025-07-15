@@ -9,7 +9,7 @@ export const FeeAnalyticsTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Fee Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Fee Income</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">KSh 145,000</div>

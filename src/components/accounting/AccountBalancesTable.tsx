@@ -44,7 +44,7 @@ export const AccountBalancesTable = () => {
       asset: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
       liability: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
       equity: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-      revenue: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
+      income: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
       expense: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
     };
     const colorClass = typeColors[type as keyof typeof typeColors] || "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
@@ -63,7 +63,7 @@ export const AccountBalancesTable = () => {
       assets: 0,
       liabilities: 0,
       equity: 0,
-      revenue: 0,
+      income: 0,
       expenses: 0
     };
 
@@ -79,8 +79,8 @@ export const AccountBalancesTable = () => {
         case 'equity':
           totals.equity += balance.closing_balance;
           break;
-        case 'revenue':
-          totals.revenue += balance.closing_balance;
+        case 'income':
+          totals.income += balance.closing_balance;
           break;
         case 'expense':
           totals.expenses += balance.closing_balance;
@@ -127,10 +127,10 @@ export const AccountBalancesTable = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{formatCurrency(totals.revenue)}</div>
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(totals.income)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -169,7 +169,7 @@ export const AccountBalancesTable = () => {
                 <SelectItem value="asset">Asset</SelectItem>
                 <SelectItem value="liability">Liability</SelectItem>
                 <SelectItem value="equity">Equity</SelectItem>
-                <SelectItem value="revenue">Revenue</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
               </SelectContent>
             </Select>

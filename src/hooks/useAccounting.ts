@@ -59,7 +59,7 @@ export interface Accrual {
   tenant_id: string;
   accrual_name: string;
   description?: string;
-  accrual_type: 'expense' | 'revenue' | 'liability' | 'asset';
+  accrual_type: 'expense' | 'income' | 'liability' | 'asset';
   amount: number;
   accrual_date: string;
   reversal_date?: string;
@@ -100,7 +100,7 @@ export interface ClosingEntry {
   closing_date: string;
   description?: string;
   status: 'draft' | 'posted' | 'finalized';
-  total_revenue: number;
+  total_income: number;
   total_expenses: number;
   net_income: number;
   retained_earnings_account_id?: string;

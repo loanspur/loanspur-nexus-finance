@@ -34,17 +34,8 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
   const cashAccounts = getAccountsByCategory('cash_and_cash_equivalents');
   const loanAccounts = getAccountsByCategory('loans_and_advances');
   const receivableAccounts = getAccountsByCategory('receivables');
-  const revenueAccounts = getAccountsByCategory('revenue');
   const operatingExpenseAccounts = getAccountsByCategory('operating_expenses');
   const provisionAccounts = getAccountsByCategory('provisions');
-
-  // For revenue mapping, include all income accounts and revenue category accounts
-  const allRevenueAccounts = [
-    ...revenueAccounts,
-    ...incomeAccounts.filter(account => 
-      !revenueAccounts.some(revAccount => revAccount.id === account.id)
-    )
-  ];
 
   const isCashAccounting = accountingType === 'cash';
   const isAccrualAccounting = accountingType === 'accrual_periodic' || accountingType === 'accrual_upfront';
@@ -272,9 +263,9 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <span>Income Accounts</span>
-            <Badge variant="secondary">{allRevenueAccounts.length} available</Badge>
+            <Badge variant="secondary">{incomeAccounts.length} available</Badge>
           </CardTitle>
-          <CardDescription>Configure income account mappings for loan revenue from your chart of accounts</CardDescription>
+          <CardDescription>Configure income account mappings for loan income from your chart of accounts</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
@@ -287,12 +278,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select from revenue accounts" />
+                      <SelectValue placeholder="Select from income accounts" />
                     </SelectTrigger>
                   </FormControl>
                    <SelectContent>
-                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
-                     {renderAccountOptions(allRevenueAccounts, true)}
+                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Income Accounts</div>
+                     {renderAccountOptions(incomeAccounts, true)}
                    </SelectContent>
                 </Select>
                 <FormMessage />
@@ -313,8 +304,8 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                     </SelectTrigger>
                   </FormControl>
                    <SelectContent>
-                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
-                     {renderAccountOptions(allRevenueAccounts, true)}
+                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Income Accounts</div>
+                     {renderAccountOptions(incomeAccounts, true)}
                    </SelectContent>
                 </Select>
                 <FormMessage />
@@ -335,8 +326,8 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                     </SelectTrigger>
                   </FormControl>
                    <SelectContent>
-                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
-                     {renderAccountOptions(allRevenueAccounts, true)}
+                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Income Accounts</div>
+                     {renderAccountOptions(incomeAccounts, true)}
                    </SelectContent>
                 </Select>
                 <FormMessage />
@@ -358,8 +349,8 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                       </SelectTrigger>
                     </FormControl>
                      <SelectContent>
-                       <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
-                       {renderAccountOptions(allRevenueAccounts, true)}
+                       <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Income Accounts</div>
+                       {renderAccountOptions(incomeAccounts, true)}
                      </SelectContent>
                   </Select>
                   <FormMessage />

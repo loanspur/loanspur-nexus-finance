@@ -48,7 +48,7 @@ export const AccrualsTable = () => {
   const getTypeBadge = (type: string) => {
     const typeColors = {
       expense: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
-      revenue: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
+      income: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
       liability: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
       asset: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
     };
@@ -184,7 +184,7 @@ export const AccrualsTable = () => {
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
-                <SelectItem value="revenue">Revenue</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="liability">Liability</SelectItem>
                 <SelectItem value="asset">Asset</SelectItem>
               </SelectContent>

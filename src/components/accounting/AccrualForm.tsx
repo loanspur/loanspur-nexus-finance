@@ -20,7 +20,7 @@ interface AccrualFormProps {
 
 const ACCRUAL_TYPES = [
   { value: "expense", label: "Expense Accrual" },
-  { value: "revenue", label: "Revenue Accrual" },
+  { value: "income", label: "Income Accrual" },
   { value: "liability", label: "Liability Accrual" },
   { value: "asset", label: "Asset Accrual" },
 ];

@@ -24,7 +24,7 @@ export interface ChartOfAccount {
   tenant_id: string;
   account_code: string;
   account_name: string;
-  account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+  account_type: 'asset' | 'liability' | 'equity' | 'income' | 'expense';
   account_category: string;
   parent_account_id?: string;
   is_active: boolean;
@@ -577,26 +577,26 @@ export const useFinancialReporting = () => {
       .eq('tenant_id', profile.tenant_id)
       .eq('is_active', true);
 
-    const revenue = accounts?.filter(acc => acc.account_type === 'revenue') || [];
+    const income = accounts?.filter(acc => acc.account_type === 'income') || [];
     const expenses = accounts?.filter(acc => acc.account_type === 'expense') || [];
 
-    const totalRevenue = revenue.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalIncome = income.reduce((sum, acc) => sum + acc.balance, 0);
     const totalExpenses = expenses.reduce((sum, acc) => sum + acc.balance, 0);
 
     return {
       period_start: periodStart,
       period_end: periodEnd,
-      revenue: {
-        operating_revenue: revenue.filter(acc => acc.account_category === 'operating_income'),
-        other_revenue: revenue.filter(acc => acc.account_category === 'other_income'),
-        total_revenue: totalRevenue
+      income: {
+        operating_income: income.filter(acc => acc.account_category === 'operating_income'),
+        other_income: income.filter(acc => acc.account_category === 'other_income'),
+        total_income: totalIncome
       },
       expenses: {
         operating_expenses: expenses.filter(acc => acc.account_category === 'operating_expenses'),
         other_expenses: expenses.filter(acc => acc.account_category === 'other_expenses'),
         total_expenses: totalExpenses
       },
-      net_income: totalRevenue - totalExpenses
+      net_income: totalIncome - totalExpenses
     };
   };
 

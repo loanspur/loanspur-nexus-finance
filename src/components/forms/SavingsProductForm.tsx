@@ -56,7 +56,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
 
   const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];
   const liabilityAccounts = accounts?.filter(acc => acc.account_type === 'liability') || [];
-  const incomeAccounts = accounts?.filter(acc => acc.account_type === 'revenue') || [];
+  const incomeAccounts = accounts?.filter(acc => acc.account_type === 'income') || [];
   const expenseAccounts = accounts?.filter(acc => acc.account_type === 'expense') || [];
 
   const form = useForm<SavingsProductFormValues>({
