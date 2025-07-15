@@ -5,6 +5,9 @@ import { LoanProductFormData } from "./LoanProductSchema";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LoanProductAccountingTabProps {
   form: UseFormReturn<LoanProductFormData>;
@@ -12,27 +15,85 @@ interface LoanProductAccountingTabProps {
 }
 
 export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccountingTabProps) => {
-  const { data: chartOfAccounts = [] } = useChartOfAccounts();
+  const { data: chartOfAccounts = [], isLoading } = useChartOfAccounts();
   const accountingType = form.watch('accounting_type');
 
   const getAccountsByType = (type: string) => 
-    chartOfAccounts.filter(account => account.account_type === type);
+    chartOfAccounts.filter(account => account.account_type === type && account.is_active);
 
+  const getAccountsByCategory = (category: string) =>
+    chartOfAccounts.filter(account => account.account_category === category && account.is_active);
+
+  // Categorize accounts for better organization
   const assetAccounts = getAccountsByType('asset');
   const incomeAccounts = getAccountsByType('income');
   const expenseAccounts = getAccountsByType('expense');
   const liabilityAccounts = getAccountsByType('liability');
 
+  // Get specific account categories
+  const cashAccounts = getAccountsByCategory('cash_and_cash_equivalents');
+  const loanAccounts = getAccountsByCategory('loans_and_advances');
+  const receivableAccounts = getAccountsByCategory('receivables');
+  const revenueAccounts = getAccountsByCategory('revenue');
+  const operatingExpenseAccounts = getAccountsByCategory('operating_expenses');
+  const provisionAccounts = getAccountsByCategory('provisions');
+
   const isCashAccounting = accountingType === 'cash';
   const isAccrualAccounting = accountingType === 'accrual_periodic' || accountingType === 'accrual_upfront';
 
+  // Helper function to render account options with better organization
+  const renderAccountOptions = (accounts: any[], showBalance = false) => (
+    accounts.map((account) => (
+      <SelectItem key={account.id} value={account.id}>
+        <div className="flex items-center justify-between w-full">
+          <span>{account.account_code} - {account.account_name}</span>
+          {showBalance && (
+            <Badge variant={account.balance >= 0 ? "default" : "destructive"}>
+              {new Intl.NumberFormat('en-US', { 
+                style: 'currency', 
+                currency: 'USD' 
+              }).format(account.balance)}
+            </Badge>
+          )}
+        </div>
+      </SelectItem>
+    ))
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              <span>Loading chart of accounts...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {chartOfAccounts.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No chart of accounts found. Please set up your chart of accounts in the Accounting module first.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Accounting Configuration</CardTitle>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Accounting Configuration</span>
+            <Badge variant="outline">{chartOfAccounts.length} accounts available</Badge>
+          </CardTitle>
           <CardDescription>
-            Select the accounting method for this loan product
+            Select the accounting method and map accounts from your chart of accounts to this loan product
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,8 +124,11 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
 
       <Card>
         <CardHeader>
-          <CardTitle>Asset Accounts</CardTitle>
-          <CardDescription>Configure asset account mappings for loan operations</CardDescription>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Asset Accounts</span>
+            <Badge variant="secondary">{assetAccounts.length} available</Badge>
+          </CardTitle>
+          <CardDescription>Configure asset account mappings for loan operations from your chart of accounts</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
@@ -73,19 +137,19 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
             name="loan_portfolio_account_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Loan Portfolio Account *</FormLabel>
+                <FormLabel className="flex items-center space-x-2">
+                  <span>Loan Portfolio Account *</span>
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select loan portfolio account" />
+                      <SelectValue placeholder="Select from loan accounts" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {assetAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Loan & Advances Accounts</div>
+                    {renderAccountOptions(loanAccounts.length > 0 ? loanAccounts : assetAccounts, true)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -103,15 +167,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select interest receivable account" />
+                        <SelectValue placeholder="Select from receivable accounts" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {assetAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
+                      <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Receivable Accounts</div>
+                      {renderAccountOptions(receivableAccounts.length > 0 ? receivableAccounts : assetAccounts, true)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -129,15 +190,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select fund source account" />
+                      <SelectValue placeholder="Select from cash accounts" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {assetAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Cash & Cash Equivalents</div>
+                    {renderAccountOptions(cashAccounts.length > 0 ? cashAccounts : assetAccounts, true)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -204,8 +262,11 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
 
       <Card>
         <CardHeader>
-          <CardTitle>Income Accounts</CardTitle>
-          <CardDescription>Configure income account mappings for loan revenue</CardDescription>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Income Accounts</span>
+            <Badge variant="secondary">{incomeAccounts.length} available</Badge>
+          </CardTitle>
+          <CardDescription>Configure income account mappings for loan revenue from your chart of accounts</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
@@ -218,15 +279,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select interest income account" />
+                      <SelectValue placeholder="Select from revenue accounts" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {incomeAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue Accounts</div>
+                    {renderAccountOptions(revenueAccounts.length > 0 ? revenueAccounts : incomeAccounts, true)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -316,8 +374,11 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
 
       <Card>
         <CardHeader>
-          <CardTitle>Expense & Liability Accounts</CardTitle>
-          <CardDescription>Configure expense and liability account mappings</CardDescription>
+          <CardTitle className="flex items-center space-x-2">
+            <span>Expense & Liability Accounts</span>
+            <Badge variant="secondary">{expenseAccounts.length + liabilityAccounts.length} available</Badge>
+          </CardTitle>
+          <CardDescription>Configure expense and liability account mappings from your chart of accounts</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
@@ -330,15 +391,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select provision account" />
+                      <SelectValue placeholder="Select from provision accounts" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {expenseAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Provision Accounts</div>
+                    {renderAccountOptions(provisionAccounts.length > 0 ? provisionAccounts : expenseAccounts, true)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -355,15 +413,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select write-off expense account" />
+                      <SelectValue placeholder="Select from operating expenses" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {expenseAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Operating Expense Accounts</div>
+                    {renderAccountOptions(operatingExpenseAccounts.length > 0 ? operatingExpenseAccounts : expenseAccounts, true)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -380,15 +435,12 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select overpayment liability account" />
+                      <SelectValue placeholder="Select from liability accounts" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {liabilityAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Liability Accounts</div>
+                    {renderAccountOptions(liabilityAccounts, true)}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -398,6 +450,16 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
           </div>
         </CardContent>
       </Card>
+
+      {chartOfAccounts.length > 0 && (
+        <Alert>
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertDescription>
+            Accounts are automatically filtered from your chart of accounts and organized by category for easier selection.
+            Account balances are shown for reference.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };
