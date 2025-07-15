@@ -90,28 +90,37 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Create clean submit data, ensuring we only send valid database fields
     const submitData = {
-      ...formData,
-      account_category: formData.account_usage, // Map usage back to category for DB
+      account_code: formData.account_code,
+      account_name: formData.account_name,
+      account_type: formData.account_type,
+      account_category: formData.account_usage, // Map usage to category for DB
       parent_account_id: formData.parent_account_id || undefined,
+      description: formData.description || undefined,
+      is_active: formData.is_active,
     };
 
-    if (account) {
-      await updateAccount.mutateAsync({ id: account.id, ...submitData });
-    } else {
-      await createAccount.mutateAsync(submitData);
-    }
+    try {
+      if (account) {
+        await updateAccount.mutateAsync({ id: account.id, ...submitData });
+      } else {
+        await createAccount.mutateAsync(submitData);
+      }
 
-    onOpenChange(false);
-    setFormData({
-      account_code: "",
-      account_name: "",
-      account_type: "",
-      account_usage: "details",
-      parent_account_id: "",
-      description: "",
-      is_active: true,
-    });
+      onOpenChange(false);
+      setFormData({
+        account_code: "",
+        account_name: "",
+        account_type: "",
+        account_usage: "details",
+        parent_account_id: "",
+        description: "",
+        is_active: true,
+      });
+    } catch (error) {
+      console.error('Error submitting account:', error);
+    }
   };
 
   const isLoading = createAccount.isPending || updateAccount.isPending;
