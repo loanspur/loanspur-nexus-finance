@@ -205,14 +205,6 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleCreateLoan(client)}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Apply Loan
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
