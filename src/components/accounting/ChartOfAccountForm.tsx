@@ -66,7 +66,7 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
 
   // Auto-generate code when account type changes (for new accounts only)
   useEffect(() => {
-    if (!account && formData.account_type && !formData.account_code) {
+    if (!account && formData.account_type) {
       const newCode = generateAccountCode(formData.account_type);
       setFormData(prev => ({ ...prev, account_code: newCode }));
     }
@@ -118,10 +118,14 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
                 id="account_code"
                 value={formData.account_code}
                 onChange={(e) => setFormData({ ...formData, account_code: e.target.value })}
-                placeholder="Auto-generated"
+                placeholder={account ? "Enter account code" : "Auto-generated"}
                 required
-                readOnly={!account} // Make read-only for new accounts (auto-generated)
+                disabled={!account} // Disable for new accounts (auto-generated)
+                className={!account ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
               />
+              {!account && formData.account_code && (
+                <p className="text-xs text-muted-foreground">Code auto-generated based on account type</p>
+              )}
             </div>
 
             <div className="space-y-2">
