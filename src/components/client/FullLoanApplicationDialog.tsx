@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,6 +31,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,10 +48,14 @@ import {
   Calculator,
   AlertCircle,
   CheckCircle,
-  Info
+  Info,
+  Download,
+  Users
 } from "lucide-react";
 import { useGetApprovalWorkflow, useCreateApprovalRequest } from "@/hooks/useApprovalRequests";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Client is required"),
@@ -61,16 +67,17 @@ const loanApplicationSchema = z.object({
   repayment_frequency: z.string().min(1, "Please select repayment frequency"),
   interest_rate: z.number().min(0, "Interest rate must be 0 or greater"),
   calculation_method: z.string().min(1, "Please select calculation method"),
+  first_repayment_date: z.date().optional(),
   purpose: z.string().min(1, "Please select loan purpose"),
   collateral_type: z.string().optional(),
   collateral_value: z.number().min(0).optional(),
   collateral_description: z.string().optional(),
-  employment_type: z.string().min(1, "Please select employment type"),
-  monthly_income: z.number().min(0, "Monthly income must be 0 or greater"),
-  existing_debt: z.number().min(0, "Existing debt must be 0 or greater"),
   guarantor_name: z.string().optional(),
   guarantor_phone: z.string().optional(),
   guarantor_relationship: z.string().optional(),
+  employment_type: z.string().min(1, "Please select employment type"),
+  monthly_income: z.number().min(0, "Monthly income must be 0 or greater"),
+  existing_debt: z.number().min(0, "Existing debt must be 0 or greater"),
   bank_name: z.string().optional(),
   bank_account_number: z.string().optional(),
   preferred_disbursement_method: z.string().min(1, "Please select disbursement method"),
@@ -116,16 +123,17 @@ export const FullLoanApplicationDialog = ({
       repayment_frequency: "monthly",
       interest_rate: 0,
       calculation_method: "flat",
+      first_repayment_date: undefined,
       purpose: "",
       collateral_type: "",
       collateral_value: 0,
       collateral_description: "",
-      employment_type: "",
-      monthly_income: 0,
-      existing_debt: 0,
       guarantor_name: "",
       guarantor_phone: "",
       guarantor_relationship: "",
+      employment_type: "",
+      monthly_income: 0,
+      existing_debt: 0,
       bank_name: "",
       bank_account_number: "",
       preferred_disbursement_method: "",
@@ -178,6 +186,17 @@ export const FullLoanApplicationDialog = ({
   const numberOfInstallments = form.watch('number_of_installments');
   const interestRate = form.watch('interest_rate');
   const requestedTerm = form.watch('requested_term');
+  const firstRepaymentDate = form.watch('first_repayment_date');
+
+  // Import product default settings when product is selected
+  useEffect(() => {
+    if (selectedProduct) {
+      form.setValue('requested_amount', selectedProduct.default_principal || 0);
+      form.setValue('requested_term', selectedProduct.default_term || 12);
+      form.setValue('number_of_installments', selectedProduct.default_term || 12);
+      form.setValue('interest_rate', selectedProduct.default_nominal_interest_rate || 0);
+    }
+  }, [selectedProduct, form]);
 
   // Calculate loan metrics
   const calculateMonthlyPayment = () => {
@@ -266,6 +285,24 @@ export const FullLoanApplicationDialog = ({
     if (ratio > 60) return { level: 'High', color: 'text-destructive', bgColor: 'bg-destructive/10' };
     if (ratio > 40) return { level: 'Medium', color: 'text-warning', bgColor: 'bg-warning/10' };
     return { level: 'Low', color: 'text-success', bgColor: 'bg-success/10' };
+  };
+
+  const generateScheduleCSV = () => {
+    let csvContent = "Payment Number,Due Date,Principal,Interest,Total Payment,Remaining Balance\n";
+    
+    for (let i = 1; i <= numberOfInstallments; i++) {
+      const monthlyPayment = calculateMonthlyPayment();
+      const interestPayment = (requestedAmount * (interestRate / 100)) / 12;
+      const principalPayment = monthlyPayment - interestPayment;
+      const remainingBalance = requestedAmount - (principalPayment * i);
+      const dueDate = firstRepaymentDate ? 
+        new Date(firstRepaymentDate.getTime() + ((i - 1) * 30 * 24 * 60 * 60 * 1000)) :
+        new Date(Date.now() + (i * 30 * 24 * 60 * 60 * 1000));
+      
+      csvContent += `${i},${dueDate.toLocaleDateString()},${principalPayment.toFixed(2)},${interestPayment.toFixed(2)},${monthlyPayment.toFixed(2)},${Math.max(0, remainingBalance).toFixed(2)}\n`;
+    }
+    
+    return csvContent;
   };
 
   return (
@@ -408,51 +445,6 @@ export const FullLoanApplicationDialog = ({
                         </Card>
                       )}
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="requested_amount"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="flex items-center gap-2">
-                                <DollarSign className="w-4 h-4" />
-                                Requested Amount
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0.00"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="requested_term"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="flex items-center gap-2">
-                                <CalendarDays className="w-4 h-4" />
-                                Term (Months)
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="12"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
 
                       <FormField
                         control={form.control}
@@ -562,6 +554,75 @@ export const FullLoanApplicationDialog = ({
                           />
                         </CardContent>
                       </Card>
+
+                      {/* Guarantor Section */}
+                      <Card className="bg-muted/30">
+                        <CardHeader>
+                          <CardTitle className="text-sm flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            Guarantor Information (Optional)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="guarantor_name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Guarantor Full Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter guarantor's full name" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="guarantor_phone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Guarantor Phone</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Enter guarantor's phone number" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="guarantor_relationship"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Relationship to Guarantor</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select relationship" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="spouse">Spouse</SelectItem>
+                                    <SelectItem value="parent">Parent</SelectItem>
+                                    <SelectItem value="sibling">Sibling</SelectItem>
+                                    <SelectItem value="child">Child</SelectItem>
+                                    <SelectItem value="friend">Friend</SelectItem>
+                                    <SelectItem value="colleague">Colleague</SelectItem>
+                                    <SelectItem value="business_partner">Business Partner</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -630,6 +691,51 @@ export const FullLoanApplicationDialog = ({
                                   onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                                 />
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="first_repayment_date"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>First Repayment Date</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                        "w-full pl-3 text-left font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, "PPP")
+                                      ) : (
+                                        <span>Pick a date</span>
+                                      )}
+                                      <CalendarDays className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    disabled={(date) =>
+                                      date < new Date() || date < new Date("1900-01-01")
+                                    }
+                                    initialFocus
+                                    className="pointer-events-auto"
+                                  />
+                                </PopoverContent>
+                              </Popover>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -854,6 +960,28 @@ export const FullLoanApplicationDialog = ({
                           <CalendarDays className="w-5 h-5" />
                           Repayment Schedule Preview
                         </CardTitle>
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              const csvContent = generateScheduleCSV();
+                              const blob = new Blob([csvContent], { type: 'text/csv' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'loan-repayment-schedule.csv';
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Schedule
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
@@ -900,11 +1028,14 @@ export const FullLoanApplicationDialog = ({
                                 const interestPayment = (requestedAmount * (interestRate / 100)) / 12;
                                 const principalPayment = monthlyPayment - interestPayment;
                                 const remainingBalance = requestedAmount - (principalPayment * paymentNumber);
+                                const dueDate = firstRepaymentDate ? 
+                                  new Date(firstRepaymentDate.getTime() + ((paymentNumber - 1) * 30 * 24 * 60 * 60 * 1000)) :
+                                  new Date(Date.now() + (paymentNumber * 30 * 24 * 60 * 60 * 1000));
                                 
                                 return (
                                   <div key={i} className="grid grid-cols-5 gap-2 p-3 text-sm">
                                     <div>{paymentNumber}</div>
-                                    <div>{new Date(Date.now() + (paymentNumber * 30 * 24 * 60 * 60 * 1000)).toLocaleDateString()}</div>
+                                    <div>{dueDate.toLocaleDateString()}</div>
                                     <div>{formatCurrency(principalPayment)}</div>
                                     <div>{formatCurrency(interestPayment)}</div>
                                     <div>{formatCurrency(Math.max(0, remainingBalance))}</div>
@@ -924,76 +1055,22 @@ export const FullLoanApplicationDialog = ({
                   )}
                 </TabsContent>
 
-                {/* Guarantor Information Tab */}
+                {/* Guarantor Information Tab - content moved to basic tab */}
                 <TabsContent value="guarantor" className="space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Shield className="w-5 h-5" />
-                        Guarantor Information (Optional)
+                        Additional Information
                       </CardTitle>
                       <CardDescription>
-                        Adding a guarantor may improve your loan approval chances
+                        Complete any additional information for the loan application
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="guarantor_name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Guarantor Full Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter guarantor's full name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="guarantor_phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Guarantor Phone</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Enter guarantor's phone number" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                      <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
+                        All guarantor information can be added in the Basic Information tab after selecting collateral details.
                       </div>
-
-                      <FormField
-                        control={form.control}
-                        name="guarantor_relationship"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Relationship to Guarantor</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select relationship" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="spouse">Spouse</SelectItem>
-                                <SelectItem value="parent">Parent</SelectItem>
-                                <SelectItem value="sibling">Sibling</SelectItem>
-                                <SelectItem value="child">Child</SelectItem>
-                                <SelectItem value="friend">Friend</SelectItem>
-                                <SelectItem value="colleague">Colleague</SelectItem>
-                                <SelectItem value="business_partner">Business Partner</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </CardContent>
                   </Card>
                 </TabsContent>
