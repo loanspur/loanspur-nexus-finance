@@ -181,20 +181,72 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
 
   const fillSampleData = () => {
     const sampleData = {
+      // Basic Information
       name: "Sample Personal Loan",
       short_name: "SPL",
-      description: "A sample personal loan product for testing",
+      description: "A comprehensive personal loan product for testing all features",
       currency_code: "USD",
+      repayment_frequency: "monthly",
+      
+      // Loan Terms
       min_principal: "1000",
       max_principal: "50000",
       default_principal: "10000",
       min_term: "6",
       max_term: "60",
       default_term: "24",
+      
+      // Interest & Rates
       min_nominal_interest_rate: "5.0",
       max_nominal_interest_rate: "25.0",
       default_nominal_interest_rate: "12.0",
-      repayment_frequency: "monthly"
+      interest_calculation_method: "flat",
+      interest_calculation_period: "same_as_repayment_period",
+      compounding_frequency: "monthly",
+      allow_partial_period_interest: false,
+      
+      // Grace Period & Tolerance
+      grace_period_type: "none",
+      grace_period_duration: "0",
+      arrears_tolerance_amount: "100",
+      arrears_tolerance_days: "3",
+      moratorium_period: "0",
+      
+      // Prepayment & Reschedule
+      pre_closure_interest_calculation_rule: "till_pre_closure_date",
+      advance_payments_adjustment_type: "reduce_emi",
+      reschedule_strategy: "reschedule_next_repayments",
+      
+      // Fees and Charges
+      processing_fee_amount: "50",
+      processing_fee_percentage: "2.5",
+      late_payment_penalty_amount: "25",
+      late_payment_penalty_percentage: "1.0",
+      early_repayment_penalty_amount: "100",
+      early_repayment_penalty_percentage: "3.0",
+      
+      // Fee mappings
+      linked_fee_ids: [],
+      accounting_type: "cash_based",
+      
+      // Fund mapping - will be set to empty, user can select
+      fund_id: "",
+      
+      // Account mappings - these will be empty for user to select
+      loan_portfolio_account_id: "",
+      interest_receivable_account_id: "",
+      interest_income_account_id: "",
+      fee_income_account_id: "",
+      penalty_income_account_id: "",
+      provision_account_id: "",
+      writeoff_expense_account_id: "",
+      overpayment_liability_account_id: "",
+      suspended_income_account_id: "",
+      fund_source_account_id: "",
+      principal_payment_account_id: "",
+      interest_payment_account_id: "",
+      fee_payment_account_id: "",
+      penalty_payment_account_id: "",
     };
     
     Object.entries(sampleData).forEach(([key, value]) => {
@@ -220,7 +272,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>{editingProduct ? 'Edit Loan Product' : 'Create Loan Product'}</DialogTitle>
-            {!editingProduct && <SampleDataButton onFillSampleData={fillSampleData} />}
+            <SampleDataButton onFillSampleData={fillSampleData} />
           </div>
           <div className="flex items-center space-x-2 mt-4">
             <div className="text-sm text-muted-foreground">
