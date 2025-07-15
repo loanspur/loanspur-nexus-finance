@@ -7,7 +7,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PiggyBank, Plus, DollarSign, TrendingUp, RefreshCw, Edit, MoreHorizontal } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PiggyBank, Plus, DollarSign, TrendingUp, RefreshCw, Edit, MoreHorizontal, CreditCard } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,6 +16,7 @@ import { format } from "date-fns";
 import { useFunds, useCreateFund, useUpdateFund } from "@/hooks/useFundsManagement";
 import { useCurrencies, formatCurrency, useTenantCurrencySettings } from "@/hooks/useCurrencyManagement";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import PaymentTypesManagement from "@/components/tenant/PaymentTypesManagement";
 
 const fundSchema = z.object({
   fund_name: z.string().min(1, "Fund name is required"),
@@ -165,238 +167,264 @@ const FundsManagementPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Funds Management</h1>
-          <p className="text-muted-foreground">Manage your organization's funds and allocations</p>
-        </div>
-        <Dialog open={showCreateFund} onOpenChange={handleCloseDialog}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create Fund
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{editingFund ? 'Edit Fund' : 'Create New Fund'}</DialogTitle>
-              </DialogHeader>
-              <Form {...fundForm}>
-                <form onSubmit={fundForm.handleSubmit(onSubmitFund)} className="space-y-4">
-                  <FormField
-                    control={fundForm.control}
-                    name="fund_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fund Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={fundForm.control}
-                    name="fund_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fund Code (Auto-generated)</FormLabel>
-                        <FormControl>
-                          <Input {...field} readOnly className="bg-muted" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={fundForm.control}
-                    name="fund_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fund Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="general">General</SelectItem>
-                            <SelectItem value="loan">Loan</SelectItem>
-                            <SelectItem value="savings">Savings</SelectItem>
-                            <SelectItem value="operational">Operational</SelectItem>
-                            <SelectItem value="reserve">Reserve</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {!editingFund && (
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Funds Management</h1>
+        <p className="text-muted-foreground">Manage your organization's funds and payment types</p>
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="funds" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="funds" className="flex items-center gap-2">
+            <PiggyBank className="h-4 w-4" />
+            Funds
+          </TabsTrigger>
+          <TabsTrigger value="payment-types" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Payment Types
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="funds" className="space-y-6">
+          {/* Funds Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Fund Sources</h2>
+              <p className="text-sm text-muted-foreground">Manage your organization's fund sources and allocations</p>
+            </div>
+            <Dialog open={showCreateFund} onOpenChange={handleCloseDialog}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Fund
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{editingFund ? 'Edit Fund' : 'Create New Fund'}</DialogTitle>
+                </DialogHeader>
+                <Form {...fundForm}>
+                  <form onSubmit={fundForm.handleSubmit(onSubmitFund)} className="space-y-4">
                     <FormField
                       control={fundForm.control}
-                      name="initial_balance"
+                      name="fund_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Initial Balance</FormLabel>
+                          <FormLabel>Fund Name</FormLabel>
                           <FormControl>
-                            <Input type="number" step="0.01" {...field} />
+                            <Input {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  )}
-                  <FormField
-                    control={fundForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    <FormField
+                      control={fundForm.control}
+                      name="fund_code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fund Code (Auto-generated)</FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly className="bg-muted" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={fundForm.control}
+                      name="fund_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fund Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="general">General</SelectItem>
+                              <SelectItem value="loan">Loan</SelectItem>
+                              <SelectItem value="savings">Savings</SelectItem>
+                              <SelectItem value="operational">Operational</SelectItem>
+                              <SelectItem value="reserve">Reserve</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {!editingFund && (
+                      <FormField
+                        control={fundForm.control}
+                        name="initial_balance"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Initial Balance</FormLabel>
+                            <FormControl>
+                              <Input type="number" step="0.01" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={createFundMutation.isPending || updateFundMutation.isPending}
-                  >
-                    {createFundMutation.isPending || updateFundMutation.isPending 
-                      ? (editingFund ? "Updating..." : "Creating...") 
-                      : (editingFund ? "Update Fund" : "Create Fund")
-                    }
-                  </Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Funds</CardTitle>
-            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalFunds, currencySettings)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Across {funds.length} funds
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Funds</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{funds.filter(f => f.is_active).length}</div>
-            <p className="text-xs text-muted-foreground">
-              Out of {funds.length} total
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fund Types</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{new Set(funds.map(f => f.fund_type)).size}</div>
-            <p className="text-xs text-muted-foreground">
-              Different types
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Largest Fund</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {funds.length > 0 
-                ? formatCurrency(Math.max(...funds.map(f => f.current_balance)), currencySettings)
-                : formatCurrency(0, currencySettings)
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Current balance
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Funds</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {funds.map((fund) => (
-              <div key={fund.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <PiggyBank className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{fund.fund_name}</h3>
-                      <Badge variant="outline" className={getFundTypeColor(fund.fund_type)}>
-                        {fund.fund_type}
-                      </Badge>
-                      <Badge variant="outline">{fund.fund_code}</Badge>
-                    </div>
-                    {fund.description && (
-                      <p className="text-sm text-muted-foreground">{fund.description}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">
-                      {formatCurrency(fund.current_balance, currencySettings)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Initial: {formatCurrency(fund.initial_balance, currencySettings)}
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditFund(fund)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Fund
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-            {funds.length === 0 && (
-              <div className="text-center py-8">
-                <PiggyBank className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No funds yet</h3>
-                <p className="text-muted-foreground">Create your first fund to get started</p>
-              </div>
-            )}
+                    <FormField
+                      control={fundForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={createFundMutation.isPending || updateFundMutation.isPending}
+                    >
+                      {createFundMutation.isPending || updateFundMutation.isPending 
+                        ? (editingFund ? "Updating..." : "Creating...") 
+                        : (editingFund ? "Update Fund" : "Create Fund")
+                      }
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Funds</CardTitle>
+                <PiggyBank className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totalFunds, currencySettings)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Across {funds.length} funds
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Funds</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{funds.filter(f => f.is_active).length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Out of {funds.length} total
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Fund Types</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{new Set(funds.map(f => f.fund_type)).size}</div>
+                <p className="text-xs text-muted-foreground">
+                  Different types
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Largest Fund</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {funds.length > 0 
+                    ? formatCurrency(Math.max(...funds.map(f => f.current_balance)), currencySettings)
+                    : formatCurrency(0, currencySettings)
+                  }
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Current balance
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Funds List */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Funds</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {funds.map((fund) => (
+                  <div key={fund.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <PiggyBank className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{fund.fund_name}</h3>
+                          <Badge variant="outline" className={getFundTypeColor(fund.fund_type)}>
+                            {fund.fund_type}
+                          </Badge>
+                          <Badge variant="outline">{fund.fund_code}</Badge>
+                        </div>
+                        {fund.description && (
+                          <p className="text-sm text-muted-foreground">{fund.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-lg font-semibold">
+                          {formatCurrency(fund.current_balance, currencySettings)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Initial: {formatCurrency(fund.initial_balance, currencySettings)}
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditFund(fund)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Fund
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+                {funds.length === 0 && (
+                  <div className="text-center py-8">
+                    <PiggyBank className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No funds yet</h3>
+                    <p className="text-muted-foreground">Create your first fund to get started</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment-types">
+          <PaymentTypesManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
