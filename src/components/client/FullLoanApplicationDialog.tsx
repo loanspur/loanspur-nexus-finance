@@ -52,11 +52,18 @@ import { useGetApprovalWorkflow, useCreateApprovalRequest } from "@/hooks/useApp
 import { useToast } from "@/hooks/use-toast";
 
 const loanApplicationSchema = z.object({
-  client_id: z.string().min(1, "Please select a client"),
+  client_id: z.string().min(1, "Client is required"),
   loan_product_id: z.string().min(1, "Please select a loan product"),
+  fund_source_id: z.string().min(1, "Please select fund source"),
   requested_amount: z.number().min(1, "Amount must be greater than 0"),
   requested_term: z.number().min(1, "Term must be at least 1 month"),
-  purpose: z.string().min(10, "Purpose must be at least 10 characters"),
+  number_of_installments: z.number().min(1, "Number of installments required"),
+  repayment_frequency: z.string().min(1, "Please select repayment frequency"),
+  interest_rate: z.number().min(0, "Interest rate must be 0 or greater"),
+  calculation_method: z.string().min(1, "Please select calculation method"),
+  purpose: z.string().min(1, "Please select loan purpose"),
+  collateral_type: z.string().optional(),
+  collateral_value: z.number().min(0).optional(),
   collateral_description: z.string().optional(),
   employment_type: z.string().min(1, "Please select employment type"),
   monthly_income: z.number().min(0, "Monthly income must be 0 or greater"),
@@ -67,6 +74,11 @@ const loanApplicationSchema = z.object({
   bank_name: z.string().optional(),
   bank_account_number: z.string().optional(),
   preferred_disbursement_method: z.string().min(1, "Please select disbursement method"),
+  loan_charges: z.array(z.object({
+    charge_type: z.string(),
+    amount: z.number(),
+    frequency: z.string(),
+  })).optional(),
 });
 
 type LoanApplicationFormData = z.infer<typeof loanApplicationSchema>;
@@ -97,9 +109,16 @@ export const FullLoanApplicationDialog = ({
     resolver: zodResolver(loanApplicationSchema),
     defaultValues: {
       client_id: preSelectedClientId || "",
+      fund_source_id: "",
       requested_amount: 0,
       requested_term: 12,
+      number_of_installments: 12,
+      repayment_frequency: "monthly",
+      interest_rate: 0,
+      calculation_method: "flat",
       purpose: "",
+      collateral_type: "",
+      collateral_value: 0,
       collateral_description: "",
       employment_type: "",
       monthly_income: 0,
@@ -110,24 +129,24 @@ export const FullLoanApplicationDialog = ({
       bank_name: "",
       bank_account_number: "",
       preferred_disbursement_method: "",
+      loan_charges: [],
     },
   });
 
-  // Fetch clients
-  const { data: clients } = useQuery({
-    queryKey: ['clients', profile?.tenant_id],
+  // Fetch selected client info (read-only)
+  const { data: selectedClientInfo } = useQuery({
+    queryKey: ['client', preSelectedClientId],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      if (!preSelectedClientId) return null;
       const { data, error } = await supabase
         .from('clients')
         .select('id, first_name, last_name, client_number, monthly_income')
-        .eq('tenant_id', profile.tenant_id)
-        .eq('is_active', true)
-        .order('first_name');
+        .eq('id', preSelectedClientId)
+        .single();
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.tenant_id,
+    enabled: !!preSelectedClientId,
   });
 
   // Fetch loan products
@@ -147,9 +166,17 @@ export const FullLoanApplicationDialog = ({
     enabled: !!profile?.tenant_id,
   });
 
+  // Mock fund sources since fund_sources table doesn't exist
+  const fundSources = [
+    { id: '1', name: 'Primary Fund' },
+    { id: '2', name: 'Secondary Fund' },
+    { id: '3', name: 'Emergency Fund' },
+  ];
+
   const selectedProduct = loanProducts?.find(p => p.id === form.watch('loan_product_id'));
-  const selectedClient = clients?.find(c => c.id === form.watch('client_id'));
   const requestedAmount = form.watch('requested_amount');
+  const numberOfInstallments = form.watch('number_of_installments');
+  const interestRate = form.watch('interest_rate');
   const requestedTerm = form.watch('requested_term');
 
   // Calculate loan metrics
@@ -288,32 +315,20 @@ export const FullLoanApplicationDialog = ({
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="client_id"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Client</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select client" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {clients?.map((client) => (
-                                    <SelectItem key={client.id} value={client.id}>
-                                      {client.first_name} {client.last_name} ({client.client_number})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                      {/* Client Info (Read-only) */}
+                      {selectedClientInfo && (
+                        <div className="bg-muted/50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">Client Information</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {selectedClientInfo.first_name} {selectedClientInfo.last_name} ({selectedClientInfo.client_number})
+                          </div>
+                        </div>
+                      )}
 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
                           name="loan_product_id"
@@ -330,6 +345,31 @@ export const FullLoanApplicationDialog = ({
                                   {loanProducts?.map((product) => (
                                     <SelectItem key={product.id} value={product.id}>
                                       {product.name} ({product.default_nominal_interest_rate}% - {product.default_term}mo)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="fund_source_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Fund Source</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select fund source" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {fundSources.map((source) => (
+                                    <SelectItem key={source.id} value={source.id}>
+                                      {source.name}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -420,50 +460,320 @@ export const FullLoanApplicationDialog = ({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Loan Purpose</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Describe the purpose of this loan in detail..."
-                                className="resize-none min-h-[100px]"
-                                {...field}
-                              />
-                            </FormControl>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select loan purpose" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="business_expansion">Business Expansion</SelectItem>
+                                <SelectItem value="working_capital">Working Capital</SelectItem>
+                                <SelectItem value="equipment_purchase">Equipment Purchase</SelectItem>
+                                <SelectItem value="inventory_purchase">Inventory Purchase</SelectItem>
+                                <SelectItem value="home_improvement">Home Improvement</SelectItem>
+                                <SelectItem value="education">Education</SelectItem>
+                                <SelectItem value="medical_expenses">Medical Expenses</SelectItem>
+                                <SelectItem value="debt_consolidation">Debt Consolidation</SelectItem>
+                                <SelectItem value="agriculture">Agriculture</SelectItem>
+                                <SelectItem value="transport">Transport</SelectItem>
+                                <SelectItem value="emergency">Emergency</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="collateral_description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Collateral Description (Optional)</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Describe any collateral for this loan..."
-                                className="resize-none"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {/* Collateral Section */}
+                      <Card className="bg-muted/30">
+                        <CardHeader>
+                          <CardTitle className="text-sm">Collateral Information (Optional)</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="collateral_type"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Collateral Type</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select collateral type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="land">Land</SelectItem>
+                                      <SelectItem value="property">Property/Real Estate</SelectItem>
+                                      <SelectItem value="vehicle">Vehicle</SelectItem>
+                                      <SelectItem value="machinery">Machinery/Equipment</SelectItem>
+                                      <SelectItem value="inventory">Inventory/Stock</SelectItem>
+                                      <SelectItem value="bank_deposit">Bank Deposit</SelectItem>
+                                      <SelectItem value="shares">Shares/Securities</SelectItem>
+                                      <SelectItem value="jewelry">Jewelry/Gold</SelectItem>
+                                      <SelectItem value="livestock">Livestock</SelectItem>
+                                      <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="collateral_value"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Estimated Value (KES)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="0.00"
+                                      {...field}
+                                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="collateral_description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Provide detailed description of the collateral..."
+                                    className="resize-none"
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </CardContent>
+                      </Card>
                     </CardContent>
                   </Card>
                 </TabsContent>
 
                 {/* Financial Information Tab */}
                 <TabsContent value="financial" className="space-y-6">
+                  {/* Loan Details Section */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Calculator className="w-5 h-5" />
-                        Financial Information
+                        Loan Terms & Structure
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="requested_amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Loan Amount (KES)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0.00"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="requested_term"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Term (Months)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="12"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="number_of_installments"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Number of Installments</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="12"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="repayment_frequency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Repayment Frequency</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select frequency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="daily">Daily</SelectItem>
+                                  <SelectItem value="weekly">Weekly</SelectItem>
+                                  <SelectItem value="bi_weekly">Bi-Weekly</SelectItem>
+                                  <SelectItem value="monthly">Monthly</SelectItem>
+                                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                                  <SelectItem value="semi_annually">Semi-Annually</SelectItem>
+                                  <SelectItem value="annually">Annually</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="interest_rate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Interest Rate (%)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="12.50"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="calculation_method"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Calculation Method</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select method" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="flat">Flat Rate</SelectItem>
+                                  <SelectItem value="reducing_balance">Reducing Balance</SelectItem>
+                                  <SelectItem value="compound">Compound Interest</SelectItem>
+                                  <SelectItem value="simple">Simple Interest</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Loan Charges Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" />
+                        Associated Loan Charges
+                      </CardTitle>
+                      <CardDescription>
+                        Add any fees or charges associated with this loan
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-4 gap-2 text-sm font-medium text-muted-foreground">
+                          <div>Charge Type</div>
+                          <div>Amount (KES)</div>
+                          <div>Frequency</div>
+                          <div>Actions</div>
+                        </div>
+                        
+                        {/* Sample charges row */}
+                        <div className="grid grid-cols-4 gap-2 p-3 border rounded-lg bg-muted/50">
+                          <Select defaultValue="processing_fee">
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="processing_fee">Processing Fee</SelectItem>
+                              <SelectItem value="application_fee">Application Fee</SelectItem>
+                              <SelectItem value="insurance">Insurance</SelectItem>
+                              <SelectItem value="legal_fee">Legal Fee</SelectItem>
+                              <SelectItem value="valuation_fee">Valuation Fee</SelectItem>
+                              <SelectItem value="late_payment_fee">Late Payment Fee</SelectItem>
+                              <SelectItem value="prepayment_penalty">Prepayment Penalty</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input type="number" placeholder="0.00" className="h-8" />
+                          <Select defaultValue="one_time">
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="one_time">One Time</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="annually">Annually</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="sm" className="h-8">Add</Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Client Financial Assessment */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <DollarSign className="w-5 h-5" />
+                        Client Financial Assessment
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
                           name="employment_type"
@@ -473,16 +783,16 @@ export const FullLoanApplicationDialog = ({
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Select employment type" />
+                                    <SelectValue placeholder="Select type" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                   <SelectItem value="employed">Employed</SelectItem>
-                                  <SelectItem value="self_employed">Self-Employed</SelectItem>
+                                  <SelectItem value="self_employed">Self Employed</SelectItem>
                                   <SelectItem value="business_owner">Business Owner</SelectItem>
-                                  <SelectItem value="freelancer">Freelancer</SelectItem>
-                                  <SelectItem value="retired">Retired</SelectItem>
+                                  <SelectItem value="farmer">Farmer</SelectItem>
                                   <SelectItem value="unemployed">Unemployed</SelectItem>
+                                  <SelectItem value="retired">Retired</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -495,7 +805,7 @@ export const FullLoanApplicationDialog = ({
                           name="monthly_income"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Monthly Income</FormLabel>
+                              <FormLabel>Monthly Income (KES)</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"
@@ -505,123 +815,108 @@ export const FullLoanApplicationDialog = ({
                                 />
                               </FormControl>
                               <FormMessage />
-                              {selectedClient?.monthly_income && (
+                              {selectedClientInfo?.monthly_income && (
                                 <p className="text-xs text-muted-foreground">
-                                  Client record shows: {formatCurrency(selectedClient.monthly_income)}
+                                  Client record shows: {formatCurrency(selectedClientInfo.monthly_income)}
                                 </p>
                               )}
                             </FormItem>
                           )}
                         />
-                      </div>
 
-                      <FormField
-                        control={form.control}
-                        name="existing_debt"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Existing Monthly Debt Payments</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="0.00"
-                                {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
-                          name="preferred_disbursement_method"
+                          name="existing_debt"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Preferred Disbursement Method</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select method" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                  <SelectItem value="mpesa">M-Pesa</SelectItem>
-                                  <SelectItem value="cash">Cash</SelectItem>
-                                  <SelectItem value="check">Check</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <FormLabel>Existing Monthly Debt (KES)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0.00"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
-
-                      {form.watch('preferred_disbursement_method') === 'bank_transfer' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="bank_name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Bank Name</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter bank name" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="bank_account_number"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Account Number</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter account number" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
 
-                  {/* Loan Calculator */}
-                  {requestedAmount > 0 && selectedProduct && (
+                  {/* Repayment Schedule Preview */}
+                  {requestedAmount > 0 && numberOfInstallments > 0 && interestRate > 0 && (
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-sm">Loan Calculator</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                          <CalendarDays className="w-5 h-5" />
+                          Repayment Schedule Preview
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Monthly Payment:</span>
-                            <p className="font-medium">{formatCurrency(calculateMonthlyPayment())}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Total Payment:</span>
-                            <p className="font-medium">{formatCurrency(calculateTotalPayment())}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Total Interest:</span>
-                            <p className="font-medium">{formatCurrency(calculateTotalInterest())}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Debt-to-Income:</span>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{calculateDebtToIncomeRatio().toFixed(1)}%</p>
-                              <Badge variant="outline" className={getRiskLevel().color}>
-                                {getRiskLevel().level}
+                        <div className="space-y-4">
+                          {/* Summary */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-blue-600">{formatCurrency(calculateMonthlyPayment())}</div>
+                              <div className="text-sm text-muted-foreground">Monthly Payment</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-green-600">{formatCurrency(calculateTotalPayment())}</div>
+                              <div className="text-sm text-muted-foreground">Total Payment</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-orange-600">{formatCurrency(calculateTotalInterest())}</div>
+                              <div className="text-sm text-muted-foreground">Total Interest</div>
+                            </div>
+                            <div className="text-center">
+                              <div className={`text-lg font-bold ${getRiskLevel().color}`}>
+                                {calculateDebtToIncomeRatio().toFixed(1)}%
+                              </div>
+                              <div className="text-sm text-muted-foreground">Debt-to-Income</div>
+                              <Badge variant="secondary" className={`mt-1 ${getRiskLevel().bgColor}`}>
+                                {getRiskLevel().level} Risk
                               </Badge>
                             </div>
+                          </div>
+
+                          {/* Schedule Table Preview (first 5 payments) */}
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-muted p-3">
+                              <div className="grid grid-cols-5 gap-2 text-sm font-medium">
+                                <div>Payment #</div>
+                                <div>Due Date</div>
+                                <div>Principal</div>
+                                <div>Interest</div>
+                                <div>Balance</div>
+                              </div>
+                            </div>
+                            <div className="divide-y">
+                              {Array.from({ length: Math.min(5, numberOfInstallments) }, (_, i) => {
+                                const paymentNumber = i + 1;
+                                const monthlyPayment = calculateMonthlyPayment();
+                                const interestPayment = (requestedAmount * (interestRate / 100)) / 12;
+                                const principalPayment = monthlyPayment - interestPayment;
+                                const remainingBalance = requestedAmount - (principalPayment * paymentNumber);
+                                
+                                return (
+                                  <div key={i} className="grid grid-cols-5 gap-2 p-3 text-sm">
+                                    <div>{paymentNumber}</div>
+                                    <div>{new Date(Date.now() + (paymentNumber * 30 * 24 * 60 * 60 * 1000)).toLocaleDateString()}</div>
+                                    <div>{formatCurrency(principalPayment)}</div>
+                                    <div>{formatCurrency(interestPayment)}</div>
+                                    <div>{formatCurrency(Math.max(0, remainingBalance))}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {numberOfInstallments > 5 && (
+                              <div className="p-3 text-center text-sm text-muted-foreground bg-muted/50">
+                                ... and {numberOfInstallments - 5} more payments
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -722,7 +1017,7 @@ export const FullLoanApplicationDialog = ({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground">Client:</span>
-                            <p>{selectedClient?.first_name} {selectedClient?.last_name}</p>
+                            <p>{selectedClientInfo?.first_name} {selectedClientInfo?.last_name}</p>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Product:</span>
