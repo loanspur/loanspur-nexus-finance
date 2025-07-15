@@ -272,7 +272,7 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <span>Income Accounts</span>
-            <Badge variant="secondary">{incomeAccounts.length} available</Badge>
+            <Badge variant="secondary">{allRevenueAccounts.length} available</Badge>
           </CardTitle>
           <CardDescription>Configure income account mappings for loan revenue from your chart of accounts</CardDescription>
         </CardHeader>
