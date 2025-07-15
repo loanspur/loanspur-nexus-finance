@@ -190,12 +190,35 @@ export const FullLoanApplicationDialog = ({
     enabled: !!profile?.tenant_id,
   });
 
-  // Mock fund sources since fund_sources table doesn't exist
-  const fundSources = [
-    { id: '1', name: 'Primary Fund' },
-    { id: '2', name: 'Secondary Fund' },
-    { id: '3', name: 'Emergency Fund' },
-  ];
+  // Get fund sources from database
+  const { data: fundSources = [] } = useQuery({
+    queryKey: ['fund-sources'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) return [];
+
+      // Fetch funds for this tenant
+      const { data: funds } = await supabase
+        .from('funds')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true);
+
+      return funds?.map(fund => ({
+        id: fund.id,
+        name: `${fund.fund_name} (${fund.fund_code})`
+      })) || [];
+    },
+    enabled: !!profile?.tenant_id,
+  });
 
   const selectedProduct = loanProducts?.find(p => p.id === form.watch('loan_product_id'));
   

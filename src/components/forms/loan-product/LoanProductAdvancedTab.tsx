@@ -9,6 +9,8 @@ import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { useFunds } from "@/hooks/useFundsManagement";
 import { useMPesaCredentials } from "@/hooks/useIntegrations";
+import { usePaymentTypes } from "@/hooks/usePaymentTypes";
+import { useFundSources } from "@/hooks/useFundSources";
 import { X } from "lucide-react";
 
 interface LoanProductAdvancedTabProps {
@@ -31,37 +33,14 @@ interface FeeMapping {
 export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTabProps) => {
   const { data: chartOfAccounts = [] } = useChartOfAccounts();
   const { data: feeStructures = [] } = useFeeStructures();
-  const { data: funds = [] } = useFunds();
-  const { data: mpesaCredentials = [] } = useMPesaCredentials(tenantId);
+  const { data: paymentTypes = [], isLoading: paymentTypesLoading } = usePaymentTypes();
+  const { data: fundSources = [], isLoading: fundSourcesLoading } = useFundSources();
 
   const [paymentChannelMappings, setPaymentChannelMappings] = useState<PaymentChannelMapping[]>([]);
   const [feeMappings, setFeeMappings] = useState<FeeMapping[]>([]);
 
   const assetAccounts = chartOfAccounts.filter(account => account.account_type === 'asset');
   const incomeAccounts = chartOfAccounts.filter(account => account.account_type === 'income');
-
-  // Generate payment types from available M-Pesa credentials and common bank accounts
-  const paymentTypes = [
-    ...mpesaCredentials.map(cred => `M-PESA ${cred.business_short_code ? `PAYBILL - ${cred.business_short_code}` : 'TILL'}`),
-    "EQUITY BANK ACCOUNT",
-    "KCB BANK ACCOUNT", 
-    "NCBA BANK ACCOUNT",
-    "ABSA BANK ACCOUNT",
-    "COOPERATIVE BANK ACCOUNT",
-    "FAMILY BANK ACCOUNT"
-  ];
-
-  // Generate fund sources from available funds and M-Pesa accounts
-  const fundSources = [
-    ...funds.map(fund => `${fund.fund_name} (${fund.fund_code})`),
-    ...mpesaCredentials.map(cred => `M-pesa ${cred.business_short_code ? `Paybill - ${cred.business_short_code}` : 'Till'}`),
-    "Equity Bank Account",
-    "KCB Bank Account",
-    "NCBA Bank Account", 
-    "ABSA Bank Account",
-    "Cooperative Bank Account",
-    "Family Bank Account"
-  ];
 
   const addPaymentChannelMapping = () => {
     const newMapping: PaymentChannelMapping = {
@@ -134,14 +113,15 @@ export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTa
                     <Select
                       value={mapping.paymentType}
                       onValueChange={(value) => updatePaymentChannelMapping(mapping.id, 'paymentType', value)}
+                      disabled={paymentTypesLoading}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select payment type" />
+                        <SelectValue placeholder={paymentTypesLoading ? "Loading..." : "Select payment type"} />
                       </SelectTrigger>
                       <SelectContent>
                         {paymentTypes.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -151,14 +131,15 @@ export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTa
                     <Select
                       value={mapping.fundSource}
                       onValueChange={(value) => updatePaymentChannelMapping(mapping.id, 'fundSource', value)}
+                      disabled={fundSourcesLoading}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select fund source" />
+                        <SelectValue placeholder={fundSourcesLoading ? "Loading..." : "Select fund source"} />
                       </SelectTrigger>
                       <SelectContent>
                         {fundSources.map((source) => (
-                          <SelectItem key={source} value={source}>
-                            {source}
+                          <SelectItem key={source.id} value={source.id}>
+                            {source.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
