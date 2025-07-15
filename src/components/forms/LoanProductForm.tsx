@@ -152,12 +152,17 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         mifos_product_id: null,
       };
 
+      console.log("Submitting loan product data:", productData);
+      console.log("Is editing:", !!editingProduct);
+      
       if (editingProduct) {
+        console.log("Updating product with ID:", editingProduct.id);
         await updateLoanProductMutation.mutateAsync({
           id: editingProduct.id,
           ...productData,
         });
       } else {
+        console.log("Creating new product");
         await createLoanProductMutation.mutateAsync(productData);
       }
       
@@ -165,6 +170,10 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving loan product:", error);
+      // Show error to user
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
