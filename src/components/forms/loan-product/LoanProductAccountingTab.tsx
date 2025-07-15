@@ -38,6 +38,14 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
   const operatingExpenseAccounts = getAccountsByCategory('operating_expenses');
   const provisionAccounts = getAccountsByCategory('provisions');
 
+  // For revenue mapping, include all income accounts and revenue category accounts
+  const allRevenueAccounts = [
+    ...revenueAccounts,
+    ...incomeAccounts.filter(account => 
+      !revenueAccounts.some(revAccount => revAccount.id === account.id)
+    )
+  ];
+
   const isCashAccounting = accountingType === 'cash';
   const isAccrualAccounting = accountingType === 'accrual_periodic' || accountingType === 'accrual_upfront';
 
@@ -282,10 +290,10 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                       <SelectValue placeholder="Select from revenue accounts" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
-                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue Accounts</div>
-                    {renderAccountOptions(revenueAccounts.length > 0 ? revenueAccounts : incomeAccounts, true)}
-                  </SelectContent>
+                   <SelectContent>
+                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
+                     {renderAccountOptions(allRevenueAccounts, true)}
+                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
@@ -304,13 +312,10 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                       <SelectValue placeholder="Select fee income account" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
-                    {incomeAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                   <SelectContent>
+                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
+                     {renderAccountOptions(allRevenueAccounts, true)}
+                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
@@ -329,13 +334,10 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                       <SelectValue placeholder="Select penalty income account" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
-                    {incomeAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.account_code} - {account.account_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                   <SelectContent>
+                     <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
+                     {renderAccountOptions(allRevenueAccounts, true)}
+                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
@@ -355,13 +357,10 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                         <SelectValue placeholder="Select suspended income account" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {incomeAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                     <SelectContent>
+                       <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Revenue & Income Accounts</div>
+                       {renderAccountOptions(allRevenueAccounts, true)}
+                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
