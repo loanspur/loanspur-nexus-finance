@@ -50,7 +50,9 @@ import {
   CheckCircle,
   Info,
   Download,
-  Users
+  Users,
+  Plus,
+  X
 } from "lucide-react";
 import { useGetApprovalWorkflow, useCreateApprovalRequest } from "@/hooks/useApprovalRequests";
 import { useToast } from "@/hooks/use-toast";
@@ -79,12 +81,13 @@ const loanApplicationSchema = z.object({
   bank_name: z.string().optional(),
   bank_account_number: z.string().optional(),
   preferred_disbursement_method: z.string().min(1, "Please select disbursement method"),
-  selected_charges: z.array(z.string()).optional(),
-  custom_charges: z.array(z.object({
+  selected_charges: z.array(z.object({
     id: z.string(),
     name: z.string(),
+    type: z.string(),
     amount: z.number(),
-    frequency: z.string(),
+    collected_on: z.string(),
+    due_date: z.string().optional(),
   })).optional(),
 });
 
@@ -104,7 +107,21 @@ export const FullLoanApplicationDialog = ({
   onApplicationCreated 
 }: FullLoanApplicationDialogProps) => {
   const [currentTab, setCurrentTab] = useState("basic");
-  const [customCharges, setCustomCharges] = useState<Array<{id: string, name: string, amount: number, frequency: string}>>([]);
+  const [selectedCharges, setSelectedCharges] = useState<Array<{
+    id: string;
+    name: string;
+    type: string;
+    amount: number;
+    collected_on: string;
+    due_date?: string;
+  }>>([]);
+  const [newCharge, setNewCharge] = useState({
+    name: '',
+    type: 'Flat',
+    amount: '',
+    collected_on: 'Specified due date',
+    due_date: ''
+  });
   const { profile } = useAuth();
   const { toast } = useToast();
   const createLoanApplication = useCreateLoanApplication();
@@ -137,7 +154,6 @@ export const FullLoanApplicationDialog = ({
       bank_account_number: "",
       preferred_disbursement_method: "",
       selected_charges: [],
-      custom_charges: [],
     },
   });
 
@@ -183,13 +199,17 @@ export const FullLoanApplicationDialog = ({
 
   const selectedProduct = loanProducts?.find(p => p.id === form.watch('loan_product_id'));
   
-  // Mock product charges since loan_product_charges table doesn't exist yet
-  const productCharges = selectedProduct ? [
-    { id: '1', name: 'Processing Fee', amount: 2500, frequency: 'One Time' },
-    { id: '2', name: 'Insurance Premium', amount: 500, frequency: 'Monthly' },
-    { id: '3', name: 'Application Fee', amount: 1000, frequency: 'One Time' },
-    { id: '4', name: 'Transfer Charge', amount: 50, frequency: 'One Time' },
-  ] : [];
+  // Mock product charges for the dropdown
+  const availableCharges = [
+    { id: '1', name: 'Processing Fee', type: 'Flat' },
+    { id: '2', name: 'Insurance Premium', type: 'Percentage' },
+    { id: '3', name: 'Application Fee', type: 'Flat' },
+    { id: '4', name: 'Transfer Charge', type: 'Flat' },
+    { id: '5', name: 'Land Transfer Charges', type: 'Flat' },
+    { id: '6', name: 'Legal Fee', type: 'Flat' },
+    { id: '7', name: 'Valuation Fee', type: 'Flat' },
+    { id: '8', name: 'Late Payment Fee', type: 'Flat' },
+  ];
 
   // Fetch client's savings accounts for linking
   const { data: clientSavingsAccounts } = useQuery({
@@ -214,9 +234,43 @@ export const FullLoanApplicationDialog = ({
   });
 
   // Check if there are transfer charges selected
-  const hasTransferCharges = form.watch('selected_charges')?.some(chargeId => 
-    productCharges.find(charge => charge.id === chargeId && charge.name.toLowerCase().includes('transfer'))
+  const hasTransferCharges = selectedCharges.some(charge => 
+    charge.name.toLowerCase().includes('transfer')
   );
+
+  // Function to add a new charge
+  const addCharge = () => {
+    if (newCharge.name && newCharge.amount) {
+      const charge = {
+        id: `charge-${Date.now()}`,
+        name: newCharge.name,
+        type: newCharge.type,
+        amount: parseFloat(newCharge.amount),
+        collected_on: newCharge.collected_on,
+        due_date: newCharge.due_date || undefined,
+      };
+      
+      const updatedCharges = [...selectedCharges, charge];
+      setSelectedCharges(updatedCharges);
+      form.setValue('selected_charges', updatedCharges);
+      
+      // Reset form
+      setNewCharge({
+        name: '',
+        type: 'Flat',
+        amount: '',
+        collected_on: 'Specified due date',
+        due_date: ''
+      });
+    }
+  };
+
+  // Function to remove a charge
+  const removeCharge = (chargeId: string) => {
+    const updatedCharges = selectedCharges.filter(charge => charge.id !== chargeId);
+    setSelectedCharges(updatedCharges);
+    form.setValue('selected_charges', updatedCharges);
+  };
   const requestedAmount = form.watch('requested_amount');
   const numberOfInstallments = form.watch('number_of_installments');
   const interestRate = form.watch('interest_rate');
@@ -929,129 +983,156 @@ export const FullLoanApplicationDialog = ({
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {/* Product Mapped Charges */}
-                        {productCharges && productCharges.length > 0 && (
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-muted-foreground">Product Mapped Charges</h4>
-                            {productCharges.map((charge: any) => (
-                              <div key={charge.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`charge-${charge.id}`}
-                                    onChange={(e) => {
-                                      const selectedCharges = form.getValues('selected_charges') || [];
-                                      if (e.target.checked) {
-                                        form.setValue('selected_charges', [...selectedCharges, charge.id]);
-                                      } else {
-                                        form.setValue('selected_charges', selectedCharges.filter(id => id !== charge.id));
-                                      }
-                                    }}
-                                    className="rounded border-gray-300"
-                                  />
-                                  <label htmlFor={`charge-${charge.id}`} className="text-sm font-medium">
-                                    {charge.name}
-                                  </label>
-                                </div>
-                                <div className="flex-1 flex justify-between text-sm text-muted-foreground">
-                                  <span>{formatCurrency(charge.amount)}</span>
-                                  <span>{charge.frequency}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Custom Charges Section */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-medium text-muted-foreground">Additional Charges</h4>
+                      <div className="space-y-6">
+                        {/* Add Charge Section */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                              <label className="text-sm font-medium text-muted-foreground">Charges:</label>
+                              <Select
+                                value={newCharge.name}
+                                onValueChange={(value) => setNewCharge({ ...newCharge, name: value })}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder="Select charge" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border shadow-md z-50">
+                                  {availableCharges.map((charge) => (
+                                    <SelectItem 
+                                      key={charge.id} 
+                                      value={charge.name}
+                                      className="hover:bg-muted cursor-pointer"
+                                    >
+                                      {charge.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                             <Button
                               type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const newCharge = {
-                                  id: `custom-${Date.now()}`,
-                                  name: '',
-                                  amount: 0,
-                                  frequency: 'One Time'
-                                };
-                                setCustomCharges([...customCharges, newCharge]);
-                              }}
+                              onClick={addCharge}
+                              disabled={!newCharge.name || !newCharge.amount}
+                              className="mt-6"
                             >
-                              Add Charge
+                              <Plus className="w-4 h-4 mr-2" />
+                              Add
                             </Button>
                           </div>
 
-                          {customCharges.map((charge, index) => (
-                            <div key={charge.id} className="grid grid-cols-4 gap-2 p-3 border rounded-lg bg-muted/30">
-                              <Input
-                                type="text"
-                                placeholder="Charge name"
-                                value={charge.name}
-                                onChange={(e) => {
-                                  const updated = [...customCharges];
-                                  updated[index] = { ...charge, name: e.target.value };
-                                  setCustomCharges(updated);
-                                  form.setValue('custom_charges', updated);
-                                }}
-                                className="h-8"
-                              />
-                              <Input
-                                type="number"
-                                placeholder="Amount"
-                                value={charge.amount || ''}
-                                onChange={(e) => {
-                                  const updated = [...customCharges];
-                                  updated[index] = { ...charge, amount: parseFloat(e.target.value) || 0 };
-                                  setCustomCharges(updated);
-                                  form.setValue('custom_charges', updated);
-                                }}
-                                className="h-8"
-                              />
-                              <Select
-                                value={charge.frequency}
-                                onValueChange={(value) => {
-                                  const updated = [...customCharges];
-                                  updated[index] = { ...charge, frequency: value };
-                                  setCustomCharges(updated);
-                                  form.setValue('custom_charges', updated);
-                                }}
-                              >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="One Time">One Time</SelectItem>
-                                  <SelectItem value="Monthly">Monthly</SelectItem>
-                                  <SelectItem value="Quarterly">Quarterly</SelectItem>
-                                  <SelectItem value="Annually">Annually</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const updated = customCharges.filter((_, i) => i !== index);
-                                  setCustomCharges(updated);
-                                  form.setValue('custom_charges', updated);
-                                }}
-                                className="h-8"
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ))}
-
-                          {customCharges.length === 0 && (
-                            <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
-                              No additional charges added. Click "Add Charge" to include custom fees.
+                          {/* Charge Details Form */}
+                          {newCharge.name && (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/30">
+                              <div>
+                                <label className="text-sm font-medium">Type</label>
+                                <Select
+                                  value={newCharge.type}
+                                  onValueChange={(value) => setNewCharge({ ...newCharge, type: value })}
+                                >
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-md z-50">
+                                    <SelectItem value="Flat">Flat</SelectItem>
+                                    <SelectItem value="Percentage">Percentage</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">Amount</label>
+                                <Input
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={newCharge.amount}
+                                  onChange={(e) => setNewCharge({ ...newCharge, amount: e.target.value })}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">Collected On</label>
+                                <Select
+                                  value={newCharge.collected_on}
+                                  onValueChange={(value) => setNewCharge({ ...newCharge, collected_on: value })}
+                                >
+                                  <SelectTrigger className="mt-1">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-background border shadow-md z-50">
+                                    <SelectItem value="Specified due date">Specified due date</SelectItem>
+                                    <SelectItem value="Disbursement">Disbursement</SelectItem>
+                                    <SelectItem value="Monthly">Monthly</SelectItem>
+                                    <SelectItem value="On maturity">On maturity</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">Date</label>
+                                <Input
+                                  type="text"
+                                  placeholder="Due date"
+                                  value={newCharge.due_date}
+                                  onChange={(e) => setNewCharge({ ...newCharge, due_date: e.target.value })}
+                                  className="mt-1"
+                                />
+                              </div>
                             </div>
                           )}
                         </div>
+
+                        {/* Charges Table */}
+                        {selectedCharges.length > 0 && (
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-muted/30 px-4 py-3 border-b">
+                              <h4 className="font-medium">Selected Charges</h4>
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full">
+                                <thead className="bg-muted/50">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Name</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Type</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Amount</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Collected On</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Date</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                  {selectedCharges.map((charge) => (
+                                    <tr key={charge.id} className="hover:bg-muted/30">
+                                      <td className="px-4 py-3 text-sm font-medium text-blue-600">
+                                        {charge.name}
+                                      </td>
+                                      <td className="px-4 py-3 text-sm">{charge.type}</td>
+                                      <td className="px-4 py-3 text-sm">
+                                        {charge.type === 'Percentage' ? `${charge.amount}%` : formatCurrency(charge.amount)}
+                                      </td>
+                                      <td className="px-4 py-3 text-sm">{charge.collected_on}</td>
+                                      <td className="px-4 py-3 text-sm">{charge.due_date || 'Due date'}</td>
+                                      <td className="px-4 py-3">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeCharge(charge.id)}
+                                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedCharges.length === 0 && (
+                          <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+                            No charges added. Select a charge from the dropdown above to add fees.
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
