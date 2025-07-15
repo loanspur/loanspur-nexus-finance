@@ -81,6 +81,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         description: editingProduct.description || "",
         currency_code: editingProduct.currency_code,
         repayment_frequency: editingProduct.repayment_frequency || "monthly",
+        fund_id: (editingProduct as any).fund_id || "",
         
         // Loan Terms
         min_principal: editingProduct.min_principal?.toString() || "",
@@ -95,9 +96,57 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         max_nominal_interest_rate: editingProduct.max_nominal_interest_rate?.toString() || "",
         default_nominal_interest_rate: editingProduct.default_nominal_interest_rate?.toString() || "",
         
-        // Use defaults for new fields if not present
-        fund_id: (editingProduct as any).fund_id || "",
-        ...defaultValues,
+        // Interest Calculation Settings
+        interest_calculation_method: (editingProduct as any).interest_calculation_method || "declining_balance",
+        interest_calculation_period: (editingProduct as any).interest_calculation_period || "monthly",
+        compounding_frequency: (editingProduct as any).compounding_frequency || "monthly",
+        allow_partial_period_interest: (editingProduct as any).allow_partial_period_interest ?? true,
+        
+        // Grace Period & Tolerance
+        grace_period_type: (editingProduct as any).grace_period_type || "none",
+        grace_period_duration: (editingProduct as any).grace_period_duration?.toString() || "0",
+        arrears_tolerance_amount: (editingProduct as any).arrears_tolerance_amount?.toString() || "0",
+        arrears_tolerance_days: (editingProduct as any).arrears_tolerance_days?.toString() || "0",
+        moratorium_period: (editingProduct as any).moratorium_period?.toString() || "0",
+        
+        // Prepayment & Reschedule Settings
+        pre_closure_interest_calculation_rule: (editingProduct as any).pre_closure_interest_calculation_rule || "till_pre_close_date",
+        advance_payments_adjustment_type: (editingProduct as any).advance_payments_adjustment_type || "reduce_emi",
+        reschedule_strategy: (editingProduct as any).reschedule_strategy || "reduce_emi",
+        
+        // Fees & Charges
+        processing_fee_amount: (editingProduct as any).processing_fee_amount?.toString() || "0",
+        processing_fee_percentage: (editingProduct as any).processing_fee_percentage?.toString() || "0",
+        late_payment_penalty_amount: (editingProduct as any).late_payment_penalty_amount?.toString() || "0",
+        late_payment_penalty_percentage: (editingProduct as any).late_payment_penalty_percentage?.toString() || "0",
+        early_repayment_penalty_amount: (editingProduct as any).early_repayment_penalty_amount?.toString() || "0",
+        early_repayment_penalty_percentage: (editingProduct as any).early_repayment_penalty_percentage?.toString() || "0",
+        
+        // Fee Structure Mappings
+        linked_fee_ids: (editingProduct as any).linked_fee_ids || [],
+        
+        // Accounting Configuration
+        accounting_type: (editingProduct as any).accounting_type || "cash",
+        
+        // Accounting Journal Mappings
+        loan_portfolio_account_id: (editingProduct as any).loan_portfolio_account_id || "",
+        interest_receivable_account_id: (editingProduct as any).interest_receivable_account_id || "",
+        fee_receivable_account_id: (editingProduct as any).fee_receivable_account_id || "",
+        penalty_receivable_account_id: (editingProduct as any).penalty_receivable_account_id || "",
+        interest_income_account_id: (editingProduct as any).interest_income_account_id || "",
+        fee_income_account_id: (editingProduct as any).fee_income_account_id || "",
+        penalty_income_account_id: (editingProduct as any).penalty_income_account_id || "",
+        provision_account_id: (editingProduct as any).provision_account_id || "",
+        writeoff_expense_account_id: (editingProduct as any).writeoff_expense_account_id || "",
+        overpayment_liability_account_id: (editingProduct as any).overpayment_liability_account_id || "",
+        suspended_income_account_id: (editingProduct as any).suspended_income_account_id || "",
+        fund_source_account_id: (editingProduct as any).fund_source_account_id || "",
+        
+        // Advanced Payment Account Mappings
+        principal_payment_account_id: (editingProduct as any).principal_payment_account_id || "",
+        interest_payment_account_id: (editingProduct as any).interest_payment_account_id || "",
+        fee_payment_account_id: (editingProduct as any).fee_payment_account_id || "",
+        penalty_payment_account_id: (editingProduct as any).penalty_payment_account_id || "",
       });
     } else {
       form.reset(defaultValues);
