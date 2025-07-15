@@ -86,7 +86,12 @@ export const SystemCodesManagement = () => {
       code_name: data.code_name,
     });
     setShowCategoryDialog(false);
-    categoryForm.reset();
+    setEditingCategory(null);
+    categoryForm.reset({
+      name: "",
+      description: "",
+      code_name: "",
+    });
   };
 
   const handleUpdateCategory = async (data: CategoryFormData) => {
@@ -99,7 +104,11 @@ export const SystemCodesManagement = () => {
     });
     setShowCategoryDialog(false);
     setEditingCategory(null);
-    categoryForm.reset();
+    categoryForm.reset({
+      name: "",
+      description: "",
+      code_name: "",
+    });
   };
 
   const handleCreateValue = async (data: ValueFormData) => {
@@ -113,7 +122,14 @@ export const SystemCodesManagement = () => {
       is_active: data.is_active,
     });
     setShowValueDialog(false);
-    valueForm.reset();
+    setEditingValue(null);
+    valueForm.reset({
+      name: "",
+      description: "",
+      code_value: "",
+      position: 0,
+      is_active: true,
+    });
   };
 
   const handleUpdateValue = async (data: ValueFormData) => {
@@ -128,7 +144,13 @@ export const SystemCodesManagement = () => {
     });
     setShowValueDialog(false);
     setEditingValue(null);
-    valueForm.reset();
+    valueForm.reset({
+      name: "",
+      description: "",
+      code_value: "",
+      position: 0,
+      is_active: true,
+    });
   };
 
   const handleDeleteValue = async () => {
@@ -157,13 +179,23 @@ export const SystemCodesManagement = () => {
 
   const openCreateValue = () => {
     setEditingValue(null);
-    valueForm.reset();
+    valueForm.reset({
+      name: "",
+      description: "",
+      code_value: "",
+      position: 0,
+      is_active: true,
+    });
     setShowValueDialog(true);
   };
 
   const openCreateCategory = () => {
     setEditingCategory(null);
-    categoryForm.reset();
+    categoryForm.reset({
+      name: "",
+      description: "",
+      code_name: "",
+    });
     setShowCategoryDialog(true);
   };
 
@@ -428,7 +460,15 @@ export const SystemCodesManagement = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowCategoryDialog(false)}
+                  onClick={() => {
+                    setShowCategoryDialog(false);
+                    setEditingCategory(null);
+                    categoryForm.reset({
+                      name: "",
+                      description: "",
+                      code_name: "",
+                    });
+                  }}
                 >
                   Cancel
                 </Button>
@@ -548,7 +588,17 @@ export const SystemCodesManagement = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowValueDialog(false)}
+                  onClick={() => {
+                    setShowValueDialog(false);
+                    setEditingValue(null);
+                    valueForm.reset({
+                      name: "",
+                      description: "",
+                      code_value: "",
+                      position: 0,
+                      is_active: true,
+                    });
+                  }}
                 >
                   Cancel
                 </Button>
