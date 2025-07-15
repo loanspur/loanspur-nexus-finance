@@ -57,6 +57,8 @@ import {
 import { useGetApprovalWorkflow, useCreateApprovalRequest } from "@/hooks/useApprovalRequests";
 import { useToast } from "@/hooks/use-toast";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { useLoanPurposes } from "@/hooks/useLoanPurposes";
+import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -130,6 +132,10 @@ export const FullLoanApplicationDialog = ({
   
   // Get loan application approval workflow
   const { data: approvalWorkflow } = useGetApprovalWorkflow('loan_applications', 'loan_approval');
+  
+  // Get system code values
+  const { data: loanPurposes = [] } = useLoanPurposes();
+  const { data: collateralTypes = [] } = useCollateralTypes();
 
   const form = useForm<LoanApplicationFormData>({
     resolver: zodResolver(loanApplicationSchema),
@@ -283,7 +289,7 @@ export const FullLoanApplicationDialog = ({
       setSelectedCharges(updatedCharges);
       form.setValue('selected_charges', updatedCharges);
       
-      // Reset form
+      // Reset form and dropdown
       setNewCharge({
         name: '',
         type: 'Flat',
@@ -705,20 +711,17 @@ export const FullLoanApplicationDialog = ({
                                   <SelectValue placeholder="Select loan purpose" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="business_expansion">Business Expansion</SelectItem>
-                                <SelectItem value="working_capital">Working Capital</SelectItem>
-                                <SelectItem value="equipment_purchase">Equipment Purchase</SelectItem>
-                                <SelectItem value="inventory_purchase">Inventory Purchase</SelectItem>
-                                <SelectItem value="home_improvement">Home Improvement</SelectItem>
-                                <SelectItem value="education">Education</SelectItem>
-                                <SelectItem value="medical_expenses">Medical Expenses</SelectItem>
-                                <SelectItem value="debt_consolidation">Debt Consolidation</SelectItem>
-                                <SelectItem value="agriculture">Agriculture</SelectItem>
-                                <SelectItem value="transport">Transport</SelectItem>
-                                <SelectItem value="emergency">Emergency</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
+                               <SelectContent>
+                                 {loanPurposes.length === 0 ? (
+                                   <SelectItem value="no-purposes" disabled>No loan purposes configured</SelectItem>
+                                 ) : (
+                                   loanPurposes.map((purpose) => (
+                                     <SelectItem key={purpose.id} value={purpose.code_value}>
+                                       {purpose.name}
+                                     </SelectItem>
+                                   ))
+                                 )}
+                               </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
@@ -744,18 +747,17 @@ export const FullLoanApplicationDialog = ({
                                         <SelectValue placeholder="Select collateral type" />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="land">Land</SelectItem>
-                                      <SelectItem value="property">Property/Real Estate</SelectItem>
-                                      <SelectItem value="vehicle">Vehicle</SelectItem>
-                                      <SelectItem value="machinery">Machinery/Equipment</SelectItem>
-                                      <SelectItem value="inventory">Inventory/Stock</SelectItem>
-                                      <SelectItem value="bank_deposit">Bank Deposit</SelectItem>
-                                      <SelectItem value="shares">Shares/Securities</SelectItem>
-                                      <SelectItem value="jewelry">Jewelry/Gold</SelectItem>
-                                      <SelectItem value="livestock">Livestock</SelectItem>
-                                      <SelectItem value="other">Other</SelectItem>
-                                    </SelectContent>
+                                     <SelectContent>
+                                       {collateralTypes.length === 0 ? (
+                                         <SelectItem value="no-types" disabled>No collateral types configured</SelectItem>
+                                       ) : (
+                                         collateralTypes.map((type) => (
+                                           <SelectItem key={type.id} value={type.code_value}>
+                                             {type.name}
+                                           </SelectItem>
+                                         ))
+                                       )}
+                                     </SelectContent>
                                   </Select>
                                   <FormMessage />
                                 </FormItem>
@@ -1011,96 +1013,138 @@ export const FullLoanApplicationDialog = ({
                       <div className="space-y-6">
                         {/* Add Charge Section */}
                         <div className="space-y-4">
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                              <label className="text-sm font-medium text-muted-foreground">Charges:</label>
-                               <Select
-                                 value={newCharge.name}
-                                 onValueChange={(value) => {
-                                   const selectedFee = availableCharges.find(charge => charge.id === value);
-                                   if (selectedFee) {
-                                     setNewCharge({
-                                       name: selectedFee.name,
-                                       type: selectedFee.type,
-                                       amount: selectedFee.type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
-                                       collected_on: selectedFee.charge_time_type === 'upfront' ? 'Disbursement' : 'Specified due date',
-                                       due_date: ''
-                                     });
-                                   }
-                                 }}
-                               >
-                                <SelectTrigger className="mt-1">
-                                  <SelectValue placeholder="Select charge" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-background border shadow-md z-50">
-                                   {availableCharges.length === 0 ? (
-                                     <SelectItem value="no-charges" disabled>No loan charges configured</SelectItem>
-                                   ) : (
-                                     availableCharges.map((charge) => (
-                                       <SelectItem 
-                                         key={charge.id} 
-                                         value={charge.id}
-                                         className="hover:bg-muted cursor-pointer"
-                                       >
-                                         <div className="flex flex-col">
-                                           <span>{charge.name}</span>
-                                           <span className="text-xs text-muted-foreground">
-                                             {charge.type} - {charge.description || 'No description'}
-                                           </span>
-                                         </div>
-                                       </SelectItem>
-                                     ))
-                                   )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <Button
-                              type="button"
-                              onClick={addCharge}
-                              disabled={!newCharge.name || !newCharge.amount}
-                              className="mt-6"
-                            >
+                           <div className="flex items-center gap-4">
+                             <div className="flex-1">
+                               <label className="text-sm font-medium text-muted-foreground">Charges:</label>
+                                <Select
+                                  value={newCharge.name}
+                                  onValueChange={(value) => {
+                                    if (value === 'custom') {
+                                      setNewCharge({
+                                        name: '',
+                                        type: 'Flat',
+                                        amount: '',
+                                        collected_on: 'Specified due date',
+                                        due_date: ''
+                                      });
+                                    } else {
+                                      const selectedFee = availableCharges.find(charge => charge.id === value);
+                                      if (selectedFee) {
+                                        setNewCharge({
+                                          name: selectedFee.name,
+                                          type: selectedFee.type,
+                                          amount: selectedFee.type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
+                                          collected_on: selectedFee.charge_time_type === 'upfront' ? 'Disbursement' : 'Specified due date',
+                                          due_date: ''
+                                        });
+                                      }
+                                    }
+                                  }}
+                                >
+                                 <SelectTrigger className="mt-1">
+                                   <SelectValue placeholder="Select charge or create custom" />
+                                 </SelectTrigger>
+                                 <SelectContent className="bg-background border shadow-md z-50">
+                                    <SelectItem value="custom" className="hover:bg-muted cursor-pointer">
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">Create Custom Charge</span>
+                                        <span className="text-xs text-muted-foreground">Define your own charge</span>
+                                      </div>
+                                    </SelectItem>
+                                    {availableCharges.length === 0 ? (
+                                      <SelectItem value="no-charges" disabled>No loan charges configured</SelectItem>
+                                    ) : (
+                                      availableCharges.map((charge) => (
+                                        <SelectItem 
+                                          key={charge.id} 
+                                          value={charge.id}
+                                          className="hover:bg-muted cursor-pointer"
+                                        >
+                                          <div className="flex flex-col">
+                                            <span>{charge.name}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {charge.type} - {charge.description || 'No description'}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                 </SelectContent>
+                               </Select>
+                             </div>
+                             <Button
+                               type="button"
+                               onClick={addCharge}
+                               disabled={!newCharge.name || !newCharge.amount || newCharge.name === 'custom'}
+                               className="mt-6"
+                             >
                               <Plus className="w-4 h-4 mr-2" />
                               Add
                             </Button>
                           </div>
 
-                           {/* Charge Details Form */}
-                           {newCharge.name && (
-                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/30">
-                               <div className="md:col-span-4 mb-2">
-                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                   <Info className="w-4 h-4" />
-                                   Values are automatically loaded from the global fee structure
-                                 </div>
-                               </div>
-                               <div>
-                                 <label className="text-sm font-medium">Type</label>
-                                 <Input
-                                   value={newCharge.type}
-                                   readOnly
-                                   className="mt-1 bg-muted"
-                                 />
-                               </div>
-                               <div>
-                                 <label className="text-sm font-medium">
-                                   {newCharge.type === 'Flat' ? 'Amount' : 'Rate (%)'}
-                                 </label>
-                                 <Input
-                                   type="number"
-                                   value={newCharge.amount}
-                                   readOnly
-                                   className="mt-1 bg-muted"
-                                 />
-                               </div>
-                               <div>
-                                 <label className="text-sm font-medium">Collected On</label>
-                                 <Input
-                                   value={newCharge.collected_on}
-                                   readOnly
-                                   className="mt-1 bg-muted"
-                                 />
-                               </div>
+                             {/* Charge Details Form */}
+                             {(newCharge.name === 'custom' || (newCharge.name !== '' && newCharge.name !== 'custom')) && (
+                              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/30">
+                                <div className="md:col-span-5 mb-2">
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Info className="w-4 h-4" />
+                                    Values are pre-filled from fee structure but can be modified
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Charge Name</label>
+                                  <Input
+                                    value={newCharge.name}
+                                    onChange={(e) => setNewCharge({ ...newCharge, name: e.target.value })}
+                                    placeholder="Enter charge name"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Type</label>
+                                  <Select
+                                    value={newCharge.type}
+                                    onValueChange={(value) => setNewCharge({ ...newCharge, type: value })}
+                                  >
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Flat">Flat</SelectItem>
+                                      <SelectItem value="Percentage">Percentage</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">
+                                    {newCharge.type === 'Flat' ? 'Amount' : 'Rate (%)'}
+                                  </label>
+                                  <Input
+                                    type="number"
+                                    value={newCharge.amount}
+                                    onChange={(e) => setNewCharge({ ...newCharge, amount: e.target.value })}
+                                    placeholder="0.00"
+                                    className="mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium">Collected On</label>
+                                  <Select
+                                    value={newCharge.collected_on}
+                                    onValueChange={(value) => setNewCharge({ ...newCharge, collected_on: value })}
+                                  >
+                                    <SelectTrigger className="mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Disbursement">Disbursement</SelectItem>
+                                      <SelectItem value="Specified due date">Specified due date</SelectItem>
+                                      <SelectItem value="Instalment Fee">Instalment Fee</SelectItem>
+                                      <SelectItem value="Overdue Fees">Overdue Fees</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                                <div>
                                  <label className="text-sm font-medium">Date</label>
                                  <Input
@@ -1111,8 +1155,8 @@ export const FullLoanApplicationDialog = ({
                                    className="mt-1"
                                  />
                                </div>
-                            </div>
-                          )}
+                             </div>
+                           )}
                         </div>
 
                         {/* Charges Table */}
