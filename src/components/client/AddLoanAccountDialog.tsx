@@ -38,7 +38,7 @@ import { SampleDataButton } from "@/components/dev/SampleDataButton";
 const addLoanAccountSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
   requested_amount: z.string().min(1, "Loan amount is required"),
-  loan_purpose: z.string().min(1, "Loan purpose is required"),
+  loan_purpose: z.string().min(1, "Loan purpose is required").refine((value) => value !== "no-purposes", "Please select a valid loan purpose"),
   fund_id: z.string().optional(), // Make optional since funds might not be available
   expected_disbursement_date: z.date({
     required_error: "Expected disbursement date is required",
@@ -289,16 +289,22 @@ export const AddLoanAccountDialog = ({
         const hasBasicFields = !!(formData.loan_product_id && 
                                   formData.requested_amount && 
                                   formData.loan_purpose && 
+                                  formData.loan_purpose !== "no-purposes" &&
                                   (formData.fund_id || funds.length === 0)); // Allow if no funds available
+        
+        // Also check if system codes are available
+        const hasSystemCodes = loanPurposes.length > 0;
+        
         console.log(`Basic tab validation:`, {
           loan_product_id: formData.loan_product_id,
           requested_amount: formData.requested_amount,
           loan_purpose: formData.loan_purpose,
           fund_id: formData.fund_id,
           funds_available: funds.length,
-          result: hasBasicFields
+          has_system_codes: hasSystemCodes,
+          result: hasBasicFields && hasSystemCodes
         });
-        return hasBasicFields;
+        return hasBasicFields && hasSystemCodes;
       case "terms":
         return !!(formData.expected_disbursement_date && 
                   formData.loan_term && 
@@ -472,6 +478,16 @@ export const AddLoanAccountDialog = ({
   };
 
   const onSubmit = async (data: AddLoanAccountData) => {
+    // Validate that system codes are configured
+    if (loanPurposes.length === 0) {
+      toast({
+        title: "System Codes Not Configured",
+        description: "Please configure loan purposes in System Codes before creating loans.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const loanApplicationData = {
@@ -696,10 +712,12 @@ export const AddLoanAccountDialog = ({
                           </FormControl>
                           <SelectContent>
                             {loanPurposes.length === 0 ? (
-                              <SelectItem value="no-purposes" disabled>No loan purposes configured</SelectItem>
+                              <SelectItem value="no-purposes" disabled>
+                                No loan purposes configured. Please configure system codes first.
+                              </SelectItem>
                             ) : (
                               loanPurposes.map((purpose) => (
-                                <SelectItem key={purpose.id} value={purpose.id}>
+                                <SelectItem key={purpose.id} value={purpose.code_value}>
                                   {purpose.name}
                                   {purpose.description && ` - ${purpose.description}`}
                                 </SelectItem>
@@ -707,6 +725,11 @@ export const AddLoanAccountDialog = ({
                             )}
                           </SelectContent>
                         </Select>
+                        {loanPurposes.length === 0 && (
+                          <p className="text-xs text-destructive mt-1">
+                            ⚠️ No loan purposes configured. Please go to Settings → System Codes and add values for "Loan Purposes" before creating loans.
+                          </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1035,12 +1058,14 @@ export const AddLoanAccountDialog = ({
                           </SelectTrigger>
                           <SelectContent>
                             {collateralTypes.length === 0 ? (
-                              <SelectItem value="no-collateral" disabled>No collateral types configured</SelectItem>
+                              <SelectItem value="no-collateral" disabled>
+                                No collateral types configured. Please configure system codes first.
+                              </SelectItem>
                             ) : (
                               collateralTypes.map((type) => (
-                                <SelectItem key={type.id} value={type.id}>
+                                <SelectItem key={type.id} value={type.code_value}>
                                   {type.name}
-                                  {type.requires_valuation && " (Requires Valuation)"}
+                                  {type.description && ` - ${type.description}`}
                                 </SelectItem>
                               ))
                             )}
