@@ -20,7 +20,6 @@ const ACCOUNT_TYPES = [
   { value: "liability", label: "Liability" },
   { value: "equity", label: "Equity" },
   { value: "income", label: "Income" },
-  { value: "revenue", label: "Revenue" },
   { value: "expense", label: "Expense" },
 ];
 
@@ -51,7 +50,6 @@ export const ChartOfAccountForm = ({ open, onOpenChange, account, parentAccounts
       liability: "2", 
       equity: "3",
       income: "4",
-      revenue: "4", // Revenue uses same prefix as income
       expense: "5"
     }[accountType] || "1";
 
