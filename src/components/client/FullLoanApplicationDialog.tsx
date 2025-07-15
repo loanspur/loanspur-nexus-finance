@@ -922,40 +922,24 @@ export const FullLoanApplicationDialog = ({
                              <div className="flex-1">
                                <label className="text-sm font-medium text-muted-foreground">Charges:</label>
                                 <Select
-                                  value={newCharge.name}
-                                  onValueChange={(value) => {
-                                    if (value === 'custom') {
-                                      setNewCharge({
-                                        name: '',
-                                        type: 'Flat',
-                                        amount: '',
-                                        collected_on: 'Specified due date',
-                                        due_date: ''
-                                      });
-                                    } else {
-                                      const selectedFee = availableCharges.find(charge => charge.id === value);
-                                      if (selectedFee) {
-                                        setNewCharge({
-                                          name: selectedFee.name,
-                                          type: selectedFee.fee_type,
-                                          amount: selectedFee.fee_type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
-                                          collected_on: selectedFee.charge_time_type === 'upfront' ? 'Disbursement' : 'Specified due date',
-                                          due_date: ''
-                                        });
-                                      }
-                                    }
-                                  }}
+                                   value={newCharge.name}
+                                   onValueChange={(value) => {
+                                     const selectedFee = availableCharges.find(charge => charge.id === value);
+                                     if (selectedFee) {
+                                       setNewCharge({
+                                         name: selectedFee.name,
+                                         type: selectedFee.fee_type,
+                                         amount: selectedFee.fee_type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
+                                         collected_on: selectedFee.charge_time_type === 'upfront' ? 'Disbursement' : 'Specified due date',
+                                         due_date: ''
+                                       });
+                                     }
+                                   }}
                                 >
                                  <SelectTrigger className="mt-1">
-                                   <SelectValue placeholder="Select charge or create custom" />
+                                   <SelectValue placeholder="Select charge" />
                                  </SelectTrigger>
                                  <SelectContent className="bg-background border shadow-md z-50">
-                                    <SelectItem value="custom" className="hover:bg-muted cursor-pointer">
-                                      <div className="flex flex-col">
-                                        <span className="font-medium">Create Custom Charge</span>
-                                        <span className="text-xs text-muted-foreground">Define your own charge</span>
-                                      </div>
-                                    </SelectItem>
                                     {availableCharges.length === 0 ? (
                                       <SelectItem value="no-charges" disabled>No loan charges configured</SelectItem>
                                     ) : (
@@ -980,7 +964,7 @@ export const FullLoanApplicationDialog = ({
                              <Button
                                type="button"
                                onClick={addCharge}
-                               disabled={!newCharge.name || !newCharge.amount || newCharge.name === 'custom'}
+                               disabled={!newCharge.name || !newCharge.amount}
                                className="mt-6"
                              >
                               <Plus className="w-4 h-4 mr-2" />
@@ -989,7 +973,7 @@ export const FullLoanApplicationDialog = ({
                           </div>
 
                              {/* Charge Details Form */}
-                             {(newCharge.name === 'custom' || (newCharge.name !== '' && newCharge.name !== 'custom')) && (
+                             {newCharge.name !== '' && (
                               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/30">
                                 <div className="md:col-span-5 mb-2">
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1001,18 +985,16 @@ export const FullLoanApplicationDialog = ({
                                   <label className="text-sm font-medium">Charge Name</label>
                                   <Input
                                     value={newCharge.name}
-                                    onChange={(e) => newCharge.name === '' ? setNewCharge({ ...newCharge, name: e.target.value }) : null}
                                     placeholder="Enter charge name"
                                     className="mt-1"
-                                    readOnly={newCharge.name !== ''}
+                                    readOnly
                                   />
                                 </div>
                                 <div>
                                   <label className="text-sm font-medium">Type</label>
                                   <Select
                                     value={newCharge.type}
-                                    onValueChange={(value) => newCharge.name === '' ? setNewCharge({ ...newCharge, type: value }) : null}
-                                    disabled={newCharge.name !== ''}
+                                    disabled
                                   >
                                     <SelectTrigger className="mt-1">
                                       <SelectValue />
@@ -1039,8 +1021,7 @@ export const FullLoanApplicationDialog = ({
                                   <label className="text-sm font-medium">Charge Time</label>
                                   <Select
                                     value={newCharge.collected_on}
-                                    onValueChange={(value) => newCharge.name === '' ? setNewCharge({ ...newCharge, collected_on: value }) : null}
-                                    disabled={newCharge.name !== ''}
+                                    disabled
                                   >
                                     <SelectTrigger className="mt-1">
                                       <SelectValue />
