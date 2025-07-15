@@ -32,15 +32,32 @@ type TenantFormData = z.infer<typeof tenantSchema>;
 interface TenantFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingTenant?: any | null;
 }
 
-export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
+export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createTenantMutation = useCreateTenant();
 
   const form = useForm<TenantFormData>({
     resolver: zodResolver(tenantSchema),
-    defaultValues: {
+    defaultValues: editingTenant ? {
+      name: editingTenant.name,
+      slug: editingTenant.slug,
+      domain: editingTenant.domain || "",
+      pricing_tier: editingTenant.pricing_tier,
+      status: editingTenant.status,
+      contact_person_name: editingTenant.contact_person_name || "",
+      contact_person_email: editingTenant.contact_person_email || "",
+      contact_person_phone: editingTenant.contact_person_phone || "",
+      billing_cycle: editingTenant.billing_cycle || "monthly",
+      country: editingTenant.country || "",
+      timezone: editingTenant.timezone || "UTC",
+      currency_code: editingTenant.currency_code || "USD",
+      city: editingTenant.city || "",
+      state_province: editingTenant.state_province || "",
+      postal_code: editingTenant.postal_code || "",
+    } : {
       name: "",
       slug: "",
       domain: "",
@@ -106,7 +123,7 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Tenant</DialogTitle>
+          <DialogTitle>{editingTenant ? 'Edit Tenant' : 'Create New Tenant'}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -412,7 +429,7 @@ export const TenantForm = ({ open, onOpenChange }: TenantFormProps) => {
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Tenant"}
+                {isSubmitting ? (editingTenant ? "Updating..." : "Creating...") : (editingTenant ? "Update Tenant" : "Create Tenant")}
               </Button>
             </DialogFooter>
           </form>

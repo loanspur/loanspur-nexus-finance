@@ -29,15 +29,26 @@ interface ClientFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tenantId: string;
+  editingClient?: any | null;
 }
 
-export const ClientForm = ({ open, onOpenChange, tenantId }: ClientFormProps) => {
+export const ClientForm = ({ open, onOpenChange, tenantId, editingClient }: ClientFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createClientMutation = useCreateClient();
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
-    defaultValues: {
+    defaultValues: editingClient ? {
+      client_number: editingClient.client_number,
+      first_name: editingClient.first_name,
+      last_name: editingClient.last_name,
+      email: editingClient.email || "",
+      phone: editingClient.phone || "",
+      national_id: editingClient.national_id || "",
+      gender: editingClient.gender || "",
+      occupation: editingClient.occupation || "",
+      monthly_income: editingClient.monthly_income?.toString() || "",
+    } : {
       client_number: "",
       first_name: "",
       last_name: "",
@@ -92,7 +103,7 @@ export const ClientForm = ({ open, onOpenChange, tenantId }: ClientFormProps) =>
       <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Add New Client</DialogTitle>
+            <DialogTitle>{editingClient ? 'Edit Client' : 'Add New Client'}</DialogTitle>
             <SampleDataButton onFillSampleData={fillSampleData} />
           </div>
         </DialogHeader>
@@ -246,7 +257,7 @@ export const ClientForm = ({ open, onOpenChange, tenantId }: ClientFormProps) =>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Add Client"}
+                {isSubmitting ? (editingClient ? "Updating..." : "Creating...") : (editingClient ? "Update Client" : "Add Client")}
               </Button>
             </DialogFooter>
           </form>

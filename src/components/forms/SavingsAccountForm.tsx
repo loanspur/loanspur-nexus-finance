@@ -27,9 +27,10 @@ type SavingsAccountFormValues = z.infer<typeof savingsAccountSchema>;
 interface SavingsAccountFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingAccount?: any | null;
 }
 
-export const SavingsAccountForm = ({ open, onOpenChange }: SavingsAccountFormProps) => {
+export const SavingsAccountForm = ({ open, onOpenChange, editingAccount }: SavingsAccountFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { profile } = useAuth();
   const createSavingsAccount = useCreateSavingsAccount();
@@ -38,7 +39,15 @@ export const SavingsAccountForm = ({ open, onOpenChange }: SavingsAccountFormPro
 
   const form = useForm<SavingsAccountFormValues>({
     resolver: zodResolver(savingsAccountSchema),
-    defaultValues: {
+    defaultValues: editingAccount ? {
+      client_id: editingAccount.client_id,
+      savings_product_id: editingAccount.savings_product_id,
+      account_number: editingAccount.account_number,
+      account_balance: editingAccount.account_balance,
+      available_balance: editingAccount.available_balance,
+      is_active: editingAccount.is_active,
+      opened_date: editingAccount.opened_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+    } : {
       client_id: "",
       savings_product_id: "",
       account_number: "",
@@ -89,9 +98,9 @@ export const SavingsAccountForm = ({ open, onOpenChange }: SavingsAccountFormPro
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
-        <CardTitle>Open Savings Account</CardTitle>
+        <CardTitle>{editingAccount ? 'Edit Savings Account' : 'Open Savings Account'}</CardTitle>
         <CardDescription>
-          Create a new savings account for a client
+          {editingAccount ? 'Update savings account details' : 'Create a new savings account for a client'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -280,7 +289,7 @@ export const SavingsAccountForm = ({ open, onOpenChange }: SavingsAccountFormPro
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Open Account
+                {editingAccount ? 'Update Account' : 'Open Account'}
               </Button>
             </div>
           </form>
