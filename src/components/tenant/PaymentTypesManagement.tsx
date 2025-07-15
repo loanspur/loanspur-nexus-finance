@@ -109,7 +109,7 @@ const PaymentTypesManagement = () => {
           <h2 className="text-xl font-semibold">Payment Types</h2>
           <p className="text-sm text-muted-foreground">Manage payment methods available in your system</p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={handleCloseDialog}>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
