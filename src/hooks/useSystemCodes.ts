@@ -145,6 +145,7 @@ export const useCreateSystemCodeValue = () => {
       description?: string;
       code_value: string;
       position?: number;
+      is_active?: boolean;
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID');
 
@@ -153,6 +154,7 @@ export const useCreateSystemCodeValue = () => {
         .insert([{
           ...data,
           tenant_id: profile.tenant_id,
+          is_active: true, // Default to active for new values
         }])
         .select()
         .single();

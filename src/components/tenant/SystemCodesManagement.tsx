@@ -110,6 +110,7 @@ export const SystemCodesManagement = () => {
       description: data.description,
       code_value: data.code_value,
       position: data.position,
+      is_active: data.is_active,
     });
     setShowValueDialog(false);
     valueForm.reset();
