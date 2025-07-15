@@ -72,20 +72,13 @@ const loanApplicationSchema = z.object({
   collateral_type: z.string().optional(),
   collateral_value: z.number().min(0).optional(),
   collateral_description: z.string().optional(),
-  guarantor_name: z.string().optional(),
-  guarantor_phone: z.string().optional(),
-  guarantor_relationship: z.string().optional(),
   employment_type: z.string().min(1, "Please select employment type"),
   monthly_income: z.number().min(0, "Monthly income must be 0 or greater"),
   existing_debt: z.number().min(0, "Existing debt must be 0 or greater"),
   bank_name: z.string().optional(),
   bank_account_number: z.string().optional(),
   preferred_disbursement_method: z.string().min(1, "Please select disbursement method"),
-  loan_charges: z.array(z.object({
-    charge_type: z.string(),
-    amount: z.number(),
-    frequency: z.string(),
-  })).optional(),
+  selected_charges: z.array(z.string()).optional(),
 });
 
 type LoanApplicationFormData = z.infer<typeof loanApplicationSchema>;
@@ -128,16 +121,13 @@ export const FullLoanApplicationDialog = ({
       collateral_type: "",
       collateral_value: 0,
       collateral_description: "",
-      guarantor_name: "",
-      guarantor_phone: "",
-      guarantor_relationship: "",
       employment_type: "",
       monthly_income: 0,
       existing_debt: 0,
       bank_name: "",
       bank_account_number: "",
       preferred_disbursement_method: "",
-      loan_charges: [],
+      selected_charges: [],
     },
   });
 
@@ -182,6 +172,13 @@ export const FullLoanApplicationDialog = ({
   ];
 
   const selectedProduct = loanProducts?.find(p => p.id === form.watch('loan_product_id'));
+  
+  // Mock product charges since loan_product_charges table doesn't exist yet
+  const productCharges = selectedProduct ? [
+    { id: '1', name: 'Processing Fee', amount: 2500, frequency: 'One Time' },
+    { id: '2', name: 'Insurance Premium', amount: 500, frequency: 'Monthly' },
+    { id: '3', name: 'Application Fee', amount: 1000, frequency: 'One Time' },
+  ] : [];
   const requestedAmount = form.watch('requested_amount');
   const numberOfInstallments = form.watch('number_of_installments');
   const interestRate = form.watch('interest_rate');
@@ -287,9 +284,58 @@ export const FullLoanApplicationDialog = ({
     return { level: 'Low', color: 'text-success', bgColor: 'bg-success/10' };
   };
 
-  const generateScheduleCSV = () => {
-    let csvContent = "Payment Number,Due Date,Principal,Interest,Total Payment,Remaining Balance\n";
+  const generateRepaymentSchedulePDF = async () => {
+    // Dynamic import to avoid bundle size issues
+    const jsPDF = (await import('jspdf')).default;
+    await import('jspdf-autotable');
     
+    const doc = new jsPDF();
+    const currentDate = format(new Date(), 'MMMM dd, yyyy');
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(34, 197, 94);
+    doc.text('LOAN REPAYMENT SCHEDULE', 105, 20, { align: 'center' });
+    
+    // Client and loan information
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Client: ${selectedClientInfo?.first_name} ${selectedClientInfo?.last_name}`, 20, 40);
+    doc.text(`Client Number: ${selectedClientInfo?.client_number}`, 20, 50);
+    doc.text(`Product: ${selectedProduct?.name}`, 20, 60);
+    doc.text(`Generated: ${currentDate}`, 140, 40);
+    doc.text(`Loan Amount: ${formatCurrency(requestedAmount)}`, 140, 50);
+    doc.text(`Term: ${requestedTerm} months`, 140, 60);
+    
+    // Loan summary
+    doc.setFontSize(14);
+    doc.text('Loan Summary', 20, 80);
+    doc.setFontSize(10);
+    
+    const summaryData = [
+      ['Principal Amount', formatCurrency(requestedAmount)],
+      ['Interest Rate', `${interestRate}% p.a.`],
+      ['Term', `${requestedTerm} months`],
+      ['Monthly Payment', formatCurrency(calculateMonthlyPayment())],
+      ['Total Interest', formatCurrency(calculateTotalInterest())],
+      ['Total Payment', formatCurrency(calculateTotalPayment())],
+      ['First Payment Date', firstRepaymentDate ? format(firstRepaymentDate, 'MMM dd, yyyy') : 'Not specified']
+    ];
+    
+    (doc as any).autoTable({
+      startY: 90,
+      head: [['Description', 'Details']],
+      body: summaryData,
+      theme: 'grid',
+      headStyles: { fillColor: [34, 197, 94] },
+      margin: { left: 20, right: 20 }
+    });
+    
+    // Repayment schedule
+    doc.setFontSize(14);
+    doc.text('Repayment Schedule', 20, (doc as any).lastAutoTable.finalY + 20);
+    
+    const scheduleData = [];
     for (let i = 1; i <= numberOfInstallments; i++) {
       const monthlyPayment = calculateMonthlyPayment();
       const interestPayment = (requestedAmount * (interestRate / 100)) / 12;
@@ -299,10 +345,48 @@ export const FullLoanApplicationDialog = ({
         new Date(firstRepaymentDate.getTime() + ((i - 1) * 30 * 24 * 60 * 60 * 1000)) :
         new Date(Date.now() + (i * 30 * 24 * 60 * 60 * 1000));
       
-      csvContent += `${i},${dueDate.toLocaleDateString()},${principalPayment.toFixed(2)},${interestPayment.toFixed(2)},${monthlyPayment.toFixed(2)},${Math.max(0, remainingBalance).toFixed(2)}\n`;
+      scheduleData.push([
+        i.toString(),
+        format(dueDate, 'MMM dd, yyyy'),
+        formatCurrency(principalPayment),
+        formatCurrency(interestPayment),
+        formatCurrency(monthlyPayment),
+        formatCurrency(Math.max(0, remainingBalance))
+      ]);
     }
     
-    return csvContent;
+    (doc as any).autoTable({
+      startY: (doc as any).lastAutoTable.finalY + 30,
+      head: [['#', 'Due Date', 'Principal', 'Interest', 'Payment', 'Balance']],
+      body: scheduleData,
+      theme: 'grid',
+      headStyles: { fillColor: [34, 197, 94] },
+      margin: { left: 20, right: 20 },
+      styles: { fontSize: 8 }
+    });
+    
+    // Sign-off section
+    const finalY = (doc as any).lastAutoTable.finalY + 30;
+    doc.setFontSize(12);
+    doc.text('Client Acknowledgment', 20, finalY);
+    doc.setFontSize(10);
+    doc.text('I acknowledge that I have read and understood the repayment schedule above.', 20, finalY + 15);
+    
+    // Signature lines
+    doc.line(20, finalY + 40, 80, finalY + 40);
+    doc.text('Client Signature', 20, finalY + 50);
+    doc.text('Date: _______________', 20, finalY + 60);
+    
+    doc.line(120, finalY + 40, 180, finalY + 40);
+    doc.text('Loan Officer Signature', 120, finalY + 50);
+    doc.text('Date: _______________', 120, finalY + 60);
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.text(`Generated on ${currentDate}`, 105, 280, { align: 'center' });
+    
+    // Save the PDF
+    doc.save(`loan-repayment-schedule-${selectedClientInfo?.client_number}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
   };
 
   return (
@@ -555,74 +639,6 @@ export const FullLoanApplicationDialog = ({
                         </CardContent>
                       </Card>
 
-                      {/* Guarantor Section */}
-                      <Card className="bg-muted/30">
-                        <CardHeader>
-                          <CardTitle className="text-sm flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            Guarantor Information (Optional)
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="guarantor_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Guarantor Full Name</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter guarantor's full name" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="guarantor_phone"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Guarantor Phone</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="Enter guarantor's phone number" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          <FormField
-                            control={form.control}
-                            name="guarantor_relationship"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Relationship to Guarantor</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select relationship" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="spouse">Spouse</SelectItem>
-                                    <SelectItem value="parent">Parent</SelectItem>
-                                    <SelectItem value="sibling">Sibling</SelectItem>
-                                    <SelectItem value="child">Child</SelectItem>
-                                    <SelectItem value="friend">Friend</SelectItem>
-                                    <SelectItem value="colleague">Colleague</SelectItem>
-                                    <SelectItem value="business_partner">Business Partner</SelectItem>
-                                    <SelectItem value="other">Other</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -825,47 +841,48 @@ export const FullLoanApplicationDialog = ({
                         Associated Loan Charges
                       </CardTitle>
                       <CardDescription>
-                        Add any fees or charges associated with this loan
+                        Select applicable charges for this loan product
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-4 gap-2 text-sm font-medium text-muted-foreground">
-                          <div>Charge Type</div>
-                          <div>Amount (KES)</div>
-                          <div>Frequency</div>
-                          <div>Actions</div>
-                        </div>
-                        
-                        {/* Sample charges row */}
-                        <div className="grid grid-cols-4 gap-2 p-3 border rounded-lg bg-muted/50">
-                          <Select defaultValue="processing_fee">
-                            <SelectTrigger className="h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="processing_fee">Processing Fee</SelectItem>
-                              <SelectItem value="application_fee">Application Fee</SelectItem>
-                              <SelectItem value="insurance">Insurance</SelectItem>
-                              <SelectItem value="legal_fee">Legal Fee</SelectItem>
-                              <SelectItem value="valuation_fee">Valuation Fee</SelectItem>
-                              <SelectItem value="late_payment_fee">Late Payment Fee</SelectItem>
-                              <SelectItem value="prepayment_penalty">Prepayment Penalty</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Input type="number" placeholder="0.00" className="h-8" />
-                          <Select defaultValue="one_time">
-                            <SelectTrigger className="h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="one_time">One Time</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                              <SelectItem value="annually">Annually</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button variant="outline" size="sm" className="h-8">Add</Button>
-                        </div>
+                        {productCharges && productCharges.length > 0 ? (
+                          <div className="space-y-3">
+                            {productCharges.map((charge: any) => (
+                              <div key={charge.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`charge-${charge.id}`}
+                                    onChange={(e) => {
+                                      const selectedCharges = form.getValues('selected_charges') || [];
+                                      if (e.target.checked) {
+                                        form.setValue('selected_charges', [...selectedCharges, charge.id]);
+                                      } else {
+                                        form.setValue('selected_charges', selectedCharges.filter(id => id !== charge.id));
+                                      }
+                                    }}
+                                    className="rounded border-gray-300"
+                                  />
+                                  <label htmlFor={`charge-${charge.id}`} className="text-sm font-medium">
+                                    {charge.name}
+                                  </label>
+                                </div>
+                                <div className="flex-1 flex justify-between text-sm text-muted-foreground">
+                                  <span>{formatCurrency(charge.amount)}</span>
+                                  <span>{charge.frequency}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-muted-foreground py-8">
+                            {form.watch('loan_product_id') 
+                              ? 'No charges configured for this product'
+                              : 'Please select a loan product to view available charges'
+                            }
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -965,21 +982,10 @@ export const FullLoanApplicationDialog = ({
                             type="button" 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              const csvContent = generateScheduleCSV();
-                              const blob = new Blob([csvContent], { type: 'text/csv' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = 'loan-repayment-schedule.csv';
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            }}
+                            onClick={generateRepaymentSchedulePDF}
                           >
                             <Download className="w-4 h-4 mr-2" />
-                            Download Schedule
+                            Download PDF Schedule
                           </Button>
                         </div>
                       </CardHeader>
@@ -1055,7 +1061,7 @@ export const FullLoanApplicationDialog = ({
                   )}
                 </TabsContent>
 
-                {/* Guarantor Information Tab - content moved to basic tab */}
+                {/* Guarantor Information Tab - removed as per request */}
                 <TabsContent value="guarantor" className="space-y-6">
                   <Card>
                     <CardHeader>
@@ -1064,12 +1070,12 @@ export const FullLoanApplicationDialog = ({
                         Additional Information
                       </CardTitle>
                       <CardDescription>
-                        Complete any additional information for the loan application
+                        Review loan details and associated charges
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
-                        All guarantor information can be added in the Basic Information tab after selecting collateral details.
+                        All loan details and charges are configured in the previous tabs.
                       </div>
                     </CardContent>
                   </Card>
