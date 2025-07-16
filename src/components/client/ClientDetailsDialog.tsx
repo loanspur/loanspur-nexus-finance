@@ -408,9 +408,9 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       date_label: 'Applied'
     }))
   ].filter(item => {
-    // Filter out closed/rejected loans if hideClosedLoans is true
+    // Filter out closed/rejected loans and applications if hideClosedLoans is true
     if (hideClosedLoans) {
-      const closedStatuses = ['rejected', 'closed', 'fully_paid', 'written_off'];
+      const closedStatuses = ['rejected', 'closed', 'fully_paid', 'written_off', 'withdrawn'];
       return !closedStatuses.includes(item.status?.toLowerCase());
     }
     return true;
@@ -1422,8 +1422,8 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         </AlertDialog>
 
         {/* Reject Application Dialog */}
-        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-          <DialogContent className="z-50 bg-background border shadow-lg max-w-md">
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog} modal>
+          <DialogContent className="z-[60] bg-background border shadow-lg max-w-md fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
             <DialogHeader>
               <DialogTitle>Reject Loan Application</DialogTitle>
               <DialogDescription>
@@ -1433,7 +1433,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="rejection-date">Rejection Date</Label>
-                <Popover>
+                <Popover modal>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -1446,7 +1446,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                       {rejectionDate ? format(rejectionDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 z-50 bg-background border shadow-lg" align="start">
+                  <PopoverContent className="w-auto p-0 z-[70] bg-background border shadow-lg" align="start" side="bottom" sideOffset={5}>
                     <Calendar
                       mode="single"
                       selected={rejectionDate}
