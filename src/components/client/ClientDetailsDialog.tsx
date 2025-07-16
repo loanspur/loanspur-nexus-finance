@@ -926,37 +926,48 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                </Button>
                              )}
                              
-                             {item.type === 'application' && (
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => handleModifyApplication(item)}
-                               >
-                                 <Edit className="h-4 w-4 mr-2" />
-                                 Modify
-                               </Button>
-                             )}
-                             
                               {item.type === 'application' && item.status === 'pending' && (
                                 <>
                                   <Button
+                                    variant="outline"
                                     size="sm"
-                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => {
+                                      setSelectedApplication(item);
+                                      setShowApplicationDetailsDialog(true);
+                                    }}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    View
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleModifyApplication(item)}
+                                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Modify
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     onClick={() => {
                                       setSelectedApplication(item);
                                       setShowApproveDialog(true);
                                     }}
+                                    className="border-green-600 text-green-600 hover:bg-green-50"
                                   >
                                     <CheckCircle className="h-4 w-4 mr-2" />
                                     Approve
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="destructive"
+                                    variant="outline"
                                     onClick={() => {
                                       setSelectedApplication(item);
                                       setShowRejectDialog(true);
                                     }}
+                                    className="border-red-600 text-red-600 hover:bg-red-50"
                                   >
                                     <XCircle className="h-4 w-4 mr-2" />
                                     Reject
@@ -964,43 +975,71 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                 </>
                               )}
                               
-                              {item.type === 'application' && item.status === 'pending_disbursement' && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                    onClick={() => {
-                                      setSelectedApplication(item);
-                                      setShowDisburseDialog(true);
-                                    }}
-                                  >
-                                    <Wallet className="h-4 w-4 mr-2" />
-                                    Disburse
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedApplication(item);
-                                      setShowDisburseToSavingsDialog(true);
-                                    }}
-                                  >
-                                    <PiggyBank className="h-4 w-4 mr-2" />
-                                    Disburse to Savings
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedApplication(item);
-                                      setShowUndoApprovalDialog(true);
-                                    }}
-                                  >
-                                    <ArrowRightLeft className="h-4 w-4 mr-2" />
-                                    Undo Approval
-                                  </Button>
-                                </>
+                              {item.type === 'application' && item.status !== 'pending' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedApplication(item);
+                                    setShowApplicationDetailsDialog(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
                               )}
+                              
+                               {item.type === 'application' && item.status === 'pending_disbursement' && (
+                                 <>
+                                   <Button
+                                     variant="outline"
+                                     size="sm"
+                                     onClick={() => {
+                                       setSelectedApplication(item);
+                                       setShowApplicationDetailsDialog(true);
+                                     }}
+                                   >
+                                     <Eye className="h-4 w-4 mr-2" />
+                                     View
+                                   </Button>
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => {
+                                       setSelectedApplication(item);
+                                       setShowDisburseDialog(true);
+                                     }}
+                                     className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                   >
+                                     <Wallet className="h-4 w-4 mr-2" />
+                                     Disburse
+                                   </Button>
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => {
+                                       setSelectedApplication(item);
+                                       setShowDisburseToSavingsDialog(true);
+                                     }}
+                                     className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                                   >
+                                     <PiggyBank className="h-4 w-4 mr-2" />
+                                     Disburse to Savings
+                                   </Button>
+                                   <Button
+                                     size="sm"
+                                     variant="outline"
+                                     onClick={() => {
+                                       setSelectedApplication(item);
+                                       setShowUndoApprovalDialog(true);
+                                     }}
+                                     className="border-orange-600 text-orange-600 hover:bg-orange-50"
+                                   >
+                                     <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                     Undo Approval
+                                   </Button>
+                                 </>
+                               )}
                               
                               {item.type === 'application' && (item.status === 'rejected' || item.status === 'closed') && (
                                 <span className="text-sm text-muted-foreground">No actions available</span>

@@ -125,11 +125,11 @@ export const ClientPendingLoansView = ({
   const getActionButtonColor = (action: string) => {
     switch (action) {
       case 'approve':
-        return 'bg-green-600 hover:bg-green-700 text-white';
+        return 'border-green-600 text-green-600 hover:bg-green-50';
       case 'reject':
-        return 'bg-red-600 hover:bg-red-700 text-white';
+        return 'border-red-600 text-red-600 hover:bg-red-50';
       case 'modify':
-        return 'bg-blue-600 hover:bg-blue-700 text-white';
+        return 'border-blue-600 text-blue-600 hover:bg-blue-50';
       default:
         return '';
     }
@@ -234,6 +234,7 @@ export const ClientPendingLoansView = ({
                           <Eye className="w-3 h-3" />
                         </Button>
                         <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleAction(application, 'approve')}
                           className={`h-8 ${getActionButtonColor('approve')}`}
@@ -242,6 +243,7 @@ export const ClientPendingLoansView = ({
                           Approve
                         </Button>
                         <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleAction(application, 'modify')}
                           className={`h-8 ${getActionButtonColor('modify')}`}
@@ -250,6 +252,7 @@ export const ClientPendingLoansView = ({
                           Modify
                         </Button>
                         <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleAction(application, 'reject')}
                           className={`h-8 ${getActionButtonColor('reject')}`}
