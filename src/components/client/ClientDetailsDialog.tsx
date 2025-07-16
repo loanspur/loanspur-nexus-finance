@@ -128,6 +128,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showApplicationDetailsDialog, setShowApplicationDetailsDialog] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [showDisburseDialog, setShowDisburseDialog] = useState(false);
+  const [showDisburseToSavingsDialog, setShowDisburseToSavingsDialog] = useState(false);
+  const [showUndoApprovalDialog, setShowUndoApprovalDialog] = useState(false);
+  const [hideClosedLoans, setHideClosedLoans] = useState(false);
   
   const { toast } = useToast();
   
@@ -374,7 +378,14 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       date: app.created_at,
       date_label: 'Applied'
     }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  ].filter(item => {
+    // Filter out closed/rejected loans if hideClosedLoans is true
+    if (hideClosedLoans) {
+      const closedStatuses = ['rejected', 'closed', 'fully_paid', 'written_off'];
+      return !closedStatuses.includes(item.status?.toLowerCase());
+    }
+    return true;
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Mock data for loans and savings
   const mockLoans = [
@@ -496,7 +507,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       const { error } = await supabase
         .from('loan_applications')
         .update({ 
-          status: 'approved',
+          status: 'pending_disbursement',
           approved_at: new Date().toISOString()
         })
         .eq('id', application.id);
@@ -507,7 +518,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       setShowApproveDialog(false);
       toast({
         title: "Application Approved",
-        description: `Loan application ${application.application_number} has been approved successfully.`,
+        description: `Loan application ${application.application_number} has been approved and is now pending disbursement.`,
       });
     } catch (error) {
       console.error('Error approving application:', error);
@@ -542,6 +553,91 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       toast({
         title: "Error",
         description: "Failed to reject the application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDisburseApplication = async (application: any) => {
+    try {
+      const { error } = await supabase
+        .from('loan_applications')
+        .update({ 
+          status: 'disbursed',
+          disbursed_at: new Date().toISOString()
+        })
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      fetchClientLoanApplications();
+      setShowDisburseDialog(false);
+      toast({
+        title: "Loan Disbursed",
+        description: `Loan application ${application.application_number} has been disbursed successfully.`,
+      });
+    } catch (error) {
+      console.error('Error disbursing loan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to disburse the loan. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDisburseToSavings = async (application: any) => {
+    try {
+      const { error } = await supabase
+        .from('loan_applications')
+        .update({ 
+          status: 'disbursed',
+          disbursed_at: new Date().toISOString(),
+          disbursement_method: 'savings'
+        })
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      fetchClientLoanApplications();
+      setShowDisburseToSavingsDialog(false);
+      toast({
+        title: "Loan Disbursed to Savings",
+        description: `Loan application ${application.application_number} has been disbursed to savings account.`,
+      });
+    } catch (error) {
+      console.error('Error disbursing loan to savings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to disburse the loan to savings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUndoApproval = async (application: any) => {
+    try {
+      const { error } = await supabase
+        .from('loan_applications')
+        .update({ 
+          status: 'pending',
+          approved_at: null
+        })
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      fetchClientLoanApplications();
+      setShowUndoApprovalDialog(false);
+      toast({
+        title: "Approval Undone",
+        description: `Loan application ${application.application_number} has been moved back to pending approval.`,
+      });
+    } catch (error) {
+      console.error('Error undoing approval:', error);
+      toast({
+        title: "Error",
+        description: "Failed to undo approval. Please try again.",
         variant: "destructive",
       });
     }
@@ -680,10 +776,19 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     <CreditCard className="h-5 w-5" />
                     Loans & Applications ({combinedLoansAndApplications.length})
                   </h3>
-                  <Button size="sm" onClick={() => setShowLoanWorkflowDialog(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Application
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setHideClosedLoans(!hideClosedLoans)}
+                    >
+                      {hideClosedLoans ? 'Show All' : 'Hide Closed'}
+                    </Button>
+                    <Button size="sm" onClick={() => setShowLoanWorkflowDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Application
+                    </Button>
+                  </div>
                 </div>
                 
                 <div className="border rounded-lg">
@@ -782,44 +887,74 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                                </Button>
                              )}
                              
-                             {item.type === 'application' && item.status === 'pending' && (
-                               <>
-                                 <Button
-                                   size="sm"
-                                   className="bg-green-600 hover:bg-green-700"
-                                   onClick={() => {
-                                     setSelectedApplication(item);
-                                     setShowApproveDialog(true);
-                                   }}
-                                 >
-                                   <CheckCircle className="h-4 w-4 mr-2" />
-                                   Approve
-                                 </Button>
-                                 <Button
-                                   size="sm"
-                                   variant="destructive"
-                                   onClick={() => {
-                                     setSelectedApplication(item);
-                                     setShowRejectDialog(true);
-                                   }}
-                                 >
-                                   <XCircle className="h-4 w-4 mr-2" />
-                                   Reject
-                                 </Button>
-                               </>
-                             )}
-                             
-                             {item.type === 'application' && item.status === 'approved' && (
-                               <Button
-                                 size="sm"
-                                 onClick={() => {
-                                   console.log('Disburse loan:', item);
-                                 }}
-                               >
-                                 <Wallet className="h-4 w-4 mr-2" />
-                                 Disburse
-                               </Button>
-                             )}
+                              {item.type === 'application' && item.status === 'pending' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => {
+                                      setSelectedApplication(item);
+                                      setShowApproveDialog(true);
+                                    }}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      setSelectedApplication(item);
+                                      setShowRejectDialog(true);
+                                    }}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {item.type === 'application' && item.status === 'pending_disbursement' && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                    onClick={() => {
+                                      setSelectedApplication(item);
+                                      setShowDisburseDialog(true);
+                                    }}
+                                  >
+                                    <Wallet className="h-4 w-4 mr-2" />
+                                    Disburse
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedApplication(item);
+                                      setShowDisburseToSavingsDialog(true);
+                                    }}
+                                  >
+                                    <PiggyBank className="h-4 w-4 mr-2" />
+                                    Disburse to Savings
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedApplication(item);
+                                      setShowUndoApprovalDialog(true);
+                                    }}
+                                  >
+                                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                    Undo Approval
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {item.type === 'application' && (item.status === 'rejected' || item.status === 'closed') && (
+                                <span className="text-sm text-muted-foreground">No actions available</span>
+                              )}
                            </div>
                         </div>
                       ))}
@@ -1260,7 +1395,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
         {/* Application Details Dialog */}
         <Dialog open={showApplicationDetailsDialog} onOpenChange={setShowApplicationDetailsDialog}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Application Details</DialogTitle>
               <DialogDescription>
@@ -1268,38 +1403,114 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
               </DialogDescription>
             </DialogHeader>
             {selectedApplication && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm text-muted-foreground">Product</span>
-                    <div className="font-medium">{selectedApplication.loan_products?.name}</div>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">Amount</span>
-                    <div className="font-medium">{formatCurrency(selectedApplication.requested_amount)}</div>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">Term</span>
-                    <div className="font-medium">{selectedApplication.requested_term} months</div>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">Status</span>
-                    <div className="font-medium">{getLoanStatusBadge(selectedApplication.status)}</div>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">Purpose</span>
-                    <div className="font-medium capitalize">{selectedApplication.purpose?.replace(/_/g, ' ')}</div>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">Applied Date</span>
-                    <div className="font-medium">{format(new Date(selectedApplication.created_at), 'MMM dd, yyyy')}</div>
-                  </div>
-                </div>
+              <div className="space-y-6">
+                {/* Product Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Product Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-muted-foreground">Product Name</span>
+                        <div className="font-medium">{selectedApplication.loan_products?.name}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Product Code</span>
+                        <div className="font-medium">{selectedApplication.loan_products?.short_name}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Interest Rate Range</span>
+                        <div className="font-medium">
+                          {selectedApplication.loan_products?.min_nominal_interest_rate}% - {selectedApplication.loan_products?.max_nominal_interest_rate}%
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Currency</span>
+                        <div className="font-medium">{selectedApplication.loan_products?.currency_code || 'KES'}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Application Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Application Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-muted-foreground">Requested Amount</span>
+                        <div className="font-medium text-lg">{formatCurrency(selectedApplication.requested_amount)}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Term</span>
+                        <div className="font-medium">{selectedApplication.requested_term} months</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Interest Rate</span>
+                        <div className="font-medium">{selectedApplication.interest_rate || 'TBD'}%</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Purpose</span>
+                        <div className="font-medium capitalize">{selectedApplication.purpose?.replace(/_/g, ' ')}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Fund Source</span>
+                        <div className="font-medium">{selectedApplication.fund_source || 'General Fund'}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Status</span>
+                        <div className="font-medium">{getLoanStatusBadge(selectedApplication.status)}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Timeline */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Application Timeline</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Applied Date</span>
+                        <span className="font-medium">{format(new Date(selectedApplication.created_at), 'MMM dd, yyyy HH:mm')}</span>
+                      </div>
+                      {selectedApplication.approved_at && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Approved Date</span>
+                          <span className="font-medium">{format(new Date(selectedApplication.approved_at), 'MMM dd, yyyy HH:mm')}</span>
+                        </div>
+                      )}
+                      {selectedApplication.rejected_at && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Rejected Date</span>
+                          <span className="font-medium">{format(new Date(selectedApplication.rejected_at), 'MMM dd, yyyy HH:mm')}</span>
+                        </div>
+                      )}
+                      {selectedApplication.disbursed_at && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Disbursed Date</span>
+                          <span className="font-medium">{format(new Date(selectedApplication.disbursed_at), 'MMM dd, yyyy HH:mm')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Additional Information */}
                 {selectedApplication.notes && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">Notes</span>
-                    <div className="font-medium">{selectedApplication.notes}</div>
-                  </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Notes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm bg-muted p-3 rounded-md">{selectedApplication.notes}</div>
+                    </CardContent>
+                  </Card>
                 )}
               </div>
             )}
@@ -1413,6 +1624,72 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Disburse Application Dialog */}
+        <AlertDialog open={showDisburseDialog} onOpenChange={setShowDisburseDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Disburse Loan</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to disburse loan application {selectedApplication?.application_number}?
+                This action will transfer the funds to the client and activate the loan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={() => selectedApplication && handleDisburseApplication(selectedApplication)}
+              >
+                Disburse Loan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Disburse to Savings Dialog */}
+        <AlertDialog open={showDisburseToSavingsDialog} onOpenChange={setShowDisburseToSavingsDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Disburse to Savings</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to disburse loan application {selectedApplication?.application_number} to the client's savings account?
+                The loan amount will be credited to their savings account.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-green-600 text-white hover:bg-green-700"
+                onClick={() => selectedApplication && handleDisburseToSavings(selectedApplication)}
+              >
+                Disburse to Savings
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Undo Approval Dialog */}
+        <AlertDialog open={showUndoApprovalDialog} onOpenChange={setShowUndoApprovalDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Undo Approval</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to undo the approval for loan application {selectedApplication?.application_number}?
+                This action will move the application back to pending approval status.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-orange-600 text-white hover:bg-orange-700"
+                onClick={() => selectedApplication && handleUndoApproval(selectedApplication)}
+              >
+                Undo Approval
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
