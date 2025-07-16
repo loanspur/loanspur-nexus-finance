@@ -570,13 +570,19 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get the current user's profile ID
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
       const { error } = await supabase
         .from('loan_applications')
         .update({ 
           status: 'rejected',
           reviewed_at: rejectionDate?.toISOString() || new Date().toISOString(),
-          reviewed_by: user?.id || null,
+          reviewed_by: profile?.id || null,
           approval_notes: rejectionReason
         })
         .eq('id', application.id);
