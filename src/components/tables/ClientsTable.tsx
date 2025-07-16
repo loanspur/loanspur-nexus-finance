@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search, Eye, FileText } from "lucide-react";
 import { useClients, type Client } from "@/hooks/useSupabase";
-import { ClientDetailsDialog } from "@/components/client/ClientDetailsDialog";
+import { CleanClientDetailsDialog } from "@/components/client/CleanClientDetailsDialog";
 import { FullLoanApplicationDialog } from "@/components/client/FullLoanApplicationDialog";
 import { format } from "date-fns";
 
@@ -235,7 +235,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
         )}
       </CardContent>
 
-      <ClientDetailsDialog
+      <CleanClientDetailsDialog
         client={selectedClient}
         open={isDetailsDialogOpen}
         onOpenChange={setIsDetailsDialogOpen}
