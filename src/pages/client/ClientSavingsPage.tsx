@@ -1,27 +1,71 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
+import { useSavingsAccounts } from "@/hooks/useSupabase";
+import { useSavingsTransactions } from "@/hooks/useSavingsManagement";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, Download, ArrowUpRight, ArrowDownRight, ArrowRightLeft, Calendar } from "lucide-react";
+import { format } from "date-fns";
 
 const ClientSavingsPage = () => {
-  const savingsAccount = {
-    id: "SAV-001",
-    accountType: "Regular Savings",
-    balance: "$850",
-    interestRate: "6%",
-    status: "Active",
-    openDate: "2024-01-15",
-    monthlyTarget: "$100",
-    thisMonthDeposits: "$150",
-    totalDeposits: "$900",
-    interestEarned: "$12.50"
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [selectedTransactionType, setSelectedTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
+  
+  const { profile } = useAuth();
+  const { data: savingsAccounts, isLoading } = useSavingsAccounts();
+  
+  // Get the first savings account (assuming client has one primary account)
+  const savingsAccount = savingsAccounts?.[0];
+  
+  const { data: transactions, isLoading: transactionsLoading } = useSavingsTransactions(savingsAccount?.id);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+    }).format(amount);
   };
 
-  const transactionHistory = [
-    { date: "2024-02-28", type: "Deposit", amount: "+$50", method: "M-Pesa", balance: "$850" },
-    { date: "2024-02-15", type: "Deposit", amount: "+$100", method: "Cash", balance: "$800" },
-    { date: "2024-01-30", type: "Interest", amount: "+$4.50", method: "Auto", balance: "$700" },
-    { date: "2024-01-15", type: "Deposit", amount: "+$150", method: "M-Pesa", balance: "$695.50" }
-  ];
+  const openTransactionForm = (type: 'deposit' | 'withdrawal' | 'transfer' | 'fee_charge') => {
+    setSelectedTransactionType(type);
+    setTransactionFormOpen(true);
+  };
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case "deposit":
+        return <ArrowDownRight className="h-4 w-4 text-success" />;
+      case "withdrawal":
+        return <ArrowUpRight className="h-4 w-4 text-destructive" />;
+      case "transfer":
+        return <ArrowRightLeft className="h-4 w-4 text-primary" />;
+      case "interest_posting":
+        return <Calendar className="h-4 w-4 text-warning" />;
+      default:
+        return <ArrowDownRight className="h-4 w-4" />;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!savingsAccount) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">My Savings</h1>
+          <p className="text-muted-foreground">You don't have any savings accounts yet.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -35,9 +79,9 @@ const ClientSavingsPage = () => {
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl">Savings Account</CardTitle>
-              <CardDescription>Account ID: {savingsAccount.id} • {savingsAccount.accountType}</CardDescription>
+              <CardDescription>Account: {savingsAccount.account_number} • {savingsAccount.savings_products?.name || 'Standard Savings'}</CardDescription>
             </div>
-            <Badge variant="default">{savingsAccount.status}</Badge>
+            <Badge variant="default">{savingsAccount.is_active ? 'Active' : 'Inactive'}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -45,53 +89,74 @@ const ClientSavingsPage = () => {
             <div className="space-y-4">
               <div>
                 <div className="text-sm text-muted-foreground">Current Balance</div>
-                <div className="text-3xl font-bold text-success">{savingsAccount.balance}</div>
+                <div className="text-3xl font-bold text-success">{formatCurrency(savingsAccount.account_balance || 0)}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Interest Rate</div>
-                <div className="text-lg font-medium">{savingsAccount.interestRate} per annum</div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Monthly Target</div>
-                <div className="text-lg font-medium">{savingsAccount.monthlyTarget}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">This Month's Deposits</div>
-                <div className="text-lg font-medium text-success">{savingsAccount.thisMonthDeposits}</div>
+                <div className="text-sm text-muted-foreground">Available Balance</div>
+                <div className="text-lg font-medium">{formatCurrency(savingsAccount.available_balance || 0)}</div>
               </div>
             </div>
             
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-muted-foreground">Total Deposits</div>
-                <div className="text-lg font-medium">{savingsAccount.totalDeposits}</div>
+                <div className="text-sm text-muted-foreground">Account Opened</div>
+                <div className="text-lg font-medium">{format(new Date(savingsAccount.opened_date), 'MMM dd, yyyy')}</div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground">Interest Earned</div>
-                <div className="text-lg font-medium text-success">{savingsAccount.interestEarned}</div>
+                <div className="text-lg font-medium text-success">{formatCurrency(savingsAccount.interest_earned || 0)}</div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm text-muted-foreground">Product Type</div>
+                <div className="text-lg font-medium">{savingsAccount.savings_products?.name || 'Standard Savings'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Total Transactions</div>
+                <div className="text-lg font-medium">{transactions?.length || 0}</div>
               </div>
             </div>
           </div>
           
           <div className="mt-6 pt-6 border-t">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button className="flex-1">
-                Deposit via M-Pesa
+              <Button 
+                className="flex-1"
+                onClick={() => openTransactionForm('deposit')}
+              >
+                <ArrowDownRight className="h-4 w-4 mr-2" />
+                Deposit
               </Button>
-              <Button variant="outline" className="flex-1">
-                Schedule Auto-Deposit
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => openTransactionForm('withdrawal')}
+              >
+                <ArrowUpRight className="h-4 w-4 mr-2" />
+                Withdraw
               </Button>
-              <Button variant="outline" className="flex-1">
-                Download Statement
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => openTransactionForm('transfer')}
+              >
+                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                Transfer
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Statement
               </Button>
             </div>
           </div>
           
           <div className="mt-4 text-sm text-muted-foreground">
-            Account opened: {savingsAccount.openDate}
+            Last updated: {format(new Date(savingsAccount.updated_at), 'MMM dd, yyyy HH:mm')}
           </div>
         </CardContent>
       </Card>
@@ -102,55 +167,77 @@ const ClientSavingsPage = () => {
           <CardDescription>Record of all your savings transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {transactionHistory.map((transaction, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <div className="font-medium">{transaction.type}</div>
-                  <div className="text-sm text-muted-foreground">{transaction.date}</div>
-                </div>
-                
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="text-center">
-                    <div className="font-medium text-success">{transaction.amount}</div>
-                    <div className="text-xs text-muted-foreground">{transaction.method}</div>
+          {transactionsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : transactions && transactions.length > 0 ? (
+            <div className="space-y-4">
+              {transactions.slice(0, 10).map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3 flex-1">
+                    {getTransactionIcon(transaction.transaction_type)}
+                    <div>
+                      <div className="font-medium capitalize">{transaction.transaction_type.replace('_', ' ')}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(transaction.transaction_date), 'MMM dd, yyyy HH:mm')}
+                      </div>
+                      {transaction.description && (
+                        <div className="text-xs text-muted-foreground">{transaction.description}</div>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="text-center">
-                    <div className="font-medium">{transaction.balance}</div>
-                    <div className="text-xs text-muted-foreground">Balance</div>
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="text-center">
+                      <div className={`font-medium ${
+                        transaction.transaction_type === 'deposit' || transaction.transaction_type === 'interest_posting'
+                          ? 'text-success'
+                          : 'text-destructive'
+                      }`}>
+                        {transaction.transaction_type === 'deposit' || transaction.transaction_type === 'interest_posting'
+                          ? '+' : '-'
+                        }{formatCurrency(transaction.amount)}
+                      </div>
+                      {transaction.reference_number && (
+                        <div className="text-xs text-muted-foreground">Ref: {transaction.reference_number}</div>
+                      )}
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="font-medium">{formatCurrency(transaction.balance_after)}</div>
+                      <div className="text-xs text-muted-foreground">Balance</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No transactions found
+            </div>
+          )}
           
-          <div className="mt-6 text-center">
-            <Button variant="outline">Load More Transactions</Button>
-          </div>
+          {transactions && transactions.length > 10 && (
+            <div className="mt-6 text-center">
+              <Button variant="outline">Load More Transactions</Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Savings Goal Tracking</CardTitle>
-          <CardDescription>Monitor your progress towards your savings targets</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Monthly Target Progress</span>
-              <span className="text-sm font-medium">150% completed</span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div className="bg-success h-2 rounded-full" style={{ width: '100%' }}></div>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              You've exceeded your monthly target by $50! Keep up the great work.
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Transaction Form Dialog */}
+      {savingsAccount && (
+        <SavingsTransactionForm
+          open={transactionFormOpen}
+          onOpenChange={setTransactionFormOpen}
+          savingsAccount={savingsAccount}
+          transactionType={selectedTransactionType}
+          onSuccess={() => {
+            setTransactionFormOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
