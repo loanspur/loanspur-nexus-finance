@@ -18,13 +18,16 @@ import {
   CreditCard,
   DollarSign,
   TrendingUp,
-  AlertTriangle 
+  AlertTriangle,
+  Users
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const LoansPage = () => {
   const [selectedLoan, setSelectedLoan] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const { profile } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch loans data
   const { data: loans = [], isLoading } = useQuery({
@@ -66,12 +69,22 @@ const LoansPage = () => {
           <h1 className="text-3xl font-bold text-foreground">Loan Management</h1>
           <p className="text-muted-foreground">Track and manage all loan accounts</p>
         </div>
-        <LoanApplicationForm>
-          <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            New Loan Application
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => navigate("/tenant/client-loan-review")}
+          >
+            <Users className="w-4 h-4" />
+            Review Client CL015 Applications
           </Button>
-        </LoanApplicationForm>
+          <LoanApplicationForm>
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Loan Application
+            </Button>
+          </LoanApplicationForm>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

@@ -21,6 +21,7 @@ import FundsManagementPage from "@/pages/tenant/FundsManagementPage";
 import ProductFeeManagementPage from "@/pages/tenant/ProductFeeManagementPage";
 import AccountingPage from "@/pages/tenant/AccountingPage";
 import LoanWorkflowPage from "@/pages/tenant/LoanWorkflowPage";
+import ClientLoanReviewPage from "@/pages/tenant/ClientLoanReviewPage";
 import ActivityTracker from "@/components/audit/ActivityTracker";
 
 const TenantLayout = () => {
@@ -51,6 +52,7 @@ const TenantLayout = () => {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/loan-workflow" element={<LoanWorkflowPage />} />
+              <Route path="/client-loan-review" element={<ClientLoanReviewPage />} />
               <Route path="/savings" element={<SavingsPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/groups" element={<GroupsPage />} />
