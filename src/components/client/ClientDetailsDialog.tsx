@@ -29,9 +29,8 @@ import {
   Camera,
   Upload,
   Download,
-  Eye,
-  CheckCircle,
   XCircle,
+  CheckCircle,
   Clock,
   Plus,
   Minus,
@@ -41,7 +40,8 @@ import {
   ScrollText,
   TrendingUp,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 import { format } from "date-fns";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
@@ -114,6 +114,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [activeSavingsProducts, setActiveSavingsProducts] = useState<any[]>([]);
   const [clientLoans, setClientLoans] = useState<any[]>([]);
   const [clientSavings, setClientSavings] = useState<any[]>([]);
+  const [clientLoanApplications, setClientLoanApplications] = useState<any[]>([]);
   const [showSavingsTransactionDialog, setShowSavingsTransactionDialog] = useState(false);
   const [showTransactionHistoryDialog, setShowTransactionHistoryDialog] = useState(false);
   const [showLoanWorkflowDialog, setShowLoanWorkflowDialog] = useState(false);
@@ -125,6 +126,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     if (open && client) {
       fetchActiveProducts();
       fetchClientAccounts();
+      fetchClientLoanApplications();
     }
   }, [open, client]);
 
@@ -214,6 +216,27 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     }
   };
 
+  const fetchClientLoanApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('loan_applications')
+        .select(`
+          *,
+          loan_products(name, short_name, min_nominal_interest_rate, max_nominal_interest_rate)
+        `)
+        .eq('client_id', client.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching loan applications:', error);
+      } else {
+        console.log('Fetched loan applications:', data);
+        setClientLoanApplications(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching client loan applications:', error);
+    }
+  };
   const handleSavingsCreated = () => {
     fetchClientAccounts(); // Refresh the client accounts data
     toast({
@@ -224,6 +247,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   const handleLoanCreated = () => {
     fetchClientAccounts(); // Refresh the client accounts data
+    fetchClientLoanApplications(); // Also refresh loan applications
     console.log('Loan created, refreshing client accounts');
     toast({
       title: "Success", 
@@ -233,6 +257,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   const handleLoanWorkflowCompleted = () => {
     fetchClientAccounts(); // Refresh after loan workflow completion
+    fetchClientLoanApplications(); // Also refresh loan applications
     console.log('Loan workflow completed, refreshing client accounts');
     toast({
       title: "Success",
@@ -555,7 +580,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                   </Button>
                 </div>
                 
-                <div className="border rounded-lg divide-y">
+                <div className="border rounded-lg">
                   {clientLoans.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">
                       <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -563,15 +588,16 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                       <p className="text-sm">Create a loan application to get started</p>
                     </div>
                   ) : (
-                    clientLoans.map((loan) => (
-                      <div key={loan.id} className="p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <h4 className="font-medium">{loan.loan_products?.name || 'Unknown Product'}</h4>
-                              <p className="text-sm text-muted-foreground">{loan.loan_number}</p>
+                    <div className="divide-y">
+                      {clientLoans.map((loan) => (
+                        <div key={loan.id} className="p-4 hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <h4 className="font-medium">{loan.loan_products?.name || 'Unknown Product'}</h4>
+                                <p className="text-sm text-muted-foreground">{loan.loan_number}</p>
+                              </div>
                             </div>
-                          </div>
                             <div className="flex items-center gap-3">
                               <div className="text-right">
                                 <div className="text-sm font-medium">{formatCurrency(loan.principal_amount)}</div>
@@ -581,36 +607,147 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                               </div>
                               {getLoanStatusBadge(loan.status)}
                             </div>
-                        </div>
+                          </div>
 
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedLoan(loan);
-                              setShowLoanDetails(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
-                          
-                          {(loan.status === 'pending_disbursement' || loan.status === 'approved') && (
+                          <div className="flex gap-2 mt-3">
                             <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => {
                                 setSelectedLoan(loan);
-                                setShowLoanWorkflowDialog(true);
+                                setShowLoanDetails(true);
                               }}
                             >
-                              <Wallet className="h-4 w-4 mr-2" />
-                              Disburse
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
                             </Button>
-                          )}
+                            
+                            {(loan.status === 'pending_disbursement' || loan.status === 'approved') && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedLoan(loan);
+                                  setShowLoanWorkflowDialog(true);
+                                }}
+                              >
+                                <Wallet className="h-4 w-4 mr-2" />
+                                Disburse
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Loan Applications Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Loan Applications ({clientLoanApplications.length})
+                  </h3>
+                  <Button size="sm" onClick={() => setShowLoanWorkflowDialog(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Application
+                  </Button>
+                </div>
+                
+                <div className="border rounded-lg">
+                  {clientLoanApplications.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No loan applications yet</p>
+                      <p className="text-sm">Create a loan application to get started</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {clientLoanApplications.map((application) => (
+                        <div key={application.id} className="p-4 hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <h4 className="font-medium">{application.loan_products?.name || 'Unknown Product'}</h4>
+                                <p className="text-sm text-muted-foreground font-mono">{application.application_number}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Applied: {format(new Date(application.created_at), 'MMM dd, yyyy')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <div className="text-sm font-medium">{formatCurrency(application.requested_amount)}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Term: {application.requested_term} months
+                                </div>
+                                <div className="text-xs text-muted-foreground capitalize">
+                                  {application.purpose?.replace(/_/g, ' ')}
+                                </div>
+                              </div>
+                              <Badge variant={
+                                application.status === 'pending' ? 'outline' :
+                                application.status === 'approved' ? 'default' :
+                                application.status === 'rejected' ? 'destructive' : 'secondary'
+                              }>
+                                {application.status}
+                              </Badge>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                console.log('View application:', application);
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                            
+                            {application.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => {
+                                    console.log('Approve application:', application);
+                                  }}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    console.log('Reject application:', application);
+                                  }}
+                                >
+                                  <XCircle className="h-4 w-4 mr-2" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            
+                            {application.status === 'approved' && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  console.log('Disburse loan:', application);
+                                }}
+                              >
+                                <Wallet className="h-4 w-4 mr-2" />
+                                Disburse
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
