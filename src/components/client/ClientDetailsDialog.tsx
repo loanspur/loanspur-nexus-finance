@@ -555,7 +555,8 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         .from('loan_applications')
         .update({ 
           status: 'rejected',
-          rejected_at: new Date().toISOString()
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: (await supabase.auth.getUser()).data.user?.id
         })
         .eq('id', application.id);
 
