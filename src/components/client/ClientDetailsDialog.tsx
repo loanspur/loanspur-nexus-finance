@@ -1423,7 +1423,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
         {/* Reject Application Dialog */}
         <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-          <DialogContent>
+          <DialogContent className="z-50 bg-background border shadow-lg max-w-md">
             <DialogHeader>
               <DialogTitle>Reject Loan Application</DialogTitle>
               <DialogDescription>
@@ -1446,7 +1446,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                       {rejectionDate ? format(rejectionDate, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0 z-50 bg-background border shadow-lg" align="start">
                     <Calendar
                       mode="single"
                       selected={rejectionDate}
