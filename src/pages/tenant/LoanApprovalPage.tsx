@@ -39,9 +39,6 @@ const LoanApprovalPage = () => {
   // Approval form state
   const [approvalDate, setApprovalDate] = useState<Date | undefined>(new Date());
   const [expectedDisbursementDate, setExpectedDisbursementDate] = useState<Date | undefined>(new Date());
-  const [approvedAmount, setApprovedAmount] = useState<number>(0);
-  const [transactionAmount, setTransactionAmount] = useState<number>(0);
-  const [approvalNotes, setApprovalNotes] = useState("");
   
   // Rejection form state
   const [rejectionDate, setRejectionDate] = useState<Date | undefined>(new Date());
@@ -112,10 +109,10 @@ const LoanApprovalPage = () => {
   };
 
   const handleApproveApplication = async () => {
-    if (!selectedApplication || !approvalDate || !expectedDisbursementDate || !approvedAmount || approvedAmount <= 0 || !transactionAmount || transactionAmount <= 0) {
+    if (!selectedApplication || !approvalDate || !expectedDisbursementDate) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please select both approval date and expected disbursement date",
         variant: "destructive",
       });
       return;
@@ -126,11 +123,9 @@ const LoanApprovalPage = () => {
         .from('loan_applications')
         .update({
           status: 'pending_disbursement',
-          approved_amount: approvedAmount,
+          approved_amount: selectedApplication.requested_amount,
           approved_at: approvalDate.toISOString(),
           expected_disbursement_date: expectedDisbursementDate.toISOString(),
-          transaction_amount: transactionAmount,
-          approval_notes: approvalNotes
         })
         .eq('id', selectedApplication.id);
 
@@ -143,9 +138,6 @@ const LoanApprovalPage = () => {
 
       setShowApprovalDialog(false);
       setSelectedApplication(null);
-      setApprovedAmount(0);
-      setTransactionAmount(0);
-      setApprovalNotes("");
       setApprovalDate(new Date());
       setExpectedDisbursementDate(new Date());
       fetchLoanApplications();
@@ -323,8 +315,6 @@ const LoanApprovalPage = () => {
                           size="sm"
                           onClick={() => {
                             setSelectedApplication(application);
-                            setApprovedAmount(application.requested_amount);
-                            setTransactionAmount(application.requested_amount);
                             setShowApprovalDialog(true);
                           }}
                           className="border-green-600 text-green-600 hover:bg-green-50"
@@ -355,127 +345,108 @@ const LoanApprovalPage = () => {
       </Card>
 
       {/* Approval Dialog */}
-      <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Approve Loan Account</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="approval-date" className="text-sm font-medium text-muted-foreground">
-                  Approved on*
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !approvalDate && "text-muted-foreground"
-                      )}
-                    >
-                      {approvalDate ? format(approvalDate, "dd MMMM yyyy") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={approvalDate}
-                      onSelect={setApprovalDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="expected-disbursement-date" className="text-sm font-medium text-muted-foreground">
-                  Expected disbursement on
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !expectedDisbursementDate && "text-muted-foreground"
-                      )}
-                    >
-                      {expectedDisbursementDate ? format(expectedDisbursementDate, "dd MMMM yyyy") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={expectedDisbursementDate}
-                      onSelect={setExpectedDisbursementDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+      <AlertDialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold">
+              Approve Loan Application
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              Are you sure you want to approve loan application {selectedApplication?.application_number}? 
+              This action will move the application to approved status and make it eligible for disbursement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="approval-date" className="text-sm font-medium">
+                Approval Date
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !approvalDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {approvalDate ? format(approvalDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={approvalDate}
+                    onSelect={setApprovalDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="approved-amount" className="text-sm font-medium text-muted-foreground">
-                Approved Amount
+              <Label htmlFor="applied-amount" className="text-sm font-medium">
+                Applied Amount
               </Label>
-              <Input
-                id="approved-amount"
-                type="number"
-                value={approvedAmount}
-                onChange={(e) => setApprovedAmount(Number(e.target.value))}
-                placeholder="Enter approved amount"
-                min="0"
-                step="1000"
-                className="text-base"
-              />
+              <div className="flex items-center gap-2 p-3 rounded-md border bg-muted/20">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">
+                  {selectedApplication ? formatCurrency(selectedApplication.requested_amount) : "N/A"}
+                </span>
+              </div>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="transaction-amount" className="text-sm font-medium text-muted-foreground">
-                Transaction amount*
+              <Label htmlFor="expected-disbursement-date" className="text-sm font-medium">
+                Expected Disbursement Date
               </Label>
-              <Input
-                id="transaction-amount"
-                type="number"
-                value={transactionAmount}
-                onChange={(e) => setTransactionAmount(Number(e.target.value))}
-                placeholder="Enter transaction amount"
-                min="0"
-                step="1000"
-                className="text-base"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="approval-notes" className="text-sm font-medium text-muted-foreground">
-                Note
-              </Label>
-              <Textarea
-                id="approval-notes"
-                placeholder="Add any notes about this approval..."
-                value={approvalNotes}
-                onChange={(e) => setApprovalNotes(e.target.value)}
-                className="min-h-[80px] text-base"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !expectedDisbursementDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {expectedDisbursementDate ? format(expectedDisbursementDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={expectedDisbursementDate}
+                    onSelect={setExpectedDisbursementDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="outline" onClick={() => setShowApprovalDialog(false)}>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowApprovalDialog(false);
+              setSelectedApplication(null);
+              setApprovalDate(new Date());
+              setExpectedDisbursementDate(new Date());
+            }}>
               Cancel
-            </Button>
-            <Button 
+            </AlertDialogCancel>
+            <AlertDialogAction 
               onClick={handleApproveApplication}
-              disabled={!approvalDate || !expectedDisbursementDate || !approvedAmount || approvedAmount <= 0 || !transactionAmount || transactionAmount <= 0}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
             >
-              Submit
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              Approve Application
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Rejection Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
