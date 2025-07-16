@@ -778,15 +778,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="text-xl font-bold text-orange-600">{formatCurrency(calculateTotalLoanBalance())}</div>
+                <div className="text-xl font-bold text-destructive">{formatCurrency(calculateTotalLoanBalance())}</div>
                 <div className="text-xs text-muted-foreground">Outstanding Loans</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold text-green-600">{formatCurrency(calculateTotalSavingsBalance())}</div>
+                <div className="text-xl font-bold text-success">{formatCurrency(calculateTotalSavingsBalance())}</div>
                 <div className="text-xs text-muted-foreground">Total Savings</div>
               </div>
               <div className="text-center">
-                <div className="text-xl font-bold text-blue-600">
+                <div className="text-xl font-bold text-primary">
                   {client.timely_repayment_rate !== null ? `${client.timely_repayment_rate}%` : 'N/A'}
                 </div>
                 <div className="text-xs text-muted-foreground">Repayment Rate</div>
