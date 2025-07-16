@@ -276,7 +276,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       max_nominal_interest_rate: "25.0",
       default_nominal_interest_rate: "12.0",
       interest_calculation_method: "flat",
-      interest_calculation_period: "same_as_repayment_period",
+      interest_calculation_period: "monthly",
       compounding_frequency: "monthly",
       allow_partial_period_interest: false,
       
@@ -288,7 +288,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       moratorium_period: "0",
       
       // Prepayment & Reschedule
-      pre_closure_interest_calculation_rule: "till_pre_closure_date",
+      pre_closure_interest_calculation_rule: "till_pre_close_date",
       advance_payments_adjustment_type: "reduce_emi",
       reschedule_strategy: "reschedule_next_repayments",
       
@@ -302,7 +302,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       
       // Fee mappings
       linked_fee_ids: [],
-      accounting_type: "cash_based",
+      accounting_type: "cash",
       
       // Fund mapping - will be set to empty, user can select
       fund_id: "",
