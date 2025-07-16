@@ -13,13 +13,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   User, 
   Users,
   Phone, 
   Mail, 
   MapPin, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   CreditCard, 
   PiggyBank,
   Building,
@@ -44,6 +49,7 @@ import {
   Eye
 } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { AddSavingsAccountDialog } from "./AddSavingsAccountDialog";
 import { SimpleLoanApplicationDialog } from "./SimpleLoanApplicationDialog";
 import { TransferClientDialog } from "./TransferClientDialog";
@@ -132,6 +138,10 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showDisburseToSavingsDialog, setShowDisburseToSavingsDialog] = useState(false);
   const [showUndoApprovalDialog, setShowUndoApprovalDialog] = useState(false);
   const [hideClosedLoans, setHideClosedLoans] = useState(false);
+  
+  // Rejection form state
+  const [rejectionDate, setRejectionDate] = useState<Date | undefined>(new Date());
+  const [rejectionReason, setRejectionReason] = useState("");
   
   const { toast } = useToast();
   
@@ -550,14 +560,24 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   };
 
   const handleRejectApplication = async (application: any) => {
+    if (!rejectionReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('loan_applications')
         .update({ 
           status: 'rejected',
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: user?.id || null
+          reviewed_at: rejectionDate?.toISOString() || new Date().toISOString(),
+          reviewed_by: user?.id || null,
+          approval_notes: rejectionReason
         })
         .eq('id', application.id);
 
@@ -565,6 +585,9 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
       fetchClientLoanApplications();
       setShowRejectDialog(false);
+      // Reset form
+      setRejectionDate(new Date());
+      setRejectionReason("");
       toast({
         title: "Application Rejected",
         description: `Loan application ${application.application_number} has been rejected.`,
@@ -1393,26 +1416,66 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         </AlertDialog>
 
         {/* Reject Application Dialog */}
-        <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Reject Loan Application</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to reject loan application {selectedApplication?.application_number}?
-                This action will permanently reject the application and it cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                className="bg-red-600 text-white hover:bg-red-700"
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Loan Application</DialogTitle>
+              <DialogDescription>
+                Please provide a rejection date and reason for loan application {selectedApplication?.application_number}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="rejection-date">Rejection Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !rejectionDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {rejectionDate ? format(rejectionDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={rejectionDate}
+                      onSelect={setRejectionDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rejection-reason">Rejection Reason</Label>
+                <Textarea
+                  id="rejection-reason"
+                  placeholder="Please provide a detailed reason for rejecting this application..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={() => selectedApplication && handleRejectApplication(selectedApplication)}
+                disabled={!rejectionReason.trim()}
               >
                 Reject Application
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Application Details Dialog */}
         <Dialog open={showApplicationDetailsDialog} onOpenChange={setShowApplicationDetailsDialog}>
