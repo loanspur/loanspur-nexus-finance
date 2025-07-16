@@ -155,107 +155,100 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
 
   const onSubmit = async (data: LoanProductFormData) => {
     setIsSubmitting(true);
-    try {
-      const productData = {
-        tenant_id: tenantId,
-        name: data.name,
-        short_name: data.short_name,
-        description: data.description || null,
-        currency_code: data.currency_code,
-        repayment_frequency: data.repayment_frequency,
-        
-        // Principal amounts
-        min_principal: parseFloat(data.min_principal),
-        max_principal: parseFloat(data.max_principal),
-        default_principal: data.default_principal ? parseFloat(data.default_principal) : null,
-        
-        // Terms
-        min_term: parseInt(data.min_term),
-        max_term: parseInt(data.max_term),
-        default_term: data.default_term ? parseInt(data.default_term) : null,
-        
-        // Interest rates
-        min_nominal_interest_rate: parseFloat(data.min_nominal_interest_rate),
-        max_nominal_interest_rate: parseFloat(data.max_nominal_interest_rate),
-        default_nominal_interest_rate: data.default_nominal_interest_rate ? parseFloat(data.default_nominal_interest_rate) : null,
-        
-        // Interest calculation settings
-        interest_calculation_method: data.interest_calculation_method,
-        interest_calculation_period: data.interest_calculation_period,
-        compounding_frequency: data.compounding_frequency,
-        allow_partial_period_interest: data.allow_partial_period_interest,
-        
-        // Grace period and tolerance
-        grace_period_type: data.grace_period_type,
-        grace_period_duration: parseInt(data.grace_period_duration),
-        arrears_tolerance_amount: parseFloat(data.arrears_tolerance_amount),
-        arrears_tolerance_days: parseInt(data.arrears_tolerance_days),
-        moratorium_period: parseInt(data.moratorium_period),
-        
-        // Prepayment and reschedule settings
-        pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
-        advance_payments_adjustment_type: data.advance_payments_adjustment_type,
-        reschedule_strategy: data.reschedule_strategy,
-        
-        // Fees and charges
-        processing_fee_amount: parseFloat(data.processing_fee_amount),
-        processing_fee_percentage: parseFloat(data.processing_fee_percentage),
-        late_payment_penalty_amount: parseFloat(data.late_payment_penalty_amount),
-        late_payment_penalty_percentage: parseFloat(data.late_payment_penalty_percentage),
-        early_repayment_penalty_amount: parseFloat(data.early_repayment_penalty_amount),
-        early_repayment_penalty_percentage: parseFloat(data.early_repayment_penalty_percentage),
-        
-        // Fee mappings
-        linked_fee_ids: data.linked_fee_ids,
-        accounting_type: data.accounting_type,
-        
-        // Accounting journal mappings
-        loan_portfolio_account_id: data.loan_portfolio_account_id || null,
-        interest_receivable_account_id: data.interest_receivable_account_id || null,
-        interest_income_account_id: data.interest_income_account_id || null,
-        fee_income_account_id: data.fee_income_account_id || null,
-        penalty_income_account_id: data.penalty_income_account_id || null,
-        provision_account_id: data.provision_account_id || null,
-        writeoff_expense_account_id: data.writeoff_expense_account_id || null,
-        overpayment_liability_account_id: data.overpayment_liability_account_id || null,
-        suspended_income_account_id: data.suspended_income_account_id || null,
-        fund_source_account_id: data.fund_source_account_id || null,
-        
-        // Advanced payment account mappings
-        principal_payment_account_id: data.principal_payment_account_id || null,
-        interest_payment_account_id: data.interest_payment_account_id || null,
-        fee_payment_account_id: data.fee_payment_account_id || null,
-        penalty_payment_account_id: data.penalty_payment_account_id || null,
-        
-        // Fund mapping
-        fund_id: data.fund_id || null,
-        
-        is_active: true,
-        mifos_product_id: null,
-      };
-
-      console.log("Submitting loan product data:", productData);
-      console.log("Is editing:", !!editingProduct);
+    
+    const productData = {
+      tenant_id: tenantId,
+      name: data.name,
+      short_name: data.short_name,
+      description: data.description || null,
+      currency_code: data.currency_code,
+      repayment_frequency: data.repayment_frequency,
       
+      // Principal amounts
+      min_principal: parseFloat(data.min_principal),
+      max_principal: parseFloat(data.max_principal),
+      default_principal: data.default_principal ? parseFloat(data.default_principal) : null,
+      
+      // Terms
+      min_term: parseInt(data.min_term),
+      max_term: parseInt(data.max_term),
+      default_term: data.default_term ? parseInt(data.default_term) : null,
+      
+      // Interest rates
+      min_nominal_interest_rate: parseFloat(data.min_nominal_interest_rate),
+      max_nominal_interest_rate: parseFloat(data.max_nominal_interest_rate),
+      default_nominal_interest_rate: data.default_nominal_interest_rate ? parseFloat(data.default_nominal_interest_rate) : null,
+      
+      // Interest calculation settings
+      interest_calculation_method: data.interest_calculation_method,
+      interest_calculation_period: data.interest_calculation_period,
+      compounding_frequency: data.compounding_frequency,
+      allow_partial_period_interest: data.allow_partial_period_interest,
+      
+      // Grace period and tolerance
+      grace_period_type: data.grace_period_type,
+      grace_period_duration: parseInt(data.grace_period_duration),
+      arrears_tolerance_amount: parseFloat(data.arrears_tolerance_amount),
+      arrears_tolerance_days: parseInt(data.arrears_tolerance_days),
+      moratorium_period: parseInt(data.moratorium_period),
+      
+      // Prepayment and reschedule settings
+      pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
+      advance_payments_adjustment_type: data.advance_payments_adjustment_type,
+      reschedule_strategy: data.reschedule_strategy,
+      
+      // Fees and charges
+      processing_fee_amount: parseFloat(data.processing_fee_amount),
+      processing_fee_percentage: parseFloat(data.processing_fee_percentage),
+      late_payment_penalty_amount: parseFloat(data.late_payment_penalty_amount),
+      late_payment_penalty_percentage: parseFloat(data.late_payment_penalty_percentage),
+      early_repayment_penalty_amount: parseFloat(data.early_repayment_penalty_amount),
+      early_repayment_penalty_percentage: parseFloat(data.early_repayment_penalty_percentage),
+      
+      // Fee mappings
+      linked_fee_ids: data.linked_fee_ids,
+      accounting_type: data.accounting_type,
+      
+      // Accounting journal mappings
+      loan_portfolio_account_id: data.loan_portfolio_account_id || null,
+      interest_receivable_account_id: data.interest_receivable_account_id || null,
+      interest_income_account_id: data.interest_income_account_id || null,
+      fee_income_account_id: data.fee_income_account_id || null,
+      penalty_income_account_id: data.penalty_income_account_id || null,
+      provision_account_id: data.provision_account_id || null,
+      writeoff_expense_account_id: data.writeoff_expense_account_id || null,
+      overpayment_liability_account_id: data.overpayment_liability_account_id || null,
+      suspended_income_account_id: data.suspended_income_account_id || null,
+      fund_source_account_id: data.fund_source_account_id || null,
+      
+      // Advanced payment account mappings
+      principal_payment_account_id: data.principal_payment_account_id || null,
+      interest_payment_account_id: data.interest_payment_account_id || null,
+      fee_payment_account_id: data.fee_payment_account_id || null,
+      penalty_payment_account_id: data.penalty_payment_account_id || null,
+      
+      // Fund mapping
+      fund_id: data.fund_id || null,
+      
+      is_active: true,
+      mifos_product_id: null,
+    };
+
+    try {
       if (editingProduct) {
-        console.log("Updating product with ID:", editingProduct.id);
         await updateLoanProductMutation.mutateAsync({
           id: editingProduct.id,
           ...productData,
         });
       } else {
-        console.log("Creating new product");
         await createLoanProductMutation.mutateAsync(productData);
       }
       
       form.reset();
       onOpenChange(false);
     } catch (error) {
+      // Let the mutation hooks handle error display
       console.error("Error saving loan product:", error);
-      // Show error to user
-      if (error instanceof Error) {
-        console.error("Error message:", error.message);
-      }
     } finally {
       setIsSubmitting(false);
     }
