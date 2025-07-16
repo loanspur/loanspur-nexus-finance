@@ -140,7 +140,6 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [hideClosedLoans, setHideClosedLoans] = useState(false);
   
   // Rejection form state
-  const [rejectionDate, setRejectionDate] = useState<Date | undefined>(new Date());
   const [rejectionReason, setRejectionReason] = useState("");
   
   const { toast } = useToast();
@@ -581,7 +580,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         .from('loan_applications')
         .update({ 
           status: 'rejected',
-          reviewed_at: rejectionDate?.toISOString() || new Date().toISOString(),
+          reviewed_at: new Date().toISOString(),
           reviewed_by: profile?.id || null,
           approval_notes: rejectionReason
         })
@@ -592,7 +591,6 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
       fetchClientLoanApplications();
       setShowRejectDialog(false);
       // Reset form
-      setRejectionDate(new Date());
       setRejectionReason("");
       toast({
         title: "Application Rejected",
@@ -1431,32 +1429,6 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="rejection-date">Rejection Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !rejectionDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {rejectionDate ? format(rejectionDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-popover border shadow-md rounded-md" align="start" avoidCollisions>
-                    <Calendar
-                      mode="single"
-                      selected={rejectionDate}
-                      onSelect={setRejectionDate}
-                      initialFocus
-                      className="rounded-md border-0"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="rejection-reason">Rejection Reason</Label>
                 <Textarea
