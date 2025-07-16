@@ -1461,7 +1461,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         </AlertDialog>
 
         {/* Reject Application Dialog */}
-        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <Dialog open={showRejectDialog} onOpenChange={(open) => {
+          setShowRejectDialog(open);
+          if (!open) {
+            // Reset form when dialog closes
+            setRejectionDate(new Date());
+            setRejectionReason("");
+            setSelectedApplication(null);
+          }
+        }}>
           <DialogContent className="max-w-md sm:max-w-lg overflow-hidden">
             <DialogHeader>
               <DialogTitle>Reject Loan Application</DialogTitle>
@@ -1486,19 +1494,15 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-auto p-0 bg-popover border shadow-md rounded-md !z-[9999] relative" 
+                    className="w-auto p-0 z-50" 
                     align="start" 
-                    side="bottom" 
-                    avoidCollisions 
-                    sideOffset={4}
-                    style={{ zIndex: 9999 }}
                   >
                     <Calendar
                       mode="single"
                       selected={rejectionDate}
                       onSelect={setRejectionDate}
                       initialFocus
-                      className="rounded-md border-0"
+                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
