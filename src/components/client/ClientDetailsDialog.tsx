@@ -551,12 +551,13 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
   const handleRejectApplication = async (application: any) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('loan_applications')
         .update({ 
           status: 'rejected',
           reviewed_at: new Date().toISOString(),
-          reviewed_by: (await supabase.auth.getUser()).data.user?.id
+          reviewed_by: user?.id || null
         })
         .eq('id', application.id);
 
