@@ -236,7 +236,26 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
         .from('loan_applications')
         .select(`
           *,
-          loan_products(name, short_name, min_nominal_interest_rate, max_nominal_interest_rate)
+          loan_products(
+            id,
+            name, 
+            short_name, 
+            min_nominal_interest_rate, 
+            max_nominal_interest_rate,
+            currency_code,
+            default_nominal_interest_rate,
+            default_term,
+            min_principal,
+            max_principal,
+            default_principal,
+            description
+          ),
+          funds(
+            id,
+            fund_name,
+            fund_code,
+            current_balance
+          )
         `)
         .eq('client_id', client.id)
         .order('created_at', { ascending: false });
@@ -1395,15 +1414,50 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
         {/* Application Details Dialog */}
         <Dialog open={showApplicationDetailsDialog} onOpenChange={setShowApplicationDetailsDialog}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Application Details</DialogTitle>
+              <DialogTitle>Loan Application Details</DialogTitle>
               <DialogDescription>
                 Application #{selectedApplication?.application_number}
               </DialogDescription>
             </DialogHeader>
             {selectedApplication && (
               <div className="space-y-6">
+                {/* Basic Application Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Application Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <span className="text-sm text-muted-foreground">Application Number</span>
+                        <div className="font-medium font-mono">{selectedApplication.application_number}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Status</span>
+                        <div className="font-medium">{getLoanStatusBadge(selectedApplication.status)}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Application Step</span>
+                        <div className="font-medium">{selectedApplication.application_step || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Requires Approval</span>
+                        <div className="font-medium">{selectedApplication.requires_approval ? 'Yes' : 'No'}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Approval Level</span>
+                        <div className="font-medium">{selectedApplication.approval_level || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Joint Application</span>
+                        <div className="font-medium">{selectedApplication.is_joint_application ? 'Yes' : 'No'}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Product Information */}
                 <Card>
                   <CardHeader>
@@ -1420,23 +1474,47 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                         <div className="font-medium">{selectedApplication.loan_products?.short_name}</div>
                       </div>
                       <div>
+                        <span className="text-sm text-muted-foreground">Default Interest Rate</span>
+                        <div className="font-medium">{selectedApplication.loan_products?.default_nominal_interest_rate}%</div>
+                      </div>
+                      <div>
                         <span className="text-sm text-muted-foreground">Interest Rate Range</span>
                         <div className="font-medium">
                           {selectedApplication.loan_products?.min_nominal_interest_rate}% - {selectedApplication.loan_products?.max_nominal_interest_rate}%
                         </div>
                       </div>
                       <div>
+                        <span className="text-sm text-muted-foreground">Default Term</span>
+                        <div className="font-medium">{selectedApplication.loan_products?.default_term} months</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Principal Range</span>
+                        <div className="font-medium">
+                          {formatCurrency(selectedApplication.loan_products?.min_principal || 0)} - {formatCurrency(selectedApplication.loan_products?.max_principal || 0)}
+                        </div>
+                      </div>
+                      <div>
                         <span className="text-sm text-muted-foreground">Currency</span>
                         <div className="font-medium">{selectedApplication.loan_products?.currency_code || 'KES'}</div>
                       </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Fund Source</span>
+                        <div className="font-medium">{selectedApplication.funds?.fund_name || 'N/A'}</div>
+                      </div>
                     </div>
+                    {selectedApplication.loan_products?.description && (
+                      <div className="mt-4">
+                        <span className="text-sm text-muted-foreground">Product Description</span>
+                        <div className="font-medium text-sm bg-muted p-3 rounded-md mt-1">{selectedApplication.loan_products.description}</div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Application Details */}
+                {/* Loan Request Details */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Application Details</CardTitle>
+                    <CardTitle className="text-lg">Loan Request Details</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 gap-4">
@@ -1445,26 +1523,83 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                         <div className="font-medium text-lg">{formatCurrency(selectedApplication.requested_amount)}</div>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Term</span>
+                        <span className="text-sm text-muted-foreground">Requested Term</span>
                         <div className="font-medium">{selectedApplication.requested_term} months</div>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Interest Rate</span>
-                        <div className="font-medium">{selectedApplication.interest_rate || 'TBD'}%</div>
+                        <span className="text-sm text-muted-foreground">Final Approved Amount</span>
+                        <div className="font-medium text-lg text-green-600">
+                          {selectedApplication.final_approved_amount ? formatCurrency(selectedApplication.final_approved_amount) : 'Pending'}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Final Approved Term</span>
+                        <div className="font-medium">{selectedApplication.final_approved_term || 'Pending'} {selectedApplication.final_approved_term ? 'months' : ''}</div>
+                      </div>
+                      <div>
+                        <span className="text-sm text-muted-foreground">Final Approved Interest Rate</span>
+                        <div className="font-medium">{selectedApplication.final_approved_interest_rate || 'Pending'} {selectedApplication.final_approved_interest_rate ? '%' : ''}</div>
                       </div>
                       <div>
                         <span className="text-sm text-muted-foreground">Purpose</span>
                         <div className="font-medium capitalize">{selectedApplication.purpose?.replace(/_/g, ' ')}</div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Financial Assessment */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Financial Assessment</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <span className="text-sm text-muted-foreground">Fund Source</span>
-                        <div className="font-medium">{selectedApplication.fund_source || 'General Fund'}</div>
+                        <span className="text-sm text-muted-foreground">Credit Score</span>
+                        <div className="font-medium">{selectedApplication.credit_score || 'Not assessed'}</div>
                       </div>
                       <div>
-                        <span className="text-sm text-muted-foreground">Status</span>
-                        <div className="font-medium">{getLoanStatusBadge(selectedApplication.status)}</div>
+                        <span className="text-sm text-muted-foreground">Debt-to-Income Ratio</span>
+                        <div className="font-medium">{selectedApplication.debt_to_income_ratio ? `${selectedApplication.debt_to_income_ratio}%` : 'Not assessed'}</div>
                       </div>
                     </div>
+                    
+                    {selectedApplication.financial_data && (
+                      <div className="mt-4">
+                        <span className="text-sm text-muted-foreground">Financial Data</span>
+                        <div className="bg-muted p-3 rounded-md mt-1">
+                          <pre className="text-sm">{JSON.stringify(selectedApplication.financial_data, null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedApplication.business_information && (
+                      <div className="mt-4">
+                        <span className="text-sm text-muted-foreground">Business Information</span>
+                        <div className="bg-muted p-3 rounded-md mt-1">
+                          <pre className="text-sm">{JSON.stringify(selectedApplication.business_information, null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedApplication.employment_verification && (
+                      <div className="mt-4">
+                        <span className="text-sm text-muted-foreground">Employment Verification</span>
+                        <div className="bg-muted p-3 rounded-md mt-1">
+                          <pre className="text-sm">{JSON.stringify(selectedApplication.employment_verification, null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedApplication.risk_assessment && (
+                      <div className="mt-4">
+                        <span className="text-sm text-muted-foreground">Risk Assessment</span>
+                        <div className="bg-muted p-3 rounded-md mt-1">
+                          <pre className="text-sm">{JSON.stringify(selectedApplication.risk_assessment, null, 2)}</pre>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -1476,39 +1611,49 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Applied Date</span>
+                        <span className="text-sm text-muted-foreground">Created</span>
                         <span className="font-medium">{format(new Date(selectedApplication.created_at), 'MMM dd, yyyy HH:mm')}</span>
                       </div>
-                      {selectedApplication.approved_at && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Submitted</span>
+                        <span className="font-medium">{format(new Date(selectedApplication.submitted_at), 'MMM dd, yyyy HH:mm')}</span>
+                      </div>
+                      {selectedApplication.reviewed_at && (
                         <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Approved Date</span>
-                          <span className="font-medium">{format(new Date(selectedApplication.approved_at), 'MMM dd, yyyy HH:mm')}</span>
+                          <span className="text-sm text-muted-foreground">Reviewed</span>
+                          <span className="font-medium">{format(new Date(selectedApplication.reviewed_at), 'MMM dd, yyyy HH:mm')}</span>
                         </div>
                       )}
-                      {selectedApplication.rejected_at && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Rejected Date</span>
-                          <span className="font-medium">{format(new Date(selectedApplication.rejected_at), 'MMM dd, yyyy HH:mm')}</span>
-                        </div>
-                      )}
-                      {selectedApplication.disbursed_at && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Disbursed Date</span>
-                          <span className="font-medium">{format(new Date(selectedApplication.disbursed_at), 'MMM dd, yyyy HH:mm')}</span>
-                        </div>
-                      )}
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Last Updated</span>
+                        <span className="font-medium">{format(new Date(selectedApplication.updated_at), 'MMM dd, yyyy HH:mm')}</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Additional Information */}
-                {selectedApplication.notes && (
+                {/* Approval Notes */}
+                {selectedApplication.approval_notes && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Notes</CardTitle>
+                      <CardTitle className="text-lg">Approval Notes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm bg-muted p-3 rounded-md">{selectedApplication.notes}</div>
+                      <div className="text-sm bg-muted p-3 rounded-md">{selectedApplication.approval_notes}</div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Repayment Schedule */}
+                {selectedApplication.repayment_schedule && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Repayment Schedule</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-muted p-3 rounded-md">
+                        <pre className="text-sm">{JSON.stringify(selectedApplication.repayment_schedule, null, 2)}</pre>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -1564,49 +1709,188 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
 
         {/* Modify Application Dialog */}
         <Dialog open={showModifyDialog} onOpenChange={setShowModifyDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Modify Application</DialogTitle>
               <DialogDescription>
                 Modify application {selectedApplication?.application_number}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Requested Amount</label>
-                <input 
-                  type="number" 
-                  className="w-full mt-1 p-2 border rounded-md" 
-                  defaultValue={selectedApplication?.requested_amount}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Term (months)</label>
-                <input 
-                  type="number" 
-                  className="w-full mt-1 p-2 border rounded-md" 
-                  defaultValue={selectedApplication?.requested_term}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Purpose</label>
-                <select className="w-full mt-1 p-2 border rounded-md" defaultValue={selectedApplication?.purpose}>
-                  <option value="business_expansion">Business Expansion</option>
-                  <option value="home_improvement">Home Improvement</option>
-                  <option value="education">Education</option>
-                  <option value="medical">Medical</option>
-                  <option value="agriculture">Agriculture</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Notes</label>
-                <textarea 
-                  className="w-full mt-1 p-2 border rounded-md" 
-                  placeholder="Enter notes"
-                  defaultValue={selectedApplication?.notes}
-                />
-              </div>
+            <div className="space-y-6">
+              {/* Basic Loan Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Loan Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Requested Amount</label>
+                      <input 
+                        type="number" 
+                        className="w-full mt-1 p-2 border rounded-md" 
+                        defaultValue={selectedApplication?.requested_amount}
+                        step="0.01"
+                        min={selectedApplication?.loan_products?.min_principal}
+                        max={selectedApplication?.loan_products?.max_principal}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Range: {formatCurrency(selectedApplication?.loan_products?.min_principal || 0)} - {formatCurrency(selectedApplication?.loan_products?.max_principal || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Term (months)</label>
+                      <input 
+                        type="number" 
+                        className="w-full mt-1 p-2 border rounded-md" 
+                        defaultValue={selectedApplication?.requested_term}
+                        min="1"
+                        max="60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Purpose</label>
+                      <select className="w-full mt-1 p-2 border rounded-md" defaultValue={selectedApplication?.purpose}>
+                        <option value="business_expansion">Business Expansion</option>
+                        <option value="working_capital">Working Capital</option>
+                        <option value="home_improvement">Home Improvement</option>
+                        <option value="education">Education</option>
+                        <option value="medical">Medical</option>
+                        <option value="agriculture">Agriculture</option>
+                        <option value="debt_consolidation">Debt Consolidation</option>
+                        <option value="emergency">Emergency</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Interest Rate (%)</label>
+                      <input 
+                        type="number" 
+                        className="w-full mt-1 p-2 border rounded-md" 
+                        defaultValue={selectedApplication?.final_approved_interest_rate || selectedApplication?.loan_products?.default_nominal_interest_rate}
+                        step="0.1"
+                        min={selectedApplication?.loan_products?.min_nominal_interest_rate}
+                        max={selectedApplication?.loan_products?.max_nominal_interest_rate}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Range: {selectedApplication?.loan_products?.min_nominal_interest_rate}% - {selectedApplication?.loan_products?.max_nominal_interest_rate}%
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Application Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Application Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Approval Level</label>
+                      <select className="w-full mt-1 p-2 border rounded-md" defaultValue={selectedApplication?.approval_level || 1}>
+                        <option value="1">Level 1</option>
+                        <option value="2">Level 2</option>
+                        <option value="3">Level 3</option>
+                        <option value="4">Level 4</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Application Step</label>
+                      <select className="w-full mt-1 p-2 border rounded-md" defaultValue={selectedApplication?.application_step || 'initial'}>
+                        <option value="initial">Initial</option>
+                        <option value="documentation">Documentation</option>
+                        <option value="verification">Verification</option>
+                        <option value="assessment">Assessment</option>
+                        <option value="approval">Approval</option>
+                        <option value="disbursement">Disbursement</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="requiresApproval"
+                        defaultChecked={selectedApplication?.requires_approval}
+                        className="rounded"
+                      />
+                      <label htmlFor="requiresApproval" className="text-sm font-medium">Requires Approval</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        id="jointApplication"
+                        defaultChecked={selectedApplication?.is_joint_application}
+                        className="rounded"
+                      />
+                      <label htmlFor="jointApplication" className="text-sm font-medium">Joint Application</label>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Financial Assessment */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Financial Assessment</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Credit Score</label>
+                      <input 
+                        type="number" 
+                        className="w-full mt-1 p-2 border rounded-md" 
+                        defaultValue={selectedApplication?.credit_score || ''}
+                        min="300"
+                        max="850"
+                        placeholder="Enter credit score"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Debt-to-Income Ratio (%)</label>
+                      <input 
+                        type="number" 
+                        className="w-full mt-1 p-2 border rounded-md" 
+                        defaultValue={selectedApplication?.debt_to_income_ratio || ''}
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="Enter debt-to-income ratio"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Notes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Notes & Comments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <label className="text-sm font-medium">Application Notes</label>
+                    <textarea 
+                      className="w-full mt-1 p-2 border rounded-md" 
+                      rows={3}
+                      placeholder="Enter application notes"
+                      defaultValue={selectedApplication?.notes || ''}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className="text-sm font-medium">Approval Notes</label>
+                    <textarea 
+                      className="w-full mt-1 p-2 border rounded-md" 
+                      rows={3}
+                      placeholder="Enter approval notes"
+                      defaultValue={selectedApplication?.approval_notes || ''}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
               <div className="flex gap-2 pt-4">
                 <Button variant="outline" onClick={() => setShowModifyDialog(false)}>
                   Cancel
@@ -1617,6 +1901,7 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                     description: "Loan application has been modified successfully",
                   });
                   setShowModifyDialog(false);
+                  fetchClientLoanApplications(); // Refresh the applications
                 }}>
                   Save Changes
                 </Button>
