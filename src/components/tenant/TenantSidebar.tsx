@@ -17,7 +17,8 @@ import {
   Shield,
   Calculator,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  CheckCircle
 } from "lucide-react";
 
 const TenantSidebar = () => {
@@ -48,6 +49,11 @@ const TenantSidebar = () => {
               title: "Loan Workflow",
               path: "/tenant/loan-workflow",
               icon: CreditCard
+            },
+            {
+              title: "Loan Approval",
+              path: "/tenant/loan-approval",
+              icon: CheckCircle
             },
             {
               title: "Savings",
