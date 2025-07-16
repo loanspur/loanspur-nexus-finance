@@ -119,6 +119,16 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
   const [showTransactionHistoryDialog, setShowTransactionHistoryDialog] = useState(false);
   const [showLoanWorkflowDialog, setShowLoanWorkflowDialog] = useState(false);
   const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
+  
+  // New state for loan/application actions
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showLoanChargeDialog, setShowLoanChargeDialog] = useState(false);
+  const [showModifyDialog, setShowModifyDialog] = useState(false);
+  const [showApplicationDetailsDialog, setShowApplicationDetailsDialog] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  
   const { toast } = useToast();
   
   // Fetch active products and client accounts when dialog opens
@@ -480,6 +490,78 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
     }
   };
 
+  // New handlers for loan/application actions
+  const handleApproveApplication = async (application: any) => {
+    try {
+      const { error } = await supabase
+        .from('loan_applications')
+        .update({ 
+          status: 'approved',
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      fetchClientLoanApplications();
+      setShowApproveDialog(false);
+      toast({
+        title: "Application Approved",
+        description: `Loan application ${application.application_number} has been approved successfully.`,
+      });
+    } catch (error) {
+      console.error('Error approving application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve the application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectApplication = async (application: any) => {
+    try {
+      const { error } = await supabase
+        .from('loan_applications')
+        .update({ 
+          status: 'rejected',
+          rejected_at: new Date().toISOString()
+        })
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      fetchClientLoanApplications();
+      setShowRejectDialog(false);
+      toast({
+        title: "Application Rejected",
+        description: `Loan application ${application.application_number} has been rejected.`,
+      });
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject the application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewApplication = (application: any) => {
+    setSelectedApplication(application);
+    setShowApplicationDetailsDialog(true);
+  };
+
+  const handleAddLoanCharge = (item: any) => {
+    setSelectedItem(item);
+    setShowLoanChargeDialog(true);
+  };
+
+  const handleModifyApplication = (application: any) => {
+    setSelectedApplication(application);
+    setShowModifyDialog(true);
+  };
+
   // Filter mock data to only show products that are active
   const filteredLoans = mockLoans.filter(loan => 
     activeLoanProducts.some(product => 
@@ -648,73 +730,97 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
                             </div>
                           </div>
 
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (item.type === 'loan') {
-                                  setSelectedLoan(item);
-                                  setShowLoanDetails(true);
-                                } else {
-                                  console.log('View application:', item);
-                                }
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </Button>
-                            
-                            {item.type === 'loan' && (item.status === 'pending_disbursement' || item.status === 'approved') && (
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedLoan(item);
-                                  setShowLoanWorkflowDialog(true);
-                                }}
-                              >
-                                <Wallet className="h-4 w-4 mr-2" />
-                                Disburse
-                              </Button>
-                            )}
-                            
-                            {item.type === 'application' && item.status === 'pending' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                  onClick={() => {
-                                    console.log('Approve application:', item);
-                                  }}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Approve
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => {
-                                    console.log('Reject application:', item);
-                                  }}
-                                >
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                            
-                            {item.type === 'application' && item.status === 'approved' && (
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  console.log('Disburse loan:', item);
-                                }}
-                              >
-                                <Wallet className="h-4 w-4 mr-2" />
-                                Disburse
-                              </Button>
-                            )}
-                          </div>
+                           <div className="flex gap-2 mt-3">
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => {
+                                 if (item.type === 'loan') {
+                                   setSelectedLoan(item);
+                                   setShowLoanDetails(true);
+                                 } else {
+                                   handleViewApplication(item);
+                                 }
+                               }}
+                             >
+                               <Eye className="h-4 w-4 mr-2" />
+                               View
+                             </Button>
+                             
+                             {item.type === 'loan' && (
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => handleAddLoanCharge(item)}
+                               >
+                                 <Receipt className="h-4 w-4 mr-2" />
+                                 Add Charge
+                               </Button>
+                             )}
+                             
+                             {item.type === 'loan' && (item.status === 'pending_disbursement' || item.status === 'approved') && (
+                               <Button
+                                 size="sm"
+                                 onClick={() => {
+                                   setSelectedLoan(item);
+                                   setShowLoanWorkflowDialog(true);
+                                 }}
+                               >
+                                 <Wallet className="h-4 w-4 mr-2" />
+                                 Disburse
+                               </Button>
+                             )}
+                             
+                             {item.type === 'application' && (
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => handleModifyApplication(item)}
+                               >
+                                 <Edit className="h-4 w-4 mr-2" />
+                                 Modify
+                               </Button>
+                             )}
+                             
+                             {item.type === 'application' && item.status === 'pending' && (
+                               <>
+                                 <Button
+                                   size="sm"
+                                   className="bg-green-600 hover:bg-green-700"
+                                   onClick={() => {
+                                     setSelectedApplication(item);
+                                     setShowApproveDialog(true);
+                                   }}
+                                 >
+                                   <CheckCircle className="h-4 w-4 mr-2" />
+                                   Approve
+                                 </Button>
+                                 <Button
+                                   size="sm"
+                                   variant="destructive"
+                                   onClick={() => {
+                                     setSelectedApplication(item);
+                                     setShowRejectDialog(true);
+                                   }}
+                                 >
+                                   <XCircle className="h-4 w-4 mr-2" />
+                                   Reject
+                                 </Button>
+                               </>
+                             )}
+                             
+                             {item.type === 'application' && item.status === 'approved' && (
+                               <Button
+                                 size="sm"
+                                 onClick={() => {
+                                   console.log('Disburse loan:', item);
+                                 }}
+                               >
+                                 <Wallet className="h-4 w-4 mr-2" />
+                                 Disburse
+                               </Button>
+                             )}
+                           </div>
                         </div>
                       ))}
                     </div>
@@ -1106,6 +1212,207 @@ export const ClientDetailsDialog = ({ client, open, onOpenChange }: ClientDetail
           preSelectedClientId={client.id}
           onApplicationCreated={handleLoanWorkflowCompleted}
         />
+
+        {/* New Dialogs */}
+        {/* Approve Application Dialog */}
+        <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Approve Loan Application</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to approve loan application {selectedApplication?.application_number}?
+                This action will move the application to approved status and make it eligible for disbursement.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-green-600 text-white hover:bg-green-700"
+                onClick={() => selectedApplication && handleApproveApplication(selectedApplication)}
+              >
+                Approve Application
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Reject Application Dialog */}
+        <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reject Loan Application</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to reject loan application {selectedApplication?.application_number}?
+                This action will permanently reject the application and it cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={() => selectedApplication && handleRejectApplication(selectedApplication)}
+              >
+                Reject Application
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Application Details Dialog */}
+        <Dialog open={showApplicationDetailsDialog} onOpenChange={setShowApplicationDetailsDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Application Details</DialogTitle>
+              <DialogDescription>
+                Application #{selectedApplication?.application_number}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedApplication && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm text-muted-foreground">Product</span>
+                    <div className="font-medium">{selectedApplication.loan_products?.name}</div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Amount</span>
+                    <div className="font-medium">{formatCurrency(selectedApplication.requested_amount)}</div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Term</span>
+                    <div className="font-medium">{selectedApplication.requested_term} months</div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Status</span>
+                    <div className="font-medium">{getLoanStatusBadge(selectedApplication.status)}</div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Purpose</span>
+                    <div className="font-medium capitalize">{selectedApplication.purpose?.replace(/_/g, ' ')}</div>
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Applied Date</span>
+                    <div className="font-medium">{format(new Date(selectedApplication.created_at), 'MMM dd, yyyy')}</div>
+                  </div>
+                </div>
+                {selectedApplication.notes && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Notes</span>
+                    <div className="font-medium">{selectedApplication.notes}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Loan Charge Dialog */}
+        <Dialog open={showLoanChargeDialog} onOpenChange={setShowLoanChargeDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Loan Charge</DialogTitle>
+              <DialogDescription>
+                Add a charge to loan {selectedItem?.loan_number}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Charge Type</label>
+                <select className="w-full mt-1 p-2 border rounded-md">
+                  <option>Late Payment Fee</option>
+                  <option>Processing Fee</option>
+                  <option>Insurance Fee</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Amount</label>
+                <input type="number" className="w-full mt-1 p-2 border rounded-md" placeholder="Enter amount" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <textarea className="w-full mt-1 p-2 border rounded-md" placeholder="Enter description" />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowLoanChargeDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => {
+                  toast({
+                    title: "Charge Added",
+                    description: "Loan charge has been added successfully",
+                  });
+                  setShowLoanChargeDialog(false);
+                }}>
+                  Add Charge
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modify Application Dialog */}
+        <Dialog open={showModifyDialog} onOpenChange={setShowModifyDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Modify Application</DialogTitle>
+              <DialogDescription>
+                Modify application {selectedApplication?.application_number}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Requested Amount</label>
+                <input 
+                  type="number" 
+                  className="w-full mt-1 p-2 border rounded-md" 
+                  defaultValue={selectedApplication?.requested_amount}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Term (months)</label>
+                <input 
+                  type="number" 
+                  className="w-full mt-1 p-2 border rounded-md" 
+                  defaultValue={selectedApplication?.requested_term}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Purpose</label>
+                <select className="w-full mt-1 p-2 border rounded-md" defaultValue={selectedApplication?.purpose}>
+                  <option value="business_expansion">Business Expansion</option>
+                  <option value="home_improvement">Home Improvement</option>
+                  <option value="education">Education</option>
+                  <option value="medical">Medical</option>
+                  <option value="agriculture">Agriculture</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Notes</label>
+                <textarea 
+                  className="w-full mt-1 p-2 border rounded-md" 
+                  placeholder="Enter notes"
+                  defaultValue={selectedApplication?.notes}
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowModifyDialog(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => {
+                  toast({
+                    title: "Application Modified",
+                    description: "Loan application has been modified successfully",
+                  });
+                  setShowModifyDialog(false);
+                }}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
