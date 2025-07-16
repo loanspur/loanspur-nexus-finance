@@ -17,9 +17,9 @@ import {
   Shield,
   Calculator,
   ChevronDown,
-  ChevronRight,
-  CheckCircle
+  ChevronRight
 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 const TenantSidebar = () => {
   const location = useLocation();
