@@ -4,6 +4,7 @@ import { TenantSidebar } from "@/components/tenant/TenantSidebar";
 import { UserMenu } from "@/components/UserMenu";
 import TenantDashboard from "@/pages/tenant/TenantDashboard";
 import ClientsPage from "@/pages/tenant/ClientsPage";
+import ClientDetailsPage from "@/pages/client/ClientDetailsPage";
 import LoansPage from "@/pages/tenant/LoansPage";
 import SavingsPage from "@/pages/tenant/SavingsPage";
 import TransactionsPage from "@/pages/tenant/TransactionsPage";
@@ -51,6 +52,7 @@ const TenantLayout = () => {
               <Route path="/" element={<TenantDashboard />} />
               <Route path="/dashboard" element={<TenantDashboard />} />
               <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:clientId" element={<ClientDetailsPage />} />
               <Route path="/loans" element={<LoansPage />} />
               <Route path="/loan-workflow" element={<LoanWorkflowPage />} />
               <Route path="/loan-approval" element={<LoanApprovalPage />} />

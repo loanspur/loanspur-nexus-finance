@@ -200,7 +200,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleViewClient(client)}
+                        onClick={() => window.open(`/tenant/clients/${client.id}`, '_blank')}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View
