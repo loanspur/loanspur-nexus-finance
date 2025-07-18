@@ -121,7 +121,7 @@ const ClientDetailsPage = () => {
           loan_products (
             name,
             short_name,
-            interest_rate
+            default_nominal_interest_rate
           )
         `)
         .eq('client_id', clientId)
@@ -139,7 +139,7 @@ const ClientDetailsPage = () => {
           savings_products (
             name,
             short_name,
-            interest_rate
+            nominal_annual_interest_rate
           )
         `)
         .eq('client_id', clientId)
@@ -157,7 +157,7 @@ const ClientDetailsPage = () => {
           loan_products (
             name,
             short_name,
-            interest_rate
+            default_nominal_interest_rate
           )
         `)
         .eq('client_id', clientId)
@@ -388,7 +388,16 @@ const ClientDetailsPage = () => {
                           {activeLoans.map((loan) => (
                             <tr key={loan.id} className="border-b hover:bg-muted/50">
                               <td className="p-2 font-mono text-xs">{loan.loan_number || `L-${loan.id.slice(0, 8)}`}</td>
-                              <td className="p-2">{loan.loan_products?.name || 'Standard Loan'}</td>
+                               <td className="p-2">
+                                 <div>
+                                   <div>{loan.loan_products?.name || 'Standard Loan'}</div>
+                                   {loan.loan_products?.default_nominal_interest_rate && (
+                                     <div className="text-xs text-muted-foreground">
+                                       {loan.loan_products.default_nominal_interest_rate}% APR
+                                     </div>
+                                   )}
+                                 </div>
+                               </td>
                               <td className="p-2 font-medium">{formatCurrency(loan.principal_amount || 0)}</td>
                               <td className="p-2 font-medium text-red-600">{formatCurrency(loan.outstanding_balance || 0)}</td>
                               <td className="p-2 font-medium text-green-600">{formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}</td>
@@ -468,7 +477,16 @@ const ClientDetailsPage = () => {
                                   <span className="font-mono text-xs">{account.account_number || `S-${account.id.slice(0, 8)}`}</span>
                                 </div>
                               </td>
-                              <td className="p-2">{account.savings_products?.name || 'CLIENT FUND ACCOUNT'}</td>
+                               <td className="p-2">
+                                 <div>
+                                   <div>{account.savings_products?.name || 'CLIENT FUND ACCOUNT'}</div>
+                                   {account.savings_products?.nominal_annual_interest_rate && (
+                                     <div className="text-xs text-muted-foreground">
+                                       {account.savings_products.nominal_annual_interest_rate}% APR
+                                     </div>
+                                   )}
+                                 </div>
+                               </td>
                               <td className="p-2">{format(new Date(account.updated_at || account.created_at), 'dd MMM yyyy')}</td>
                               <td className="p-2 font-medium text-green-600">{formatCurrency(account.account_balance || 0)}</td>
                               <td className="p-2">
