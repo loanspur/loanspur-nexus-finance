@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ interface ClientsTableProps {
 
 export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const { data: clients, isLoading, error } = useClients();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState("10");
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -200,7 +202,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(`/tenant/clients/${client.id}`, '_blank')}
+                        onClick={() => navigate(`/tenant/clients/${client.id}`)}
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         View
