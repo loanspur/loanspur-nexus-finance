@@ -101,12 +101,20 @@ const ClientDetailsPage = () => {
         .from('clients')
         .select('*')
         .eq('id', clientId)
-        .single();
+        .maybeSingle();
 
       if (clientError) throw clientError;
+      if (!clientData) {
+        toast({
+          title: "Error",
+          description: "Client not found",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      // Fetch loans
-      const { data: loansData } = await supabase
+      // Fetch loans with better error handling
+      const { data: loansData, error: loansError } = await supabase
         .from('loans')
         .select(`
           *,
@@ -116,10 +124,15 @@ const ClientDetailsPage = () => {
             interest_rate
           )
         `)
-        .eq('client_id', clientId);
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
 
-      // Fetch savings accounts
-      const { data: savingsData } = await supabase
+      if (loansError) {
+        console.error('Error fetching loans:', loansError);
+      }
+
+      // Fetch savings accounts with better error handling
+      const { data: savingsData, error: savingsError } = await supabase
         .from('savings_accounts')
         .select(`
           *,
@@ -129,11 +142,42 @@ const ClientDetailsPage = () => {
             interest_rate
           )
         `)
-        .eq('client_id', clientId);
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+
+      if (savingsError) {
+        console.error('Error fetching savings:', savingsError);
+      }
+
+      // Also fetch loan applications
+      const { data: applicationsData, error: applicationsError } = await supabase
+        .from('loan_applications')
+        .select(`
+          *,
+          loan_products (
+            name,
+            short_name,
+            interest_rate
+          )
+        `)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+
+      if (applicationsError) {
+        console.error('Error fetching loan applications:', applicationsError);
+      }
 
       setClient(clientData);
       setLoans(loansData || []);
       setSavings(savingsData || []);
+      
+      console.log('Fetched data:', {
+        client: clientData,
+        loans: loansData?.length || 0,
+        savings: savingsData?.length || 0,
+        applications: applicationsData?.length || 0
+      });
+      
     } catch (error) {
       console.error('Error fetching client data:', error);
       toast({
@@ -177,13 +221,15 @@ const ClientDetailsPage = () => {
     return savings.reduce((sum, account) => sum + (account.account_balance || 0), 0);
   };
 
-  const activeLoans = loans.filter(loan => 
-    !['closed', 'fully_paid', 'written_off'].includes(loan.status?.toLowerCase())
-  );
+  const activeLoans = loans.filter(loan => {
+    const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
+    return !closedStatuses.includes(loan.status?.toLowerCase());
+  });
 
-  const activeSavings = savings.filter(account => 
-    !['closed', 'inactive'].includes(account.status?.toLowerCase())
-  );
+  const activeSavings = savings.filter(account => {
+    const closedStatuses = ['closed', 'inactive', 'dormant'];
+    return !closedStatuses.includes(account.status?.toLowerCase());
+  });
 
   if (loading) {
     return (
@@ -315,44 +361,67 @@ const ClientDetailsPage = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {activeLoans.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No active loan accounts
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Account #</th>
-                        <th className="text-left p-2">Loan Account</th>
-                        <th className="text-left p-2">Original Loan</th>
-                        <th className="text-left p-2">Loan Balance</th>
-                        <th className="text-left p-2">Amount Paid</th>
-                        <th className="text-left p-2">Type</th>
-                        <th className="text-left p-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeLoans.map((loan) => (
-                        <tr key={loan.id} className="border-b">
-                          <td className="p-2">{loan.loan_number}</td>
-                          <td className="p-2">{loan.loan_products?.name || 'Unknown'}</td>
-                          <td className="p-2">{formatCurrency(loan.principal_amount)}</td>
-                          <td className="p-2">{formatCurrency(loan.outstanding_balance)}</td>
-                          <td className="p-2">{formatCurrency(loan.total_paid || 0)}</td>
-                          <td className="p-2">{getStatusBadge(loan.status)}</td>
-                          <td className="p-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                  {activeLoans.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <div className="space-y-2">
+                        <p>No active loan accounts found</p>
+                        <Button variant="outline" onClick={() => setShowNewLoan(true)}>
+                          Create First Loan
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Account #</th>
+                            <th className="text-left p-2">Loan Account</th>
+                            <th className="text-left p-2">Original Loan</th>
+                            <th className="text-left p-2">Loan Balance</th>
+                            <th className="text-left p-2">Amount Paid</th>
+                            <th className="text-left p-2">Type</th>
+                            <th className="text-left p-2">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeLoans.map((loan) => (
+                            <tr key={loan.id} className="border-b hover:bg-muted/50">
+                              <td className="p-2 font-mono text-xs">{loan.loan_number || `L-${loan.id.slice(0, 8)}`}</td>
+                              <td className="p-2">{loan.loan_products?.name || 'Standard Loan'}</td>
+                              <td className="p-2 font-medium">{formatCurrency(loan.principal_amount || 0)}</td>
+                              <td className="p-2 font-medium text-red-600">{formatCurrency(loan.outstanding_balance || 0)}</td>
+                              <td className="p-2 font-medium text-green-600">{formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}</td>
+                              <td className="p-2">{getStatusBadge(loan.status)}</td>
+                              <td className="p-2">
+                                <Button variant="outline" size="sm">
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      
+                      {showClosedLoans && loans.filter(loan => ['closed', 'fully_paid', 'written_off'].includes(loan.status?.toLowerCase())).length > 0 && (
+                        <div className="mt-4 pt-4 border-t">
+                          <h4 className="font-medium mb-2 text-muted-foreground">Closed Loans</h4>
+                          <table className="w-full text-sm">
+                            <tbody>
+                              {loans.filter(loan => ['closed', 'fully_paid', 'written_off'].includes(loan.status?.toLowerCase())).map((loan) => (
+                                <tr key={loan.id} className="border-b opacity-60">
+                                  <td className="p-2 font-mono text-xs">{loan.loan_number}</td>
+                                  <td className="p-2">{loan.loan_products?.name}</td>
+                                  <td className="p-2">{formatCurrency(loan.principal_amount || 0)}</td>
+                                  <td className="p-2">{getStatusBadge(loan.status)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
             </CardContent>
           </Card>
 
@@ -369,50 +438,73 @@ const ClientDetailsPage = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              {activeSavings.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No active savings accounts
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Account #</th>
-                        <th className="text-left p-2">Saving Account</th>
-                        <th className="text-left p-2">Last Active</th>
-                        <th className="text-left p-2">Balance</th>
-                        <th className="text-left p-2">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeSavings.map((account) => (
-                        <tr key={account.id} className="border-b">
-                          <td className="p-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                              {account.account_number}
-                            </div>
-                          </td>
-                          <td className="p-2">{account.savings_products?.name || 'CLIENT FUND ACCOUNT'}</td>
-                          <td className="p-2">{format(new Date(account.updated_at), 'dd MMM yyyy')}</td>
-                          <td className="p-2">{formatCurrency(account.account_balance)}</td>
-                          <td className="p-2">
-                            <div className="flex gap-1">
-                              <Button variant="outline" size="sm">
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                  {activeSavings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <div className="space-y-2">
+                        <p>No active savings accounts found</p>
+                        <Button variant="outline" onClick={() => setShowNewSavings(true)}>
+                          Create First Savings Account
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Account #</th>
+                            <th className="text-left p-2">Saving Account</th>
+                            <th className="text-left p-2">Last Active</th>
+                            <th className="text-left p-2">Balance</th>
+                            <th className="text-left p-2">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activeSavings.map((account) => (
+                            <tr key={account.id} className="border-b hover:bg-muted/50">
+                              <td className="p-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                  <span className="font-mono text-xs">{account.account_number || `S-${account.id.slice(0, 8)}`}</span>
+                                </div>
+                              </td>
+                              <td className="p-2">{account.savings_products?.name || 'CLIENT FUND ACCOUNT'}</td>
+                              <td className="p-2">{format(new Date(account.updated_at || account.created_at), 'dd MMM yyyy')}</td>
+                              <td className="p-2 font-medium text-green-600">{formatCurrency(account.account_balance || 0)}</td>
+                              <td className="p-2">
+                                <div className="flex gap-1">
+                                  <Button variant="outline" size="sm" title="Deposit">
+                                    <Plus className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="outline" size="sm" title="View Details">
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      
+                      {showClosedSavings && savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).length > 0 && (
+                        <div className="mt-4 pt-4 border-t">
+                          <h4 className="font-medium mb-2 text-muted-foreground">Closed Savings Accounts</h4>
+                          <table className="w-full text-sm">
+                            <tbody>
+                              {savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).map((account) => (
+                                <tr key={account.id} className="border-b opacity-60">
+                                  <td className="p-2 font-mono text-xs">{account.account_number}</td>
+                                  <td className="p-2">{account.savings_products?.name}</td>
+                                  <td className="p-2">{formatCurrency(account.account_balance || 0)}</td>
+                                  <td className="p-2">{getStatusBadge(account.status)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
             </CardContent>
           </Card>
         </div>
