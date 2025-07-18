@@ -221,6 +221,20 @@ const ClientDetailsPage = () => {
     return savings.reduce((sum, account) => sum + (account.account_balance || 0), 0);
   };
 
+  // Group loans by status
+  const groupLoansByStatus = () => {
+    const grouped = loans.reduce((acc, loan) => {
+      const status = loan.status || 'unknown';
+      if (!acc[status]) {
+        acc[status] = [];
+      }
+      acc[status].push(loan);
+      return acc;
+    }, {} as Record<string, any[]>);
+    return grouped;
+  };
+
+  const loansByStatus = groupLoansByStatus();
   const activeLoans = loans.filter(loan => {
     const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
     return !closedStatuses.includes(loan.status?.toLowerCase());
@@ -351,85 +365,100 @@ const ClientDetailsPage = () => {
           {/* Loan Account Overview */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Loan Account Overview</CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowClosedLoans(!showClosedLoans)}
-              >
-                View Closed Loans
-              </Button>
+              <CardTitle>Loan Account Overview - All Statuses</CardTitle>
+              <div className="text-sm text-muted-foreground">
+                Total: {loans.length} loans
+              </div>
             </CardHeader>
             <CardContent>
-                  {activeLoans.length === 0 ? (
+                  {loans.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <div className="space-y-2">
-                        <p>No active loan accounts found</p>
+                        <p>No loan accounts found</p>
                         <Button variant="outline" onClick={() => setShowNewLoan(true)}>
                           Create First Loan
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Account #</th>
-                            <th className="text-left p-2">Loan Account</th>
-                            <th className="text-left p-2">Original Loan</th>
-                            <th className="text-left p-2">Loan Balance</th>
-                            <th className="text-left p-2">Amount Paid</th>
-                            <th className="text-left p-2">Type</th>
-                            <th className="text-left p-2">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeLoans.map((loan) => (
-                            <tr key={loan.id} className="border-b hover:bg-muted/50">
-                              <td className="p-2 font-mono text-xs">{loan.loan_number || `L-${loan.id.slice(0, 8)}`}</td>
-                               <td className="p-2">
-                                 <div>
-                                   <div>{loan.loan_products?.name || 'Standard Loan'}</div>
-                                   {loan.loan_products?.default_nominal_interest_rate && (
-                                     <div className="text-xs text-muted-foreground">
-                                       {loan.loan_products.default_nominal_interest_rate}% APR
-                                     </div>
-                                   )}
-                                 </div>
-                               </td>
-                              <td className="p-2 font-medium">{formatCurrency(loan.principal_amount || 0)}</td>
-                              <td className="p-2 font-medium text-red-600">{formatCurrency(loan.outstanding_balance || 0)}</td>
-                              <td className="p-2 font-medium text-green-600">{formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}</td>
-                              <td className="p-2">{getStatusBadge(loan.status)}</td>
-                              <td className="p-2">
-                                <Button variant="outline" size="sm">
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      
-                      {showClosedLoans && loans.filter(loan => ['closed', 'fully_paid', 'written_off'].includes(loan.status?.toLowerCase())).length > 0 && (
-                        <div className="mt-4 pt-4 border-t">
-                          <h4 className="font-medium mb-2 text-muted-foreground">Closed Loans</h4>
-                          <table className="w-full text-sm">
-                            <tbody>
-                              {loans.filter(loan => ['closed', 'fully_paid', 'written_off'].includes(loan.status?.toLowerCase())).map((loan) => (
-                                <tr key={loan.id} className="border-b opacity-60">
-                                  <td className="p-2 font-mono text-xs">{loan.loan_number}</td>
-                                  <td className="p-2">{loan.loan_products?.name}</td>
-                                  <td className="p-2">{formatCurrency(loan.principal_amount || 0)}</td>
-                                  <td className="p-2">{getStatusBadge(loan.status)}</td>
+                    <div className="space-y-6">
+                      {Object.entries(loansByStatus).map(([status, statusLoans]) => {
+                        const loanArray = statusLoans as any[];
+                        return (
+                        <div key={status} className="space-y-2">
+                          <div className="flex items-center gap-2 mb-3">
+                            <h4 className="font-semibold text-sm capitalize">
+                              {status} Loans ({loanArray.length})
+                            </h4>
+                            {getStatusBadge(status)}
+                          </div>
+                          
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/50">
+                                  <th className="text-left p-2">Account #</th>
+                                  <th className="text-left p-2">Loan Product</th>
+                                  <th className="text-left p-2">Principal</th>
+                                  <th className="text-left p-2">Outstanding</th>
+                                  <th className="text-left p-2">Amount Paid</th>
+                                  <th className="text-left p-2">Next Payment</th>
+                                  <th className="text-left p-2">Actions</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
+                              </thead>
+                              <tbody>
+                                {loanArray.map((loan) => (
+                                  <tr key={loan.id} className="border-b hover:bg-muted/30">
+                                    <td className="p-2 font-mono text-xs">
+                                      {loan.loan_number || `L-${loan.id.slice(0, 8)}`}
+                                    </td>
+                                    <td className="p-2">
+                                      <div>
+                                        <div className="font-medium">
+                                          {loan.loan_products?.name || 'Standard Loan'}
+                                        </div>
+                                        {loan.loan_products?.default_nominal_interest_rate && (
+                                          <div className="text-xs text-muted-foreground">
+                                            {loan.loan_products.default_nominal_interest_rate}% APR
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-2 font-medium">
+                                      {formatCurrency(loan.principal_amount || 0)}
+                                    </td>
+                                    <td className="p-2 font-medium text-red-600">
+                                      {formatCurrency(loan.outstanding_balance || 0)}
+                                    </td>
+                                    <td className="p-2 font-medium text-green-600">
+                                      {formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}
+                                    </td>
+                                    <td className="p-2">
+                                      <div className="text-xs">
+                                        {loan.next_repayment_date && (
+                                          <div>{format(new Date(loan.next_repayment_date), 'dd MMM yyyy')}</div>
+                                        )}
+                                        {loan.next_repayment_amount && (
+                                          <div className="font-medium">
+                                            {formatCurrency(loan.next_repayment_amount)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-2">
+                                      <Button variant="outline" size="sm">
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                         </div>
+                        );
+                       })}
+                     </div>
                   )}
             </CardContent>
           </Card>
