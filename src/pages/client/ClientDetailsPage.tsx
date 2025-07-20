@@ -511,21 +511,21 @@ const ClientDetailsPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                {loans.length === 0 ? (
-                  <div className="space-y-6">
-                    <div className="text-center py-8">
-                      <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <h3 className="text-lg font-semibold mb-2">No Active Loans</h3>
-                      <p className="text-muted-foreground mb-4">This client has no active loan accounts</p>
-                      <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create New Loan
-                      </Button>
-                    </div>
-                    
-                    {/* Show Loan Applications if any */}
+                {visibleLoans.length === 0 && loanApplications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Loan Accounts</h3>
+                    <p className="text-muted-foreground mb-4">This client has no loan accounts or applications yet.</p>
+                    <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create New Loan
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {/* Loan Applications Section */}
                     {loanApplications.length > 0 && (
-                      <div className="border-t pt-6">
+                      <div>
                         <div className="flex items-center gap-3 mb-4">
                           <h4 className="font-semibold text-lg text-banking-primary">
                             Loan Applications
@@ -550,7 +550,7 @@ const ClientDetailsPage = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {loanApplications.slice(0, 5).map((application) => (
+                                {loanApplications.map((application) => (
                                   <tr key={application.id} className="border-t hover:bg-muted/30 transition-colors">
                                     <td className="p-4">
                                       <div className="font-mono text-sm font-medium">
@@ -600,103 +600,99 @@ const ClientDetailsPage = () => {
                               </tbody>
                             </table>
                           </div>
-                          {loanApplications.length > 5 && (
-                            <div className="p-4 bg-muted/30 text-center">
-                              <Button variant="outline" size="sm">
-                                View All {loanApplications.length} Applications
-                              </Button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {Object.entries(loansByStatus).map(([status, statusLoans]) => {
-                      const loanArray = statusLoans as any[];
-                      return (
-                        <div key={status} className="space-y-4">
-                          <div className="flex items-center gap-3">
-                            <h4 className="font-semibold text-lg capitalize text-banking-primary">
-                              {status} Loans
-                            </h4>
-                            <Badge className="status-info">
-                              {loanArray.length}
-                            </Badge>
-                          </div>
-                          
-                          <div className="rounded-lg border overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="w-full">
-                                <thead className="bg-muted/50">
-                                  <tr>
-                                    <th className="text-left p-4 font-medium">Account</th>
-                                    <th className="text-left p-4 font-medium">Product</th>
-                                    <th className="text-left p-4 font-medium">Principal</th>
-                                    <th className="text-left p-4 font-medium">Outstanding</th>
-                                    <th className="text-left p-4 font-medium">Paid</th>
-                                    <th className="text-left p-4 font-medium">Next Payment</th>
-                                    <th className="text-left p-4 font-medium">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {loanArray.map((loan) => (
-                                    <tr key={loan.id} className="border-t hover:bg-muted/30 transition-colors">
-                                      <td className="p-4">
-                                        <div className="font-mono text-sm font-medium">
-                                          {loan.loan_number || `L-${loan.id.slice(0, 8)}`}
-                                        </div>
-                                      </td>
-                                      <td className="p-4">
-                                        <div>
-                                          <div className="font-medium">
-                                            {loan.loan_products?.name || 'Standard Loan'}
-                                          </div>
-                                          {loan.loan_products?.default_nominal_interest_rate && (
-                                            <div className="text-sm text-muted-foreground">
-                                              {loan.loan_products.default_nominal_interest_rate}% APR
+
+                    {/* Active/Existing Loans Section */}
+                    {Object.keys(loansByStatus).length > 0 && (
+                      <div className="space-y-6">
+                        {Object.entries(loansByStatus).map(([status, statusLoans]) => {
+                          const loanArray = statusLoans as any[];
+                          return (
+                            <div key={status}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <h4 className="font-semibold text-lg capitalize text-banking-primary">
+                                  {status} Loan Accounts
+                                </h4>
+                                <Badge className="status-info">
+                                  {loanArray.length}
+                                </Badge>
+                              </div>
+                              
+                              <div className="rounded-lg border overflow-hidden">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full">
+                                    <thead className="bg-muted/50">
+                                      <tr>
+                                        <th className="text-left p-4 font-medium">Account</th>
+                                        <th className="text-left p-4 font-medium">Product</th>
+                                        <th className="text-left p-4 font-medium">Principal</th>
+                                        <th className="text-left p-4 font-medium">Outstanding</th>
+                                        <th className="text-left p-4 font-medium">Paid</th>
+                                        <th className="text-left p-4 font-medium">Next Payment</th>
+                                        <th className="text-left p-4 font-medium">Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {loanArray.map((loan) => (
+                                        <tr key={loan.id} className="border-t hover:bg-muted/30 transition-colors">
+                                          <td className="p-4">
+                                            <div className="font-mono text-sm font-medium">
+                                              {loan.loan_number || `L-${loan.id.slice(0, 8)}`}
                                             </div>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="p-4 font-medium">
-                                        {formatCurrency(loan.principal_amount || 0)}
-                                      </td>
-                                      <td className="p-4 font-medium text-destructive">
-                                        {formatCurrency(loan.outstanding_balance || 0)}
-                                      </td>
-                                      <td className="p-4 font-medium text-success">
-                                        {formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}
-                                      </td>
-                                      <td className="p-4">
-                                        <div className="space-y-1">
-                                          {loan.next_repayment_date && (
-                                            <div className="text-sm font-medium">
-                                              {format(new Date(loan.next_repayment_date), 'dd MMM yyyy')}
+                                          </td>
+                                          <td className="p-4">
+                                            <div>
+                                              <div className="font-medium">
+                                                {loan.loan_products?.name || 'Standard Loan'}
+                                              </div>
+                                              {loan.loan_products?.default_nominal_interest_rate && (
+                                                <div className="text-sm text-muted-foreground">
+                                                  {loan.loan_products.default_nominal_interest_rate}% APR
+                                                </div>
+                                              )}
                                             </div>
-                                          )}
-                                          {loan.next_repayment_amount && (
-                                            <div className="text-sm text-muted-foreground">
-                                              {formatCurrency(loan.next_repayment_amount)}
+                                          </td>
+                                          <td className="p-4 font-medium">
+                                            {formatCurrency(loan.principal_amount || 0)}
+                                          </td>
+                                          <td className="p-4 font-medium text-destructive">
+                                            {formatCurrency(loan.outstanding_balance || 0)}
+                                          </td>
+                                          <td className="p-4 font-medium text-success">
+                                            {formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}
+                                          </td>
+                                          <td className="p-4">
+                                            <div className="space-y-1">
+                                              {loan.next_repayment_date && (
+                                                <div className="text-sm font-medium">
+                                                  {format(new Date(loan.next_repayment_date), 'dd MMM yyyy')}
+                                                </div>
+                                              )}
+                                              {loan.next_repayment_amount && (
+                                                <div className="text-sm text-muted-foreground">
+                                                  {formatCurrency(loan.next_repayment_amount)}
+                                                </div>
+                                              )}
                                             </div>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="p-4">
-                                        <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                                          <Eye className="h-4 w-4" />
-                                        </Button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                          </td>
+                                          <td className="p-4">
+                                            <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
+                                              <Eye className="h-4 w-4" />
+                                            </Button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
