@@ -465,7 +465,6 @@ export const useProcessLoanApproval = () => {
             outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
             status: 'pending_disbursement',
             loan_officer_id: profile.id,
-            application_id: approval.loan_application_id,
           }])
           .select()
           .single();
@@ -722,8 +721,7 @@ export const useClientLoans = (clientId?: string) => {
         .select(`
           *,
           loan_products(name, short_name),
-          loan_schedules(*),
-          loan_applications(application_number, status)
+          loan_schedules(*)
         `)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
