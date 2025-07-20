@@ -1376,11 +1376,11 @@ const ClientDetailsPage = () => {
                               });
                           }
 
-                          // Update loan application status to disbursed/active
+                          // Update loan application status to approved (loan_applications table doesn't have 'disbursed' status)
                           const { error: statusError } = await supabase
                             .from('loan_applications')
                             .update({ 
-                              status: 'disbursed',
+                              status: 'approved',
                               updated_at: new Date().toISOString()
                             })
                             .eq('id', selectedLoanItem.id);
