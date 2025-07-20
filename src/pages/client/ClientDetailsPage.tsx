@@ -1089,20 +1089,35 @@ const ClientDetailsPage = () => {
                       className="border-success text-success hover:bg-success hover:text-success-foreground"
                       onClick={async () => {
                         try {
+                          console.log('Attempting to approve application:', selectedLoanItem.id);
+                          
                           // Update the loan application status in the database
-                          const { error } = await supabase
+                          const { data, error } = await supabase
                             .from('loan_applications')
                             .update({ 
                               status: 'pending disbursal',
                               updated_at: new Date().toISOString()
                             })
-                            .eq('id', selectedLoanItem.id);
+                            .eq('id', selectedLoanItem.id)
+                            .select();
+
+                          console.log('Update result:', { data, error });
 
                           if (error) {
                             console.error('Error updating loan application:', error);
                             toast({
                               title: "Error",
-                              description: "Failed to approve the loan application. Please try again.",
+                              description: `Failed to approve the loan application: ${error.message}`,
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          if (!data || data.length === 0) {
+                            console.error('No data returned from update');
+                            toast({
+                              title: "Error",
+                              description: "No records were updated. Please check permissions.",
                               variant: "destructive"
                             });
                             return;
@@ -1111,7 +1126,7 @@ const ClientDetailsPage = () => {
                           // Update local state for immediate UI feedback
                           setSelectedLoanItem(prev => ({ ...prev, status: 'pending disbursal' }));
                           
-                          console.log('Approve application:', selectedLoanItem.id, 'Date:', actionDate);
+                          console.log('Successfully approved application:', selectedLoanItem.id, 'Date:', actionDate);
                           toast({
                             title: "Application Approved",
                             description: `Loan application ${selectedLoanItem.application_number} has been approved and is now pending disbursal.`,
@@ -1124,7 +1139,7 @@ const ClientDetailsPage = () => {
                           console.error('Unexpected error:', err);
                           toast({
                             title: "Error",
-                            description: "An unexpected error occurred. Please try again.",
+                            description: `An unexpected error occurred: ${err.message}`,
                             variant: "destructive"
                           });
                         }
