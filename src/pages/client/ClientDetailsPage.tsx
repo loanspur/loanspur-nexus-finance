@@ -29,6 +29,12 @@ import {
   Check,
   Edit2
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { ClientGeneralTab } from "@/components/client/tabs/ClientGeneralTab";
 import { ClientIdentitiesTab } from "@/components/client/tabs/ClientIdentitiesTab";
 import { ClientDocumentsTab } from "@/components/client/tabs/ClientDocumentsTab";
@@ -42,7 +48,6 @@ import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
 import { NewShareAccountDialog } from "@/components/client/dialogs/NewShareAccountDialog";
 import { AddChargeDialog } from "@/components/client/dialogs/AddChargeDialog";
 import { TransferClientDialog } from "@/components/client/dialogs/TransferClientDialog";
-import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface Client {
@@ -112,6 +117,11 @@ const ClientDetailsPage = () => {
   const [showTransferClient, setShowTransferClient] = useState(false);
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
+  
+  // Loan Action Modal State
+  const [showLoanActionModal, setShowLoanActionModal] = useState(false);
+  const [selectedLoanItem, setSelectedLoanItem] = useState<any>(null);
+  const [actionDate, setActionDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
     if (clientId) {
@@ -606,17 +616,17 @@ const ClientDetailsPage = () => {
                               </td>
                                <td className="p-4">
                                  <div className="flex gap-1">
-                                   <Button 
-                                     variant="outline" 
-                                     size="sm" 
-                                     className="hover:bg-banking-primary hover:text-white"
-                                     onClick={() => {
-                                       // View loan details logic
-                                       console.log('View loan:', item.id);
-                                     }}
-                                   >
-                                     <Eye className="h-4 w-4" />
-                                   </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="hover:bg-banking-primary hover:text-white"
+                                      onClick={() => {
+                                        setSelectedLoanItem(item);
+                                        setShowLoanActionModal(true);
+                                      }}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
                                    
                                    {item.type === 'application' && item.status === 'pending' && (
                                      <>
@@ -956,6 +966,172 @@ const ClientDetailsPage = () => {
         onOpenChange={setShowTransferClient}
         client={client}
       />
+
+      {/* Loan Action Modal */}
+      <Dialog open={showLoanActionModal} onOpenChange={setShowLoanActionModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              {selectedLoanItem?.type === 'application' ? 'Loan Application Details' : 'Loan Account Details'}
+            </DialogTitle>
+            <DialogDescription>
+              Review and take action on this {selectedLoanItem?.type === 'application' ? 'loan application' : 'loan account'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedLoanItem && (
+            <div className="space-y-6">
+              {/* Loan/Application Details */}
+              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Account/Application #</label>
+                  <p className="font-mono text-sm">
+                    {selectedLoanItem.type === 'application' 
+                      ? selectedLoanItem.application_number 
+                      : selectedLoanItem.loan_number || `L-${selectedLoanItem.id.slice(0, 8)}`
+                    }
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Product</label>
+                  <p className="font-medium">{selectedLoanItem.loan_products?.name || 'Standard Loan'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Amount</label>
+                  <p className="font-bold text-lg">
+                    {formatCurrency(
+                      selectedLoanItem.type === 'application' 
+                        ? selectedLoanItem.requested_amount || 0 
+                        : selectedLoanItem.principal_amount || 0
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Status</label>
+                  <p>
+                    <Badge 
+                      className={
+                        selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        selectedLoanItem.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
+                        selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        selectedLoanItem.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                        'bg-gray-100 text-gray-800'
+                      }
+                    >
+                      {selectedLoanItem.status}
+                    </Badge>
+                  </p>
+                </div>
+                {selectedLoanItem.type === 'application' && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Requested Term</label>
+                    <p>{selectedLoanItem.requested_term} months</p>
+                  </div>
+                )}
+                {selectedLoanItem.type === 'loan' && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Outstanding Balance</label>
+                    <p className="font-medium text-destructive">
+                      {formatCurrency(selectedLoanItem.outstanding_balance || 0)}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Date Picker */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Action Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !actionDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {actionDate ? format(actionDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={actionDate}
+                      onSelect={setActionDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                {selectedLoanItem?.type === 'application' && selectedLoanItem?.status === 'pending' && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="border-success text-success hover:bg-success hover:text-success-foreground"
+                      onClick={() => {
+                        console.log('Approve application:', selectedLoanItem.id, 'Date:', actionDate);
+                        toast({
+                          title: "Application Approved",
+                          description: `Loan application ${selectedLoanItem.application_number} has been approved.`,
+                        });
+                        setShowLoanActionModal(false);
+                      }}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Approve
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => {
+                        console.log('Reject application:', selectedLoanItem.id, 'Date:', actionDate);
+                        toast({
+                          title: "Application Rejected",
+                          description: `Loan application ${selectedLoanItem.application_number} has been rejected.`,
+                          variant: "destructive"
+                        });
+                        setShowLoanActionModal(false);
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  </>
+                )}
+                
+                {(selectedLoanItem?.type === 'loan' || (selectedLoanItem?.type === 'application' && selectedLoanItem?.status !== 'rejected')) && (
+                  <Button 
+                    variant="outline" 
+                    className="border-warning text-warning hover:bg-warning hover:text-warning-foreground"
+                    onClick={() => {
+                      console.log('Modify:', selectedLoanItem.type, selectedLoanItem.id, 'Date:', actionDate);
+                      toast({
+                        title: "Modification Initiated",
+                        description: `${selectedLoanItem.type === 'application' ? 'Application' : 'Loan'} modification has been initiated.`,
+                      });
+                      setShowLoanActionModal(false);
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Modify
+                  </Button>
+                )}
+                
+                <Button variant="outline" onClick={() => setShowLoanActionModal(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
