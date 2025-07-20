@@ -25,7 +25,9 @@ import {
   Info,
   Building,
   Phone,
-  StickyNote
+  StickyNote,
+  Check,
+  Edit2
 } from "lucide-react";
 import { ClientGeneralTab } from "@/components/client/tabs/ClientGeneralTab";
 import { ClientIdentitiesTab } from "@/components/client/tabs/ClientIdentitiesTab";
@@ -602,11 +604,62 @@ const ClientDetailsPage = () => {
                                   'dd MMM yyyy'
                                 )}
                               </td>
-                              <td className="p-4">
-                                <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </td>
+                               <td className="p-4">
+                                 <div className="flex gap-1">
+                                   <Button 
+                                     variant="outline" 
+                                     size="sm" 
+                                     className="hover:bg-banking-primary hover:text-white"
+                                     onClick={() => {
+                                       // View loan details logic
+                                       console.log('View loan:', item.id);
+                                     }}
+                                   >
+                                     <Eye className="h-4 w-4" />
+                                   </Button>
+                                   
+                                   {item.type === 'application' && item.status === 'pending' && (
+                                     <>
+                                       <Button 
+                                         variant="outline" 
+                                         size="sm" 
+                                         className="hover:bg-success hover:text-success-foreground"
+                                         onClick={() => {
+                                           // Approve application logic
+                                           console.log('Approve application:', item.id);
+                                         }}
+                                       >
+                                         <Check className="h-4 w-4" />
+                                       </Button>
+                                       <Button 
+                                         variant="outline" 
+                                         size="sm" 
+                                         className="hover:bg-destructive hover:text-destructive-foreground"
+                                         onClick={() => {
+                                           // Reject application logic
+                                           console.log('Reject application:', item.id);
+                                         }}
+                                       >
+                                         <X className="h-4 w-4" />
+                                       </Button>
+                                     </>
+                                   )}
+                                   
+                                   {(item.type === 'loan' || (item.type === 'application' && item.status !== 'rejected')) && (
+                                     <Button 
+                                       variant="outline" 
+                                       size="sm" 
+                                       className="hover:bg-warning hover:text-warning-foreground"
+                                       onClick={() => {
+                                         // Modify loan/application logic
+                                         console.log('Modify:', item.type, item.id);
+                                       }}
+                                     >
+                                       <Edit2 className="h-4 w-4" />
+                                     </Button>
+                                   )}
+                                 </div>
+                               </td>
                             </tr>
                           ))}
                         </tbody>
