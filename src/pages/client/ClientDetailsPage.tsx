@@ -269,416 +269,535 @@ const ClientDetailsPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header Section */}
-      <div className="bg-white border rounded-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-700">
-                {client.first_name.toUpperCase()} {client.last_name.toUpperCase()}
-              </h1>
-              <div className="text-sm text-muted-foreground mt-1">
-                Client #: {client.client_number} | External id: {client.mifos_client_id || 'N/A'} | Staff: ADMIN
+    <div className="min-h-screen bg-gradient-hero">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Modern Header with Client Info */}
+        <div className="card-enhanced rounded-xl overflow-hidden">
+          {/* Header Background with Gradient */}
+          <div className="bg-gradient-primary p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <Avatar className="h-16 w-16 border-2 border-white/20">
+                  <AvatarImage src={client.profile_picture_url || ""} />
+                  <AvatarFallback className="bg-white/10 text-lg font-semibold">
+                    {client.first_name[0]}{client.last_name[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-3xl font-heading font-bold">
+                    {client.first_name} {client.last_name}
+                  </h1>
+                  <div className="flex items-center gap-4 mt-2 text-white/80">
+                    <span className="text-sm">Client #{client.client_number}</span>
+                    <span className="text-sm">•</span>
+                    <span className="text-sm">ID: {client.mifos_client_id || 'N/A'}</span>
+                    <span className="text-sm">•</span>
+                    <span className="text-sm">Staff: ADMIN</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-3">
+                    {getStatusBadge(client.approval_status)}
+                    <Badge variant="outline" className="bg-white/10 border-white/20 text-white">
+                      {client.kyc_status}
+                    </Badge>
+                  </div>
+                </div>
               </div>
+              
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      Actions
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-card border shadow-floating">
+                    <DropdownMenuItem onClick={() => setShowTransferClient(true)}>
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Transfer Client
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Update Default Savings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      Unassign Staff
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats Dashboard */}
+          <div className="p-6 bg-white">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-banking-primary/5 to-banking-secondary/5 border border-banking-primary/10">
+                <DollarSign className="h-8 w-8 mx-auto mb-2 text-banking-primary" />
+                <div className="text-2xl font-bold text-banking-primary">
+                  {formatCurrency(calculateLoanBalance())}
+                </div>
+                <div className="text-xs text-muted-foreground">Total Loan Balance</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-banking-accent/5 to-banking-emerald/5 border border-banking-accent/10">
+                <PiggyBank className="h-8 w-8 mx-auto mb-2 text-banking-accent" />
+                <div className="text-2xl font-bold text-banking-accent">
+                  {formatCurrency(calculateSavingsBalance())}
+                </div>
+                <div className="text-xs text-muted-foreground">Total Savings</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-banking-gold/5 to-warning/5 border border-banking-gold/10">
+                <CreditCard className="h-8 w-8 mx-auto mb-2 text-banking-gold" />
+                <div className="text-2xl font-bold text-banking-gold">{loans.length}</div>
+                <div className="text-xs text-muted-foreground">Active Loans</div>
+              </div>
+              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-info/5 to-banking-secondary/5 border border-info/10">
+                <Building className="h-8 w-8 mx-auto mb-2 text-banking-secondary" />
+                <div className="text-2xl font-bold text-banking-secondary">{savings.length}</div>
+                <div className="text-xs text-muted-foreground">Savings Accounts</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Tabs - Modern Design */}
+          <div className="px-6 border-b border-border">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="h-auto p-0 bg-transparent w-full justify-start overflow-x-auto">
+                <TabsTrigger value="general" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                  <IdCard className="h-4 w-4 mr-2" />
+                  General
+                </TabsTrigger>
+                <TabsTrigger value="identities" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                  <IdCard className="h-4 w-4 mr-2" />
+                  Identity
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Documents
+                </TabsTrigger>
+                <TabsTrigger value="bank-details" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                  <Building className="h-4 w-4 mr-2" />
+                  Bank Details
+                </TabsTrigger>
+                <TabsTrigger value="next-of-kin" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Next of Kin
+                </TabsTrigger>
+                <TabsTrigger value="notes" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                  <StickyNote className="h-4 w-4 mr-2" />
+                  Notes
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Quick Action Buttons - Redesigned */}
+          <div className="p-6 bg-muted/30">
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary hover:shadow-glow transition-all duration-300">
+                <Plus className="h-4 w-4 mr-2" />
+                New Loan
+              </Button>
+              <Button onClick={() => setShowNewSavings(true)} className="bg-gradient-success hover:shadow-glow transition-all duration-300">
+                <Plus className="h-4 w-4 mr-2" />
+                New Savings
+              </Button>
+              <Button onClick={() => setShowNewShareAccount(true)} variant="outline" className="border-banking-gold text-banking-gold hover:bg-banking-gold hover:text-white">
+                <Share className="h-4 w-4 mr-2" />
+                New Share Account
+              </Button>
+              <Button onClick={() => setShowAddCharge(true)} variant="outline" className="border-warning text-warning hover:bg-warning hover:text-white">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Charge
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="border-b mb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <div className="flex items-center justify-between">
-              <TabsList className="h-auto p-0 bg-transparent">
-                <TabsTrigger value="general" className="px-4 py-2">General</TabsTrigger>
-                <TabsTrigger value="identities" className="px-4 py-2">Identities</TabsTrigger>
-                <TabsTrigger value="documents" className="px-4 py-2">Documents</TabsTrigger>
-                <TabsTrigger value="additional-info" className="px-4 py-2">Additional Info</TabsTrigger>
-                <TabsTrigger value="bank-details" className="px-4 py-2 text-blue-600">BANK ACCOUNT DETAILS</TabsTrigger>
-                <TabsTrigger value="ussd-info" className="px-4 py-2">Client USSD Info</TabsTrigger>
-                <TabsTrigger value="next-of-kin" className="px-4 py-2">NEXT OF KIN</TabsTrigger>
-                <TabsTrigger value="notes" className="px-4 py-2">Notes</TabsTrigger>
-              </TabsList>
-            </div>
-          </Tabs>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 mb-6">
-          <Button variant="outline" size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowNewLoan(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Loan
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowNewSavings(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Saving
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowNewShareAccount(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Share Account
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowAddCharge(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add charge
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowTransferClient(true)}>
-            <ArrowRightLeft className="h-4 w-4 mr-2" />
-            Transfer Client
-          </Button>
-          <Button variant="outline" size="sm">
-            <X className="h-4 w-4 mr-2" />
-            Close
-          </Button>
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            Update Default Savings
-          </Button>
-          <Button variant="outline" size="sm">
-            <UserMinus className="h-4 w-4 mr-2" />
-            Unassign Staff
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                More
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>Activate Client</DropdownMenuItem>
-              <DropdownMenuItem>View Client Summary</DropdownMenuItem>
-              <DropdownMenuItem>Generate Collection Sheet</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Account Overview */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Loan Account Overview */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Loan Account Overview - All Statuses</CardTitle>
-              <div className="text-sm text-muted-foreground">
-                Total: {loans.length} loans
-              </div>
-            </CardHeader>
-            <CardContent>
-                  {loans.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <div className="space-y-2">
-                        <p>No loan accounts found</p>
-                        <Button variant="outline" onClick={() => setShowNewLoan(true)}>
-                          Create First Loan
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {Object.entries(loansByStatus).map(([status, statusLoans]) => {
-                        const loanArray = statusLoans as any[];
-                        return (
-                        <div key={status} className="space-y-2">
-                          <div className="flex items-center gap-2 mb-3">
-                            <h4 className="font-semibold text-sm capitalize">
-                              {status} Loans ({loanArray.length})
+        {/* Main Content Layout */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Left Column - Account Overview */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Loan Account Overview */}
+            <Card className="card-enhanced shadow-elevated">
+              <CardHeader className="bg-gradient-to-r from-banking-primary/5 to-banking-secondary/5 border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-banking-primary">
+                    <CreditCard className="h-5 w-5" />
+                    Loan Accounts Overview
+                  </CardTitle>
+                  <Badge variant="outline" className="status-info">
+                    {loans.length} Total
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {loans.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Loan Accounts</h3>
+                    <p className="text-muted-foreground mb-4">Create the first loan account to get started</p>
+                    <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Loan
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(loansByStatus).map(([status, statusLoans]) => {
+                      const loanArray = statusLoans as any[];
+                      return (
+                        <div key={status} className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-semibold text-lg capitalize text-banking-primary">
+                              {status} Loans
                             </h4>
-                            {getStatusBadge(status)}
+                            <Badge className="status-info">
+                              {loanArray.length}
+                            </Badge>
                           </div>
                           
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b bg-muted/50">
-                                  <th className="text-left p-2">Account #</th>
-                                  <th className="text-left p-2">Loan Product</th>
-                                  <th className="text-left p-2">Principal</th>
-                                  <th className="text-left p-2">Outstanding</th>
-                                  <th className="text-left p-2">Amount Paid</th>
-                                  <th className="text-left p-2">Next Payment</th>
-                                  <th className="text-left p-2">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {loanArray.map((loan) => (
-                                  <tr key={loan.id} className="border-b hover:bg-muted/30">
-                                    <td className="p-2 font-mono text-xs">
-                                      {loan.loan_number || `L-${loan.id.slice(0, 8)}`}
-                                    </td>
-                                    <td className="p-2">
-                                      <div>
-                                        <div className="font-medium">
-                                          {loan.loan_products?.name || 'Standard Loan'}
-                                        </div>
-                                        {loan.loan_products?.default_nominal_interest_rate && (
-                                          <div className="text-xs text-muted-foreground">
-                                            {loan.loan_products.default_nominal_interest_rate}% APR
-                                          </div>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="p-2 font-medium">
-                                      {formatCurrency(loan.principal_amount || 0)}
-                                    </td>
-                                    <td className="p-2 font-medium text-red-600">
-                                      {formatCurrency(loan.outstanding_balance || 0)}
-                                    </td>
-                                    <td className="p-2 font-medium text-green-600">
-                                      {formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}
-                                    </td>
-                                    <td className="p-2">
-                                      <div className="text-xs">
-                                        {loan.next_repayment_date && (
-                                          <div>{format(new Date(loan.next_repayment_date), 'dd MMM yyyy')}</div>
-                                        )}
-                                        {loan.next_repayment_amount && (
-                                          <div className="font-medium">
-                                            {formatCurrency(loan.next_repayment_amount)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="p-2">
-                                      <Button variant="outline" size="sm">
-                                        <Eye className="h-3 w-3" />
-                                      </Button>
-                                    </td>
+                          <div className="rounded-lg border overflow-hidden">
+                            <div className="overflow-x-auto">
+                              <table className="w-full">
+                                <thead className="bg-muted/50">
+                                  <tr>
+                                    <th className="text-left p-4 font-medium">Account</th>
+                                    <th className="text-left p-4 font-medium">Product</th>
+                                    <th className="text-left p-4 font-medium">Principal</th>
+                                    <th className="text-left p-4 font-medium">Outstanding</th>
+                                    <th className="text-left p-4 font-medium">Paid</th>
+                                    <th className="text-left p-4 font-medium">Next Payment</th>
+                                    <th className="text-left p-4 font-medium">Actions</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {loanArray.map((loan) => (
+                                    <tr key={loan.id} className="border-t hover:bg-muted/30 transition-colors">
+                                      <td className="p-4">
+                                        <div className="font-mono text-sm font-medium">
+                                          {loan.loan_number || `L-${loan.id.slice(0, 8)}`}
+                                        </div>
+                                      </td>
+                                      <td className="p-4">
+                                        <div>
+                                          <div className="font-medium">
+                                            {loan.loan_products?.name || 'Standard Loan'}
+                                          </div>
+                                          {loan.loan_products?.default_nominal_interest_rate && (
+                                            <div className="text-sm text-muted-foreground">
+                                              {loan.loan_products.default_nominal_interest_rate}% APR
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="p-4 font-medium">
+                                        {formatCurrency(loan.principal_amount || 0)}
+                                      </td>
+                                      <td className="p-4 font-medium text-destructive">
+                                        {formatCurrency(loan.outstanding_balance || 0)}
+                                      </td>
+                                      <td className="p-4 font-medium text-success">
+                                        {formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}
+                                      </td>
+                                      <td className="p-4">
+                                        <div className="space-y-1">
+                                          {loan.next_repayment_date && (
+                                            <div className="text-sm font-medium">
+                                              {format(new Date(loan.next_repayment_date), 'dd MMM yyyy')}
+                                            </div>
+                                          )}
+                                          {loan.next_repayment_amount && (
+                                            <div className="text-sm text-muted-foreground">
+                                              {formatCurrency(loan.next_repayment_amount)}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="p-4">
+                                        <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                         </div>
-                        );
-                       })}
-                     </div>
-                  )}
-            </CardContent>
-          </Card>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Savings Account Overview */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Savings Account Overview</CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowClosedSavings(!showClosedSavings)}
-              >
-                View Closed Savings
-              </Button>
-            </CardHeader>
-            <CardContent>
-                  {activeSavings.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <div className="space-y-2">
-                        <p>No active savings accounts found</p>
-                        <Button variant="outline" onClick={() => setShowNewSavings(true)}>
-                          Create First Savings Account
-                        </Button>
+            {/* Savings Account Overview */}
+            <Card className="card-enhanced shadow-elevated">
+              <CardHeader className="bg-gradient-to-r from-banking-accent/5 to-banking-emerald/5 border-b">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-banking-accent">
+                    <PiggyBank className="h-5 w-5" />
+                    Savings Accounts Overview
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="status-success">
+                      {activeSavings.length} Active
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowClosedSavings(!showClosedSavings)}
+                      className="text-xs"
+                    >
+                      {showClosedSavings ? 'Hide' : 'Show'} Closed
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {activeSavings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <PiggyBank className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Savings Accounts</h3>
+                    <p className="text-muted-foreground mb-4">Create the first savings account to get started</p>
+                    <Button onClick={() => setShowNewSavings(true)} className="bg-gradient-success">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First Savings Account
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-lg border overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="text-left p-4 font-medium">Account</th>
+                              <th className="text-left p-4 font-medium">Product</th>
+                              <th className="text-left p-4 font-medium">Last Activity</th>
+                              <th className="text-left p-4 font-medium">Balance</th>
+                              <th className="text-left p-4 font-medium">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {activeSavings.map((account) => (
+                              <tr key={account.id} className="border-t hover:bg-muted/30 transition-colors">
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-3 h-3 bg-success rounded-full"></div>
+                                    <span className="font-mono text-sm font-medium">
+                                      {account.account_number || `S-${account.id.slice(0, 8)}`}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  <div>
+                                    <div className="font-medium">
+                                      {account.savings_products?.name || 'CLIENT FUND ACCOUNT'}
+                                    </div>
+                                    {account.savings_products?.nominal_annual_interest_rate && (
+                                      <div className="text-sm text-muted-foreground">
+                                        {account.savings_products.nominal_annual_interest_rate}% APR
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-4 text-sm">
+                                  {format(new Date(account.updated_at || account.created_at), 'dd MMM yyyy')}
+                                </td>
+                                <td className="p-4 font-bold text-success text-lg">
+                                  {formatCurrency(account.account_balance || 0)}
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex gap-2">
+                                    <Button variant="outline" size="sm" title="Deposit" className="hover:bg-banking-accent hover:text-white">
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" title="View Details" className="hover:bg-banking-primary hover:text-white">
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-2">Account #</th>
-                            <th className="text-left p-2">Saving Account</th>
-                            <th className="text-left p-2">Last Active</th>
-                            <th className="text-left p-2">Balance</th>
-                            <th className="text-left p-2">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activeSavings.map((account) => (
-                            <tr key={account.id} className="border-b hover:bg-muted/50">
-                              <td className="p-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                  <span className="font-mono text-xs">{account.account_number || `S-${account.id.slice(0, 8)}`}</span>
-                                </div>
-                              </td>
-                               <td className="p-2">
-                                 <div>
-                                   <div>{account.savings_products?.name || 'CLIENT FUND ACCOUNT'}</div>
-                                   {account.savings_products?.nominal_annual_interest_rate && (
-                                     <div className="text-xs text-muted-foreground">
-                                       {account.savings_products.nominal_annual_interest_rate}% APR
-                                     </div>
-                                   )}
-                                 </div>
-                               </td>
-                              <td className="p-2">{format(new Date(account.updated_at || account.created_at), 'dd MMM yyyy')}</td>
-                              <td className="p-2 font-medium text-green-600">{formatCurrency(account.account_balance || 0)}</td>
-                              <td className="p-2">
-                                <div className="flex gap-1">
-                                  <Button variant="outline" size="sm" title="Deposit">
-                                    <Plus className="h-3 w-3" />
-                                  </Button>
-                                  <Button variant="outline" size="sm" title="View Details">
-                                    <Eye className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      
-                      {showClosedSavings && savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).length > 0 && (
-                        <div className="mt-4 pt-4 border-t">
-                          <h4 className="font-medium mb-2 text-muted-foreground">Closed Savings Accounts</h4>
-                          <table className="w-full text-sm">
+                    
+                    {showClosedSavings && savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).length > 0 && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="font-semibold mb-4 text-muted-foreground flex items-center gap-2">
+                          <X className="h-4 w-4" />
+                          Closed Savings Accounts
+                        </h4>
+                        <div className="rounded-lg border overflow-hidden opacity-60">
+                          <table className="w-full">
                             <tbody>
                               {savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).map((account) => (
-                                <tr key={account.id} className="border-b opacity-60">
-                                  <td className="p-2 font-mono text-xs">{account.account_number}</td>
-                                  <td className="p-2">{account.savings_products?.name}</td>
-                                  <td className="p-2">{formatCurrency(account.account_balance || 0)}</td>
-                                  <td className="p-2">{getStatusBadge(account.status)}</td>
+                                <tr key={account.id} className="border-t">
+                                  <td className="p-4 font-mono text-sm">{account.account_number}</td>
+                                  <td className="p-4">{account.savings_products?.name}</td>
+                                  <td className="p-4 font-medium">{formatCurrency(account.account_balance || 0)}</td>
+                                  <td className="p-4">{getStatusBadge(account.status)}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
-                      )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Client Profile */}
+          <div className="space-y-6">
+            <Card className="card-enhanced shadow-elevated">
+              <CardContent className="p-6">
+                <div className="text-center space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-banking-primary mb-2">
+                      {client.first_name} {client.last_name}
+                    </h3>
+                    <p className="text-muted-foreground">Client Profile</p>
+                  </div>
+                  
+                  <Avatar className="h-24 w-24 mx-auto border-4 border-banking-primary/20">
+                    <AvatarImage src={client.profile_picture_url || ""} />
+                    <AvatarFallback className="bg-gradient-primary text-white text-xl">
+                      {client.first_name[0]}{client.last_name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex justify-center gap-2">
+                    <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <Button variant="link" className="text-banking-primary hover:text-banking-primary/80">
+                    View Client Signature
+                  </Button>
+                </div>
+
+                <div className="mt-6 pt-6 border-t space-y-4">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
+                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
+                      <span className="text-muted-foreground">Activation Date</span>
+                      <span className="font-medium">{format(new Date(client.created_at), 'dd MMM yyyy')}</span>
                     </div>
-                  )}
-            </CardContent>
-          </Card>
+                    <div className="flex justify-between items-center p-2 rounded">
+                      <span className="text-muted-foreground">Mobile Number</span>
+                      <span className="font-medium">{client.phone || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
+                      <span className="text-muted-foreground">Gender</span>
+                      <span className="font-medium capitalize">{client.gender || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded">
+                      <span className="text-muted-foreground">Date of Birth</span>
+                      <span className="font-medium">
+                        {client.date_of_birth ? format(new Date(client.date_of_birth), 'dd MMM yyyy') : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
+                      <span className="text-muted-foreground">Active Loans</span>
+                      <Badge className="status-info">{activeLoans.length}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded">
+                      <span className="text-muted-foreground">Total Savings</span>
+                      <span className="font-bold text-success">{formatCurrency(calculateSavingsBalance())}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
+                      <span className="text-muted-foreground">Active Savings</span>
+                      <Badge className="status-success">{activeSavings.length}</Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Right Column - Client Profile */}
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center mb-4">
-                <h3 className="font-bold text-lg">{client.first_name.toUpperCase()} {client.last_name.toUpperCase()}</h3>
-              </div>
-              
-              <div className="flex justify-center mb-6">
-                <Avatar className="h-32 w-32">
-                  <AvatarImage src={client.profile_picture_url || undefined} />
-                  <AvatarFallback className="text-2xl">
-                    {client.first_name[0]}{client.last_name[0]}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-
-              <div className="flex justify-center gap-2 mb-6">
-                <Button variant="outline" size="sm">
-                  <Plus className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-3 w-3" />
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Eye className="h-3 w-3" />
-                </Button>
-              </div>
-
-              <div className="text-center mb-4">
-                <Button variant="link" className="text-blue-600">
-                  View Client Signature
-                </Button>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Activation date</span>
-                  <span>{format(new Date(client.created_at), 'dd MMM yyyy')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Member Of</span>
-                  <span>-</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Is Staff?</span>
-                  <span>No</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Mobile number</span>
-                  <span>{client.phone || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Gender</span>
-                  <span className="capitalize">{client.gender || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Client Classification</span>
-                  <span>Self Employed</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date of Birth</span>
-                  <span>
-                    {client.date_of_birth ? format(new Date(client.date_of_birth), 'dd MMM yyyy') : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Performance History</span>
-                  <span>-</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground"># of Loan Cycle</span>
-                  <span>0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Last loan amount</span>
-                  <span>0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground"># of active loans</span>
-                  <span>{activeLoans.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total savings(KES)</span>
-                  <span>{calculateSavingsBalance()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground"># of active savings</span>
-                  <span>{activeSavings.length}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Tab Content */}
+        <div className="mt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsContent value="general" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientGeneralTab client={client} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="identities" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientIdentitiesTab clientId={client.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="documents" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientDocumentsTab clientId={client.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="additional-info" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientAdditionalInfoTab client={client} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="bank-details" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientBankDetailsTab client={client} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="ussd-info" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientUssdTab clientId={client.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="next-of-kin" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientNextOfKinTab client={client} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="notes" className="mt-6">
+              <Card className="card-enhanced shadow-elevated">
+                <CardContent className="p-6">
+                  <ClientNotesTab clientId={client.id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-
-      {/* Tab Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsContent value="general">
-          <ClientGeneralTab client={client} />
-        </TabsContent>
-        <TabsContent value="identities">
-          <ClientIdentitiesTab clientId={client.id} />
-        </TabsContent>
-        <TabsContent value="documents">
-          <ClientDocumentsTab clientId={client.id} />
-        </TabsContent>
-        <TabsContent value="additional-info">
-          <ClientAdditionalInfoTab client={client} />
-        </TabsContent>
-        <TabsContent value="bank-details">
-          <ClientBankDetailsTab client={client} />
-        </TabsContent>
-        <TabsContent value="ussd-info">
-          <ClientUssdTab clientId={client.id} />
-        </TabsContent>
-        <TabsContent value="next-of-kin">
-          <ClientNextOfKinTab client={client} />
-        </TabsContent>
-        <TabsContent value="notes">
-          <ClientNotesTab clientId={client.id} />
-        </TabsContent>
-      </Tabs>
 
       {/* Dialogs */}
       <NewLoanDialog
