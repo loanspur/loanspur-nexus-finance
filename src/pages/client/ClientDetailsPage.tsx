@@ -1087,13 +1087,47 @@ const ClientDetailsPage = () => {
                     <Button 
                       variant="outline" 
                       className="border-success text-success hover:bg-success hover:text-success-foreground"
-                      onClick={() => {
-                        console.log('Approve application:', selectedLoanItem.id, 'Date:', actionDate);
-                        toast({
-                          title: "Approval Request Submitted",
-                          description: `Approval request for loan application ${selectedLoanItem.application_number} has been submitted for processing.`,
-                        });
-                        setShowLoanActionModal(false);
+                      onClick={async () => {
+                        try {
+                          // Update the loan application status in the database
+                          const { error } = await supabase
+                            .from('loan_applications')
+                            .update({ 
+                              status: 'pending disbursal',
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', selectedLoanItem.id);
+
+                          if (error) {
+                            console.error('Error updating loan application:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to approve the loan application. Please try again.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          // Update local state for immediate UI feedback
+                          setSelectedLoanItem(prev => ({ ...prev, status: 'pending disbursal' }));
+                          
+                          console.log('Approve application:', selectedLoanItem.id, 'Date:', actionDate);
+                          toast({
+                            title: "Application Approved",
+                            description: `Loan application ${selectedLoanItem.application_number} has been approved and is now pending disbursal.`,
+                          });
+                          setShowLoanActionModal(false);
+                          
+                          // Refresh the page data to reflect changes
+                          window.location.reload();
+                        } catch (err) {
+                          console.error('Unexpected error:', err);
+                          toast({
+                            title: "Error",
+                            description: "An unexpected error occurred. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
                       }}
                     >
                       <Check className="h-4 w-4 mr-2" />
@@ -1102,14 +1136,48 @@ const ClientDetailsPage = () => {
                     <Button 
                       variant="outline" 
                       className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => {
-                        console.log('Reject application:', selectedLoanItem.id, 'Date:', actionDate);
-                        toast({
-                          title: "Rejection Request Submitted",
-                          description: `Rejection request for loan application ${selectedLoanItem.application_number} has been submitted for processing.`,
-                          variant: "destructive"
-                        });
-                        setShowLoanActionModal(false);
+                      onClick={async () => {
+                        try {
+                          // Update the loan application status in the database
+                          const { error } = await supabase
+                            .from('loan_applications')
+                            .update({ 
+                              status: 'rejected',
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', selectedLoanItem.id);
+
+                          if (error) {
+                            console.error('Error updating loan application:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to reject the loan application. Please try again.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          // Update local state for immediate UI feedback
+                          setSelectedLoanItem(prev => ({ ...prev, status: 'rejected' }));
+                          
+                          console.log('Reject application:', selectedLoanItem.id, 'Date:', actionDate);
+                          toast({
+                            title: "Application Rejected",
+                            description: `Loan application ${selectedLoanItem.application_number} has been rejected.`,
+                            variant: "destructive"
+                          });
+                          setShowLoanActionModal(false);
+                          
+                          // Refresh the page data to reflect changes
+                          window.location.reload();
+                        } catch (err) {
+                          console.error('Unexpected error:', err);
+                          toast({
+                            title: "Error",
+                            description: "An unexpected error occurred. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
                       }}
                     >
                       <X className="h-4 w-4 mr-2" />
