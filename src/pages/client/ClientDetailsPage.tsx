@@ -495,19 +495,14 @@ const ClientDetailsPage = () => {
                     <CreditCard className="h-5 w-5" />
                     Loan Accounts Overview
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="status-info">
-                      {visibleLoans.length} Visible
-                    </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setShowClosedLoans(!showClosedLoans)}
-                      className="text-xs"
-                    >
-                      {showClosedLoans ? 'Hide' : 'Show'} Rejected/Closed
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowClosedLoans(!showClosedLoans)}
+                    className="text-xs"
+                  >
+                    {showClosedLoans ? 'Hide' : 'Show'} Rejected
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
@@ -523,17 +518,9 @@ const ClientDetailsPage = () => {
                   </div>
                 ) : (
                   <div className="space-y-8">
-                    {/* Loan Applications Section */}
+                    {/* Loan Applications */}
                     {loanApplications.length > 0 && (
                       <div>
-                        <div className="flex items-center gap-3 mb-4">
-                          <h4 className="font-semibold text-lg text-banking-primary">
-                            Loan Applications
-                          </h4>
-                          <Badge className="status-info">
-                            {loanApplications.length}
-                          </Badge>
-                        </div>
                         
                         <div className="rounded-lg border overflow-hidden">
                           <div className="overflow-x-auto">
