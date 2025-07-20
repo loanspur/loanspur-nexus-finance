@@ -1,7 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from './useAuth';
+import { useToast } from './use-toast';
+import { useMifosIntegration } from './useMifosIntegration';
 
 export interface LoanApplication {
   id: string;
@@ -524,6 +525,7 @@ export const useProcessLoanDisbursement = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { disburseMifosLoan, isConfigured: isMifosConfigured } = useMifosIntegration();
 
   return useMutation({
     mutationFn: async (disbursement: {
@@ -540,6 +542,8 @@ export const useProcessLoanDisbursement = () => {
       savings_account_id?: string;
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      
 
       // Check if loan has already been disbursed
       const { data: existingDisbursement, error: disbursementCheckError } = await supabase
@@ -558,10 +562,10 @@ export const useProcessLoanDisbursement = () => {
       }
 
       // Get approved loan record created during approval
-      let existingLoan;
+      let existingLoan: any;
       const { data: loanData, error: loanFetchError } = await supabase
         .from('loans')
-        .select('id, loan_number, status, client_id')
+        .select('id, loan_number, status, client_id, mifos_loan_id')
         .eq('application_id', disbursement.loan_application_id)
         .single();
       
@@ -595,7 +599,7 @@ export const useProcessLoanDisbursement = () => {
             status: 'active', // Set directly to active during disbursement
             loan_officer_id: profile.id,
           })
-          .select('id, loan_number, status, client_id')
+          .select('id, loan_number, status, client_id, mifos_loan_id')
           .single();
           
         if (createError || !newLoan) {
@@ -682,6 +686,25 @@ export const useProcessLoanDisbursement = () => {
         .single();
       
       if (disbursementError) throw disbursementError;
+
+      // If Mifos is configured and loan has Mifos ID, disburse in Mifos X first
+      if (isMifosConfigured && existingLoan.mifos_loan_id) {
+        console.log('Disbursing loan in Mifos X with ID:', existingLoan.mifos_loan_id);
+        
+        try {
+          await disburseMifosLoan.mutateAsync({
+            mifosLoanId: existingLoan.mifos_loan_id,
+            disbursementAmount: disbursement.disbursed_amount,
+            disbursementDate: disbursement.disbursement_date,
+            note: `Disbursement for loan ${existingLoan.loan_number}`,
+          });
+          
+          console.log('Mifos X disbursement successful');
+        } catch (mifosError: any) {
+          console.error('Mifos X disbursement failed:', mifosError);
+          throw new Error(`Mifos X disbursement failed: ${mifosError.message}`);
+        }
+      }
 
       // Ensure loan status is active (in case it wasn't set during creation)
       const { error: loanUpdateError } = await supabase
