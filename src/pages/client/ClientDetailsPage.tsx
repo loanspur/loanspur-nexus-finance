@@ -595,6 +595,7 @@ const ClientDetailsPage = () => {
                                    className={
                                      item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                      item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                     item.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
                                      item.status === 'active' ? 'bg-green-100 text-green-800' :
                                      item.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                      item.status === 'closed' ? 'bg-gray-100 text-gray-800' :
@@ -1014,6 +1015,7 @@ const ClientDetailsPage = () => {
                       className={
                         selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                         selectedLoanItem.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        selectedLoanItem.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
                         selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
                         selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
                         selectedLoanItem.status === 'closed' ? 'bg-gray-100 text-gray-800' :
@@ -1076,10 +1078,13 @@ const ClientDetailsPage = () => {
                       variant="outline" 
                       className="border-success text-success hover:bg-success hover:text-success-foreground"
                       onClick={() => {
+                        // Update the selected item status locally for immediate UI feedback
+                        setSelectedLoanItem(prev => ({ ...prev, status: 'pending disbursal' }));
+                        
                         console.log('Approve application:', selectedLoanItem.id, 'Date:', actionDate);
                         toast({
                           title: "Application Approved",
-                          description: `Loan application ${selectedLoanItem.application_number} has been approved.`,
+                          description: `Loan application ${selectedLoanItem.application_number} has been approved and is now pending disbursal.`,
                         });
                         setShowLoanActionModal(false);
                       }}
