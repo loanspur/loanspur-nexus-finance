@@ -108,7 +108,7 @@ const ClientDetailsPage = () => {
   const [showNewShareAccount, setShowNewShareAccount] = useState(false);
   const [showAddCharge, setShowAddCharge] = useState(false);
   const [showTransferClient, setShowTransferClient] = useState(false);
-  const [showClosedLoans, setShowClosedLoans] = useState(true);
+  const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
 
   useEffect(() => {
