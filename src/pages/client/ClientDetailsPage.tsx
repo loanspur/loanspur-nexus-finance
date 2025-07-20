@@ -993,93 +993,147 @@ const ClientDetailsPage = () => {
 
           {selectedLoanItem && (
             <div className="space-y-6">
-              {/* Disbursement Form for Approved Loans */}
+              {/* Enhanced Disbursement Form for Approved Loans */}
               {selectedLoanItem?.status === 'approved' ? (
                 <div className="space-y-6">
-                  {/* Disbursement Date */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Disbursed on<span className="text-red-500">*</span>
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !actionDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {actionDate ? format(actionDate, "dd MMM yyyy") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={actionDate}
-                          onSelect={setActionDate}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  {/* Disbursement Method Selection */}
+                  <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Select Disbursement Method
+                    </h4>
+                    <RadioGroup value={disbursementMethod} onValueChange={setDisbursementMethod} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-white/60 transition-colors">
+                        <RadioGroupItem value="cash" id="cash" />
+                        <Label htmlFor="cash" className="flex items-center gap-2 font-medium cursor-pointer">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          Cash Disbursement
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-white/60 transition-colors">
+                        <RadioGroupItem value="savings" id="savings" />
+                        <Label htmlFor="savings" className="flex items-center gap-2 font-medium cursor-pointer">
+                          <PiggyBank className="h-4 w-4 text-blue-600" />
+                          Transfer to Savings
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-white/60 transition-colors">
+                        <RadioGroupItem value="bank" id="bank" />
+                        <Label htmlFor="bank" className="flex items-center gap-2 font-medium cursor-pointer">
+                          <Building className="h-4 w-4 text-purple-600" />
+                          Bank Transfer
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
 
-                  {/* Transaction Amount */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Transaction amount<span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      value={selectedLoanItem.type === 'application' 
-                        ? selectedLoanItem.requested_amount || 0 
-                        : selectedLoanItem.principal_amount || 0}
-                      disabled
-                      className="bg-muted/30"
-                    />
-                  </div>
-
-                  {/* Payment Type - Only show for non-savings disbursement */}
-                  {disbursementMethod !== 'savings' && (
+                  {/* Disbursement Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Disbursement Date */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">
-                        Payment type<span className="text-red-500">*</span>
+                        Disbursement Date<span className="text-red-500">*</span>
                       </Label>
-                      <Select value={disbursementMethod} onValueChange={setDisbursementMethod}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment method" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">CASH</SelectItem>
-                          <SelectItem value="bank">BANK ACCOUNT - DTB BANK K</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !actionDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {actionDate ? format(actionDate, "dd MMM yyyy") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={actionDate}
+                            onSelect={setActionDate}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                  )}
 
-                  {/* Receipt Number - Only show for non-savings disbursement */}
-                  {disbursementMethod !== 'savings' && (
+                    {/* Transaction Amount */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">
-                        Receipt#<span className="text-red-500">*</span>
+                        Disbursement Amount<span className="text-red-500">*</span>
                       </Label>
                       <Input
                         type="text"
-                        value={receiptNumber}
-                        onChange={(e) => setReceiptNumber(e.target.value)}
-                        placeholder="Enter receipt number"
+                        value={formatCurrency(selectedLoanItem.type === 'application' 
+                          ? selectedLoanItem.requested_amount || 0 
+                          : selectedLoanItem.principal_amount || 0)}
+                        disabled
+                        className="bg-muted/30 font-semibold text-lg"
                       />
+                    </div>
+                  </div>
+
+                  {/* Method-specific Fields */}
+                  {disbursementMethod === 'savings' && (
+                    <div className="p-4 border rounded-lg bg-blue-50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <PiggyBank className="h-5 w-5 text-blue-600" />
+                        <h5 className="font-medium text-blue-900">Savings Account Transfer</h5>
+                      </div>
+                      <p className="text-sm text-blue-700 mb-3">
+                        Funds will be automatically transferred to the client's active savings account.
+                        A unique transaction receipt will be generated.
+                      </p>
+                      <div className="bg-blue-100 p-3 rounded border border-blue-200">
+                        <p className="text-xs text-blue-800">
+                          <strong>Auto-generated Receipt:</strong> SAV-{Date.now().toString().slice(-6)}-{Math.random().toString(36).substr(2, 4).toUpperCase()}
+                        </p>
+                      </div>
                     </div>
                   )}
 
-                  {/* Note */}
+                  {(disbursementMethod === 'cash' || disbursementMethod === 'bank') && (
+                    <div className="space-y-4">
+                      {/* Payment Type */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Payment Method<span className="text-red-500">*</span>
+                        </Label>
+                        <Select value={disbursementMethod} onValueChange={setDisbursementMethod}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">CASH DISBURSEMENT</SelectItem>
+                            <SelectItem value="bank">BANK TRANSFER - DTB BANK</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Receipt Number */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">
+                          Receipt/Reference Number<span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          type="text"
+                          value={receiptNumber}
+                          onChange={(e) => setReceiptNumber(e.target.value)}
+                          placeholder={disbursementMethod === 'cash' ? "Enter cash receipt number" : "Enter bank reference number"}
+                          className="font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Notes */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Note</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Disbursement Notes</Label>
                     <textarea 
                       className="w-full min-h-[80px] p-3 border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      placeholder="Add any notes..."
+                      placeholder="Add any additional notes about this disbursement..."
                       rows={3}
                     />
                   </div>
@@ -1181,19 +1235,74 @@ const ClientDetailsPage = () => {
               )}
 
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              {/* Enhanced Action Buttons */}
+              <div className="flex justify-between items-center pt-6 border-t bg-muted/30 -mx-6 px-6 py-4 rounded-b-lg">
                 {/* Disbursement Actions for Approved Loans */}
                 {selectedLoanItem?.status === 'approved' ? (
-                  <>
-                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)}>
+                  <div className="flex items-center gap-3 w-full">
+                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)} className="px-6">
                       Cancel
                     </Button>
+                    
+                    <div className="flex-1" />
+                    
+                    {/* Undo Approval Button */}
                     <Button 
-                      className="bg-blue-600 text-white hover:bg-blue-700"
+                      variant="outline" 
+                      className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600 px-6"
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase
+                            .from('loan_applications')
+                            .update({ 
+                              status: 'pending',
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', selectedLoanItem.id);
+
+                          if (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to undo approval. Please try again.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          toast({
+                            title: "Approval Reverted",
+                            description: `Loan application has been reverted to pending status.`,
+                          });
+                          setShowLoanActionModal(false);
+                          window.location.reload();
+                        } catch (err) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to undo approval. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Undo Approval
+                    </Button>
+                    
+                    {/* Primary Disbursement Button */}
+                    <Button 
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 shadow-lg"
                       onClick={async () => {
                         try {
                           // Validation
+                          if (!actionDate) {
+                            toast({
+                              title: "Date Required",
+                              description: "Please select a disbursement date.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
                           if (disbursementMethod !== 'savings' && !receiptNumber.trim()) {
                             toast({
                               title: "Receipt Required",
@@ -1208,8 +1317,10 @@ const ClientDetailsPage = () => {
                             ? `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
                             : receiptNumber;
 
-                          console.log('Disburse loan:', selectedLoanItem.id, 'Method:', disbursementMethod, 'Receipt:', finalReceiptNumber, 'Date:', actionDate);
-                          
+                          const loanAmount = selectedLoanItem.type === 'application' 
+                            ? selectedLoanItem.requested_amount || 0 
+                            : selectedLoanItem.principal_amount || 0;
+
                           // Handle savings account disbursement
                           if (disbursementMethod === 'savings') {
                             // Find client's active savings account
@@ -1230,10 +1341,6 @@ const ClientDetailsPage = () => {
                             }
 
                             // Update savings account balance
-                            const loanAmount = selectedLoanItem.type === 'application' 
-                              ? selectedLoanItem.requested_amount || 0 
-                              : selectedLoanItem.principal_amount || 0;
-
                             const newBalance = (savingsAccount.account_balance || 0) + loanAmount;
 
                             const { error: updateError } = await supabase
@@ -1246,7 +1353,6 @@ const ClientDetailsPage = () => {
                               .eq('id', savingsAccount.id);
 
                             if (updateError) {
-                              console.error('Error updating savings balance:', updateError);
                               toast({
                                 title: "Error",
                                 description: "Failed to transfer funds to savings account.",
@@ -1255,28 +1361,42 @@ const ClientDetailsPage = () => {
                               return;
                             }
 
-                            // Create transaction record
+                            // Create savings transaction record
                             await supabase
-                              .from('transactions')
+                              .from('savings_transactions')
                               .insert({
                                 tenant_id: client.tenant_id,
-                                client_id: client.id,
                                 savings_account_id: savingsAccount.id,
-                                transaction_id: finalReceiptNumber,
+                                transaction_type: 'credit',
                                 amount: loanAmount,
-                                transaction_type: 'credit' as any,
-                                payment_type: 'transfer' as any,
-                                payment_status: 'completed' as any,
-                                description: `Loan disbursement to savings - ${selectedLoanItem.application_number}`,
-                                transaction_date: actionDate?.toISOString() || new Date().toISOString(),
-                                reconciliation_status: 'reconciled'
-                              } as any);
+                                description: `Loan disbursement transfer - ${selectedLoanItem.application_number}`,
+                                transaction_date: actionDate.toISOString(),
+                                reference_number: finalReceiptNumber,
+                                balance_after: newBalance
+                              });
                           }
 
-                          // Create loan record and update application status
+                          // Update loan application status to disbursed/active
+                          const { error: statusError } = await supabase
+                            .from('loan_applications')
+                            .update({ 
+                              status: 'disbursed',
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', selectedLoanItem.id);
+
+                          if (statusError) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to update loan status.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
                           toast({
-                            title: "Loan Disbursed",
-                            description: `Loan has been disbursed via ${disbursementMethod} ${disbursementMethod === 'savings' ? 'to savings account' : ''} - Receipt: ${finalReceiptNumber}`,
+                            title: "Disbursement Successful! 🎉",
+                            description: `Loan disbursed ${disbursementMethod === 'savings' ? 'to savings account' : `via ${disbursementMethod}`} - Receipt: ${finalReceiptNumber}`,
                           });
                           setShowLoanActionModal(false);
                           window.location.reload();
@@ -1290,9 +1410,10 @@ const ClientDetailsPage = () => {
                         }
                       }}
                     >
-                      Submit
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      {disbursementMethod === 'savings' ? 'Disburse to Savings' : 'Disburse Loan'}
                     </Button>
-                  </>
+                  </div>
                 ) : (
                   // Other action buttons for non-disbursement status
                   <>
