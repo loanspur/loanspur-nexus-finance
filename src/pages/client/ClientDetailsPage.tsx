@@ -1398,34 +1398,46 @@ const ClientDetailsPage = () => {
                           
                           // First, create a loan record from the approved application
                           const loanNumber = `LN-${Date.now()}`;
-                          const { data: newLoan, error: loanCreateError } = await supabase
-                            .from('loans')
-                            .insert({
-                              tenant_id: selectedLoanItem.tenant_id,
-                              client_id: selectedLoanItem.client_id,
-                              loan_product_id: selectedLoanItem.loan_product_id,
-                              loan_number: loanNumber,
-                              principal_amount: selectedLoanItem.requested_amount,
-                              interest_rate: selectedLoanItem.loan_products?.nominal_interest_rate || 0,
-                              term_months: selectedLoanItem.requested_term,
-                              disbursement_date: format(actionDate || new Date(), 'yyyy-MM-dd'),
-                              status: 'active',
-                              outstanding_balance: selectedLoanItem.requested_amount
-                            })
-                            .select()
-                            .single();
+                          const disbursementDateFormatted = format(actionDate || new Date(), 'yyyy-MM-dd');
+                          
+                          try {
+                            const { data: newLoan, error: loanCreateError } = await supabase
+                              .from('loans')
+                              .insert({
+                                tenant_id: selectedLoanItem.tenant_id,
+                                client_id: selectedLoanItem.client_id,
+                                loan_product_id: selectedLoanItem.loan_product_id,
+                                loan_number: loanNumber,
+                                principal_amount: Number(selectedLoanItem.requested_amount),
+                                interest_rate: Number(selectedLoanItem.loan_products?.nominal_interest_rate || 0),
+                                term_months: Number(selectedLoanItem.requested_term),
+                                disbursement_date: disbursementDateFormatted,
+                                status: 'active',
+                                outstanding_balance: Number(selectedLoanItem.requested_amount)
+                              })
+                              .select()
+                              .single();
 
-                          if (loanCreateError) {
-                            console.error('Error creating loan record:', loanCreateError);
+                            if (loanCreateError) {
+                              console.error('Error creating loan record:', loanCreateError);
+                              toast({
+                                title: "Error",
+                                description: "Failed to create loan record: " + loanCreateError.message,
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            console.log('Loan created successfully with active status:', newLoan);
+                          } catch (err) {
+                            console.error('Exception creating loan record:', err);
                             toast({
                               title: "Error",
-                              description: "Failed to create loan record",
+                              description: "Failed to create loan record due to system error",
                               variant: "destructive",
                             });
                             return;
                           }
-
-                          console.log('Loan created successfully with active status:', newLoan);
 
                           toast({
                             title: "Disbursement Successful! 🎉",
