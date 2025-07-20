@@ -15,21 +15,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, DollarSign, Calendar, Percent, FileText } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CreditCard, DollarSign, Calendar, Percent, FileText, User, Building, Shield, Table } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
 import { useMifosIntegration } from "@/hooks/useMifosIntegration";
 import { useToast } from "@/hooks/use-toast";
+import { useFundSources } from "@/hooks/useFundSources";
+import { useLoanPurposes } from "@/hooks/useLoanPurposes";
+import { useCollateralTypes } from "@/hooks/useCollateralTypes";
+import { format } from "date-fns";
 
 const loanApplicationSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
+  fund_source_id: z.string().min(1, "Please select a fund source"),
   requested_amount: z.number().min(1, "Amount must be greater than 0"),
-  requested_term: z.number().min(1, "Term must be at least 1 month"),
-  purpose: z.string().optional(),
-  interest_rate: z.number().optional(),
-  repayment_frequency: z.string().optional(),
+  requested_term: z.number().min(1, "Term must be at least 1"),
+  term_frequency: z.enum(["daily", "weekly", "monthly", "annually"]),
+  purpose: z.string().min(1, "Please select a loan purpose"),
+  interest_rate: z.number().min(0, "Interest rate must be positive"),
+  interest_calculation_method: z.enum(["flat", "declining_balance", "compound"]),
+  loan_officer_id: z.string().optional(),
+  linked_savings_account_id: z.string().optional(),
+  submit_date: z.string(),
+  disbursement_date: z.string(),
+  product_charges: z.array(z.string()).default([]),
+  collateral_ids: z.array(z.string()).default([]),
 });
 
 type LoanApplicationData = z.infer<typeof loanApplicationSchema>;
@@ -46,16 +60,26 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
   const createLoanApplication = useCreateLoanApplication();
   const { createMifosLoanApplication, mifosConfig, isLoadingConfig } = useMifosIntegration();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [repaymentSchedule, setRepaymentSchedule] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("details");
 
   const form = useForm<LoanApplicationData>({
     resolver: zodResolver(loanApplicationSchema),
     defaultValues: {
       loan_product_id: "",
+      fund_source_id: "",
       requested_amount: 0,
       requested_term: 12,
+      term_frequency: "monthly",
       purpose: "",
       interest_rate: 0,
-      repayment_frequency: "monthly",
+      interest_calculation_method: "declining_balance",
+      loan_officer_id: "",
+      linked_savings_account_id: "",
+      submit_date: format(new Date(), 'yyyy-MM-dd'),
+      disbursement_date: format(new Date(), 'yyyy-MM-dd'),
+      product_charges: [],
+      collateral_ids: [],
     },
   });
 
@@ -92,6 +116,54 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     enabled: !!clientId && open,
   });
 
+  // Fetch fund sources
+  const { data: fundSources = [], isLoading: isLoadingFunds } = useFundSources();
+
+  // Fetch loan purposes
+  const { data: loanPurposes = [], isLoading: isLoadingPurposes } = useLoanPurposes();
+
+  // Fetch collateral types
+  const { data: collateralTypes = [], isLoading: isLoadingCollateral } = useCollateralTypes();
+
+  // Fetch loan officers
+  const { data: loanOfficers = [] } = useQuery({
+    queryKey: ['loan-officers', profile?.tenant_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email')
+        .eq('tenant_id', profile?.tenant_id)
+        .eq('role', 'loan_officer')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.tenant_id && open,
+  });
+
+  // Fetch client's savings accounts (mock data since table structure is unclear)
+  const savingsAccounts = [
+    { 
+      id: '1', 
+      account_number: 'SAV001', 
+      account_balance: 5000, 
+      savings_products: { name: 'Basic Savings' } 
+    },
+    { 
+      id: '2', 
+      account_number: 'SAV002', 
+      account_balance: 12000, 
+      savings_products: { name: 'Premium Savings' } 
+    },
+  ];
+
+  // Fetch product charges (mock data since table doesn't exist)
+  const productCharges = [
+    { id: '1', charge_name: 'Processing Fee', charge_amount: 100, charge_type: 'flat' },
+    { id: '2', charge_name: 'Insurance Fee', charge_amount: 50, charge_type: 'percentage' },
+  ];
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -105,10 +177,75 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     
     if (product) {
       form.setValue('interest_rate', product.default_nominal_interest_rate || 0);
-      form.setValue('repayment_frequency', product.repayment_frequency || 'monthly');
+      form.setValue('term_frequency', (product.repayment_frequency || 'monthly') as any);
       form.setValue('requested_term', product.default_term || 12);
       form.setValue('requested_amount', product.default_principal || 0);
     }
+  };
+
+  const generateRepaymentSchedule = () => {
+    const formData = form.getValues();
+    if (!formData.requested_amount || !formData.requested_term || !formData.interest_rate) {
+      return [];
+    }
+
+    const principal = formData.requested_amount;
+    const rate = formData.interest_rate / 100;
+    const term = formData.requested_term;
+    const frequency = formData.term_frequency;
+    
+    // Simple calculation - should be enhanced based on actual requirements
+    const periodsPerYear = frequency === 'daily' ? 365 : frequency === 'weekly' ? 52 : frequency === 'monthly' ? 12 : 1;
+    const periodicRate = rate / periodsPerYear;
+    const totalPayments = term;
+    
+    let schedule = [];
+    let balance = principal;
+    
+    if (formData.interest_calculation_method === 'declining_balance') {
+      const monthlyPayment = (principal * periodicRate * Math.pow(1 + periodicRate, totalPayments)) / 
+                            (Math.pow(1 + periodicRate, totalPayments) - 1);
+      
+      for (let i = 1; i <= totalPayments; i++) {
+        const interestPayment = balance * periodicRate;
+        const principalPayment = monthlyPayment - interestPayment;
+        balance -= principalPayment;
+        
+        schedule.push({
+          period: i,
+          beginning_balance: balance + principalPayment,
+          payment: monthlyPayment,
+          principal: principalPayment,
+          interest: interestPayment,
+          ending_balance: Math.max(0, balance),
+        });
+      }
+    } else {
+      // Flat rate calculation
+      const totalInterest = principal * rate;
+      const monthlyPayment = (principal + totalInterest) / totalPayments;
+      const monthlyPrincipal = principal / totalPayments;
+      const monthlyInterest = totalInterest / totalPayments;
+      
+      for (let i = 1; i <= totalPayments; i++) {
+        balance -= monthlyPrincipal;
+        schedule.push({
+          period: i,
+          beginning_balance: balance + monthlyPrincipal,
+          payment: monthlyPayment,
+          principal: monthlyPrincipal,
+          interest: monthlyInterest,
+          ending_balance: Math.max(0, balance),
+        });
+      }
+    }
+    
+    return schedule;
+  };
+
+  const updateSchedule = () => {
+    const schedule = generateRepaymentSchedule();
+    setRepaymentSchedule(schedule);
   };
 
   const onSubmit = async (data: LoanApplicationData) => {
@@ -192,15 +329,24 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Loan Product Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Loan Product
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="details">Loan Details</TabsTrigger>
+                <TabsTrigger value="funding">Funding & Officer</TabsTrigger>
+                <TabsTrigger value="charges">Charges & Collateral</TabsTrigger>
+                <TabsTrigger value="schedule">Schedule Preview</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="space-y-6">
+                {/* Loan Product Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5" />
+                      Loan Product
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
                   name="loan_product_id"
@@ -308,7 +454,10 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                             type="number"
                             placeholder="Enter amount"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) => {
+                              field.onChange(Number(e.target.value));
+                              updateSchedule();
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -321,15 +470,45 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                     name="requested_term"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Loan Term (Months) *</FormLabel>
+                        <FormLabel>Loan Term *</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
-                            placeholder="Enter term in months"
+                            placeholder="Enter term"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) => {
+                              field.onChange(Number(e.target.value));
+                              updateSchedule();
+                            }}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="term_frequency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Term Frequency *</FormLabel>
+                        <Select onValueChange={(value) => {
+                          field.onChange(value);
+                          updateSchedule();
+                        }} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="annually">Annually</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -340,14 +519,17 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                     name="interest_rate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Interest Rate (%)</FormLabel>
+                        <FormLabel>Interest Rate (% PA) *</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             step="0.01"
                             placeholder="Interest rate"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) => {
+                              field.onChange(Number(e.target.value));
+                              updateSchedule();
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -357,20 +539,54 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
 
                   <FormField
                     control={form.control}
-                    name="repayment_frequency"
+                    name="interest_calculation_method"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Repayment Frequency</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormLabel>Interest Calculation</FormLabel>
+                        <Select onValueChange={(value) => {
+                          field.onChange(value);
+                          updateSchedule();
+                        }} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select frequency" />
+                              <SelectValue placeholder="Select calculation method" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="flat">Flat Rate</SelectItem>
+                            <SelectItem value="declining_balance">Declining Balance</SelectItem>
+                            <SelectItem value="compound">Compound Interest</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="purpose"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Loan Purpose *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select loan purpose" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {isLoadingPurposes ? (
+                              <SelectItem value="loading" disabled>Loading purposes...</SelectItem>
+                            ) : loanPurposes.length === 0 ? (
+                              <SelectItem value="no-purposes" disabled>No purposes available</SelectItem>
+                            ) : (
+                              loanPurposes.map((purpose) => (
+                                <SelectItem key={purpose.id} value={purpose.code_value}>
+                                  {purpose.code_value}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -379,39 +595,344 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="purpose"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Loan Purpose</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe the purpose of this loan..."
-                          className="resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="submit_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Submit Date *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="disbursement_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expected Disbursement Date *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="funding" className="space-y-6">
+            {/* Fund Source and Officer */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="w-5 h-5" />
+                  Funding & Officer Assignment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="fund_source_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fund Source *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select fund source" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {isLoadingFunds ? (
+                              <SelectItem value="loading" disabled>Loading fund sources...</SelectItem>
+                            ) : fundSources.length === 0 ? (
+                              <SelectItem value="no-funds" disabled>No fund sources available</SelectItem>
+                            ) : (
+                              fundSources.map((fund) => (
+                                <SelectItem key={fund.id} value={fund.id}>
+                                  {fund.name} ({fund.type})
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="loan_officer_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Loan Officer</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select loan officer" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">No specific officer</SelectItem>
+                            {loanOfficers.map((officer) => (
+                              <SelectItem key={officer.id} value={officer.id}>
+                                {officer.first_name} {officer.last_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="linked_savings_account_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Link to Savings Account</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select savings account" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">No linked account</SelectItem>
+                            {savingsAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.savings_products?.name} - {account.account_number} 
+                                (Balance: {formatCurrency(account.account_balance || 0)})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="charges" className="space-y-6">
+            {/* Product Charges */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Percent className="w-5 h-5" />
+                  Product Charges
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {productCharges.length === 0 ? (
+                  <p className="text-muted-foreground">No charges available for selected product</p>
+                ) : (
+                  <div className="space-y-2">
+                     {productCharges.map((charge) => (
+                       <FormField
+                         key={charge.id}
+                         control={form.control}
+                         name="product_charges"
+                         render={({ field }) => (
+                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                             <FormControl>
+                               <Checkbox
+                                 checked={field.value?.includes(charge.id)}
+                                 onCheckedChange={(checked) => {
+                                   return checked
+                                     ? field.onChange([...field.value, charge.id])
+                                     : field.onChange(field.value?.filter((value) => value !== charge.id));
+                                 }}
+                               />
+                             </FormControl>
+                             <div className="space-y-1 leading-none">
+                               <FormLabel className="font-normal">
+                                 {charge.charge_name} - {formatCurrency(charge.charge_amount)}
+                               </FormLabel>
+                               <p className="text-xs text-muted-foreground">
+                                 {charge.charge_type}
+                               </p>
+                             </div>
+                           </FormItem>
+                         )}
+                       />
+                     ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={createLoanApplication.isPending || createMifosLoanApplication.isPending}
-              >
-                {createLoanApplication.isPending || createMifosLoanApplication.isPending ? 'Creating...' : 'Create Loan Application'}
-              </Button>
-            </div>
-          </form>
+            {/* Collateral Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Collateral
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoadingCollateral ? (
+                  <p className="text-muted-foreground">Loading collateral types...</p>
+                ) : collateralTypes.length === 0 ? (
+                  <p className="text-muted-foreground">No collateral types available</p>
+                ) : (
+                  <div className="space-y-2">
+                    {collateralTypes.map((collateral) => (
+                      <FormField
+                        key={collateral.id}
+                        control={form.control}
+                        name="collateral_ids"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(collateral.id)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, collateral.id])
+                                    : field.onChange(field.value?.filter((value) => value !== collateral.id));
+                                }}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="font-normal">
+                                {collateral.code_value}
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule" className="space-y-6">
+            {/* Repayment Schedule Preview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Table className="w-5 h-5" />
+                  Repayment Schedule Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {repaymentSchedule.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Fill in loan details to preview repayment schedule</p>
+                    <Button type="button" onClick={updateSchedule} className="mt-4">
+                      Generate Schedule
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse border border-border">
+                      <thead>
+                        <tr className="bg-muted">
+                          <th className="border border-border p-2 text-left">Period</th>
+                          <th className="border border-border p-2 text-right">Beginning Balance</th>
+                          <th className="border border-border p-2 text-right">Payment</th>
+                          <th className="border border-border p-2 text-right">Principal</th>
+                          <th className="border border-border p-2 text-right">Interest</th>
+                          <th className="border border-border p-2 text-right">Ending Balance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {repaymentSchedule.slice(0, 10).map((payment) => (
+                          <tr key={payment.period} className="hover:bg-muted/50">
+                            <td className="border border-border p-2">{payment.period}</td>
+                            <td className="border border-border p-2 text-right">
+                              {formatCurrency(payment.beginning_balance)}
+                            </td>
+                            <td className="border border-border p-2 text-right">
+                              {formatCurrency(payment.payment)}
+                            </td>
+                            <td className="border border-border p-2 text-right">
+                              {formatCurrency(payment.principal)}
+                            </td>
+                            <td className="border border-border p-2 text-right">
+                              {formatCurrency(payment.interest)}
+                            </td>
+                            <td className="border border-border p-2 text-right">
+                              {formatCurrency(payment.ending_balance)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {repaymentSchedule.length > 10 && (
+                      <p className="text-center text-muted-foreground mt-4">
+                        ... and {repaymentSchedule.length - 10} more payments
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setActiveTab("details")}
+              disabled={activeTab === "details"}
+            >
+              Previous
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                const tabs = ["details", "funding", "charges", "schedule"];
+                const currentIndex = tabs.indexOf(activeTab);
+                if (currentIndex < tabs.length - 1) {
+                  setActiveTab(tabs[currentIndex + 1]);
+                }
+              }}
+              disabled={activeTab === "schedule"}
+            >
+              Next
+            </Button>
+          </div>
+          
+          <div className="flex gap-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={createLoanApplication.isPending || createMifosLoanApplication.isPending}
+            >
+              {createLoanApplication.isPending || createMifosLoanApplication.isPending ? 'Creating...' : 'Create Loan Application'}
+            </Button>
+          </div>
+        </div>
+      </form>
         </Form>
       </DialogContent>
     </Dialog>
