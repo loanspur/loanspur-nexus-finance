@@ -1395,8 +1395,25 @@ const ClientDetailsPage = () => {
                             return;
                           }
 
-                          // TODO: Update the actual loan status to active
-                          console.log('Loan should be set to active status');
+                          console.log('Updating loan status to active for application ID:', selectedLoanItem.id);
+                          // Update the actual loan status to active
+                          fetch(`https://woqesvsopdgoikpatzxp.supabase.co/rest/v1/loans?application_id=eq.${selectedLoanItem.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI',
+                              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI'
+                            },
+                            body: JSON.stringify({ status: 'active' })
+                          }).then(response => {
+                            if (response.ok) {
+                              console.log('Loan status updated to active successfully');
+                            } else {
+                              console.error('Error updating loan status');
+                            }
+                          }).catch(error => {
+                            console.error('Failed to update loan status:', error);
+                          });
 
                           toast({
                             title: "Disbursement Successful! 🎉",
