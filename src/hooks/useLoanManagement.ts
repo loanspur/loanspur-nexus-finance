@@ -562,8 +562,7 @@ export const useProcessLoanDisbursement = () => {
       const { data: loanData, error: loanFetchError } = await supabase
         .from('loans')
         .select('id, loan_number, status, client_id')
-        .eq('status', 'pending_disbursement')
-        .eq('client_id', disbursement.client_id || '')
+        .eq('application_id', disbursement.loan_application_id)
         .single();
       
       if (loanFetchError) {
