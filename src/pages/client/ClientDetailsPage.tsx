@@ -158,19 +158,35 @@ const ClientDetailsPage = () => {
         return;
       }
 
-      // Fetch loans with better error handling
-      const { data: loansData, error: loansError } = await supabase
-        .from('loans')
-        .select(`
-          *,
-          loan_products (
-            name,
-            short_name,
-            default_nominal_interest_rate
-          )
-        `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+      // Fetch loans with better error handling and retry logic
+      let loansData = null;
+      let loansError = null;
+      
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await supabase
+          .from('loans')
+          .select(`
+            *,
+            loan_products!inner (
+              name,
+              short_name,
+              default_nominal_interest_rate
+            )
+          `)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false });
+          
+        if (!error) {
+          loansData = data;
+          break;
+        }
+        
+        loansError = error;
+        if (attempt < 2) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       if (loansError) {
         console.error('Error fetching loans:', loansError);
@@ -194,19 +210,35 @@ const ClientDetailsPage = () => {
         console.error('Error fetching savings:', savingsError);
       }
 
-      // Also fetch loan applications
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('loan_applications')
-        .select(`
-          *,
-          loan_products (
-            name,
-            short_name,
-            default_nominal_interest_rate
-          )
-        `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
+      // Also fetch loan applications with retry logic
+      let applicationsData = null;
+      let applicationsError = null;
+      
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await supabase
+          .from('loan_applications')
+          .select(`
+            *,
+            loan_products!inner (
+              name,
+              short_name,
+              default_nominal_interest_rate
+            )
+          `)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false });
+          
+        if (!error) {
+          applicationsData = data;
+          break;
+        }
+        
+        applicationsError = error;
+        if (attempt < 2) {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       if (applicationsError) {
         console.error('Error fetching loan applications:', applicationsError);
