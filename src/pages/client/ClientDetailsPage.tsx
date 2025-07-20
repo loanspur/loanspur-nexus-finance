@@ -421,7 +421,7 @@ const ClientDetailsPage = () => {
             <div className="flex items-center py-3 gap-4">
               {/* Quick Action Buttons */}
               <div className="flex-shrink-0">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button onClick={() => setShowNewLoan(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
                     <Plus className="h-4 w-4 mr-1" />
                     New Loan
@@ -429,6 +429,22 @@ const ClientDetailsPage = () => {
                   <Button onClick={() => setShowNewSavings(true)} size="sm" className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
                     <Plus className="h-4 w-4 mr-1" />
                     New Savings
+                  </Button>
+                  <Button variant="outline" size="sm" className="border-info text-info hover:bg-info hover:text-info-foreground">
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit Profile
+                  </Button>
+                  <Button variant="outline" size="sm" className="border-warning text-warning hover:bg-warning hover:text-warning-foreground">
+                    <ArrowRightLeft className="h-4 w-4 mr-1" />
+                    Transfer Client
+                  </Button>
+                  <Button variant="outline" size="sm" className="border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
+                    <Settings className="h-4 w-4 mr-1" />
+                    Update Default Savings
+                  </Button>
+                  <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                    <UserMinus className="h-4 w-4 mr-1" />
+                    Unassign Staff
                   </Button>
                 </div>
               </div>
