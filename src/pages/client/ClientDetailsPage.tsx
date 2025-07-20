@@ -305,13 +305,13 @@ const ClientDetailsPage = () => {
               
               {/* Quick Actions */}
               <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                <Button variant="secondary" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-medium">
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                    <Button variant="secondary" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-medium">
                       Actions
                       <ChevronDown className="h-4 w-4 ml-2" />
                     </Button>
@@ -369,27 +369,27 @@ const ClientDetailsPage = () => {
           <div className="px-6 border-b border-border">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="h-auto p-0 bg-transparent w-full justify-start overflow-x-auto">
-                <TabsTrigger value="general" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                <TabsTrigger value="general" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   <IdCard className="h-4 w-4 mr-2" />
                   General
                 </TabsTrigger>
-                <TabsTrigger value="identities" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                <TabsTrigger value="identities" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   <IdCard className="h-4 w-4 mr-2" />
                   Identity
                 </TabsTrigger>
-                <TabsTrigger value="documents" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                <TabsTrigger value="documents" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   <FileText className="h-4 w-4 mr-2" />
                   Documents
                 </TabsTrigger>
-                <TabsTrigger value="bank-details" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                <TabsTrigger value="bank-details" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   <Building className="h-4 w-4 mr-2" />
                   Bank Details
                 </TabsTrigger>
-                <TabsTrigger value="next-of-kin" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                <TabsTrigger value="next-of-kin" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   <Phone className="h-4 w-4 mr-2" />
                   Next of Kin
                 </TabsTrigger>
-                <TabsTrigger value="notes" className="px-4 py-3 data-[state=active]:bg-banking-primary data-[state=active]:text-white rounded-none border-b-2 border-transparent data-[state=active]:border-banking-primary">
+                <TabsTrigger value="notes" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
                   <StickyNote className="h-4 w-4 mr-2" />
                   Notes
                 </TabsTrigger>
@@ -400,19 +400,19 @@ const ClientDetailsPage = () => {
           {/* Quick Action Buttons - Redesigned */}
           <div className="p-6 bg-muted/30">
             <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary hover:shadow-glow transition-all duration-300">
+              <Button onClick={() => setShowNewLoan(true)} className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
                 <Plus className="h-4 w-4 mr-2" />
                 New Loan
               </Button>
-              <Button onClick={() => setShowNewSavings(true)} className="bg-gradient-success hover:shadow-glow transition-all duration-300">
+              <Button onClick={() => setShowNewSavings(true)} className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
                 <Plus className="h-4 w-4 mr-2" />
                 New Savings
               </Button>
-              <Button onClick={() => setShowNewShareAccount(true)} variant="outline" className="border-banking-gold text-banking-gold hover:bg-banking-gold hover:text-white">
+              <Button onClick={() => setShowNewShareAccount(true)} variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
                 <Share className="h-4 w-4 mr-2" />
                 New Share Account
               </Button>
-              <Button onClick={() => setShowAddCharge(true)} variant="outline" className="border-warning text-warning hover:bg-warning hover:text-white">
+              <Button onClick={() => setShowAddCharge(true)} variant="outline" className="border-warning text-warning hover:bg-warning hover:text-warning-foreground">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Charge
               </Button>
