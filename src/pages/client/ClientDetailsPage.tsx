@@ -520,15 +520,14 @@ const ClientDetailsPage = () => {
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-muted/50">
-                          <tr>
-                            <th className="text-left p-4 font-medium">Account #</th>
-                            <th className="text-left p-4 font-medium">Product</th>
-                            <th className="text-left p-4 font-medium">Amount</th>
-                            <th className="text-left p-4 font-medium">Term/Balance</th>
-                            <th className="text-left p-4 font-medium">Status</th>
-                            <th className="text-left p-4 font-medium">Date</th>
-                            <th className="text-left p-4 font-medium">Actions</th>
-                          </tr>
+                           <tr>
+                             <th className="text-left p-4 font-medium">Account #</th>
+                             <th className="text-left p-4 font-medium">Product</th>
+                             <th className="text-left p-4 font-medium">Amount</th>
+                             <th className="text-left p-4 font-medium">Status</th>
+                             <th className="text-left p-4 font-medium">Date</th>
+                             <th className="text-left p-4 font-medium">Actions</th>
+                           </tr>
                         </thead>
                         <tbody>
                           {allVisibleItems.map((item) => (
@@ -563,34 +562,20 @@ const ClientDetailsPage = () => {
                                     : item.principal_amount || 0
                                 )}
                               </td>
-                              <td className="p-4">
-                                {item.type === 'application' ? (
-                                  <span>{item.requested_term} months</span>
-                                ) : (
-                                  <div className="space-y-1">
-                                    <div className="font-medium text-destructive text-sm">
-                                      Outstanding: {formatCurrency(item.outstanding_balance || 0)}
-                                    </div>
-                                    <div className="text-sm text-success">
-                                      Paid: {formatCurrency((item.principal_amount || 0) - (item.outstanding_balance || 0))}
-                                    </div>
-                                  </div>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                <Badge 
-                                  className={
-                                    item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                    item.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                    item.status === 'active' ? 'bg-green-100 text-green-800' :
-                                    item.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                    item.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }
-                                >
-                                  {item.status}
-                                </Badge>
-                              </td>
+                               <td className="p-4">
+                                 <Badge 
+                                   className={
+                                     item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                     item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                     item.status === 'active' ? 'bg-green-100 text-green-800' :
+                                     item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                     item.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                                     'bg-gray-100 text-gray-800'
+                                   }
+                                 >
+                                   {item.status}
+                                 </Badge>
+                               </td>
                               <td className="p-4 text-sm">
                                 {format(
                                   new Date(
