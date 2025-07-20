@@ -578,6 +578,7 @@ export const useProcessLoanDisbursement = () => {
         
         // Create loan record for disbursement
         const loanNumber = `LN-${Date.now()}`;
+        console.log('Creating loan record and setting status to active for application ID:', disbursement.loan_application_id);
         const { data: newLoan, error: createError } = await supabase
           .from('loans')
           .insert({
@@ -587,18 +588,36 @@ export const useProcessLoanDisbursement = () => {
             application_id: disbursement.loan_application_id, // Link to application
             loan_number: loanNumber,
             principal_amount: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            interest_rate: loanApplication.final_approved_interest_rate || 10,
+            interest_rate: loanApplication.final_approved_interest_rate || 0,
             term_months: loanApplication.final_approved_term || loanApplication.requested_term,
+            disbursement_date: disbursement.disbursement_date,
             outstanding_balance: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            status: 'pending_disbursement',
+            status: 'active', // Set directly to active during disbursement
             loan_officer_id: profile.id,
           })
           .select('id, loan_number, status, client_id')
           .single();
           
-        if (createError || !newLoan) throw createError;
+        if (createError || !newLoan) {
+          console.error('Error creating loan:', createError);
+          throw createError;
+        }
+        console.log('Loan created successfully with active status:', newLoan);
         existingLoan = newLoan;
       } else {
+        // Update existing loan to active status
+        const { error: statusUpdateError } = await supabase
+          .from('loans')
+          .update({
+            status: 'active',
+            disbursement_date: disbursement.disbursement_date,
+          })
+          .eq('id', loanData.id);
+          
+        if (statusUpdateError) {
+          console.error('Error updating loan status:', statusUpdateError);
+          throw statusUpdateError;
+        }
         existingLoan = loanData;
       }
 
@@ -664,7 +683,7 @@ export const useProcessLoanDisbursement = () => {
       
       if (disbursementError) throw disbursementError;
 
-      // Update loan status to active and set disbursement date
+      // Ensure loan status is active (in case it wasn't set during creation)
       const { error: loanUpdateError } = await supabase
         .from('loans')
         .update({
@@ -673,7 +692,10 @@ export const useProcessLoanDisbursement = () => {
         })
         .eq('id', existingLoan.id);
 
-      if (loanUpdateError) throw loanUpdateError;
+      if (loanUpdateError) {
+        console.error('Error updating loan to active status:', loanUpdateError);
+        throw loanUpdateError;
+      }
 
       // Update loan application status to disbursed
       const { error: updateError } = await supabase
