@@ -108,7 +108,7 @@ const ClientDetailsPage = () => {
   const [showNewShareAccount, setShowNewShareAccount] = useState(false);
   const [showAddCharge, setShowAddCharge] = useState(false);
   const [showTransferClient, setShowTransferClient] = useState(false);
-  const [showClosedLoans, setShowClosedLoans] = useState(false);
+  const [showClosedLoans, setShowClosedLoans] = useState(true);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
 
   useEffect(() => {
@@ -261,24 +261,30 @@ const ClientDetailsPage = () => {
     return grouped;
   };
 
-  // Filter loans - show all except rejected and closed by default
-  const getVisibleLoans = () => {
-    const hiddenStatuses = ['rejected', 'closed'];
+  // Filter loans and applications based on toggle state
+  const getVisibleLoansAndApplications = () => {
+    const rejectedClosedStatuses = ['rejected', 'closed'];
+    
     if (showClosedLoans) {
-      return loans; // Show all loans including rejected/closed
+      // Show only rejected/closed loans and applications
+      const filteredLoans = loans.filter(loan => rejectedClosedStatuses.includes(loan.status?.toLowerCase()));
+      const filteredApplications = loanApplications.filter(app => rejectedClosedStatuses.includes(app.status?.toLowerCase()));
+      return { loans: filteredLoans, applications: filteredApplications };
+    } else {
+      // Show all except rejected/closed loans and applications
+      const filteredLoans = loans.filter(loan => !rejectedClosedStatuses.includes(loan.status?.toLowerCase()));
+      const filteredApplications = loanApplications.filter(app => !rejectedClosedStatuses.includes(app.status?.toLowerCase()));
+      return { loans: filteredLoans, applications: filteredApplications };
     }
-    return loans.filter(loan => !hiddenStatuses.includes(loan.status?.toLowerCase()));
   };
 
-  const visibleLoans = getVisibleLoans();
-  const loansByStatus = visibleLoans.reduce((acc, loan) => {
-    const status = loan.status || 'unknown';
-    if (!acc[status]) {
-      acc[status] = [];
-    }
-    acc[status].push(loan);
-    return acc;
-  }, {} as Record<string, any[]>);
+  const { loans: visibleLoans, applications: visibleApplications } = getVisibleLoansAndApplications();
+  
+  // Combine loans and applications for single row display
+  const allVisibleItems = [
+    ...visibleApplications.map(app => ({ ...app, type: 'application' })),
+    ...visibleLoans.map(loan => ({ ...loan, type: 'loan' }))
+  ];
 
   const activeLoans = loans.filter(loan => {
     const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
@@ -506,7 +512,7 @@ const ClientDetailsPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                {visibleLoans.length === 0 && loanApplications.length === 0 ? (
+                {allVisibleItems.length === 0 ? (
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <h3 className="text-lg font-semibold mb-2">No Loan Accounts</h3>
@@ -517,169 +523,101 @@ const ClientDetailsPage = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-8">
-                    {/* Loan Applications */}
-                    {loanApplications.length > 0 && (
-                      <div>
-                        
-                        <div className="rounded-lg border overflow-hidden">
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead className="bg-muted/50">
-                                <tr>
-                                  <th className="text-left p-4 font-medium">Application #</th>
-                                  <th className="text-left p-4 font-medium">Product</th>
-                                  <th className="text-left p-4 font-medium">Amount</th>
-                                  <th className="text-left p-4 font-medium">Term</th>
-                                  <th className="text-left p-4 font-medium">Status</th>
-                                  <th className="text-left p-4 font-medium">Submitted</th>
-                                  <th className="text-left p-4 font-medium">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {loanApplications.map((application) => (
-                                  <tr key={application.id} className="border-t hover:bg-muted/30 transition-colors">
-                                    <td className="p-4">
-                                      <div className="font-mono text-sm font-medium">
-                                        {application.application_number}
-                                      </div>
-                                    </td>
-                                    <td className="p-4">
-                                      <div>
-                                        <div className="font-medium">
-                                          {application.loan_products?.name || 'Standard Loan'}
-                                        </div>
-                                        {application.loan_products?.default_nominal_interest_rate && (
-                                          <div className="text-sm text-muted-foreground">
-                                            {application.loan_products.default_nominal_interest_rate}% APR
-                                          </div>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="p-4 font-medium">
-                                      {formatCurrency(application.requested_amount || 0)}
-                                    </td>
-                                    <td className="p-4">
-                                      {application.requested_term} months
-                                    </td>
-                                    <td className="p-4">
-                                      <Badge 
-                                        className={
-                                          application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                          application.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                          application.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                          'bg-gray-100 text-gray-800'
-                                        }
-                                      >
-                                        {application.status}
-                                      </Badge>
-                                    </td>
-                                    <td className="p-4 text-sm">
-                                      {format(new Date(application.submitted_at), 'dd MMM yyyy')}
-                                    </td>
-                                    <td className="p-4">
-                                      <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Active/Existing Loans Section */}
-                    {Object.keys(loansByStatus).length > 0 && (
-                      <div className="space-y-6">
-                        {Object.entries(loansByStatus).map(([status, statusLoans]) => {
-                          const loanArray = statusLoans as any[];
-                          return (
-                            <div key={status}>
-                              <div className="flex items-center gap-3 mb-4">
-                                <h4 className="font-semibold text-lg capitalize text-banking-primary">
-                                  {status} Loan Accounts
-                                </h4>
-                                <Badge className="status-info">
-                                  {loanArray.length}
-                                </Badge>
-                              </div>
-                              
-                              <div className="rounded-lg border overflow-hidden">
-                                <div className="overflow-x-auto">
-                                  <table className="w-full">
-                                    <thead className="bg-muted/50">
-                                      <tr>
-                                        <th className="text-left p-4 font-medium">Account</th>
-                                        <th className="text-left p-4 font-medium">Product</th>
-                                        <th className="text-left p-4 font-medium">Principal</th>
-                                        <th className="text-left p-4 font-medium">Outstanding</th>
-                                        <th className="text-left p-4 font-medium">Paid</th>
-                                        <th className="text-left p-4 font-medium">Next Payment</th>
-                                        <th className="text-left p-4 font-medium">Actions</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {loanArray.map((loan) => (
-                                        <tr key={loan.id} className="border-t hover:bg-muted/30 transition-colors">
-                                          <td className="p-4">
-                                            <div className="font-mono text-sm font-medium">
-                                              {loan.loan_number || `L-${loan.id.slice(0, 8)}`}
-                                            </div>
-                                          </td>
-                                          <td className="p-4">
-                                            <div>
-                                              <div className="font-medium">
-                                                {loan.loan_products?.name || 'Standard Loan'}
-                                              </div>
-                                              {loan.loan_products?.default_nominal_interest_rate && (
-                                                <div className="text-sm text-muted-foreground">
-                                                  {loan.loan_products.default_nominal_interest_rate}% APR
-                                                </div>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="p-4 font-medium">
-                                            {formatCurrency(loan.principal_amount || 0)}
-                                          </td>
-                                          <td className="p-4 font-medium text-destructive">
-                                            {formatCurrency(loan.outstanding_balance || 0)}
-                                          </td>
-                                          <td className="p-4 font-medium text-success">
-                                            {formatCurrency((loan.principal_amount || 0) - (loan.outstanding_balance || 0))}
-                                          </td>
-                                          <td className="p-4">
-                                            <div className="space-y-1">
-                                              {loan.next_repayment_date && (
-                                                <div className="text-sm font-medium">
-                                                  {format(new Date(loan.next_repayment_date), 'dd MMM yyyy')}
-                                                </div>
-                                              )}
-                                              {loan.next_repayment_amount && (
-                                                <div className="text-sm text-muted-foreground">
-                                                  {formatCurrency(loan.next_repayment_amount)}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="p-4">
-                                            <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                                              <Eye className="h-4 w-4" />
-                                            </Button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                  <div className="rounded-lg border overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="text-left p-4 font-medium">Account #</th>
+                            <th className="text-left p-4 font-medium">Product</th>
+                            <th className="text-left p-4 font-medium">Amount</th>
+                            <th className="text-left p-4 font-medium">Term/Balance</th>
+                            <th className="text-left p-4 font-medium">Status</th>
+                            <th className="text-left p-4 font-medium">Date</th>
+                            <th className="text-left p-4 font-medium">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allVisibleItems.map((item) => (
+                            <tr key={item.id} className="border-t hover:bg-muted/30 transition-colors">
+                              <td className="p-4">
+                                <div className="font-mono text-sm font-medium">
+                                  {item.type === 'application' 
+                                    ? item.application_number 
+                                    : item.loan_number || `L-${item.id.slice(0, 8)}`
+                                  }
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                                <div className="text-xs text-muted-foreground capitalize">
+                                  {item.type}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div>
+                                  <div className="font-medium">
+                                    {item.loan_products?.name || 'Standard Loan'}
+                                  </div>
+                                  {item.loan_products?.default_nominal_interest_rate && (
+                                    <div className="text-sm text-muted-foreground">
+                                      {item.loan_products.default_nominal_interest_rate}% APR
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-4 font-medium">
+                                {formatCurrency(
+                                  item.type === 'application' 
+                                    ? item.requested_amount || 0 
+                                    : item.principal_amount || 0
+                                )}
+                              </td>
+                              <td className="p-4">
+                                {item.type === 'application' ? (
+                                  <span>{item.requested_term} months</span>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <div className="font-medium text-destructive text-sm">
+                                      Outstanding: {formatCurrency(item.outstanding_balance || 0)}
+                                    </div>
+                                    <div className="text-sm text-success">
+                                      Paid: {formatCurrency((item.principal_amount || 0) - (item.outstanding_balance || 0))}
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <Badge 
+                                  className={
+                                    item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                    item.status === 'active' ? 'bg-green-100 text-green-800' :
+                                    item.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                    item.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }
+                                >
+                                  {item.status}
+                                </Badge>
+                              </td>
+                              <td className="p-4 text-sm">
+                                {format(
+                                  new Date(
+                                    item.type === 'application' 
+                                      ? item.submitted_at || item.created_at
+                                      : item.created_at
+                                  ), 
+                                  'dd MMM yyyy'
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </CardContent>
