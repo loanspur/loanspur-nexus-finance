@@ -1394,25 +1394,38 @@ const ClientDetailsPage = () => {
                             return;
                           }
 
-                          console.log('Updating loan status to active for application ID:', selectedLoanItem.id);
-                          // Update the actual loan status to active
-                          fetch(`https://woqesvsopdgoikpatzxp.supabase.co/rest/v1/loans?application_id=eq.${selectedLoanItem.id}`, {
-                            method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI',
-                              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI'
-                            },
-                            body: JSON.stringify({ status: 'active' })
-                          }).then(response => {
-                            if (response.ok) {
-                              console.log('Loan status updated to active successfully');
-                            } else {
-                              console.error('Error updating loan status');
-                            }
-                          }).catch(error => {
-                            console.error('Failed to update loan status:', error);
-                          });
+                          console.log('Creating loan record and setting status to active for application ID:', selectedLoanItem.id);
+                          
+                          // First, create a loan record from the approved application
+                          const loanNumber = `LN-${Date.now()}`;
+                          const { data: newLoan, error: loanCreateError } = await supabase
+                            .from('loans')
+                            .insert({
+                              tenant_id: selectedLoanItem.tenant_id,
+                              client_id: selectedLoanItem.client_id,
+                              loan_product_id: selectedLoanItem.loan_product_id,
+                              loan_number: loanNumber,
+                              principal_amount: selectedLoanItem.requested_amount,
+                              interest_rate: selectedLoanItem.loan_products?.nominal_interest_rate || 0,
+                              term_months: selectedLoanItem.requested_term,
+                              disbursement_date: format(actionDate || new Date(), 'yyyy-MM-dd'),
+                              status: 'active',
+                              outstanding_balance: selectedLoanItem.requested_amount
+                            })
+                            .select()
+                            .single();
+
+                          if (loanCreateError) {
+                            console.error('Error creating loan record:', loanCreateError);
+                            toast({
+                              title: "Error",
+                              description: "Failed to create loan record",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          console.log('Loan created successfully with active status:', newLoan);
 
                           toast({
                             title: "Disbursement Successful! 🎉",
