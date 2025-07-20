@@ -261,7 +261,25 @@ const ClientDetailsPage = () => {
     return grouped;
   };
 
-  const loansByStatus = groupLoansByStatus();
+  // Filter loans - show all except rejected and closed by default
+  const getVisibleLoans = () => {
+    const hiddenStatuses = ['rejected', 'closed'];
+    if (showClosedLoans) {
+      return loans; // Show all loans including rejected/closed
+    }
+    return loans.filter(loan => !hiddenStatuses.includes(loan.status?.toLowerCase()));
+  };
+
+  const visibleLoans = getVisibleLoans();
+  const loansByStatus = visibleLoans.reduce((acc, loan) => {
+    const status = loan.status || 'unknown';
+    if (!acc[status]) {
+      acc[status] = [];
+    }
+    acc[status].push(loan);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   const activeLoans = loans.filter(loan => {
     const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
     return !closedStatuses.includes(loan.status?.toLowerCase());
@@ -477,9 +495,19 @@ const ClientDetailsPage = () => {
                     <CreditCard className="h-5 w-5" />
                     Loan Accounts Overview
                   </CardTitle>
-                  <Badge variant="outline" className="status-info">
-                    {loans.length} Total
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="status-info">
+                      {visibleLoans.length} Visible
+                    </Badge>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowClosedLoans(!showClosedLoans)}
+                      className="text-xs"
+                    >
+                      {showClosedLoans ? 'Hide' : 'Show'} Rejected/Closed
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
