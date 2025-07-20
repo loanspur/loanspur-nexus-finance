@@ -544,7 +544,7 @@ export const useProcessLoanDisbursement = () => {
       // Check if loan has already been disbursed
       const { data: existingDisbursement, error: disbursementCheckError } = await supabase
         .from('loan_disbursements')
-        .select('loan_id, loans(id, loan_number, status)')
+        .select('loan_id')
         .eq('loan_application_id', disbursement.loan_application_id)
         .single();
       
