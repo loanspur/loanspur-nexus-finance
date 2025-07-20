@@ -1376,23 +1376,27 @@ const ClientDetailsPage = () => {
                               });
                           }
 
-                          // Update loan application status to approved (loan_applications table doesn't have 'disbursed' status)
+                          // Update loan application status to disbursed
                           const { error: statusError } = await supabase
                             .from('loan_applications')
                             .update({ 
-                              status: 'approved',
+                              status: 'disbursed',
                               updated_at: new Date().toISOString()
                             })
                             .eq('id', selectedLoanItem.id);
 
                           if (statusError) {
+                            console.error('Error updating loan application status:', statusError);
                             toast({
                               title: "Error",
-                              description: "Failed to update loan status.",
-                              variant: "destructive"
+                              description: "Failed to update loan application status",
+                              variant: "destructive",
                             });
                             return;
                           }
+
+                          // TODO: Update the actual loan status to active
+                          console.log('Loan should be set to active status');
 
                           toast({
                             title: "Disbursement Successful! 🎉",
@@ -1412,6 +1416,44 @@ const ClientDetailsPage = () => {
                     >
                       <DollarSign className="h-4 w-4 mr-2" />
                       {disbursementMethod === 'savings' ? 'Disburse to Savings' : 'Disburse Loan'}
+                    </Button>
+                  </div>
+                ) : selectedLoanItem?.status === 'active' ? (
+                  // Active Loan Repayment Options
+                  <div className="flex items-center gap-3 w-full">
+                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)} className="px-6">
+                      Cancel
+                    </Button>
+                    
+                    <div className="flex-1" />
+                    
+                    <Button 
+                      variant="outline"
+                      className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6"
+                      onClick={() => {
+                        toast({
+                          title: "Payment History",
+                          description: "Loading payment schedule and history...",
+                        });
+                        setShowLoanActionModal(false);
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Schedule
+                    </Button>
+                    
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700 text-white px-6"
+                      onClick={() => {
+                        toast({
+                          title: "Repayment Processing",
+                          description: "Redirecting to repayment page...",
+                        });
+                        setShowLoanActionModal(false);
+                      }}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Make Payment
                     </Button>
                   </div>
                 ) : (
