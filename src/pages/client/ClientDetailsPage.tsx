@@ -416,75 +416,80 @@ const ClientDetailsPage = () => {
             </div>
           </div>
 
-          {/* Navigation Tabs - Modern Design */}
-          <div className="px-6 border-b border-border">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="h-auto p-0 bg-transparent w-full justify-start overflow-x-auto">
-                {shouldShowTab('general', client, loans, savings) && (
-                  <TabsTrigger value="general" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <IdCard className="h-4 w-4 mr-2" />
-                    General
-                  </TabsTrigger>
-                )}
-                {shouldShowTab('identities', client, loans, savings) && (
-                  <TabsTrigger value="identities" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <IdCard className="h-4 w-4 mr-2" />
-                    Identity
-                  </TabsTrigger>
-                )}
-                {shouldShowTab('documents', client, loans, savings) && (
-                  <TabsTrigger value="documents" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Documents
-                  </TabsTrigger>
-                )}
-                {shouldShowTab('bank-details', client, loans, savings) && (
-                  <TabsTrigger value="bank-details" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <Building className="h-4 w-4 mr-2" />
-                    Bank Details
-                  </TabsTrigger>
-                )}
-                {shouldShowTab('next-of-kin', client, loans, savings) && (
-                  <TabsTrigger value="next-of-kin" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Next of Kin
-                  </TabsTrigger>
-                )}
-                {shouldShowTab('additional-info', client, loans, savings) && (
-                  <TabsTrigger value="additional-info" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <Info className="h-4 w-4 mr-2" />
-                    Additional Info
-                  </TabsTrigger>
-                )}
-                {shouldShowTab('notes', client, loans, savings) && (
-                  <TabsTrigger value="notes" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                    <StickyNote className="h-4 w-4 mr-2" />
-                    Notes
-                  </TabsTrigger>
-                )}
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Navigation Tabs and Action Buttons Combined */}
+          <div className="px-6 border-b border-border bg-muted/30">
+            <div className="flex items-center justify-between py-3 gap-4">
+              {/* Navigation Tabs */}
+              <div className="flex-1 min-w-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="h-auto p-0 bg-transparent w-full justify-start overflow-x-auto">
+                    {shouldShowTab('general', client, loans, savings) && (
+                      <TabsTrigger value="general" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <IdCard className="h-4 w-4 mr-2" />
+                        General
+                      </TabsTrigger>
+                    )}
+                    {shouldShowTab('identities', client, loans, savings) && (
+                      <TabsTrigger value="identities" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <IdCard className="h-4 w-4 mr-2" />
+                        Identity
+                      </TabsTrigger>
+                    )}
+                    {shouldShowTab('documents', client, loans, savings) && (
+                      <TabsTrigger value="documents" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Documents
+                      </TabsTrigger>
+                    )}
+                    {shouldShowTab('bank-details', client, loans, savings) && (
+                      <TabsTrigger value="bank-details" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <Building className="h-4 w-4 mr-2" />
+                        Bank Details
+                      </TabsTrigger>
+                    )}
+                    {shouldShowTab('next-of-kin', client, loans, savings) && (
+                      <TabsTrigger value="next-of-kin" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <Phone className="h-4 w-4 mr-2" />
+                        Next of Kin
+                      </TabsTrigger>
+                    )}
+                    {shouldShowTab('additional-info', client, loans, savings) && (
+                      <TabsTrigger value="additional-info" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <Info className="h-4 w-4 mr-2" />
+                        Additional Info
+                      </TabsTrigger>
+                    )}
+                    {shouldShowTab('notes', client, loans, savings) && (
+                      <TabsTrigger value="notes" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                        <StickyNote className="h-4 w-4 mr-2" />
+                        Notes
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                </Tabs>
+              </div>
 
-          {/* Quick Action Buttons - Redesigned */}
-          <div className="p-6 bg-muted/30">
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setShowNewLoan(true)} className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
-                <Plus className="h-4 w-4 mr-2" />
-                New Loan
-              </Button>
-              <Button onClick={() => setShowNewSavings(true)} className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
-                <Plus className="h-4 w-4 mr-2" />
-                New Savings
-              </Button>
-              <Button onClick={() => setShowNewShareAccount(true)} variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                <Share className="h-4 w-4 mr-2" />
-                New Share Account
-              </Button>
-              <Button onClick={() => setShowAddCharge(true)} variant="outline" className="border-warning text-warning hover:bg-warning hover:text-warning-foreground">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Charge
-              </Button>
+              {/* Quick Action Buttons */}
+              <div className="flex-shrink-0">
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setShowNewLoan(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
+                    <Plus className="h-4 w-4 mr-1" />
+                    New Loan
+                  </Button>
+                  <Button onClick={() => setShowNewSavings(true)} size="sm" className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
+                    <Plus className="h-4 w-4 mr-1" />
+                    New Savings
+                  </Button>
+                  <Button onClick={() => setShowNewShareAccount(true)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                    <Share className="h-4 w-4 mr-1" />
+                    New Share Account
+                  </Button>
+                  <Button onClick={() => setShowAddCharge(true)} variant="outline" size="sm" className="border-warning text-warning hover:bg-warning hover:text-warning-foreground">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Charge
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
