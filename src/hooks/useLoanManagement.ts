@@ -458,6 +458,7 @@ export const useProcessLoanApproval = () => {
             tenant_id: profile.tenant_id,
             client_id: loanApplication.client_id,
             loan_product_id: loanApplication.loan_product_id,
+            application_id: approval.loan_application_id, // Link back to application
             loan_number: loanNumber,
             principal_amount: approval.approved_amount || loanApplication.requested_amount,
             interest_rate: approval.approved_interest_rate || 10,
@@ -584,6 +585,7 @@ export const useProcessLoanDisbursement = () => {
             tenant_id: profile.tenant_id,
             client_id: loanApplication.client_id,
             loan_product_id: loanApplication.loan_product_id,
+            application_id: disbursement.loan_application_id, // Link to application
             loan_number: loanNumber,
             principal_amount: loanApplication.final_approved_amount || loanApplication.requested_amount,
             interest_rate: loanApplication.final_approved_interest_rate || 10,

@@ -1407,6 +1407,7 @@ const ClientDetailsPage = () => {
                                 tenant_id: selectedLoanItem.tenant_id,
                                 client_id: selectedLoanItem.client_id,
                                 loan_product_id: selectedLoanItem.loan_product_id,
+                                application_id: selectedLoanItem.id, // Link to the loan application
                                 loan_number: loanNumber,
                                 principal_amount: Number(selectedLoanItem.requested_amount),
                                 interest_rate: Number(selectedLoanItem.loan_products?.nominal_interest_rate || 0),

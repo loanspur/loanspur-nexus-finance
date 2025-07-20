@@ -4594,6 +4594,7 @@ export type Database = {
       }
       loans: {
         Row: {
+          application_id: string | null
           client_id: string
           created_at: string
           disbursement_date: string | null
@@ -4615,6 +4616,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          application_id?: string | null
           client_id: string
           created_at?: string
           disbursement_date?: string | null
@@ -4636,6 +4638,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          application_id?: string | null
           client_id?: string
           created_at?: string
           disbursement_date?: string | null
@@ -4657,6 +4660,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "loans_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "loan_applications"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loans_client_id_fkey"
             columns: ["client_id"]
