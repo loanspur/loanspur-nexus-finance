@@ -74,8 +74,8 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
       purpose: "",
       interest_rate: 0,
       interest_calculation_method: "declining_balance",
-      loan_officer_id: "",
-      linked_savings_account_id: "",
+      loan_officer_id: "unassigned",
+      linked_savings_account_id: "none",
       submit_date: format(new Date(), 'yyyy-MM-dd'),
       disbursement_date: format(new Date(), 'yyyy-MM-dd'),
       product_charges: [],
@@ -689,7 +689,7 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">No specific officer</SelectItem>
+                            <SelectItem value="unassigned">No specific officer</SelectItem>
                             {loanOfficers.map((officer) => (
                               <SelectItem key={officer.id} value={officer.id}>
                                 {officer.first_name} {officer.last_name}
@@ -715,7 +715,7 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">No linked account</SelectItem>
+                            <SelectItem value="none">No linked account</SelectItem>
                             {savingsAccounts.map((account) => (
                               <SelectItem key={account.id} value={account.id}>
                                 {account.savings_products?.name} - {account.account_number} 
