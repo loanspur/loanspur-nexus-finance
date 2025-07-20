@@ -63,7 +63,32 @@ interface Client {
   timely_repayment_rate?: number | null;
   created_at: string;
   mifos_client_id?: number | null;
+  employer_name?: string | null;
+  business_name?: string | null;
 }
+
+// Helper function to determine which tabs to show based on captured data
+const shouldShowTab = (tabName: string, client: Client, loans: any[], savings: any[]) => {
+  // Account opening stage tabs - always show if client exists
+  const accountOpeningTabs = ['general', 'identities', 'documents', 'bank-details', 'next-of-kin', 'notes'];
+  
+  if (accountOpeningTabs.includes(tabName)) {
+    return true;
+  }
+  
+  // Additional tabs - only show if there's actual data
+  switch (tabName) {
+    case 'loans':
+      return loans.length > 0;
+    case 'savings':
+      return savings.length > 0;
+    case 'additional-info':
+      // Show if client has employment or business information
+      return client.employer_name || client.business_name || client.occupation;
+    default:
+      return false;
+  }
+};
 
 const ClientDetailsPage = () => {
   const { clientId } = useParams();
@@ -369,30 +394,48 @@ const ClientDetailsPage = () => {
           <div className="px-6 border-b border-border">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="h-auto p-0 bg-transparent w-full justify-start overflow-x-auto">
-                <TabsTrigger value="general" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                  <IdCard className="h-4 w-4 mr-2" />
-                  General
-                </TabsTrigger>
-                <TabsTrigger value="identities" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                  <IdCard className="h-4 w-4 mr-2" />
-                  Identity
-                </TabsTrigger>
-                <TabsTrigger value="documents" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Documents
-                </TabsTrigger>
-                <TabsTrigger value="bank-details" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                  <Building className="h-4 w-4 mr-2" />
-                  Bank Details
-                </TabsTrigger>
-                <TabsTrigger value="next-of-kin" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Next of Kin
-                </TabsTrigger>
-                <TabsTrigger value="notes" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
-                  <StickyNote className="h-4 w-4 mr-2" />
-                  Notes
-                </TabsTrigger>
+                {shouldShowTab('general', client, loans, savings) && (
+                  <TabsTrigger value="general" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <IdCard className="h-4 w-4 mr-2" />
+                    General
+                  </TabsTrigger>
+                )}
+                {shouldShowTab('identities', client, loans, savings) && (
+                  <TabsTrigger value="identities" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <IdCard className="h-4 w-4 mr-2" />
+                    Identity
+                  </TabsTrigger>
+                )}
+                {shouldShowTab('documents', client, loans, savings) && (
+                  <TabsTrigger value="documents" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Documents
+                  </TabsTrigger>
+                )}
+                {shouldShowTab('bank-details', client, loans, savings) && (
+                  <TabsTrigger value="bank-details" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <Building className="h-4 w-4 mr-2" />
+                    Bank Details
+                  </TabsTrigger>
+                )}
+                {shouldShowTab('next-of-kin', client, loans, savings) && (
+                  <TabsTrigger value="next-of-kin" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Next of Kin
+                  </TabsTrigger>
+                )}
+                {shouldShowTab('additional-info', client, loans, savings) && (
+                  <TabsTrigger value="additional-info" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <Info className="h-4 w-4 mr-2" />
+                    Additional Info
+                  </TabsTrigger>
+                )}
+                {shouldShowTab('notes', client, loans, savings) && (
+                  <TabsTrigger value="notes" className="px-4 py-3 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    Notes
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
           </div>
