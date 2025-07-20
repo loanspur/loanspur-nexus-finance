@@ -1052,9 +1052,37 @@ const ClientDetailsPage = () => {
                 )}
               </div>
 
+              {/* Disbursement Options for Approved Loans */}
+              {selectedLoanItem?.status === 'approved' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+                  <h4 className="font-medium text-blue-900">Disbursement Options</h4>
+                  
+                  {/* Disbursement Method */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-blue-800">Disbursement Method</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="disbursementMethod" value="cash" defaultChecked className="text-blue-600" />
+                        <span className="text-sm">Cash</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="disbursementMethod" value="savings" className="text-blue-600" />
+                        <span className="text-sm">Disburse to Savings</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="disbursementMethod" value="bank" className="text-blue-600" />
+                        <span className="text-sm">Bank Transfer</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Date Picker */}
               <div className="space-y-3">
-                <label className="text-sm font-medium">Action Date</label>
+                <label className="text-sm font-medium">
+                  {selectedLoanItem?.status === 'approved' ? 'Disbursement Date' : 'Action Date'}
+                </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1079,6 +1107,32 @@ const ClientDetailsPage = () => {
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {/* Disbursement Options for Approved Loans */}
+              {selectedLoanItem?.status === 'approved' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+                  <h4 className="font-medium text-blue-900">Disbursement Options</h4>
+                  
+                  {/* Disbursement Method */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-blue-800">Disbursement Method</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="disbursementMethod" value="cash" defaultChecked className="text-blue-600" />
+                        <span className="text-sm">Cash</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="disbursementMethod" value="savings" className="text-blue-600" />
+                        <span className="text-sm">Disburse to Savings</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="disbursementMethod" value="bank" className="text-blue-600" />
+                        <span className="text-sm">Bank Transfer</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
@@ -1200,7 +1254,88 @@ const ClientDetailsPage = () => {
                     </Button>
                   </>
                 )}
-                
+
+                {/* Pending Disbursement Actions */}
+                {selectedLoanItem?.status === 'approved' && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                      onClick={async () => {
+                        try {
+                          const disbursementMethod = (document.querySelector('input[name="disbursementMethod"]:checked') as HTMLInputElement)?.value || 'cash';
+                          
+                          console.log('Disburse loan:', selectedLoanItem.id, 'Method:', disbursementMethod, 'Date:', actionDate);
+                          
+                          // Here you would typically create a loan record and update application status
+                          toast({
+                            title: "Loan Disbursed",
+                            description: `Loan has been disbursed via ${disbursementMethod} for ${selectedLoanItem.application_number}.`,
+                          });
+                          setShowLoanActionModal(false);
+                          window.location.reload();
+                        } catch (err) {
+                          console.error('Disbursement error:', err);
+                          toast({
+                            title: "Error",
+                            description: "Failed to disburse the loan. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Disburse Loan
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="border-warning text-warning hover:bg-warning hover:text-warning-foreground"
+                      onClick={async () => {
+                        try {
+                          // Undo approval - revert back to pending
+                          const { data, error } = await supabase
+                            .from('loan_applications')
+                            .update({ 
+                              status: 'pending',
+                              updated_at: new Date().toISOString()
+                            })
+                            .eq('id', selectedLoanItem.id)
+                            .select();
+
+                          if (error) {
+                            console.error('Error undoing approval:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to undo approval. Please try again.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          setSelectedLoanItem(prev => ({ ...prev, status: 'pending' }));
+                          
+                          toast({
+                            title: "Approval Undone",
+                            description: `Loan application ${selectedLoanItem.application_number} has been reverted to pending status.`,
+                          });
+                          setShowLoanActionModal(false);
+                          window.location.reload();
+                        } catch (err) {
+                          console.error('Undo approval error:', err);
+                          toast({
+                            title: "Error",
+                            description: "Failed to undo approval. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Undo Approval
+                    </Button>
+                  </>
+                )}
                 {(selectedLoanItem?.type === 'loan' || (selectedLoanItem?.type === 'application' && selectedLoanItem?.status !== 'rejected')) && (
                   <Button 
                     variant="outline" 
