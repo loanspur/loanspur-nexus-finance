@@ -594,7 +594,8 @@ const ClientDetailsPage = () => {
                                  <Badge 
                                    className={
                                      item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                     item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                     item.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
+                                     item.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                                      item.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
                                      item.status === 'active' ? 'bg-green-100 text-green-800' :
                                      item.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -602,7 +603,11 @@ const ClientDetailsPage = () => {
                                      'bg-gray-100 text-gray-800'
                                    }
                                  >
-                                   {item.status}
+                                   {item.status === 'pending' ? 'Pending Approval' : 
+                                    item.status === 'pending approval' ? 'Pending Approval' :
+                                    item.status === 'approved' ? 'Approved (Pending Disbursal)' :
+                                    item.status === 'pending disbursal' ? 'Approved (Pending Disbursal)' :
+                                    item.status}
                                  </Badge>
                                </td>
                               <td className="p-4 text-sm">
@@ -629,7 +634,7 @@ const ClientDetailsPage = () => {
                                       <Eye className="h-4 w-4" />
                                     </Button>
                                    
-                                   {item.type === 'application' && item.status === 'pending' && (
+                                   {item.type === 'application' && (item.status === 'pending' || item.status === 'pending approval') && (
                                      <>
                                        <Button 
                                          variant="outline" 
@@ -1014,7 +1019,8 @@ const ClientDetailsPage = () => {
                     <Badge 
                       className={
                         selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedLoanItem.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        selectedLoanItem.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
+                        selectedLoanItem.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                         selectedLoanItem.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
                         selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
                         selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -1022,7 +1028,11 @@ const ClientDetailsPage = () => {
                         'bg-gray-100 text-gray-800'
                       }
                     >
-                      {selectedLoanItem.status}
+                      {selectedLoanItem.status === 'pending' ? 'Pending Approval' : 
+                       selectedLoanItem.status === 'pending approval' ? 'Pending Approval' :
+                       selectedLoanItem.status === 'approved' ? 'Approved (Pending Disbursal)' :
+                       selectedLoanItem.status === 'pending disbursal' ? 'Approved (Pending Disbursal)' :
+                       selectedLoanItem.status}
                     </Badge>
                   </p>
                 </div>
@@ -1072,7 +1082,7 @@ const ClientDetailsPage = () => {
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                {selectedLoanItem?.type === 'application' && selectedLoanItem?.status === 'pending' && (
+                {selectedLoanItem?.type === 'application' && (selectedLoanItem?.status === 'pending' || selectedLoanItem?.status === 'pending approval') && (
                   <>
                     <Button 
                       variant="outline" 
