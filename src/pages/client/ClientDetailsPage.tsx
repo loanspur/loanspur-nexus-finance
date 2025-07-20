@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Edit, 
   Plus, 
@@ -985,153 +986,317 @@ const ClientDetailsPage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              {selectedLoanItem?.type === 'application' ? 'Loan Application Details' : 'Loan Account Details'}
+              {selectedLoanItem?.status === 'approved' ? 'Disburse Loan Account' : 
+               selectedLoanItem?.type === 'application' ? 'Loan Application Details' : 'Loan Account Details'}
             </DialogTitle>
-            <DialogDescription>
-              Review and take action on this {selectedLoanItem?.type === 'application' ? 'loan application' : 'loan account'}
-            </DialogDescription>
           </DialogHeader>
 
           {selectedLoanItem && (
             <div className="space-y-6">
-              {/* Loan/Application Details */}
-              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Account/Application #</label>
-                  <p className="font-mono text-sm">
-                    {selectedLoanItem.type === 'application' 
-                      ? selectedLoanItem.application_number 
-                      : selectedLoanItem.loan_number || `L-${selectedLoanItem.id.slice(0, 8)}`
-                    }
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Product</label>
-                  <p className="font-medium">{selectedLoanItem.loan_products?.name || 'Standard Loan'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Amount</label>
-                  <p className="font-bold text-lg">
-                    {formatCurrency(
-                      selectedLoanItem.type === 'application' 
+              {/* Disbursement Form for Approved Loans */}
+              {selectedLoanItem?.status === 'approved' ? (
+                <div className="space-y-6">
+                  {/* Disbursement Date */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Disbursed on<span className="text-red-500">*</span>
+                    </Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !actionDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {actionDate ? format(actionDate, "dd MMM yyyy") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={actionDate}
+                          onSelect={setActionDate}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Transaction Amount */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Transaction amount<span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      value={selectedLoanItem.type === 'application' 
                         ? selectedLoanItem.requested_amount || 0 
-                        : selectedLoanItem.principal_amount || 0
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <p>
-                    <Badge 
-                      className={
-                        selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedLoanItem.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedLoanItem.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        selectedLoanItem.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
-                        selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
-                        selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        selectedLoanItem.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                        'bg-gray-100 text-gray-800'
-                      }
-                    >
-                      {selectedLoanItem.status === 'pending' ? 'Pending Approval' : 
-                       selectedLoanItem.status === 'pending approval' ? 'Pending Approval' :
-                       selectedLoanItem.status === 'approved' ? 'Pending Disbursement' :
-                       selectedLoanItem.status === 'pending disbursal' ? 'Pending Disbursement' :
-                       selectedLoanItem.status}
-                    </Badge>
-                  </p>
-                </div>
-                {selectedLoanItem.type === 'application' && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Requested Term</label>
-                    <p>{selectedLoanItem.requested_term} months</p>
-                  </div>
-                )}
-                {selectedLoanItem.type === 'loan' && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Outstanding Balance</label>
-                    <p className="font-medium text-destructive">
-                      {formatCurrency(selectedLoanItem.outstanding_balance || 0)}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Disbursement Options for Approved Loans */}
-              {selectedLoanItem?.status === 'approved' && (
-                <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
-                  <h4 className="font-medium text-blue-900">Disbursement Options</h4>
-                  
-                  {/* Disbursement Method */}
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium text-blue-800">Disbursement Method</Label>
-                    <RadioGroup value={disbursementMethod} onValueChange={setDisbursementMethod}>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="cash" id="cash" />
-                        <Label htmlFor="cash" className="text-sm">Cash</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="savings" id="savings" />
-                        <Label htmlFor="savings" className="text-sm">Disburse to Savings Account</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="bank" id="bank" />
-                        <Label htmlFor="bank" className="text-sm">Bank Transfer</Label>
-                      </div>
-                    </RadioGroup>
+                        : selectedLoanItem.principal_amount || 0}
+                      disabled
+                      className="bg-muted/30"
+                    />
                   </div>
 
-                  {/* Receipt Number for Cash/Bank disbursements */}
+                  {/* Payment Type - Only show for non-savings disbursement */}
                   {disbursementMethod !== 'savings' && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-blue-800">Receipt/Reference Number</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Payment type<span className="text-red-500">*</span>
+                      </Label>
+                      <Select value={disbursementMethod} onValueChange={setDisbursementMethod}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select payment method" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">CASH</SelectItem>
+                          <SelectItem value="bank">BANK ACCOUNT - DTB BANK K</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Receipt Number - Only show for non-savings disbursement */}
+                  {disbursementMethod !== 'savings' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Receipt#<span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         type="text"
                         value={receiptNumber}
                         onChange={(e) => setReceiptNumber(e.target.value)}
-                        placeholder="Enter receipt or reference number"
-                        className="bg-white"
+                        placeholder="Enter receipt number"
                       />
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Action Date Picker */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium">
-                  {selectedLoanItem?.status === 'approved' ? 'Disbursement Date' : 'Action Date'}
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !actionDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {actionDate ? format(actionDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={actionDate}
-                      onSelect={setActionDate}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
+                  {/* Note */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Note</Label>
+                    <textarea 
+                      className="w-full min-h-[80px] p-3 border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                      placeholder="Add any notes..."
+                      rows={3}
                     />
-                  </PopoverContent>
-                </Popover>
-              </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Account Overview Section for non-disbursement actions */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Account/Application #</label>
+                      <p className="font-mono text-sm">
+                        {selectedLoanItem.type === 'application' 
+                          ? selectedLoanItem.application_number 
+                          : selectedLoanItem.loan_number || `L-${selectedLoanItem.id.slice(0, 8)}`
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Product</label>
+                      <p className="font-medium">{selectedLoanItem.loan_products?.name || 'Standard Loan'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Amount</label>
+                      <p className="font-bold text-lg">
+                        {formatCurrency(
+                          selectedLoanItem.type === 'application' 
+                            ? selectedLoanItem.requested_amount || 0 
+                            : selectedLoanItem.principal_amount || 0
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Status</label>
+                      <p>
+                        <Badge 
+                          className={
+                            selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            selectedLoanItem.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
+                            selectedLoanItem.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                            selectedLoanItem.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
+                            selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
+                            selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            selectedLoanItem.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                            'bg-gray-100 text-gray-800'
+                          }
+                        >
+                          {selectedLoanItem.status === 'pending' ? 'Pending Approval' : 
+                           selectedLoanItem.status === 'pending approval' ? 'Pending Approval' :
+                           selectedLoanItem.status === 'approved' ? 'Pending Disbursement' :
+                           selectedLoanItem.status === 'pending disbursal' ? 'Pending Disbursement' :
+                           selectedLoanItem.status}
+                        </Badge>
+                      </p>
+                    </div>
+                    {selectedLoanItem.type === 'application' && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Requested Term</label>
+                        <p>{selectedLoanItem.requested_term} months</p>
+                      </div>
+                    )}
+                    {selectedLoanItem.type === 'loan' && (
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">Outstanding Balance</label>
+                        <p className="font-medium text-destructive">
+                          {formatCurrency(selectedLoanItem.outstanding_balance || 0)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Date Picker for non-disbursement actions */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Action Date</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !actionDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {actionDate ? format(actionDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={actionDate}
+                          onSelect={setActionDate}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
 
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
-                {selectedLoanItem?.type === 'application' && (selectedLoanItem?.status === 'pending' || selectedLoanItem?.status === 'pending approval') && (
+                {/* Disbursement Actions for Approved Loans */}
+                {selectedLoanItem?.status === 'approved' ? (
+                  <>
+                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      className="bg-blue-600 text-white hover:bg-blue-700"
+                      onClick={async () => {
+                        try {
+                          // Validation
+                          if (disbursementMethod !== 'savings' && !receiptNumber.trim()) {
+                            toast({
+                              title: "Receipt Required",
+                              description: "Please enter a receipt or reference number.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          // Generate unique receipt for savings disbursement
+                          const finalReceiptNumber = disbursementMethod === 'savings' 
+                            ? `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+                            : receiptNumber;
+
+                          console.log('Disburse loan:', selectedLoanItem.id, 'Method:', disbursementMethod, 'Receipt:', finalReceiptNumber, 'Date:', actionDate);
+                          
+                          // Handle savings account disbursement
+                          if (disbursementMethod === 'savings') {
+                            // Find client's active savings account
+                            const { data: savingsAccount, error: savingsError } = await supabase
+                              .from('savings_accounts')
+                              .select('*')
+                              .eq('client_id', client.id)
+                              .eq('is_active', true)
+                              .maybeSingle();
+
+                            if (savingsError || !savingsAccount) {
+                              toast({
+                                title: "No Savings Account",
+                                description: "Client doesn't have an active savings account for disbursement.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+
+                            // Update savings account balance
+                            const loanAmount = selectedLoanItem.type === 'application' 
+                              ? selectedLoanItem.requested_amount || 0 
+                              : selectedLoanItem.principal_amount || 0;
+
+                            const newBalance = (savingsAccount.account_balance || 0) + loanAmount;
+
+                            const { error: updateError } = await supabase
+                              .from('savings_accounts')
+                              .update({ 
+                                account_balance: newBalance,
+                                available_balance: newBalance,
+                                updated_at: new Date().toISOString()
+                              })
+                              .eq('id', savingsAccount.id);
+
+                            if (updateError) {
+                              console.error('Error updating savings balance:', updateError);
+                              toast({
+                                title: "Error",
+                                description: "Failed to transfer funds to savings account.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+
+                            // Create transaction record
+                            await supabase
+                              .from('transactions')
+                              .insert({
+                                tenant_id: client.tenant_id,
+                                client_id: client.id,
+                                savings_account_id: savingsAccount.id,
+                                transaction_id: finalReceiptNumber,
+                                amount: loanAmount,
+                                transaction_type: 'credit' as any,
+                                payment_type: 'transfer' as any,
+                                payment_status: 'completed' as any,
+                                description: `Loan disbursement to savings - ${selectedLoanItem.application_number}`,
+                                transaction_date: actionDate?.toISOString() || new Date().toISOString(),
+                                reconciliation_status: 'reconciled'
+                              } as any);
+                          }
+
+                          // Create loan record and update application status
+                          toast({
+                            title: "Loan Disbursed",
+                            description: `Loan has been disbursed via ${disbursementMethod} ${disbursementMethod === 'savings' ? 'to savings account' : ''} - Receipt: ${finalReceiptNumber}`,
+                          });
+                          setShowLoanActionModal(false);
+                          window.location.reload();
+                        } catch (err) {
+                          console.error('Disbursement error:', err);
+                          toast({
+                            title: "Error",
+                            description: "Failed to disburse the loan. Please try again.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      Submit
+                    </Button>
+                  </>
+                ) : (
+                  // Other action buttons for non-disbursement status
+                  <>
+                    {selectedLoanItem?.type === 'application' && (selectedLoanItem?.status === 'pending' || selectedLoanItem?.status === 'pending approval') && (
                   <>
                     <Button 
                       variant="outline" 
@@ -1424,10 +1589,12 @@ const ClientDetailsPage = () => {
                     Modify
                   </Button>
                 )}
-                
-                <Button variant="outline" onClick={() => setShowLoanActionModal(false)}>
-                  Cancel
-                </Button>
+                    
+                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
