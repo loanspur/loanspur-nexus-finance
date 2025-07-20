@@ -1088,13 +1088,10 @@ const ClientDetailsPage = () => {
                       variant="outline" 
                       className="border-success text-success hover:bg-success hover:text-success-foreground"
                       onClick={() => {
-                        // Update the selected item status locally for immediate UI feedback
-                        setSelectedLoanItem(prev => ({ ...prev, status: 'pending disbursal' }));
-                        
                         console.log('Approve application:', selectedLoanItem.id, 'Date:', actionDate);
                         toast({
-                          title: "Application Approved",
-                          description: `Loan application ${selectedLoanItem.application_number} has been approved and is now pending disbursal.`,
+                          title: "Approval Request Submitted",
+                          description: `Approval request for loan application ${selectedLoanItem.application_number} has been submitted for processing.`,
                         });
                         setShowLoanActionModal(false);
                       }}
@@ -1108,8 +1105,8 @@ const ClientDetailsPage = () => {
                       onClick={() => {
                         console.log('Reject application:', selectedLoanItem.id, 'Date:', actionDate);
                         toast({
-                          title: "Application Rejected",
-                          description: `Loan application ${selectedLoanItem.application_number} has been rejected.`,
+                          title: "Rejection Request Submitted",
+                          description: `Rejection request for loan application ${selectedLoanItem.application_number} has been submitted for processing.`,
                           variant: "destructive"
                         });
                         setShowLoanActionModal(false);
@@ -1128,8 +1125,8 @@ const ClientDetailsPage = () => {
                     onClick={() => {
                       console.log('Modify:', selectedLoanItem.type, selectedLoanItem.id, 'Date:', actionDate);
                       toast({
-                        title: "Modification Initiated",
-                        description: `${selectedLoanItem.type === 'application' ? 'Application' : 'Loan'} modification has been initiated.`,
+                        title: "Modification Request Submitted",
+                        description: `Modification request for ${selectedLoanItem.type === 'application' ? 'application' : 'loan'} has been submitted for processing.`,
                       });
                       setShowLoanActionModal(false);
                     }}
