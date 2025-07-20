@@ -147,7 +147,8 @@ export const LoanWorkflowDialog = ({
     }
   };
 
-  const onDisbursementSubmit = async (data: DisbursementData) => {
+  const onDisbursementSubmit = async (data: DisbursementData, e?: React.FormEvent) => {
+    e?.preventDefault();
     try {
       await processDisbursement.mutateAsync({
         loan_application_id: loanApplication.id,
@@ -418,7 +419,10 @@ export const LoanWorkflowDialog = ({
               </Card>
             ) : (
               <Form {...disbursementForm}>
-                <form onSubmit={disbursementForm.handleSubmit(onDisbursementSubmit)} className="space-y-4">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  disbursementForm.handleSubmit((data) => onDisbursementSubmit(data, e))();
+                }} className="space-y-4">
                   <Card>
                     <CardHeader>
                       <CardTitle>Loan Disbursement</CardTitle>
