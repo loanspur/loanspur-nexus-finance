@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { 
   Edit, 
   Plus, 
@@ -72,6 +75,7 @@ interface Client {
   mifos_client_id?: number | null;
   employer_name?: string | null;
   business_name?: string | null;
+  tenant_id: string;
 }
 
 // Helper function to determine which tabs to show based on captured data
@@ -122,6 +126,8 @@ const ClientDetailsPage = () => {
   const [showLoanActionModal, setShowLoanActionModal] = useState(false);
   const [selectedLoanItem, setSelectedLoanItem] = useState<any>(null);
   const [actionDate, setActionDate] = useState<Date | undefined>(new Date());
+  const [disbursementMethod, setDisbursementMethod] = useState("cash");
+  const [receiptNumber, setReceiptNumber] = useState("");
 
   useEffect(() => {
     if (clientId) {
@@ -1058,23 +1064,37 @@ const ClientDetailsPage = () => {
                   <h4 className="font-medium text-blue-900">Disbursement Options</h4>
                   
                   {/* Disbursement Method */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-blue-800">Disbursement Method</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="disbursementMethod" value="cash" defaultChecked className="text-blue-600" />
-                        <span className="text-sm">Cash</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="disbursementMethod" value="savings" className="text-blue-600" />
-                        <span className="text-sm">Disburse to Savings</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="disbursementMethod" value="bank" className="text-blue-600" />
-                        <span className="text-sm">Bank Transfer</span>
-                      </label>
-                    </div>
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-blue-800">Disbursement Method</Label>
+                    <RadioGroup value={disbursementMethod} onValueChange={setDisbursementMethod}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="cash" id="cash" />
+                        <Label htmlFor="cash" className="text-sm">Cash</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="savings" id="savings" />
+                        <Label htmlFor="savings" className="text-sm">Disburse to Savings Account</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bank" id="bank" />
+                        <Label htmlFor="bank" className="text-sm">Bank Transfer</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
+
+                  {/* Receipt Number for Cash/Bank disbursements */}
+                  {disbursementMethod !== 'savings' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-blue-800">Receipt/Reference Number</Label>
+                      <Input
+                        type="text"
+                        value={receiptNumber}
+                        onChange={(e) => setReceiptNumber(e.target.value)}
+                        placeholder="Enter receipt or reference number"
+                        className="bg-white"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1108,31 +1128,6 @@ const ClientDetailsPage = () => {
                 </Popover>
               </div>
 
-              {/* Disbursement Options for Approved Loans */}
-              {selectedLoanItem?.status === 'approved' && (
-                <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
-                  <h4 className="font-medium text-blue-900">Disbursement Options</h4>
-                  
-                  {/* Disbursement Method */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-blue-800">Disbursement Method</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="disbursementMethod" value="cash" defaultChecked className="text-blue-600" />
-                        <span className="text-sm">Cash</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="disbursementMethod" value="savings" className="text-blue-600" />
-                        <span className="text-sm">Disburse to Savings</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="radio" name="disbursementMethod" value="bank" className="text-blue-600" />
-                        <span className="text-sm">Bank Transfer</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Action Buttons */}
               <div className="flex justify-end gap-3 pt-4 border-t">
@@ -1263,14 +1258,90 @@ const ClientDetailsPage = () => {
                       className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                       onClick={async () => {
                         try {
-                          const disbursementMethod = (document.querySelector('input[name="disbursementMethod"]:checked') as HTMLInputElement)?.value || 'cash';
+                          // Validation
+                          if (disbursementMethod !== 'savings' && !receiptNumber.trim()) {
+                            toast({
+                              title: "Receipt Required",
+                              description: "Please enter a receipt or reference number.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+
+                          // Generate unique receipt for savings disbursement
+                          const finalReceiptNumber = disbursementMethod === 'savings' 
+                            ? `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+                            : receiptNumber;
+
+                          console.log('Disburse loan:', selectedLoanItem.id, 'Method:', disbursementMethod, 'Receipt:', finalReceiptNumber, 'Date:', actionDate);
                           
-                          console.log('Disburse loan:', selectedLoanItem.id, 'Method:', disbursementMethod, 'Date:', actionDate);
-                          
-                          // Here you would typically create a loan record and update application status
+                          // Handle savings account disbursement
+                          if (disbursementMethod === 'savings') {
+                            // Find client's active savings account
+                            const { data: savingsAccount, error: savingsError } = await supabase
+                              .from('savings_accounts')
+                              .select('*')
+                              .eq('client_id', client.id)
+                              .eq('is_active', true)
+                              .maybeSingle();
+
+                            if (savingsError || !savingsAccount) {
+                              toast({
+                                title: "No Savings Account",
+                                description: "Client doesn't have an active savings account for disbursement.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+
+                            // Update savings account balance
+                            const loanAmount = selectedLoanItem.type === 'application' 
+                              ? selectedLoanItem.requested_amount || 0 
+                              : selectedLoanItem.principal_amount || 0;
+
+                            const newBalance = (savingsAccount.account_balance || 0) + loanAmount;
+
+                            const { error: updateError } = await supabase
+                              .from('savings_accounts')
+                              .update({ 
+                                account_balance: newBalance,
+                                available_balance: newBalance,
+                                updated_at: new Date().toISOString()
+                              })
+                              .eq('id', savingsAccount.id);
+
+                            if (updateError) {
+                              console.error('Error updating savings balance:', updateError);
+                              toast({
+                                title: "Error",
+                                description: "Failed to transfer funds to savings account.",
+                                variant: "destructive"
+                              });
+                              return;
+                            }
+
+                            // Create transaction record
+                            await supabase
+                              .from('transactions')
+                              .insert({
+                                tenant_id: client.tenant_id,
+                                client_id: client.id,
+                                savings_account_id: savingsAccount.id,
+                                transaction_id: finalReceiptNumber,
+                                amount: loanAmount,
+                                transaction_type: 'credit' as any,
+                                payment_type: 'transfer' as any,
+                                payment_status: 'completed' as any,
+                                description: `Loan disbursement to savings - ${selectedLoanItem.application_number}`,
+                                transaction_date: actionDate?.toISOString() || new Date().toISOString(),
+                                reconciliation_status: 'reconciled'
+                              } as any);
+                          }
+
+                          // Create loan record and update application status
                           toast({
                             title: "Loan Disbursed",
-                            description: `Loan has been disbursed via ${disbursementMethod} for ${selectedLoanItem.application_number}.`,
+                            description: `Loan has been disbursed via ${disbursementMethod} ${disbursementMethod === 'savings' ? 'to savings account' : ''} - Receipt: ${finalReceiptNumber}`,
                           });
                           setShowLoanActionModal(false);
                           window.location.reload();
