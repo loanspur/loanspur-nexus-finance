@@ -595,7 +595,7 @@ const ClientDetailsPage = () => {
                                    className={
                                      item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                      item.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
-                                     item.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                     item.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                                      item.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
                                      item.status === 'active' ? 'bg-green-100 text-green-800' :
                                      item.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -605,8 +605,8 @@ const ClientDetailsPage = () => {
                                  >
                                    {item.status === 'pending' ? 'Pending Approval' : 
                                     item.status === 'pending approval' ? 'Pending Approval' :
-                                    item.status === 'approved' ? 'Approved' :
-                                    item.status === 'pending disbursal' ? 'Approved (Pending Disbursal)' :
+                                    item.status === 'approved' ? 'Pending Disbursement' :
+                                    item.status === 'pending disbursal' ? 'Pending Disbursement' :
                                     item.status}
                                  </Badge>
                                </td>
@@ -1020,7 +1020,7 @@ const ClientDetailsPage = () => {
                       className={
                         selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                         selectedLoanItem.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedLoanItem.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        selectedLoanItem.status === 'approved' ? 'bg-blue-100 text-blue-800' :
                         selectedLoanItem.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
                         selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
                         selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
@@ -1030,8 +1030,8 @@ const ClientDetailsPage = () => {
                     >
                       {selectedLoanItem.status === 'pending' ? 'Pending Approval' : 
                        selectedLoanItem.status === 'pending approval' ? 'Pending Approval' :
-                       selectedLoanItem.status === 'approved' ? 'Approved' :
-                       selectedLoanItem.status === 'pending disbursal' ? 'Approved (Pending Disbursal)' :
+                       selectedLoanItem.status === 'approved' ? 'Pending Disbursement' :
+                       selectedLoanItem.status === 'pending disbursal' ? 'Pending Disbursement' :
                        selectedLoanItem.status}
                     </Badge>
                   </p>
@@ -1129,7 +1129,7 @@ const ClientDetailsPage = () => {
                           console.log('Successfully approved application:', selectedLoanItem.id, 'Date:', actionDate);
                           toast({
                             title: "Application Approved",
-                            description: `Loan application ${selectedLoanItem.application_number} has been approved.`,
+                            description: `Loan application ${selectedLoanItem.application_number} has been approved and is now pending disbursement.`,
                           });
                           setShowLoanActionModal(false);
                           
