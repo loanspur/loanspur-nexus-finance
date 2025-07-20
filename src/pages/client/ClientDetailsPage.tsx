@@ -418,7 +418,21 @@ const ClientDetailsPage = () => {
 
           {/* Navigation Tabs and Action Buttons Combined */}
           <div className="px-6 border-b border-border bg-muted/30">
-            <div className="flex items-center justify-between py-3 gap-4">
+            <div className="flex items-center py-3 gap-4">
+              {/* Quick Action Buttons */}
+              <div className="flex-shrink-0">
+                <div className="flex gap-2">
+                  <Button onClick={() => setShowNewLoan(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
+                    <Plus className="h-4 w-4 mr-1" />
+                    New Loan
+                  </Button>
+                  <Button onClick={() => setShowNewSavings(true)} size="sm" className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
+                    <Plus className="h-4 w-4 mr-1" />
+                    New Savings
+                  </Button>
+                </div>
+              </div>
+
               {/* Navigation Tabs */}
               <div className="flex-1 min-w-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -463,20 +477,6 @@ const ClientDetailsPage = () => {
                     </div>
                   </TabsList>
                 </Tabs>
-              </div>
-
-              {/* Quick Action Buttons */}
-              <div className="flex-shrink-0">
-                <div className="flex gap-2">
-                  <Button onClick={() => setShowNewLoan(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
-                    <Plus className="h-4 w-4 mr-1" />
-                    New Loan
-                  </Button>
-                  <Button onClick={() => setShowNewSavings(true)} size="sm" className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
-                    <Plus className="h-4 w-4 mr-1" />
-                    New Savings
-                  </Button>
-                </div>
               </div>
             </div>
           </div>
