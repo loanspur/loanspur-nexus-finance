@@ -56,7 +56,7 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
     approved: filteredApplications.filter((app: any) => 
       ['approved', 'pending_disbursement'].includes(app.status)
     ),
-    disbursed: filteredApplications.filter((app: any) => 
+    active: filteredApplications.filter((app: any) => 
       app.status === 'disbursed'
     ),
     rejected: filteredApplications.filter((app: any) => 
@@ -171,7 +171,7 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
             <TableCell>
               <Badge variant={getStatusColor(app.status)} className="flex items-center gap-1 w-fit">
                 {getStatusIcon(app.status)}
-                {app.status.replace('_', ' ').toUpperCase()}
+                {app.status === 'disbursed' ? 'ACTIVE' : app.status.replace('_', ' ').toUpperCase()}
               </Badge>
             </TableCell>
             <TableCell>
@@ -270,8 +270,8 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Disbursed</p>
-                  <p className="text-2xl font-bold text-primary">{groupedApplications.disbursed.length}</p>
+                  <p className="text-sm text-muted-foreground">Active</p>
+                  <p className="text-2xl font-bold text-primary">{groupedApplications.active.length}</p>
                 </div>
                 <Banknote className="h-8 w-8 text-primary" />
               </div>
@@ -301,9 +301,9 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
               <CheckCircle className="h-4 w-4" />
               Approved ({groupedApplications.approved.length})
             </TabsTrigger>
-            <TabsTrigger value="disbursed" className="flex items-center gap-2">
+            <TabsTrigger value="active" className="flex items-center gap-2">
               <Banknote className="h-4 w-4" />
-              Disbursed ({groupedApplications.disbursed.length})
+              Active ({groupedApplications.active.length})
             </TabsTrigger>
             <TabsTrigger value="rejected" className="flex items-center gap-2">
               <XCircle className="h-4 w-4" />
@@ -343,17 +343,17 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
             )}
           </TabsContent>
 
-          <TabsContent value="disbursed" className="space-y-4">
+          <TabsContent value="active" className="space-y-4">
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
                 <div className="text-muted-foreground">Loading applications...</div>
               </div>
-            ) : groupedApplications.disbursed.length > 0 ? (
-              renderApplicationsTable(groupedApplications.disbursed)
+            ) : groupedApplications.active.length > 0 ? (
+              renderApplicationsTable(groupedApplications.active)
             ) : (
               <div className="text-center py-8">
                 <Banknote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No disbursed loans</h3>
+                <h3 className="text-lg font-medium mb-2">No active loans</h3>
                 <p className="text-muted-foreground">No loans have been disbursed yet.</p>
               </div>
             )}
