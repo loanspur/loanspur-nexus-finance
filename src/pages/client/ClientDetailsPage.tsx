@@ -393,8 +393,8 @@ const ClientDetailsPage = () => {
                   <span>Staff: ADMIN</span>
                 </div>
                 
-                {/* Client Details Row */}
-                <div className="grid grid-cols-2 gap-6 mb-3">
+                {/* Client Details Grid */}
+                <div className="grid grid-cols-3 gap-6 mb-3">
                   <div className="space-y-1">
                     {client.phone && (
                       <div className="flex items-center gap-2 text-white/90 text-sm">
@@ -408,6 +408,10 @@ const ClientDetailsPage = () => {
                         <span>{client.email}</span>
                       </div>
                     )}
+                    <div className="flex items-center gap-2 text-white/90 text-sm">
+                      <span>📅</span>
+                      <span>Joined {format(new Date(client.created_at), 'dd MMM yyyy')}</span>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     {client.occupation && (
@@ -422,6 +426,26 @@ const ClientDetailsPage = () => {
                         <span>{client.national_id}</span>
                       </div>
                     )}
+                    {client.gender && (
+                      <div className="flex items-center gap-2 text-white/90 text-sm">
+                        <span>👤</span>
+                        <span className="capitalize">{client.gender}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-white/90 text-sm">
+                      <CreditCard className="h-4 w-4" />
+                      <span>{activeLoans.length} Active Loans</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white/90 text-sm">
+                      <PiggyBank className="h-4 w-4" />
+                      <span>{formatCurrency(calculateSavingsBalance())} Savings</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white/90 text-sm">
+                      <Building className="h-4 w-4" />
+                      <span>{activeSavings.length} Savings Accounts</span>
+                    </div>
                   </div>
                 </div>
 
@@ -841,79 +865,6 @@ const ClientDetailsPage = () => {
             </Card>
           </div>
 
-          {/* Right Column - Client Profile */}
-          <div className="space-y-6">
-            <Card className="card-enhanced shadow-elevated">
-              <CardContent className="p-6">
-                <div className="text-center space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-banking-primary mb-2">
-                      {client.first_name} {client.last_name}
-                    </h3>
-                    <p className="text-muted-foreground">Client Profile</p>
-                  </div>
-                  
-                  <Avatar className="h-24 w-24 mx-auto border-4 border-banking-primary/20">
-                    <AvatarImage src={client.profile_picture_url || ""} />
-                    <AvatarFallback className="bg-gradient-primary text-white text-xl">
-                      {client.first_name[0]}{client.last_name[0]}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex justify-center gap-2">
-                    <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" className="hover:bg-banking-primary hover:text-white">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <Button variant="link" className="text-banking-primary hover:text-banking-primary/80">
-                    View Client Signature
-                  </Button>
-                </div>
-
-                <div className="mt-6 pt-6 border-t space-y-4">
-                  <div className="grid grid-cols-1 gap-3 text-sm">
-                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
-                      <span className="text-muted-foreground">Activation Date</span>
-                      <span className="font-medium">{format(new Date(client.created_at), 'dd MMM yyyy')}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded">
-                      <span className="text-muted-foreground">Mobile Number</span>
-                      <span className="font-medium">{client.phone || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
-                      <span className="text-muted-foreground">Gender</span>
-                      <span className="font-medium capitalize">{client.gender || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded">
-                      <span className="text-muted-foreground">Date of Birth</span>
-                      <span className="font-medium">
-                        {client.date_of_birth ? format(new Date(client.date_of_birth), 'dd MMM yyyy') : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
-                      <span className="text-muted-foreground">Active Loans</span>
-                      <Badge className="status-info">{activeLoans.length}</Badge>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded">
-                      <span className="text-muted-foreground">Total Savings</span>
-                      <span className="font-bold text-success">{formatCurrency(calculateSavingsBalance())}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-muted/30">
-                      <span className="text-muted-foreground">Active Savings</span>
-                      <Badge className="status-success">{activeSavings.length}</Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         </div>
