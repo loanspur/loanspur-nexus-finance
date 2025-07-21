@@ -265,33 +265,6 @@ export const LoanAccountStatusView = ({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      
-                      {account.type === 'application' && account.status.toLowerCase() === 'pending' && (
-                        <>
-                          {onApprove && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onApprove(account)}
-                              className="border-green-600 text-green-600 hover:bg-green-50"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                          )}
-                          {onReject && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => onReject(account)}
-                              className="border-red-600 text-red-600 hover:bg-red-50"
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
-                          )}
-                        </>
-                      )}
                     </div>
                   </div>
                 </div>
