@@ -471,35 +471,219 @@ const ClientDetailsPage = () => {
 
           {/* Action Buttons Row */}
           <div className="p-6 bg-white border-t border-border/20">
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setShowNewLoan(true)} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                New Loan
-              </Button>
-              <Button onClick={() => setShowNewSavings(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-                <Plus className="h-4 w-4" />
-                New Savings
-              </Button>
-              <Button variant="outline" onClick={() => setShowTransferClient(true)} className="flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4" />
-                Transfer Client
-              </Button>
-              <Button variant="outline" className="flex items-center gap-2 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
-                <UserMinus className="h-4 w-4" />
-                Unassign Staff
-              </Button>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  New Loan
+                </Button>
+                <Button onClick={() => setShowNewSavings(true)} className="bg-gradient-secondary">
+                  <PiggyBank className="h-4 w-4 mr-2" />
+                  New Savings
+                </Button>
+                <Button onClick={() => setShowNewShareAccount(true)} variant="outline">
+                  <Share className="h-4 w-4 mr-2" />
+                  Share Account
+                </Button>
+                <Button onClick={() => setShowAddCharge(true)} variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Charge
+                </Button>
+              </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    More Actions
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowTransferClient(true)}>
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Transfer Client
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive">
+                    <UserMinus className="h-4 w-4 mr-2" />
+                    Close Client
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-
         </div>
 
-        {/* Navigation Tabs Section */}
-        <div className="bg-white rounded-xl border border-border/50 shadow-sm">
-          <div className="p-6">
-            <h3 className="text-lg font-medium mb-4">Client Details</h3>
+        {/* Integrated Accounts Overview and Client Details */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Left Column - Account Overview */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Accounts Overview Section */}
+            <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  {/* Loans Overview */}
+                  <Card className="card-enhanced shadow-elevated">
+                    <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2 text-primary">
+                          <CreditCard className="h-5 w-5" />
+                          Loan Accounts ({activeLoans.length})
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {formatCurrency(calculateLoanBalance())} Outstanding
+                          </Badge>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setShowClosedLoans(!showClosedLoans)}
+                            className="text-xs"
+                          >
+                            {showClosedLoans ? 'Hide' : 'Show'} Closed
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {allVisibleItems.length === 0 ? (
+                        <div className="text-center py-6">
+                          <CreditCard className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mb-3">No loan accounts</p>
+                          <Button onClick={() => setShowNewLoan(true)} size="sm" className="bg-gradient-primary">
+                            <Plus className="h-4 w-4 mr-1" />
+                            New Loan
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {allVisibleItems.slice(0, 3).map((item) => (
+                            <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">
+                                  {item.loan_products?.name || 'Standard Loan'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {item.type === 'application' 
+                                    ? item.application_number 
+                                    : item.loan_number || `L-${item.id.slice(0, 8)}`
+                                  }
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-sm">
+                                  {formatCurrency(
+                                    item.type === 'application' 
+                                      ? item.requested_amount || 0 
+                                      : item.principal_amount || 0
+                                  )}
+                                </div>
+                                <Badge className={
+                                  item.status === 'active' ? 'bg-green-100 text-green-800 text-xs' :
+                                  item.status === 'pending' ? 'bg-yellow-100 text-yellow-800 text-xs' :
+                                  'bg-gray-100 text-gray-800 text-xs'
+                                }>
+                                  {item.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                          {allVisibleItems.length > 3 && (
+                            <div className="text-center pt-2">
+                              <Button variant="ghost" size="sm" className="text-xs">
+                                +{allVisibleItems.length - 3} more loans
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Savings Overview */}
+                  <Card className="card-enhanced shadow-elevated">
+                    <CardHeader className="bg-gradient-to-r from-accent/5 to-accent/10 border-b">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2 text-accent">
+                          <PiggyBank className="h-5 w-5" />
+                          Savings Accounts ({activeSavings.length})
+                        </CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {formatCurrency(calculateSavingsBalance())} Total
+                          </Badge>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setShowClosedSavings(!showClosedSavings)}
+                            className="text-xs"
+                          >
+                            {showClosedSavings ? 'Hide' : 'Show'} Closed
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      {activeSavings.length === 0 ? (
+                        <div className="text-center py-6">
+                          <PiggyBank className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground mb-3">No savings accounts</p>
+                          <Button onClick={() => setShowNewSavings(true)} size="sm" className="bg-gradient-secondary">
+                            <Plus className="h-4 w-4 mr-1" />
+                            New Savings
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {activeSavings.slice(0, 3).map((account) => (
+                            <div key={account.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">
+                                  {account.savings_products?.name || 'Savings Account'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {account.account_number}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-sm">
+                                  {formatCurrency(account.account_balance || 0)}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-xs text-muted-foreground">Active</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {activeSavings.length > 3 && (
+                            <div className="text-center pt-2">
+                              <Button variant="ghost" size="sm" className="text-xs">
+                                +{activeSavings.length - 3} more accounts
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* Tab Content Container */}
+            <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
+              <div className="p-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="h-auto p-0 bg-transparent w-full justify-start">
                     <div className="flex overflow-x-auto scrollbar-hide gap-1">
+                      {shouldShowTab('general', client, loans, savings) && (
+                        <TabsTrigger value="general" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                          <Info className="h-4 w-4 mr-2" />
+                          General
+                        </TabsTrigger>
+                      )}
                       {shouldShowTab('identities', client, loans, savings) && (
                         <TabsTrigger value="identities" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                           <IdCard className="h-4 w-4 mr-2" />
@@ -566,308 +750,14 @@ const ClientDetailsPage = () => {
                 </Tabs>
               </div>
             </div>
-
-        {/* Main Content Layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Left Column - Account Overview */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Loan Account Overview */}
-            <Card className="card-enhanced shadow-elevated">
-              <CardHeader className="bg-gradient-to-r from-banking-primary/5 to-banking-secondary/5 border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-banking-primary">
-                    <CreditCard className="h-5 w-5" />
-                    Loan Accounts Overview
-                  </CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowClosedLoans(!showClosedLoans)}
-                    className="text-xs"
-                  >
-                    {showClosedLoans ? 'Hide' : 'Show'} Rejected
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {allVisibleItems.length === 0 ? (
-                  <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">No Loan Accounts</h3>
-                    <p className="text-muted-foreground mb-4">This client has no loan accounts or applications yet.</p>
-                    <Button onClick={() => setShowNewLoan(true)} className="bg-gradient-primary">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create New Loan
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-muted/50">
-                           <tr>
-                             <th className="text-left p-4 font-medium">Account #</th>
-                             <th className="text-left p-4 font-medium">Product</th>
-                             <th className="text-left p-4 font-medium">Amount</th>
-                             <th className="text-left p-4 font-medium">Status</th>
-                             <th className="text-left p-4 font-medium">Date</th>
-                             <th className="text-left p-4 font-medium">Actions</th>
-                           </tr>
-                        </thead>
-                        <tbody>
-                          {allVisibleItems.map((item) => (
-                            <tr key={item.id} className="border-t hover:bg-muted/30 transition-colors">
-                              <td className="p-4">
-                                <div className="font-mono text-sm font-medium">
-                                  {item.type === 'application' 
-                                    ? item.application_number 
-                                    : item.loan_number || `L-${item.id.slice(0, 8)}`
-                                  }
-                                </div>
-                                <div className="text-xs text-muted-foreground capitalize">
-                                  {item.type}
-                                </div>
-                              </td>
-                              <td className="p-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {item.loan_products?.name || 'Standard Loan'}
-                                  </div>
-                                  {item.loan_products?.default_nominal_interest_rate && (
-                                    <div className="text-sm text-muted-foreground">
-                                      {item.loan_products.default_nominal_interest_rate}% APR
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-4 font-medium">
-                                {formatCurrency(
-                                  item.type === 'application' 
-                                    ? item.requested_amount || 0 
-                                    : item.principal_amount || 0
-                                )}
-                              </td>
-                               <td className="p-4">
-                                 <Badge 
-                                   className={
-                                     item.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                     item.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
-                                     item.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                                     item.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
-                                     item.status === 'active' ? 'bg-green-100 text-green-800' :
-                                     item.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                     item.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                                     'bg-gray-100 text-gray-800'
-                                   }
-                                 >
-                                   {item.status === 'pending' ? 'Pending Approval' : 
-                                    item.status === 'pending approval' ? 'Pending Approval' :
-                                    item.status === 'approved' ? 'Pending Disbursement' :
-                                    item.status === 'pending disbursal' ? 'Pending Disbursement' :
-                                    item.status}
-                                 </Badge>
-                               </td>
-                              <td className="p-4 text-sm">
-                                {format(
-                                  new Date(
-                                    item.type === 'application' 
-                                      ? item.submitted_at || item.created_at
-                                      : item.created_at
-                                  ), 
-                                  'dd MMM yyyy'
-                                )}
-                              </td>
-                               <td className="p-4">
-                                 <div className="flex gap-1">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      className="hover:bg-banking-primary hover:text-white"
-                                      onClick={() => {
-                                        setSelectedLoanItem(item);
-                                        setShowLoanActionModal(true);
-                                      }}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                   
-                                   {item.type === 'application' && (item.status === 'pending' || item.status === 'pending approval') && (
-                                     <>
-                                       <Button 
-                                         variant="outline" 
-                                         size="sm" 
-                                         className="hover:bg-success hover:text-success-foreground"
-                                         onClick={() => {
-                                           // Approve application logic
-                                           console.log('Approve application:', item.id);
-                                         }}
-                                       >
-                                         <Check className="h-4 w-4" />
-                                       </Button>
-                                       <Button 
-                                         variant="outline" 
-                                         size="sm" 
-                                         className="hover:bg-destructive hover:text-destructive-foreground"
-                                         onClick={() => {
-                                           // Reject application logic
-                                           console.log('Reject application:', item.id);
-                                         }}
-                                       >
-                                         <X className="h-4 w-4" />
-                                       </Button>
-                                     </>
-                                   )}
-                                   
-                                   {(item.type === 'loan' || (item.type === 'application' && item.status !== 'rejected')) && (
-                                     <Button 
-                                       variant="outline" 
-                                       size="sm" 
-                                       className="hover:bg-warning hover:text-warning-foreground"
-                                       onClick={() => {
-                                         // Modify loan/application logic
-                                         console.log('Modify:', item.type, item.id);
-                                       }}
-                                     >
-                                       <Edit2 className="h-4 w-4" />
-                                     </Button>
-                                   )}
-                                 </div>
-                               </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Savings Account Overview */}
-            <Card className="card-enhanced shadow-elevated">
-              <CardHeader className="bg-gradient-to-r from-banking-accent/5 to-banking-emerald/5 border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-banking-accent">
-                    <PiggyBank className="h-5 w-5" />
-                    Savings Accounts Overview
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="status-success">
-                      {activeSavings.length} Active
-                    </Badge>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setShowClosedSavings(!showClosedSavings)}
-                      className="text-xs"
-                    >
-                      {showClosedSavings ? 'Hide' : 'Show'} Closed
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {activeSavings.length === 0 ? (
-                  <div className="text-center py-12">
-                    <PiggyBank className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-lg font-semibold mb-2">No Savings Accounts</h3>
-                    <p className="text-muted-foreground mb-4">Create the first savings account to get started</p>
-                    <Button onClick={() => setShowNewSavings(true)} className="bg-gradient-success">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create First Savings Account
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="rounded-lg border overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-muted/50">
-                            <tr>
-                              <th className="text-left p-4 font-medium">Account</th>
-                              <th className="text-left p-4 font-medium">Product</th>
-                              <th className="text-left p-4 font-medium">Last Activity</th>
-                              <th className="text-left p-4 font-medium">Balance</th>
-                              <th className="text-left p-4 font-medium">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {activeSavings.map((account) => (
-                              <tr key={account.id} className="border-t hover:bg-muted/30 transition-colors">
-                                <td className="p-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-3 h-3 bg-success rounded-full"></div>
-                                    <span className="font-mono text-sm font-medium">
-                                      {account.account_number || `S-${account.id.slice(0, 8)}`}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="p-4">
-                                  <div>
-                                    <div className="font-medium">
-                                      {account.savings_products?.name || 'CLIENT FUND ACCOUNT'}
-                                    </div>
-                                    {account.savings_products?.nominal_annual_interest_rate && (
-                                      <div className="text-sm text-muted-foreground">
-                                        {account.savings_products.nominal_annual_interest_rate}% APR
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-4 text-sm">
-                                  {format(new Date(account.updated_at || account.created_at), 'dd MMM yyyy')}
-                                </td>
-                                <td className="p-4 font-bold text-success text-lg">
-                                  {formatCurrency(account.account_balance || 0)}
-                                </td>
-                                <td className="p-4">
-                                  <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" title="Deposit" className="hover:bg-banking-accent hover:text-white">
-                                      <Plus className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" title="View Details" className="hover:bg-banking-primary hover:text-white">
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                    
-                    {showClosedSavings && savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).length > 0 && (
-                      <div className="mt-6 pt-6 border-t">
-                        <h4 className="font-semibold mb-4 text-muted-foreground flex items-center gap-2">
-                          <X className="h-4 w-4" />
-                          Closed Savings Accounts
-                        </h4>
-                        <div className="rounded-lg border overflow-hidden opacity-60">
-                          <table className="w-full">
-                            <tbody>
-                              {savings.filter(account => ['closed', 'inactive', 'dormant'].includes(account.status?.toLowerCase())).map((account) => (
-                                <tr key={account.id} className="border-t">
-                                  <td className="p-4 font-mono text-sm">{account.account_number}</td>
-                                  <td className="p-4">{account.savings_products?.name}</td>
-                                  <td className="p-4 font-medium">{formatCurrency(account.account_balance || 0)}</td>
-                                  <td className="p-4">{getStatusBadge(account.status)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
+          {/* Right Column - Empty for future use */}
+          <div className="space-y-6">
+            {/* Placeholder for additional content */}
+          </div>
         </div>
-
-        </div>
+      </div>
 
       {/* Dialogs */}
       <NewLoanDialog
@@ -938,7 +828,6 @@ const ClientDetailsPage = () => {
 
                   {/* Disbursement Details */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Disbursement Date */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">
                         Disbursement Date<span className="text-red-500">*</span>
@@ -968,7 +857,6 @@ const ClientDetailsPage = () => {
                       </Popover>
                     </div>
 
-                    {/* Transaction Amount */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">
                         Disbursement Amount<span className="text-red-500">*</span>
@@ -1003,625 +891,71 @@ const ClientDetailsPage = () => {
                     </div>
                   )}
 
-                  {disbursementMethod === 'bank' && (
-                    <div className="space-y-4">
-                      {/* Payment Type */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Payment Method<span className="text-red-500">*</span>
-                        </Label>
-                        <Select value={disbursementMethod} onValueChange={setDisbursementMethod}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select payment method" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="bank">BANK TRANSFER - DTB BANK</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Receipt Number */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Receipt/Reference Number<span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          type="text"
-                          value={receiptNumber}
-                          onChange={(e) => setReceiptNumber(e.target.value)}
-                          placeholder="Enter bank reference number"
-                          className="font-mono"
-                        />
-                      </div>
-                    </div>
-                  )}
-
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => setShowLoanActionModal(false)} 
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      className="flex-1 bg-gradient-primary"
+                      onClick={() => {
+                        if (disbursementMethod === 'savings') {
+                          processDisbursement.mutate({
+                            loan_application_id: selectedLoanItem.id,
+                            disbursed_amount: selectedLoanItem.requested_amount || selectedLoanItem.principal_amount || 0,
+                            disbursement_date: actionDate?.toISOString() || new Date().toISOString(),
+                            disbursement_method: 'transfer_to_savings'
+                          });
+                        }
+                        setShowLoanActionModal(false);
+                      }}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Process Disbursement
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <>
-                  {/* Account Overview Section for non-disbursement actions */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Account/Application #</label>
-                      <p className="font-mono text-sm">
-                        {selectedLoanItem.type === 'application' 
-                          ? selectedLoanItem.application_number 
-                          : selectedLoanItem.loan_number || `L-${selectedLoanItem.id.slice(0, 8)}`
-                        }
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Product</label>
+                      <Label className="text-sm text-muted-foreground">Product</Label>
                       <p className="font-medium">{selectedLoanItem.loan_products?.name || 'Standard Loan'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Amount</label>
-                      <p className="font-bold text-lg">
-                        {formatCurrency(
-                          selectedLoanItem.type === 'application' 
-                            ? selectedLoanItem.requested_amount || 0 
-                            : selectedLoanItem.principal_amount || 0
+                      <Label className="text-sm text-muted-foreground">Amount</Label>
+                      <p className="font-medium">
+                        {formatCurrency(selectedLoanItem.type === 'application' 
+                          ? selectedLoanItem.requested_amount || 0 
+                          : selectedLoanItem.principal_amount || 0
                         )}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Status</label>
-                      <p>
-                        <Badge 
-                          className={
-                            selectedLoanItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            selectedLoanItem.status === 'pending approval' ? 'bg-yellow-100 text-yellow-800' :
-                            selectedLoanItem.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                            selectedLoanItem.status === 'pending disbursal' ? 'bg-blue-100 text-blue-800' :
-                            selectedLoanItem.status === 'active' ? 'bg-green-100 text-green-800' :
-                            selectedLoanItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                            selectedLoanItem.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                            'bg-gray-100 text-gray-800'
-                          }
-                        >
-                          {selectedLoanItem.status === 'pending' ? 'Pending Approval' : 
-                           selectedLoanItem.status === 'pending approval' ? 'Pending Approval' :
-                           selectedLoanItem.status === 'approved' ? 'Pending Disbursement' :
-                           selectedLoanItem.status === 'pending disbursal' ? 'Pending Disbursement' :
-                           selectedLoanItem.status}
-                        </Badge>
+                      <Label className="text-sm text-muted-foreground">Status</Label>
+                      <p className="font-medium capitalize">{selectedLoanItem.status}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Date</Label>
+                      <p className="font-medium">
+                        {format(new Date(selectedLoanItem.type === 'application' 
+                          ? selectedLoanItem.submitted_at || selectedLoanItem.created_at
+                          : selectedLoanItem.created_at
+                        ), 'dd MMM yyyy')}
                       </p>
                     </div>
-                    {selectedLoanItem.type === 'application' && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Requested Term</label>
-                        <p>{selectedLoanItem.requested_term} months</p>
-                      </div>
-                    )}
-                    {selectedLoanItem.type === 'loan' && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Outstanding Balance</label>
-                        <p className="font-medium text-destructive">
-                          {formatCurrency(selectedLoanItem.outstanding_balance || 0)}
-                        </p>
-                      </div>
-                    )}
                   </div>
-
-                  {/* Action Date Picker for non-disbursement actions */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium">Action Date</label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !actionDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {actionDate ? format(actionDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={actionDate}
-                          onSelect={setActionDate}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  
+                  <div className="flex gap-3">
+                    <Button onClick={() => setShowLoanActionModal(false)} variant="outline" className="flex-1">
+                      Close
+                    </Button>
                   </div>
-                </>
+                </div>
               )}
-
-
-              {/* Enhanced Action Buttons */}
-              <div className="flex justify-between items-center pt-6 border-t bg-muted/30 -mx-6 px-6 py-4 rounded-b-lg">
-                {/* Disbursement Actions for Approved Loans */}
-                {selectedLoanItem?.status === 'approved' ? (
-                  <div className="flex items-center gap-3 w-full">
-                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)} className="px-6">
-                      Cancel
-                    </Button>
-                    
-                    <div className="flex-1" />
-                    
-                    {/* Undo Approval Button */}
-                    <Button 
-                      variant="outline" 
-                      className="border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600 px-6"
-                      onClick={async () => {
-                        try {
-                          const { error } = await supabase
-                            .from('loan_applications')
-                            .update({ 
-                              status: 'pending',
-                              updated_at: new Date().toISOString()
-                            })
-                            .eq('id', selectedLoanItem.id);
-
-                          if (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to undo approval. Please try again.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          toast({
-                            title: "Approval Reverted",
-                            description: `Loan application has been reverted to pending status.`,
-                          });
-                          setShowLoanActionModal(false);
-                          window.location.reload();
-                        } catch (err) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to undo approval. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Undo Approval
-                    </Button>
-                    
-                    {/* Primary Disbursement Button */}
-                    <Button 
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 shadow-lg"
-                      disabled={processDisbursement.isPending}
-                      onClick={async () => {
-                         console.log('🔥 DISBURSEMENT BUTTON CLICKED - TEST', new Date().toISOString());
-                         alert('Disbursement button clicked! Check console for details.');
-                         console.log('🔥 About to validate and process disbursement');
-                         try {
-                          // Validation
-                          if (!actionDate) {
-                            toast({
-                              title: "Date Required",
-                              description: "Please select a disbursement date.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          if (disbursementMethod !== 'savings' && !receiptNumber.trim()) {
-                            toast({
-                              title: "Receipt Required",
-                              description: "Please enter a receipt or reference number.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          // Generate unique receipt for savings disbursement
-                          const finalReceiptNumber = disbursementMethod === 'savings' 
-                            ? `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-                            : receiptNumber;
-
-                          const loanAmount = selectedLoanItem.type === 'application' 
-                            ? selectedLoanItem.requested_amount || 0 
-                            : selectedLoanItem.principal_amount || 0;
-
-                          let savingsAccountId;
-                          
-                          // Find client's active savings account if disbursing to savings
-                          if (disbursementMethod === 'savings') {
-                            const { data: savingsAccount, error: savingsError } = await supabase
-                              .from('savings_accounts')
-                              .select('*')
-                              .eq('client_id', client.id)
-                              .eq('is_active', true)
-                              .maybeSingle();
-
-                            if (savingsError || !savingsAccount) {
-                              toast({
-                                title: "No Savings Account",
-                                description: "Client doesn't have an active savings account for disbursement.",
-                                variant: "destructive"
-                              });
-                              return;
-                            }
-                            
-                            savingsAccountId = savingsAccount.id;
-                          }
-
-                          // Use the proper disbursement hook to handle all logic
-                          console.log('About to call disbursement mutation');
-                          const result = await processDisbursement.mutateAsync({
-                            loan_application_id: selectedLoanItem.id,
-                            disbursed_amount: loanAmount,
-                            disbursement_date: format(actionDate, 'yyyy-MM-dd'),
-                            disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : 'bank_transfer',
-                            reference_number: finalReceiptNumber,
-                            savings_account_id: savingsAccountId,
-                          });
-                          console.log('Disbursement mutation completed successfully:', result);
-
-                          toast({
-                            title: "Disbursement Successful! 🎉", 
-                            description: result?.message || `Loan disbursed ${disbursementMethod === 'savings' ? 'to savings account' : `via ${disbursementMethod}`} - Receipt: ${finalReceiptNumber}`,
-                          });
-                          
-                          setShowLoanActionModal(false);
-                          // Refresh the page to show updated data
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('Disbursement error:', err);
-                          toast({
-                            title: "Error",
-                            description: "Failed to disburse the loan. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      {processDisbursement.isPending ? 'Processing...' : (disbursementMethod === 'savings' ? 'Disburse to Savings' : 'Disburse Loan')}
-                    </Button>
-                  </div>
-                ) : selectedLoanItem?.status === 'active' ? (
-                  // Active Loan Repayment Options
-                  <div className="flex items-center gap-3 w-full">
-                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)} className="px-6">
-                      Cancel
-                    </Button>
-                    
-                    <div className="flex-1" />
-                    
-                    <Button 
-                      variant="outline"
-                      className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6"
-                      onClick={() => {
-                        toast({
-                          title: "Payment History",
-                          description: "Loading payment schedule and history...",
-                        });
-                        setShowLoanActionModal(false);
-                      }}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      View Schedule
-                    </Button>
-                    
-                    <Button 
-                      className="bg-green-600 hover:bg-green-700 text-white px-6"
-                      onClick={() => {
-                        toast({
-                          title: "Repayment Processing",
-                          description: "Redirecting to repayment page...",
-                        });
-                        setShowLoanActionModal(false);
-                      }}
-                    >
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Make Payment
-                    </Button>
-                  </div>
-                ) : (
-                  // Other action buttons for non-disbursement status
-                  <>
-                    {selectedLoanItem?.type === 'application' && (selectedLoanItem?.status === 'pending' || selectedLoanItem?.status === 'pending approval') && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      className="border-success text-success hover:bg-success hover:text-success-foreground"
-                      onClick={async () => {
-                        try {
-                          console.log('Attempting to approve application:', selectedLoanItem.id);
-                          
-                          // Update the loan application status in the database
-                          const { data, error } = await supabase
-                            .from('loan_applications')
-                            .update({ 
-                              status: 'approved',
-                              updated_at: new Date().toISOString()
-                            })
-                            .eq('id', selectedLoanItem.id)
-                            .select();
-
-                          console.log('Update result:', { data, error });
-
-                          if (error) {
-                            console.error('Error updating loan application:', error);
-                            toast({
-                              title: "Error",
-                              description: `Failed to approve the loan application: ${error.message}`,
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          if (!data || data.length === 0) {
-                            console.error('No data returned from update');
-                            toast({
-                              title: "Error",
-                              description: "No records were updated. Please check permissions.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          // Update local state for immediate UI feedback
-                          setSelectedLoanItem(prev => ({ ...prev, status: 'approved' }));
-                          
-                          console.log('Successfully approved application:', selectedLoanItem.id, 'Date:', actionDate);
-                          toast({
-                            title: "Application Approved",
-                            description: `Loan application ${selectedLoanItem.application_number} has been approved and is now pending disbursement.`,
-                          });
-                          setShowLoanActionModal(false);
-                          
-                          // Refresh the page data to reflect changes
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('Unexpected error:', err);
-                          toast({
-                            title: "Error",
-                            description: `An unexpected error occurred: ${err.message}`,
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Approve
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={async () => {
-                        try {
-                          // Update the loan application status in the database
-                          const { error } = await supabase
-                            .from('loan_applications')
-                            .update({ 
-                              status: 'rejected',
-                              updated_at: new Date().toISOString()
-                            })
-                            .eq('id', selectedLoanItem.id);
-
-                          if (error) {
-                            console.error('Error updating loan application:', error);
-                            toast({
-                              title: "Error",
-                              description: "Failed to reject the loan application. Please try again.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          // Update local state for immediate UI feedback
-                          setSelectedLoanItem(prev => ({ ...prev, status: 'rejected' }));
-                          
-                          console.log('Reject application:', selectedLoanItem.id, 'Date:', actionDate);
-                          toast({
-                            title: "Application Rejected",
-                            description: `Loan application ${selectedLoanItem.application_number} has been rejected.`,
-                            variant: "destructive"
-                          });
-                          setShowLoanActionModal(false);
-                          
-                          // Refresh the page data to reflect changes
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('Unexpected error:', err);
-                          toast({
-                            title: "Error",
-                            description: "An unexpected error occurred. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
-                  </>
-                )}
-
-                {/* Pending Disbursement Actions */}
-                {selectedLoanItem?.status === 'approved' && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-                      onClick={async () => {
-                        try {
-                          // Validation
-                          if (disbursementMethod !== 'savings' && !receiptNumber.trim()) {
-                            toast({
-                              title: "Receipt Required",
-                              description: "Please enter a receipt or reference number.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          // Generate unique receipt for savings disbursement
-                          const finalReceiptNumber = disbursementMethod === 'savings' 
-                            ? `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-                            : receiptNumber;
-
-                          console.log('Disburse loan:', selectedLoanItem.id, 'Method:', disbursementMethod, 'Receipt:', finalReceiptNumber, 'Date:', actionDate);
-                          
-                          // Handle savings account disbursement
-                          if (disbursementMethod === 'savings') {
-                            // Find client's active savings account
-                            const { data: savingsAccount, error: savingsError } = await supabase
-                              .from('savings_accounts')
-                              .select('*')
-                              .eq('client_id', client.id)
-                              .eq('is_active', true)
-                              .maybeSingle();
-
-                            if (savingsError || !savingsAccount) {
-                              toast({
-                                title: "No Savings Account",
-                                description: "Client doesn't have an active savings account for disbursement.",
-                                variant: "destructive"
-                              });
-                              return;
-                            }
-
-                            // Update savings account balance
-                            const loanAmount = selectedLoanItem.type === 'application' 
-                              ? selectedLoanItem.requested_amount || 0 
-                              : selectedLoanItem.principal_amount || 0;
-
-                            const newBalance = (savingsAccount.account_balance || 0) + loanAmount;
-
-                            const { error: updateError } = await supabase
-                              .from('savings_accounts')
-                              .update({ 
-                                account_balance: newBalance,
-                                available_balance: newBalance,
-                                updated_at: new Date().toISOString()
-                              })
-                              .eq('id', savingsAccount.id);
-
-                            if (updateError) {
-                              console.error('Error updating savings balance:', updateError);
-                              toast({
-                                title: "Error",
-                                description: "Failed to transfer funds to savings account.",
-                                variant: "destructive"
-                              });
-                              return;
-                            }
-
-                            // Create transaction record
-                            await supabase
-                              .from('transactions')
-                              .insert({
-                                tenant_id: client.tenant_id,
-                                client_id: client.id,
-                                savings_account_id: savingsAccount.id,
-                                transaction_id: finalReceiptNumber,
-                                amount: loanAmount,
-                                transaction_type: 'credit' as any,
-                                payment_type: 'transfer' as any,
-                                payment_status: 'completed' as any,
-                                description: `Loan disbursement to savings - ${selectedLoanItem.application_number}`,
-                                transaction_date: actionDate?.toISOString() || new Date().toISOString(),
-                                reconciliation_status: 'reconciled'
-                              } as any);
-                          }
-
-                          // Create loan record and update application status
-                          toast({
-                            title: "Loan Disbursed",
-                            description: `Loan has been disbursed via ${disbursementMethod} ${disbursementMethod === 'savings' ? 'to savings account' : ''} - Receipt: ${finalReceiptNumber}`,
-                          });
-                          setShowLoanActionModal(false);
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('Disbursement error:', err);
-                          toast({
-                            title: "Error",
-                            description: "Failed to disburse the loan. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Disburse Loan
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="border-warning text-warning hover:bg-warning hover:text-warning-foreground"
-                      onClick={async () => {
-                        try {
-                          // Undo approval - revert back to pending
-                          const { data, error } = await supabase
-                            .from('loan_applications')
-                            .update({ 
-                              status: 'pending',
-                              updated_at: new Date().toISOString()
-                            })
-                            .eq('id', selectedLoanItem.id)
-                            .select();
-
-                          if (error) {
-                            console.error('Error undoing approval:', error);
-                            toast({
-                              title: "Error",
-                              description: "Failed to undo approval. Please try again.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-
-                          setSelectedLoanItem(prev => ({ ...prev, status: 'pending' }));
-                          
-                          toast({
-                            title: "Approval Undone",
-                            description: `Loan application ${selectedLoanItem.application_number} has been reverted to pending status.`,
-                          });
-                          setShowLoanActionModal(false);
-                          window.location.reload();
-                        } catch (err) {
-                          console.error('Undo approval error:', err);
-                          toast({
-                            title: "Error",
-                            description: "Failed to undo approval. Please try again.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Undo Approval
-                    </Button>
-                  </>
-                )}
-                {(selectedLoanItem?.type === 'loan' || (selectedLoanItem?.type === 'application' && selectedLoanItem?.status !== 'rejected')) && (
-                  <Button 
-                    variant="outline" 
-                    className="border-warning text-warning hover:bg-warning hover:text-warning-foreground"
-                    onClick={() => {
-                      console.log('Modify:', selectedLoanItem.type, selectedLoanItem.id, 'Date:', actionDate);
-                      toast({
-                        title: "Modification Request Submitted",
-                        description: `Modification request for ${selectedLoanItem.type === 'application' ? 'application' : 'loan'} has been submitted for processing.`,
-                      });
-                      setShowLoanActionModal(false);
-                    }}
-                  >
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Modify
-                  </Button>
-                )}
-                    
-                    <Button variant="outline" onClick={() => setShowLoanActionModal(false)}>
-                      Cancel
-                    </Button>
-                  </>
-                )}
-              </div>
             </div>
           )}
         </DialogContent>
