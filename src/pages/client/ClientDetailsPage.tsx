@@ -375,135 +375,127 @@ const ClientDetailsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-hero">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Modern Header with Client Info */}
-        <div className="card-enhanced rounded-xl overflow-hidden">
-          {/* Header Background with Gradient */}
-          <div className="bg-gradient-primary p-6 text-white">
+        {/* Client Header Section */}
+        <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
+          {/* Top Row - Client Info with Avatar on far right */}
+          <div className="bg-gradient-to-r from-primary to-primary/80 p-8 text-white">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <Avatar className="h-16 w-16 border-2 border-white/20">
-                  <AvatarImage src={client.profile_picture_url || ""} />
-                  <AvatarFallback className="bg-white/10 text-lg font-semibold">
-                    {client.first_name[0]}{client.last_name[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h1 className="text-3xl font-heading font-bold">
-                    {client.first_name} {client.last_name}
-                  </h1>
-                  <div className="flex items-center gap-4 mt-2 text-white/80">
-                    <span className="text-sm">Client #{client.client_number}</span>
-                    <span className="text-sm">•</span>
-                    <span className="text-sm">ID: {client.mifos_client_id || 'N/A'}</span>
-                    <span className="text-sm">•</span>
-                    <span className="text-sm">Staff: ADMIN</span>
+              {/* Left: Client Info and Status */}
+              <div className="flex-1">
+                <h1 className="text-2xl font-semibold mb-2">
+                  {client.first_name} {client.last_name}
+                </h1>
+                <div className="flex items-center gap-4 text-white/90 text-sm mb-3">
+                  <span>Client #{client.client_number}</span>
+                  <span>•</span>
+                  <span>ID: {client.mifos_client_id || 'N/A'}</span>
+                  <span>•</span>
+                  <span>Staff: ADMIN</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                    {client.approval_status || 'approved'}
+                  </Badge>
+                  <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                    {client.kyc_status || 'completed'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Far Right: Client Avatar */}
+              <Avatar className="h-20 w-20 border-4 border-white/20 shadow-lg">
+                <AvatarImage src={client.profile_picture_url || ""} />
+                <AvatarFallback className="bg-white/10 text-xl font-semibold text-white">
+                  {client.first_name[0]}{client.last_name[0]}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+
+          {/* Stats Cards Row */}
+          <div className="p-6 bg-muted/30">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    {getStatusBadge(client.approval_status)}
-                    <Badge variant="outline" className="bg-white/10 border-white/20 text-white">
-                      {client.kyc_status}
-                    </Badge>
+                  <div>
+                    <p className="text-xl font-semibold text-blue-600">
+                      {formatCurrency(calculateLoanBalance())}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Total Loan Balance</p>
                   </div>
                 </div>
               </div>
               
-              {/* Quick Actions */}
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-medium">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-medium">
-                      Actions
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="bg-card border shadow-floating">
-                    <DropdownMenuItem onClick={() => setShowTransferClient(true)}>
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Transfer Client
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Update Default Savings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <UserMinus className="h-4 w-4 mr-2" />
-                      Unassign Staff
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-50 rounded-lg">
+                    <PiggyBank className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-green-600">
+                      {formatCurrency(calculateSavingsBalance())}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Total Savings</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-50 rounded-lg">
+                    <CreditCard className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-orange-600">{activeLoans.length}</p>
+                    <p className="text-xs text-muted-foreground">Active Loans</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Building className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-purple-600">{activeSavings.length}</p>
+                    <p className="text-xs text-muted-foreground">Savings Accounts</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Stats Dashboard */}
-          <div className="p-6 bg-white">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-banking-primary/5 to-banking-secondary/5 border border-banking-primary/10">
-                <DollarSign className="h-8 w-8 mx-auto mb-2 text-banking-primary" />
-                <div className="text-2xl font-bold text-banking-primary">
-                  {formatCurrency(calculateLoanBalance())}
-                </div>
-                <div className="text-xs text-muted-foreground">Total Loan Balance</div>
-              </div>
-              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-banking-accent/5 to-banking-emerald/5 border border-banking-accent/10">
-                <PiggyBank className="h-8 w-8 mx-auto mb-2 text-banking-accent" />
-                <div className="text-2xl font-bold text-banking-accent">
-                  {formatCurrency(calculateSavingsBalance())}
-                </div>
-                <div className="text-xs text-muted-foreground">Total Savings</div>
-              </div>
-              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-banking-gold/5 to-warning/5 border border-banking-gold/10">
-                <CreditCard className="h-8 w-8 mx-auto mb-2 text-banking-gold" />
-                <div className="text-2xl font-bold text-banking-gold">{loans.length}</div>
-                <div className="text-xs text-muted-foreground">Active Loans</div>
-              </div>
-              <div className="text-center p-4 rounded-lg bg-gradient-to-br from-info/5 to-banking-secondary/5 border border-info/10">
-                <Building className="h-8 w-8 mx-auto mb-2 text-banking-secondary" />
-                <div className="text-2xl font-bold text-banking-secondary">{savings.length}</div>
-                <div className="text-xs text-muted-foreground">Savings Accounts</div>
-              </div>
+          {/* Action Buttons Row */}
+          <div className="p-6 bg-white border-t border-border/20">
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => setShowNewLoan(true)} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                New Loan
+              </Button>
+              <Button onClick={() => setShowNewSavings(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Plus className="h-4 w-4" />
+                New Savings
+              </Button>
+              <Button variant="outline" onClick={() => setShowTransferClient(true)} className="flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4" />
+                Transfer Client
+              </Button>
+              <Button variant="outline" className="flex items-center gap-2 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground">
+                <UserMinus className="h-4 w-4" />
+                Unassign Staff
+              </Button>
             </div>
           </div>
 
-          {/* Navigation Tabs and Action Buttons Combined */}
-          <div className="px-6 border-b border-border bg-muted/30">
-            <div className="flex items-center py-3 gap-4">
-              {/* Quick Action Buttons */}
-              <div className="flex-shrink-0">
-                <div className="flex gap-2 flex-wrap">
-                  <Button onClick={() => setShowNewLoan(true)} size="sm" className="bg-primary text-primary-foreground hover:bg-primary-hover transition-all duration-300">
-                    <Plus className="h-4 w-4 mr-1" />
-                    New Loan
-                  </Button>
-                  <Button onClick={() => setShowNewSavings(true)} size="sm" className="bg-success text-success-foreground hover:opacity-90 transition-all duration-300">
-                    <Plus className="h-4 w-4 mr-1" />
-                    New Savings
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-info text-info hover:bg-info hover:text-info-foreground">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit Profile
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-warning text-warning hover:bg-warning hover:text-warning-foreground">
-                    <ArrowRightLeft className="h-4 w-4 mr-1" />
-                    Transfer Client
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
-                    <Settings className="h-4 w-4 mr-1" />
-                    Update Default Savings
-                  </Button>
-                  <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
-                    <UserMinus className="h-4 w-4 mr-1" />
-                    Unassign Staff
-                  </Button>
-                </div>
-              </div>
+        </div>
 
-              {/* Navigation Tabs */}
-              <div className="flex-1 min-w-0">
+        {/* Navigation Tabs Section */}
+        <div className="bg-white rounded-xl border border-border/50 shadow-sm">
+          <div className="p-6">
+            <h3 className="text-lg font-medium mb-4">Client Details</h3>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="h-auto p-0 bg-transparent w-full justify-start">
                     <div className="flex overflow-x-auto scrollbar-hide gap-1">
