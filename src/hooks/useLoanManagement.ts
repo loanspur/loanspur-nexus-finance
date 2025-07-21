@@ -649,6 +649,7 @@ export const useProcessLoanDisbursement = () => {
         if (savingsError) throw savingsError;
 
         // Create savings transaction
+        console.log('Creating savings transaction for account:', disbursement.savings_account_id);
         const { error: transactionError } = await supabase
           .from('savings_transactions')
           .insert({
@@ -657,11 +658,16 @@ export const useProcessLoanDisbursement = () => {
             transaction_type: 'credit',
             amount: disbursement.disbursed_amount,
             balance_after: newBalance,
+            transaction_date: disbursement.disbursement_date, // Add the missing required field
             description: `Loan disbursement - ${existingLoan.loan_number}`,
             processed_by: profile.id,
           });
 
-        if (transactionError) throw transactionError;
+        if (transactionError) {
+          console.error('Savings transaction error:', transactionError);
+          throw transactionError;
+        }
+        console.log('Savings transaction created successfully');
       }
 
       // Create disbursement record
@@ -744,9 +750,12 @@ export const useProcessLoanDisbursement = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Detailed disbursement error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to disburse loan. Please try again.",
         variant: "destructive",
       });
     },
