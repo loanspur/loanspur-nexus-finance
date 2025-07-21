@@ -1310,8 +1310,10 @@ const ClientDetailsPage = () => {
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 shadow-lg"
                       disabled={processDisbursement.isPending}
                       onClick={async () => {
-                        console.log('Disbursement button clicked');
-                        try {
+                         console.log('🔥 DISBURSEMENT BUTTON CLICKED - TEST', new Date().toISOString());
+                         alert('Disbursement button clicked! Check console for details.');
+                         console.log('🔥 About to validate and process disbursement');
+                         try {
                           // Validation
                           if (!actionDate) {
                             toast({
@@ -1394,7 +1396,7 @@ const ClientDetailsPage = () => {
                       }}
                     >
                       <DollarSign className="h-4 w-4 mr-2" />
-                      {disbursementMethod === 'savings' ? 'Disburse to Savings' : 'Disburse Loan'}
+                      {processDisbursement.isPending ? 'Processing...' : (disbursementMethod === 'savings' ? 'Disburse to Savings' : 'Disburse Loan')}
                     </Button>
                   </div>
                 ) : selectedLoanItem?.status === 'active' ? (
