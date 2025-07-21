@@ -537,11 +537,34 @@ const ClientDetailsPage = () => {
                       )}
                     </div>
                   </TabsList>
+                  
+                  {/* Tab Content */}
+                  <div className="mt-6">
+                    <TabsContent value="general" className="mt-0">
+                      <ClientGeneralTab client={client} />
+                    </TabsContent>
+                    <TabsContent value="identities" className="mt-0">
+                      <ClientIdentitiesTab clientId={client.id} />
+                    </TabsContent>
+                    <TabsContent value="documents" className="mt-0">
+                      <ClientDocumentsTab clientId={client.id} />
+                    </TabsContent>
+                    <TabsContent value="bank-details" className="mt-0">
+                      <ClientBankDetailsTab client={client} />
+                    </TabsContent>
+                    <TabsContent value="next-of-kin" className="mt-0">
+                      <ClientNextOfKinTab client={client} />
+                    </TabsContent>
+                    <TabsContent value="additional-info" className="mt-0">
+                      <ClientAdditionalInfoTab client={client} />
+                    </TabsContent>
+                    <TabsContent value="notes" className="mt-0">
+                      <ClientNotesTab clientId={client.id} />
+                    </TabsContent>
+                  </div>
                 </Tabs>
               </div>
             </div>
-          </div>
-        </div>
 
         {/* Main Content Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -938,46 +961,11 @@ const ClientDetailsPage = () => {
                 <CardContent className="p-6">
                   <ClientDocumentsTab clientId={client.id} />
                 </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="additional-info" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientAdditionalInfoTab client={client} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="bank-details" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientBankDetailsTab client={client} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="ussd-info" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientUssdTab clientId={client.id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="next-of-kin" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientNextOfKinTab client={client} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="notes" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientNotesTab clientId={client.id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
-      </div>
 
       {/* Dialogs */}
       <NewLoanDialog
