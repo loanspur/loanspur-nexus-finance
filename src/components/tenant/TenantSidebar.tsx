@@ -1,6 +1,5 @@
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -15,16 +14,13 @@ import {
   FileText,
   RefreshCw,
   Shield,
-  Calculator,
-  ChevronDown,
-  ChevronRight
+  Calculator
 } from "lucide-react";
-import { CheckCircle } from "lucide-react";
 
 const TenantSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [clientsMenuOpen, setClientsMenuOpen] = useState(true);
+  
 
   const menuGroups = [
     {
@@ -38,29 +34,7 @@ const TenantSidebar = () => {
         {
           title: "Clients",
           path: "/tenant/clients", 
-          icon: Users,
-          submenu: [
-            {
-              title: "Loans",
-              path: "/tenant/loans",
-              icon: CreditCard
-            },
-            {
-              title: "Loan Workflow",
-              path: "/tenant/loan-workflow",
-              icon: CreditCard
-            },
-            {
-              title: "Loan Approval",
-              path: "/tenant/loan-approval",
-              icon: CheckCircle
-            },
-            {
-              title: "Savings",
-              path: "/tenant/savings",
-              icon: PiggyBank
-            }
-          ]
+          icon: Users
         },
         {
           title: "Groups",
@@ -213,22 +187,15 @@ const TenantSidebar = () => {
                 <SidebarMenu className="space-y-1">
                   {group.items.map((item) => {
                     const isActive = location.pathname === item.path;
-                    const hasActiveSubmenu = item.submenu?.some(subItem => location.pathname === subItem.path);
-                    const isParentActive = isActive || hasActiveSubmenu;
                     
                     return (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton 
-                          onClick={() => {
-                            if (item.submenu && item.title === "Clients") {
-                              setClientsMenuOpen(!clientsMenuOpen);
-                            }
-                            navigate(item.path);
-                          }}
-                          isActive={isParentActive}
+                          onClick={() => navigate(item.path)}
+                          isActive={isActive}
                           className={`
                             group relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-card
-                            ${isParentActive 
+                            ${isActive 
                               ? 'bg-gradient-primary text-white shadow-glow' 
                               : 'hover:bg-accent/50 hover:scale-105'
                             }
@@ -237,59 +204,20 @@ const TenantSidebar = () => {
                           <div className="flex items-center space-x-3 w-full">
                             <div className={`
                               flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300
-                              ${isParentActive 
+                              ${isActive 
                                 ? 'bg-white/20' 
                                 : 'bg-accent/30 group-hover:bg-accent/50'
                               }
                             `}>
-                              <item.icon className={`w-4 h-4 ${isParentActive ? 'text-white' : 'text-muted-foreground'}`} />
+                              <item.icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
                             </div>
                             <div className="flex-1 text-left">
-                               <p className={`text-sm font-medium ${isParentActive ? 'text-white' : 'text-foreground'}`}>
+                               <p className={`text-sm font-medium ${isActive ? 'text-white' : 'text-foreground'}`}>
                                  {item.title}
                                </p>
                             </div>
-                            {item.submenu && (
-                              <div className="ml-auto">
-                                {clientsMenuOpen ? (
-                                  <ChevronDown className={`w-4 h-4 ${isParentActive ? 'text-white' : 'text-muted-foreground'}`} />
-                                ) : (
-                                  <ChevronRight className={`w-4 h-4 ${isParentActive ? 'text-white' : 'text-muted-foreground'}`} />
-                                )}
-                              </div>
-                            )}
                           </div>
                         </SidebarMenuButton>
-                        
-                        {item.submenu && clientsMenuOpen && (
-                          <SidebarMenuSub>
-                            {item.submenu.map((subItem) => {
-                              const isSubActive = location.pathname === subItem.path;
-                              return (
-                                <SidebarMenuSubItem key={subItem.path}>
-                                  <SidebarMenuSubButton
-                                    onClick={() => navigate(subItem.path)}
-                                    isActive={isSubActive}
-                                    className={`
-                                      group relative overflow-hidden rounded-lg transition-all duration-300
-                                      ${isSubActive 
-                                        ? 'bg-gradient-primary text-white shadow-sm' 
-                                        : 'hover:bg-accent/30'
-                                      }
-                                    `}
-                                  >
-                                    <div className="flex items-center space-x-2">
-                                      <subItem.icon className={`w-3 h-3 ${isSubActive ? 'text-white' : 'text-muted-foreground'}`} />
-                                      <span className={`text-xs ${isSubActive ? 'text-white' : 'text-foreground'}`}>
-                                        {subItem.title}
-                                      </span>
-                                    </div>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              );
-                            })}
-                          </SidebarMenuSub>
-                        )}
                       </SidebarMenuItem>
                     );
                   })}
