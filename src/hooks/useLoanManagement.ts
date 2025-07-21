@@ -675,7 +675,7 @@ export const useProcessLoanDisbursement = () => {
           .insert({
             tenant_id: profile.tenant_id,
             savings_account_id: disbursement.savings_account_id,
-            transaction_type: 'credit',
+            transaction_type: 'deposit', // Changed from 'credit' to 'deposit'
             amount: disbursement.disbursed_amount,
             balance_after: newBalance,
             transaction_date: disbursement.disbursement_date, // Add the missing required field
