@@ -1376,8 +1376,8 @@ const ClientDetailsPage = () => {
                           console.log('Disbursement mutation completed successfully:', result);
 
                           toast({
-                            title: "Disbursement Successful! 🎉",
-                            description: `Loan disbursed ${disbursementMethod === 'savings' ? 'to savings account' : `via ${disbursementMethod}`} - Receipt: ${finalReceiptNumber}`,
+                            title: "Disbursement Successful! 🎉", 
+                            description: result?.message || `Loan disbursed ${disbursementMethod === 'savings' ? 'to savings account' : `via ${disbursementMethod}`} - Receipt: ${finalReceiptNumber}`,
                           });
                           
                           setShowLoanActionModal(false);

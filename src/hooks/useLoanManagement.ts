@@ -546,6 +546,7 @@ export const useProcessLoanDisbursement = () => {
       console.log('Starting disbursement process for application:', disbursement.loan_application_id);
       console.log('Disbursement data:', disbursement);
       // Check if loan has already been disbursed
+      console.log('Checking for existing disbursements for application:', disbursement.loan_application_id);
       const { data: existingDisbursement, error: disbursementCheckError } = await supabase
         .from('loan_disbursements')
         .select('loan_id')
@@ -553,12 +554,30 @@ export const useProcessLoanDisbursement = () => {
         .single();
       
       if (disbursementCheckError && disbursementCheckError.code !== 'PGRST116') {
+        console.error('Error checking disbursement:', disbursementCheckError);
         throw disbursementCheckError;
       }
       
-      // If already disbursed, return error
+      // If already disbursed, check if we should allow re-disbursement or return existing loan
       if (existingDisbursement) {
-        throw new Error('Loan has already been disbursed');
+        console.log('Found existing disbursement, checking loan status...');
+        
+        // Get the existing loan to check its status
+        const { data: existingLoan, error: loanError } = await supabase
+          .from('loans')
+          .select('id, status, loan_number')
+          .eq('id', existingDisbursement.loan_id)
+          .single();
+          
+        if (!loanError && existingLoan && existingLoan.status === 'active') {
+          console.log('Loan already active:', existingLoan);
+          // Loan is already active, return success without doing anything
+          return { 
+            loan: existingLoan, 
+            disbursement: existingDisbursement,
+            message: 'Loan was already disbursed and is active'
+          };
+        }
       }
 
       // Get approved loan record created during approval
@@ -735,15 +754,17 @@ export const useProcessLoanDisbursement = () => {
 
       return { loan: existingLoan, disbursement: disbursementData };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
       queryClient.invalidateQueries({ queryKey: ['loan-disbursements'] });
       queryClient.invalidateQueries({ queryKey: ['client-loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      
+      const message = result?.message || "Loan disbursed successfully";
       toast({
         title: "Success",
-        description: "Loan disbursed successfully",
+        description: message,
       });
     },
     onError: (error: any) => {
