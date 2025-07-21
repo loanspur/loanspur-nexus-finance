@@ -96,15 +96,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Clients Management
-            </CardTitle>
-            <CardDescription>
-              Manage client accounts and information
-            </CardDescription>
-          </div>
+          <div></div>
           <Button onClick={onCreateClient}>
             <Plus className="h-4 w-4 mr-2" />
             Add Client
