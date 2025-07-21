@@ -571,11 +571,12 @@ export const useProcessLoanDisbursement = () => {
       
       if (loanFetchError) {
         // If no pending loan found, we need to create one from the approved application
+        console.log('No existing loan found, fetching approved loan application');
         const { data: loanApplication, error: appError } = await supabase
           .from('loan_applications')
           .select('*')
           .eq('id', disbursement.loan_application_id)
-          .eq('status', 'pending_disbursement')
+          .in('status', ['pending_disbursement', 'approved']) // Accept both statuses
           .single();
           
         if (appError || !loanApplication) throw new Error('Approved loan application not found');
