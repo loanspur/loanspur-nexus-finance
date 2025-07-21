@@ -543,8 +543,8 @@ export const useProcessLoanDisbursement = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
-      
-
+      console.log('Starting disbursement process for application:', disbursement.loan_application_id);
+      console.log('Disbursement data:', disbursement);
       // Check if loan has already been disbursed
       const { data: existingDisbursement, error: disbursementCheckError } = await supabase
         .from('loan_disbursements')
@@ -688,7 +688,7 @@ export const useProcessLoanDisbursement = () => {
       if (disbursementError) throw disbursementError;
 
       // If Mifos is configured and loan has Mifos ID, disburse in Mifos X first
-      if (isMifosConfigured && existingLoan.mifos_loan_id) {
+      if (false && isMifosConfigured && existingLoan.mifos_loan_id) {
         console.log('Disbursing loan in Mifos X with ID:', existingLoan.mifos_loan_id);
         
         try {

@@ -1310,6 +1310,7 @@ const ClientDetailsPage = () => {
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 shadow-lg"
                       disabled={processDisbursement.isPending}
                       onClick={async () => {
+                        console.log('Disbursement button clicked');
                         try {
                           // Validation
                           if (!actionDate) {
@@ -1363,7 +1364,8 @@ const ClientDetailsPage = () => {
                           }
 
                           // Use the proper disbursement hook to handle all logic
-                          await processDisbursement.mutateAsync({
+                          console.log('About to call disbursement mutation');
+                          const result = await processDisbursement.mutateAsync({
                             loan_application_id: selectedLoanItem.id,
                             disbursed_amount: loanAmount,
                             disbursement_date: format(actionDate, 'yyyy-MM-dd'),
@@ -1371,6 +1373,7 @@ const ClientDetailsPage = () => {
                             reference_number: finalReceiptNumber,
                             savings_account_id: savingsAccountId,
                           });
+                          console.log('Disbursement mutation completed successfully:', result);
 
                           toast({
                             title: "Disbursement Successful! 🎉",
