@@ -95,13 +95,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div></div>
-          <Button onClick={onCreateClient}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Client
-          </Button>
-        </div>
+        <div></div>
       </CardHeader>
       <CardContent>
         {/* Search and Filter Controls */}
@@ -127,6 +121,10 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
               <SelectItem value="100">100 clients</SelectItem>
             </SelectContent>
           </Select>
+          <Button onClick={onCreateClient}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Client
+          </Button>
         </div>
 
         {isLoading ? (
