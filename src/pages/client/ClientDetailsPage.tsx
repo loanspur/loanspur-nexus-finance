@@ -1034,14 +1034,7 @@ const ClientDetailsPage = () => {
                       <DollarSign className="h-5 w-5" />
                       Select Disbursement Method
                     </h4>
-                    <RadioGroup value={disbursementMethod} onValueChange={setDisbursementMethod} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-white/60 transition-colors">
-                        <RadioGroupItem value="cash" id="cash" />
-                        <Label htmlFor="cash" className="flex items-center gap-2 font-medium cursor-pointer">
-                          <DollarSign className="h-4 w-4 text-green-600" />
-                          Cash Disbursement
-                        </Label>
-                      </div>
+                    <RadioGroup value={disbursementMethod} onValueChange={setDisbursementMethod} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-white/60 transition-colors">
                         <RadioGroupItem value="savings" id="savings" />
                         <Label htmlFor="savings" className="flex items-center gap-2 font-medium cursor-pointer">
@@ -1126,7 +1119,7 @@ const ClientDetailsPage = () => {
                     </div>
                   )}
 
-                  {(disbursementMethod === 'cash' || disbursementMethod === 'bank') && (
+                  {disbursementMethod === 'bank' && (
                     <div className="space-y-4">
                       {/* Payment Type */}
                       <div className="space-y-2">
@@ -1138,7 +1131,6 @@ const ClientDetailsPage = () => {
                             <SelectValue placeholder="Select payment method" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="cash">CASH DISBURSEMENT</SelectItem>
                             <SelectItem value="bank">BANK TRANSFER - DTB BANK</SelectItem>
                           </SelectContent>
                         </Select>
@@ -1153,22 +1145,13 @@ const ClientDetailsPage = () => {
                           type="text"
                           value={receiptNumber}
                           onChange={(e) => setReceiptNumber(e.target.value)}
-                          placeholder={disbursementMethod === 'cash' ? "Enter cash receipt number" : "Enter bank reference number"}
+                          placeholder="Enter bank reference number"
                           className="font-mono"
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Additional Notes */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Disbursement Notes</Label>
-                    <textarea 
-                      className="w-full min-h-[80px] p-3 border border-input rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                      placeholder="Add any additional notes about this disbursement..."
-                      rows={3}
-                    />
-                  </div>
                 </div>
               ) : (
                 <>
