@@ -916,32 +916,6 @@ const ClientDetailsPage = () => {
           </div>
         </div>
 
-        {/* Tab Content */}
-        <div className="mt-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsContent value="general" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientGeneralTab client={client} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="identities" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientIdentitiesTab clientId={client.id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="documents" className="mt-6">
-              <Card className="card-enhanced shadow-elevated">
-                <CardContent className="p-6">
-                  <ClientDocumentsTab clientId={client.id} />
-                </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
         </div>
 
       {/* Dialogs */}
