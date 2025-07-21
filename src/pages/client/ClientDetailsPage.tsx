@@ -53,6 +53,7 @@ import { NewShareAccountDialog } from "@/components/client/dialogs/NewShareAccou
 import { AddChargeDialog } from "@/components/client/dialogs/AddChargeDialog";
 import { TransferClientDialog } from "@/components/client/dialogs/TransferClientDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
 interface Client {
   id: string;
@@ -106,6 +107,7 @@ const ClientDetailsPage = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const processDisbursement = useProcessLoanDisbursement();
   
   const [client, setClient] = useState<Client | null>(null);
   const [loans, setLoans] = useState<any[]>([]);
@@ -1306,6 +1308,7 @@ const ClientDetailsPage = () => {
                     {/* Primary Disbursement Button */}
                     <Button 
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-2.5 shadow-lg"
+                      disabled={processDisbursement.isPending}
                       onClick={async () => {
                         try {
                           // Validation
@@ -1336,9 +1339,10 @@ const ClientDetailsPage = () => {
                             ? selectedLoanItem.requested_amount || 0 
                             : selectedLoanItem.principal_amount || 0;
 
-                          // Handle savings account disbursement
+                          let savingsAccountId;
+                          
+                          // Find client's active savings account if disbursing to savings
                           if (disbursementMethod === 'savings') {
-                            // Find client's active savings account
                             const { data: savingsAccount, error: savingsError } = await supabase
                               .from('savings_accounts')
                               .select('*')
@@ -1354,112 +1358,27 @@ const ClientDetailsPage = () => {
                               });
                               return;
                             }
-
-                            // Update savings account balance
-                            const newBalance = (savingsAccount.account_balance || 0) + loanAmount;
-
-                            const { error: updateError } = await supabase
-                              .from('savings_accounts')
-                              .update({ 
-                                account_balance: newBalance,
-                                available_balance: newBalance,
-                                updated_at: new Date().toISOString()
-                              })
-                              .eq('id', savingsAccount.id);
-
-                            if (updateError) {
-                              toast({
-                                title: "Error",
-                                description: "Failed to transfer funds to savings account.",
-                                variant: "destructive"
-                              });
-                              return;
-                            }
-
-                            // Create savings transaction record
-                            await supabase
-                              .from('savings_transactions')
-                              .insert({
-                                tenant_id: client.tenant_id,
-                                savings_account_id: savingsAccount.id,
-                                transaction_type: 'credit',
-                                amount: loanAmount,
-                                description: `Loan disbursement transfer - ${selectedLoanItem.application_number}`,
-                                transaction_date: actionDate.toISOString(),
-                                reference_number: finalReceiptNumber,
-                                balance_after: newBalance
-                              });
+                            
+                            savingsAccountId = savingsAccount.id;
                           }
 
-                          // Keep loan application status as approved (disbursement is tracked in loans table)
-                          const { error: statusError } = await supabase
-                            .from('loan_applications')
-                            .update({ 
-                              updated_at: new Date().toISOString()
-                            })
-                            .eq('id', selectedLoanItem.id);
-
-                          if (statusError) {
-                            console.error('Error updating loan application status:', statusError);
-                            toast({
-                              title: "Error",
-                              description: "Failed to update loan application status",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-
-                          console.log('Creating loan record and setting status to active for application ID:', selectedLoanItem.id);
-                          
-                          // First, create a loan record from the approved application
-                          const loanNumber = `LN-${Date.now()}`;
-                          const disbursementDateFormatted = format(actionDate || new Date(), 'yyyy-MM-dd');
-                          
-                          try {
-                            const { data: newLoan, error: loanCreateError } = await supabase
-                              .from('loans')
-                              .insert({
-                                tenant_id: selectedLoanItem.tenant_id,
-                                client_id: selectedLoanItem.client_id,
-                                loan_product_id: selectedLoanItem.loan_product_id,
-                                application_id: selectedLoanItem.id, // Link to the loan application
-                                loan_number: loanNumber,
-                                principal_amount: Number(selectedLoanItem.requested_amount),
-                                interest_rate: Number(selectedLoanItem.loan_products?.nominal_interest_rate || 0),
-                                term_months: Number(selectedLoanItem.requested_term),
-                                disbursement_date: disbursementDateFormatted,
-                                status: 'active',
-                                outstanding_balance: Number(selectedLoanItem.requested_amount)
-                              })
-                              .select()
-                              .single();
-
-                            if (loanCreateError) {
-                              console.error('Error creating loan record:', loanCreateError);
-                              toast({
-                                title: "Error",
-                                description: "Failed to create loan record: " + loanCreateError.message,
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-
-                            console.log('Loan created successfully with active status:', newLoan);
-                          } catch (err) {
-                            console.error('Exception creating loan record:', err);
-                            toast({
-                              title: "Error",
-                              description: "Failed to create loan record due to system error",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
+                          // Use the proper disbursement hook to handle all logic
+                          await processDisbursement.mutateAsync({
+                            loan_application_id: selectedLoanItem.id,
+                            disbursed_amount: loanAmount,
+                            disbursement_date: format(actionDate, 'yyyy-MM-dd'),
+                            disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : 'bank_transfer',
+                            reference_number: finalReceiptNumber,
+                            savings_account_id: savingsAccountId,
+                          });
 
                           toast({
                             title: "Disbursement Successful! 🎉",
                             description: `Loan disbursed ${disbursementMethod === 'savings' ? 'to savings account' : `via ${disbursementMethod}`} - Receipt: ${finalReceiptNumber}`,
                           });
+                          
                           setShowLoanActionModal(false);
+                          // Refresh the page to show updated data
                           window.location.reload();
                         } catch (err) {
                           console.error('Disbursement error:', err);
