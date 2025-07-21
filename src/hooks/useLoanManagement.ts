@@ -746,8 +746,18 @@ export const useProcessLoanDisbursement = () => {
         throw loanUpdateError;
       }
 
-      // Note: We DON'T update the loan application status to 'disbursed' 
-      // because 'disbursed' is not an allowed status value.
+      // Update the loan application status to 'disbursed'
+      const { error: applicationUpdateError } = await supabase
+        .from('loan_applications')
+        .update({
+          status: 'disbursed'
+        })
+        .eq('id', disbursement.loan_application_id);
+
+      if (applicationUpdateError) {
+        console.error('Error updating loan application to disbursed status:', applicationUpdateError);
+        throw applicationUpdateError;
+      }
       // The application stays as 'approved', and disbursement is tracked
       // in the loan_disbursements table and loan status is 'active'
       console.log('Disbursement completed successfully, keeping loan application as approved');
