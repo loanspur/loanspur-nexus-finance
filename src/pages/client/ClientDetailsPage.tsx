@@ -392,6 +392,39 @@ const ClientDetailsPage = () => {
                   <span>•</span>
                   <span>Staff: ADMIN</span>
                 </div>
+                
+                {/* Client Details Row */}
+                <div className="grid grid-cols-2 gap-6 mb-3">
+                  <div className="space-y-1">
+                    {client.phone && (
+                      <div className="flex items-center gap-2 text-white/90 text-sm">
+                        <Phone className="h-4 w-4" />
+                        <span>{client.phone}</span>
+                      </div>
+                    )}
+                    {client.email && (
+                      <div className="flex items-center gap-2 text-white/90 text-sm">
+                        <span>📧</span>
+                        <span>{client.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {client.occupation && (
+                      <div className="flex items-center gap-2 text-white/90 text-sm">
+                        <Building className="h-4 w-4" />
+                        <span>{client.occupation}</span>
+                      </div>
+                    )}
+                    {client.national_id && (
+                      <div className="flex items-center gap-2 text-white/90 text-sm">
+                        <IdCard className="h-4 w-4" />
+                        <span>{client.national_id}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                     {client.approval_status || 'approved'}
@@ -409,62 +442,6 @@ const ClientDetailsPage = () => {
                   {client.first_name[0]}{client.last_name[0]}
                 </AvatarFallback>
               </Avatar>
-            </div>
-          </div>
-
-          {/* Stats Cards Row */}
-          <div className="p-6 bg-muted/30">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-blue-600">
-                      {formatCurrency(calculateLoanBalance())}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Total Loan Balance</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-50 rounded-lg">
-                    <PiggyBank className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-green-600">
-                      {formatCurrency(calculateSavingsBalance())}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Total Savings</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-50 rounded-lg">
-                    <CreditCard className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-orange-600">{activeLoans.length}</p>
-                    <p className="text-xs text-muted-foreground">Active Loans</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 rounded-lg">
-                    <Building className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-semibold text-purple-600">{activeSavings.length}</p>
-                    <p className="text-xs text-muted-foreground">Savings Accounts</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
