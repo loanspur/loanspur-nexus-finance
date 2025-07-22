@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -1020,206 +1020,538 @@ const ClientDetailsPage = () => {
       {/* Account Details Modals */}
       {/* Comprehensive Loan Product Details Modal */}
       <Dialog open={showLoanDetailsModal} onOpenChange={setShowLoanDetailsModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
               {selectedAccount?.type === 'application' ? 'Loan Application Details' : 'Loan Product Details'}
             </DialogTitle>
             <DialogDescription>
-              Comprehensive product information and available actions
+              Complete loan information with all captured data and available actions
             </DialogDescription>
           </DialogHeader>
           {selectedAccount && (
             <div className="space-y-6">
-              {/* Product Overview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Info className="h-5 w-5" />
-                    Product Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Product Name</Label>
-                      <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="financial">Financial</TabsTrigger>
+                  <TabsTrigger value="repayment">Repayment</TabsTrigger>
+                  <TabsTrigger value="documents">Documents</TabsTrigger>
+                  <TabsTrigger value="guarantors">Guarantors</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
+                </TabsList>
+
+                {/* Overview Tab */}
+                <TabsContent value="overview" className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Product Overview */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Info className="h-5 w-5" />
+                          Product Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Product Name</Label>
+                            <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Account Number</Label>
+                            <p className="font-medium">
+                              {selectedAccount.type === 'application' 
+                                ? selectedAccount.application_number 
+                                : selectedAccount.loan_number || `L-${selectedAccount.id.slice(0, 8)}`
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Status</Label>
+                            <Badge className={
+                              selectedAccount.status === 'active' ? 'bg-green-100 text-green-800' :
+                              selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              selectedAccount.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }>
+                              {selectedAccount.status}
+                            </Badge>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Purpose</Label>
+                            <p className="font-medium">{selectedAccount.purpose || 'General Purpose'}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Financial Summary */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <DollarSign className="h-5 w-5" />
+                          Financial Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-primary/5 rounded-lg">
+                            <Label className="text-xs text-muted-foreground">
+                              {selectedAccount.type === 'application' ? 'Requested Amount' : 'Principal'}
+                            </Label>
+                            <p className="font-bold text-lg text-primary">
+                              {formatCurrency(selectedAccount.type === 'application' 
+                                ? selectedAccount.requested_amount || 0 
+                                : selectedAccount.principal_amount || 0
+                              )}
+                            </p>
+                          </div>
+                          {selectedAccount.final_approved_amount && (
+                            <div className="p-3 bg-green-50 rounded-lg">
+                              <Label className="text-xs text-muted-foreground">Approved Amount</Label>
+                              <p className="font-bold text-lg text-green-600">
+                                {formatCurrency(selectedAccount.final_approved_amount)}
+                              </p>
+                            </div>
+                          )}
+                          {selectedAccount.type !== 'application' && (
+                            <div className="p-3 bg-orange-50 rounded-lg">
+                              <Label className="text-xs text-muted-foreground">Outstanding</Label>
+                              <p className="font-bold text-lg text-orange-600">
+                                {formatCurrency(selectedAccount.outstanding_balance || 0)}
+                              </p>
+                            </div>
+                          )}
+                          <div className="p-3 bg-blue-50 rounded-lg">
+                            <Label className="text-xs text-muted-foreground">Interest Rate</Label>
+                            <p className="font-bold text-lg text-blue-600">
+                              {selectedAccount.final_approved_interest_rate || 
+                               selectedAccount.nominal_annual_interest_rate || 
+                               selectedAccount.loan_products?.default_nominal_interest_rate || 0}%
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Application Journey */}
+                  {selectedAccount.type === 'application' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Clock className="h-5 w-5" />
+                          Application Journey
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          {['submitted', 'under_review', 'approved', 'disbursed'].map((step, index) => (
+                            <div key={step} className="flex items-center">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                ['submitted', 'under_review'].includes(selectedAccount.status) && step === 'submitted' ||
+                                selectedAccount.status === 'approved' && ['submitted', 'under_review', 'approved'].includes(step) ||
+                                selectedAccount.status === 'active' && step !== 'disbursed'
+                                  ? 'bg-primary text-primary-foreground' 
+                                  : 'bg-muted text-muted-foreground'
+                              }`}>
+                                {index + 1}
+                              </div>
+                              <div className="ml-2 text-sm capitalize">{step.replace('_', ' ')}</div>
+                              {index < 3 && (
+                                <div className={`w-16 h-0.5 mx-4 ${
+                                  selectedAccount.status === 'active' || 
+                                  (selectedAccount.status === 'approved' && index < 2)
+                                    ? 'bg-primary' 
+                                    : 'bg-muted'
+                                }`} />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                {/* Financial Tab */}
+                <TabsContent value="financial" className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Loan Terms */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Loan Terms & Conditions</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Term Period</Label>
+                            <p className="font-medium">
+                              {selectedAccount.final_approved_term || 
+                               selectedAccount.requested_term || 
+                               selectedAccount.term_frequency || 0} months
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Interest Rate</Label>
+                            <p className="font-medium">
+                              {selectedAccount.final_approved_interest_rate || 
+                               selectedAccount.nominal_annual_interest_rate || 0}% per annum
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Repayment Frequency</Label>
+                            <p className="font-medium">{selectedAccount.repayment_frequency || 'Monthly'}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-muted-foreground">Grace Period</Label>
+                            <p className="font-medium">{selectedAccount.grace_period_duration || 0} days</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Client Financial Data */}
+                    {selectedAccount.financial_data && Object.keys(selectedAccount.financial_data).length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Financial Assessment</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {selectedAccount.credit_score && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Credit Score</Label>
+                              <p className="font-medium">{selectedAccount.credit_score}</p>
+                            </div>
+                          )}
+                          {selectedAccount.debt_to_income_ratio && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Debt to Income Ratio</Label>
+                              <p className="font-medium">{selectedAccount.debt_to_income_ratio}%</p>
+                            </div>
+                          )}
+                          {selectedAccount.financial_data.monthly_income && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Monthly Income</Label>
+                              <p className="font-medium">{formatCurrency(selectedAccount.financial_data.monthly_income)}</p>
+                            </div>
+                          )}
+                          {selectedAccount.financial_data.monthly_expenses && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Monthly Expenses</Label>
+                              <p className="font-medium">{formatCurrency(selectedAccount.financial_data.monthly_expenses)}</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+
+                  {/* Employment/Business Information */}
+                  {(selectedAccount.employment_verification || selectedAccount.business_information) && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {selectedAccount.employment_verification && Object.keys(selectedAccount.employment_verification).length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Employment Details</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            {selectedAccount.employment_verification.employer_name && (
+                              <div>
+                                <Label className="text-sm text-muted-foreground">Employer</Label>
+                                <p className="font-medium">{selectedAccount.employment_verification.employer_name}</p>
+                              </div>
+                            )}
+                            {selectedAccount.employment_verification.job_title && (
+                              <div>
+                                <Label className="text-sm text-muted-foreground">Job Title</Label>
+                                <p className="font-medium">{selectedAccount.employment_verification.job_title}</p>
+                              </div>
+                            )}
+                            {selectedAccount.employment_verification.employment_duration && (
+                              <div>
+                                <Label className="text-sm text-muted-foreground">Employment Duration</Label>
+                                <p className="font-medium">{selectedAccount.employment_verification.employment_duration}</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {selectedAccount.business_information && Object.keys(selectedAccount.business_information).length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Business Information</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            {selectedAccount.business_information.business_name && (
+                              <div>
+                                <Label className="text-sm text-muted-foreground">Business Name</Label>
+                                <p className="font-medium">{selectedAccount.business_information.business_name}</p>
+                              </div>
+                            )}
+                            {selectedAccount.business_information.business_type && (
+                              <div>
+                                <Label className="text-sm text-muted-foreground">Business Type</Label>
+                                <p className="font-medium">{selectedAccount.business_information.business_type}</p>
+                              </div>
+                            )}
+                            {selectedAccount.business_information.annual_revenue && (
+                              <div>
+                                <Label className="text-sm text-muted-foreground">Annual Revenue</Label>
+                                <p className="font-medium">{formatCurrency(selectedAccount.business_information.annual_revenue)}</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Account Number</Label>
-                      <p className="font-medium">
-                        {selectedAccount.type === 'application' 
-                          ? selectedAccount.application_number 
-                          : selectedAccount.loan_number || `L-${selectedAccount.id.slice(0, 8)}`
+                  )}
+                </TabsContent>
+
+                {/* Repayment Schedule Tab */}
+                <TabsContent value="repayment" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Repayment Schedule
+                      </CardTitle>
+                      <CardDescription>
+                        Monthly payment breakdown and schedule
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {(() => {
+                        const principal = selectedAccount.final_approved_amount || selectedAccount.requested_amount || selectedAccount.principal_amount || 0;
+                        const rate = (selectedAccount.final_approved_interest_rate || selectedAccount.nominal_annual_interest_rate || 0) / 100 / 12;
+                        const term = selectedAccount.final_approved_term || selectedAccount.requested_term || selectedAccount.term_frequency || 12;
+                        
+                        if (principal > 0 && rate > 0 && term > 0) {
+                          const monthlyPayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+                          const totalPayment = monthlyPayment * term;
+                          const totalInterest = totalPayment - principal;
+
+                          return (
+                            <div className="space-y-4">
+                              {/* Payment Summary */}
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+                                <div className="text-center">
+                                  <Label className="text-xs text-muted-foreground">Monthly Payment</Label>
+                                  <p className="font-bold text-lg text-primary">{formatCurrency(monthlyPayment)}</p>
+                                </div>
+                                <div className="text-center">
+                                  <Label className="text-xs text-muted-foreground">Total Interest</Label>
+                                  <p className="font-bold text-lg text-orange-600">{formatCurrency(totalInterest)}</p>
+                                </div>
+                                <div className="text-center">
+                                  <Label className="text-xs text-muted-foreground">Total Payment</Label>
+                                  <p className="font-bold text-lg text-green-600">{formatCurrency(totalPayment)}</p>
+                                </div>
+                                <div className="text-center">
+                                  <Label className="text-xs text-muted-foreground">Term</Label>
+                                  <p className="font-bold text-lg">{term} months</p>
+                                </div>
+                              </div>
+
+                              {/* Schedule Table */}
+                              <div className="max-h-96 overflow-y-auto border rounded-lg">
+                                <table className="w-full text-sm">
+                                  <thead className="bg-muted/50 sticky top-0">
+                                    <tr>
+                                      <th className="p-3 text-left">Payment #</th>
+                                      <th className="p-3 text-left">Due Date</th>
+                                      <th className="p-3 text-right">Payment</th>
+                                      <th className="p-3 text-right">Principal</th>
+                                      <th className="p-3 text-right">Interest</th>
+                                      <th className="p-3 text-right">Balance</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Array.from({ length: Math.min(term, 12) }, (_, i) => {
+                                      const paymentNumber = i + 1;
+                                      const interestPayment = (principal - (monthlyPayment - rate * principal) * i) * rate;
+                                      const principalPayment = monthlyPayment - interestPayment;
+                                      const remainingBalance = principal - (principalPayment * paymentNumber);
+                                      const dueDate = new Date();
+                                      dueDate.setMonth(dueDate.getMonth() + paymentNumber);
+
+                                      return (
+                                        <tr key={paymentNumber} className="border-b hover:bg-muted/20">
+                                          <td className="p-3 font-medium">{paymentNumber}</td>
+                                          <td className="p-3">{format(dueDate, 'dd MMM yyyy')}</td>
+                                          <td className="p-3 text-right font-medium">{formatCurrency(monthlyPayment)}</td>
+                                          <td className="p-3 text-right">{formatCurrency(Math.max(0, principalPayment))}</td>
+                                          <td className="p-3 text-right">{formatCurrency(Math.max(0, interestPayment))}</td>
+                                          <td className="p-3 text-right font-medium">{formatCurrency(Math.max(0, remainingBalance))}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                    {term > 12 && (
+                                      <tr>
+                                        <td colSpan={6} className="p-3 text-center text-muted-foreground">
+                                          ... and {term - 12} more payments
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="text-center p-8 text-muted-foreground">
+                              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                              <p>Repayment schedule will be generated once loan terms are finalized.</p>
+                            </div>
+                          );
                         }
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Status</Label>
-                      <Badge className={
-                        selectedAccount.status === 'active' ? 'bg-green-100 text-green-800' :
-                        selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedAccount.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }>
-                        {selectedAccount.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      })()}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-              {/* Financial Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Financial Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        {selectedAccount.type === 'application' ? 'Requested Amount' : 'Principal Amount'}
-                      </Label>
-                      <p className="font-medium text-lg">
-                        {formatCurrency(selectedAccount.type === 'application' 
-                          ? selectedAccount.requested_amount || 0 
-                          : selectedAccount.principal_amount || 0
+                {/* Documents Tab */}
+                <TabsContent value="documents" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Required Documents</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center p-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>Document management integration coming soon.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Guarantors Tab */}
+                <TabsContent value="guarantors" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Guarantors & Collateral</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center p-8 text-muted-foreground">
+                        <UserMinus className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>Guarantor information will be displayed here.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* History Tab */}
+                <TabsContent value="history" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Activity History</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 border rounded-lg">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Application Submitted</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(selectedAccount.created_at), 'dd MMM yyyy HH:mm')}
+                            </p>
+                          </div>
+                        </div>
+                        {selectedAccount.reviewed_at && (
+                          <div className="flex items-center gap-3 p-3 border rounded-lg">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">Application Reviewed</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(selectedAccount.reviewed_at), 'dd MMM yyyy HH:mm')}
+                              </p>
+                            </div>
+                          </div>
                         )}
-                      </p>
-                    </div>
-                    {selectedAccount.final_approved_amount && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Approved Amount</Label>
-                        <p className="font-medium text-lg text-green-600">
-                          {formatCurrency(selectedAccount.final_approved_amount)}
-                        </p>
                       </div>
-                    )}
-                    {selectedAccount.type !== 'application' && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Outstanding Balance</Label>
-                        <p className="font-medium text-lg text-orange-600">
-                          {formatCurrency(selectedAccount.outstanding_balance || 0)}
-                        </p>
-                      </div>
-                    )}
-                    <div>
-                      <Label className="text-sm text-muted-foreground">Interest Rate</Label>
-                      <p className="font-medium text-lg">
-                        {selectedAccount.final_approved_interest_rate || 
-                         selectedAccount.nominal_annual_interest_rate || 
-                         selectedAccount.loan_products?.default_nominal_interest_rate || 0}%
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        {selectedAccount.type === 'application' ? 'Requested Term' : 'Loan Term'}
-                      </Label>
-                      <p className="font-medium text-lg">
-                        {selectedAccount.final_approved_term || 
-                         selectedAccount.requested_term || 
-                         selectedAccount.term_frequency || 0} months
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Key Dates */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Important Dates
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        {selectedAccount.type === 'application' ? 'Application Date' : 'Created Date'}
-                      </Label>
-                      <p className="font-medium">
-                        {format(new Date(selectedAccount.type === 'application' 
-                          ? selectedAccount.submitted_at || selectedAccount.created_at
-                          : selectedAccount.created_at
-                        ), 'dd MMM yyyy')}
-                      </p>
-                    </div>
-                    {selectedAccount.disbursed_date && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Disbursement Date</Label>
-                        <p className="font-medium">{format(new Date(selectedAccount.disbursed_date), 'dd MMM yyyy')}</p>
-                      </div>
-                    )}
-                    {selectedAccount.maturity_date && (
-                      <div>
-                        <Label className="text-sm text-muted-foreground">Maturity Date</Label>
-                        <p className="font-medium">{format(new Date(selectedAccount.maturity_date), 'dd MMM yyyy')}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t">
+              <div className="flex flex-wrap gap-3 pt-6 border-t bg-muted/30 p-4 rounded-lg">
                 <Button onClick={() => setShowLoanDetailsModal(false)} variant="outline">
+                  <X className="h-4 w-4 mr-2" />
                   Close
                 </Button>
                 
                 {/* Workflow Actions based on status */}
                 {selectedAccount.status === 'pending' && (
-                  <Button 
-                    onClick={() => {
-                      setSelectedLoanForWorkflow(selectedAccount);
-                      setShowLoanDetailsModal(false);
-                      setShowLoanWorkflowModal(true);
-                    }} 
-                    className="bg-gradient-primary"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Review & Approve
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => {
+                        setSelectedLoanForWorkflow(selectedAccount);
+                        setShowLoanDetailsModal(false);
+                        setShowLoanWorkflowModal(true);
+                      }} 
+                      className="bg-gradient-primary animate-fade-in"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Review & Approve
+                    </Button>
+                    <Button variant="outline" className="border-red-200 text-red-700 hover:bg-red-50">
+                      <X className="h-4 w-4 mr-2" />
+                      Reject Application
+                    </Button>
+                  </>
                 )}
                 
                 {selectedAccount.status === 'approved' && (
-                  <Button 
-                    onClick={() => {
-                      setSelectedLoanForWorkflow(selectedAccount);
-                      setShowLoanDetailsModal(false);
-                      setShowLoanWorkflowModal(true);
-                    }} 
-                    className="bg-gradient-primary"
-                  >
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    Process Disbursement
-                  </Button>
-                )}
-                
-                {(selectedAccount.status === 'active' || selectedAccount.status === 'approved') && (
-                  <Button variant="outline">
-                    <FileText className="h-4 w-4 mr-2" />
-                    View Repayment Schedule
-                  </Button>
-                )}
-                
-                {selectedAccount.type !== 'application' && (
                   <>
-                    <Button variant="outline">
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      View Transactions
+                    <Button 
+                      onClick={() => {
+                        setSelectedLoanForWorkflow(selectedAccount);
+                        setShowLoanDetailsModal(false);
+                        setShowLoanWorkflowModal(true);
+                      }} 
+                      className="bg-gradient-primary animate-fade-in"
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Process Disbursement
                     </Button>
                     <Button variant="outline">
                       <Edit2 className="h-4 w-4 mr-2" />
+                      Modify Terms
+                    </Button>
+                  </>
+                )}
+                
+                {selectedAccount.status === 'active' && (
+                  <>
+                    <Button variant="outline">
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Record Payment
+                    </Button>
+                    <Button variant="outline">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Statement
+                    </Button>
+                    <Button variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
                       Loan Actions
                     </Button>
                   </>
                 )}
+                
+                {/* Always available actions */}
+                <Button variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Print Details
+                </Button>
+                <Button variant="outline">
+                  <Share className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
               </div>
             </div>
           )}
