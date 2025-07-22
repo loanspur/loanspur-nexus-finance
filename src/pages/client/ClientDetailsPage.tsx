@@ -31,7 +31,9 @@ import {
   Phone,
   StickyNote,
   Check,
-  Edit2
+  Edit2,
+  Clock,
+  CheckCircle
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -52,6 +54,7 @@ import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
 import { NewShareAccountDialog } from "@/components/client/dialogs/NewShareAccountDialog";
 import { AddChargeDialog } from "@/components/client/dialogs/AddChargeDialog";
 import { TransferClientDialog } from "@/components/client/dialogs/TransferClientDialog";
+import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
@@ -130,7 +133,9 @@ const ClientDetailsPage = () => {
   const [showSavingsDetailsModal, setShowSavingsDetailsModal] = useState(false);
   const [showAllLoansModal, setShowAllLoansModal] = useState(false);
   const [showAllSavingsModal, setShowAllSavingsModal] = useState(false);
+  const [showLoanWorkflowModal, setShowLoanWorkflowModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
+  const [selectedLoanForWorkflow, setSelectedLoanForWorkflow] = useState<any>(null);
   
   // Loan Action Modal State
   const [showLoanActionModal, setShowLoanActionModal] = useState(false);
@@ -806,6 +811,37 @@ const ClientDetailsPage = () => {
         client={client}
       />
 
+      {/* Loan Workflow Dialog */}
+      {selectedLoanForWorkflow && (
+        <LoanWorkflowDialog
+          loanApplication={{
+            id: selectedLoanForWorkflow.id,
+            application_number: selectedLoanForWorkflow.application_number || selectedLoanForWorkflow.loan_number || `L-${selectedLoanForWorkflow.id.slice(0, 8)}`,
+            status: selectedLoanForWorkflow.status,
+            requested_amount: selectedLoanForWorkflow.type === 'application' ? selectedLoanForWorkflow.requested_amount : selectedLoanForWorkflow.principal_amount,
+            requested_term: selectedLoanForWorkflow.type === 'application' ? selectedLoanForWorkflow.requested_term : selectedLoanForWorkflow.term_frequency,
+            final_approved_amount: selectedLoanForWorkflow.final_approved_amount,
+            final_approved_term: selectedLoanForWorkflow.final_approved_term,
+            final_approved_interest_rate: selectedLoanForWorkflow.final_approved_interest_rate,
+            clients: {
+              first_name: client.first_name,
+              last_name: client.last_name,
+              client_number: client.client_number
+            },
+            loan_products: {
+              name: selectedLoanForWorkflow.loan_products?.name || 'Standard Loan'
+            }
+          }}
+          open={showLoanWorkflowModal}
+          onOpenChange={setShowLoanWorkflowModal}
+          onSuccess={() => {
+            fetchClientData();
+            setShowLoanWorkflowModal(false);
+            setSelectedLoanForWorkflow(null);
+          }}
+        />
+      )}
+
       {/* Loan Action Modal */}
       <Dialog open={showLoanActionModal} onOpenChange={setShowLoanActionModal}>
         <DialogContent className="max-w-2xl">
@@ -982,92 +1018,207 @@ const ClientDetailsPage = () => {
       </Dialog>
 
       {/* Account Details Modals */}
-      {/* Loan Details Modal */}
+      {/* Comprehensive Loan Product Details Modal */}
       <Dialog open={showLoanDetailsModal} onOpenChange={setShowLoanDetailsModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Loan Account Details
+              {selectedAccount?.type === 'application' ? 'Loan Application Details' : 'Loan Product Details'}
             </DialogTitle>
+            <DialogDescription>
+              Comprehensive product information and available actions
+            </DialogDescription>
           </DialogHeader>
           {selectedAccount && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm text-muted-foreground">Product</Label>
-                  <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Account Number</Label>
-                  <p className="font-medium">
-                    {selectedAccount.type === 'application' 
-                      ? selectedAccount.application_number 
-                      : selectedAccount.loan_number || `L-${selectedAccount.id.slice(0, 8)}`
-                    }
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Amount</Label>
-                  <p className="font-medium">
-                    {formatCurrency(selectedAccount.type === 'application' 
-                      ? selectedAccount.requested_amount || 0 
-                      : selectedAccount.principal_amount || 0
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Status</Label>
-                  <Badge className={
-                    selectedAccount.status === 'active' ? 'bg-green-100 text-green-800' :
-                    selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }>
-                    {selectedAccount.status}
-                  </Badge>
-                </div>
-                {selectedAccount.type !== 'application' && (
-                  <>
+            <div className="space-y-6">
+              {/* Product Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Info className="h-5 w-5" />
+                    Product Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label className="text-sm text-muted-foreground">Outstanding Balance</Label>
-                      <p className="font-medium">{formatCurrency(selectedAccount.outstanding_balance || 0)}</p>
+                      <Label className="text-sm text-muted-foreground">Product Name</Label>
+                      <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
                     </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Account Number</Label>
+                      <p className="font-medium">
+                        {selectedAccount.type === 'application' 
+                          ? selectedAccount.application_number 
+                          : selectedAccount.loan_number || `L-${selectedAccount.id.slice(0, 8)}`
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Status</Label>
+                      <Badge className={
+                        selectedAccount.status === 'active' ? 'bg-green-100 text-green-800' :
+                        selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        selectedAccount.status === 'approved' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }>
+                        {selectedAccount.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Financial Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Financial Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        {selectedAccount.type === 'application' ? 'Requested Amount' : 'Principal Amount'}
+                      </Label>
+                      <p className="font-medium text-lg">
+                        {formatCurrency(selectedAccount.type === 'application' 
+                          ? selectedAccount.requested_amount || 0 
+                          : selectedAccount.principal_amount || 0
+                        )}
+                      </p>
+                    </div>
+                    {selectedAccount.final_approved_amount && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Approved Amount</Label>
+                        <p className="font-medium text-lg text-green-600">
+                          {formatCurrency(selectedAccount.final_approved_amount)}
+                        </p>
+                      </div>
+                    )}
+                    {selectedAccount.type !== 'application' && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Outstanding Balance</Label>
+                        <p className="font-medium text-lg text-orange-600">
+                          {formatCurrency(selectedAccount.outstanding_balance || 0)}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <Label className="text-sm text-muted-foreground">Interest Rate</Label>
-                      <p className="font-medium">{selectedAccount.nominal_annual_interest_rate || selectedAccount.loan_products?.default_nominal_interest_rate || 0}%</p>
+                      <p className="font-medium text-lg">
+                        {selectedAccount.final_approved_interest_rate || 
+                         selectedAccount.nominal_annual_interest_rate || 
+                         selectedAccount.loan_products?.default_nominal_interest_rate || 0}%
+                      </p>
                     </div>
-                  </>
-                )}
-                <div>
-                  <Label className="text-sm text-muted-foreground">Date Created</Label>
-                  <p className="font-medium">
-                    {format(new Date(selectedAccount.created_at), 'dd MMM yyyy')}
-                  </p>
-                </div>
-                {selectedAccount.type === 'application' && selectedAccount.requested_term && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Requested Term</Label>
-                    <p className="font-medium">{selectedAccount.requested_term} months</p>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        {selectedAccount.type === 'application' ? 'Requested Term' : 'Loan Term'}
+                      </Label>
+                      <p className="font-medium text-lg">
+                        {selectedAccount.final_approved_term || 
+                         selectedAccount.requested_term || 
+                         selectedAccount.term_frequency || 0} months
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <Button onClick={() => setShowLoanDetailsModal(false)} variant="outline" className="flex-1">
+                </CardContent>
+              </Card>
+
+              {/* Key Dates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Important Dates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        {selectedAccount.type === 'application' ? 'Application Date' : 'Created Date'}
+                      </Label>
+                      <p className="font-medium">
+                        {format(new Date(selectedAccount.type === 'application' 
+                          ? selectedAccount.submitted_at || selectedAccount.created_at
+                          : selectedAccount.created_at
+                        ), 'dd MMM yyyy')}
+                      </p>
+                    </div>
+                    {selectedAccount.disbursed_date && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Disbursement Date</Label>
+                        <p className="font-medium">{format(new Date(selectedAccount.disbursed_date), 'dd MMM yyyy')}</p>
+                      </div>
+                    )}
+                    {selectedAccount.maturity_date && (
+                      <div>
+                        <Label className="text-sm text-muted-foreground">Maturity Date</Label>
+                        <p className="font-medium">{format(new Date(selectedAccount.maturity_date), 'dd MMM yyyy')}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
+                <Button onClick={() => setShowLoanDetailsModal(false)} variant="outline">
                   Close
                 </Button>
+                
+                {/* Workflow Actions based on status */}
+                {selectedAccount.status === 'pending' && (
+                  <Button 
+                    onClick={() => {
+                      setSelectedLoanForWorkflow(selectedAccount);
+                      setShowLoanDetailsModal(false);
+                      setShowLoanWorkflowModal(true);
+                    }} 
+                    className="bg-gradient-primary"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Review & Approve
+                  </Button>
+                )}
+                
                 {selectedAccount.status === 'approved' && (
                   <Button 
                     onClick={() => {
-                      setSelectedLoanItem(selectedAccount);
+                      setSelectedLoanForWorkflow(selectedAccount);
                       setShowLoanDetailsModal(false);
-                      setShowLoanActionModal(true);
+                      setShowLoanWorkflowModal(true);
                     }} 
-                    className="flex-1 bg-gradient-primary"
+                    className="bg-gradient-primary"
                   >
                     <DollarSign className="h-4 w-4 mr-2" />
                     Process Disbursement
                   </Button>
+                )}
+                
+                {(selectedAccount.status === 'active' || selectedAccount.status === 'approved') && (
+                  <Button variant="outline">
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Repayment Schedule
+                  </Button>
+                )}
+                
+                {selectedAccount.type !== 'application' && (
+                  <>
+                    <Button variant="outline">
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      View Transactions
+                    </Button>
+                    <Button variant="outline">
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Loan Actions
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -1075,64 +1226,173 @@ const ClientDetailsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Savings Details Modal */}
+      {/* Comprehensive Savings Product Details Modal */}
       <Dialog open={showSavingsDetailsModal} onOpenChange={setShowSavingsDetailsModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PiggyBank className="h-5 w-5" />
-              Savings Account Details
+              Savings Product Details
             </DialogTitle>
+            <DialogDescription>
+              Comprehensive savings account information and available actions
+            </DialogDescription>
           </DialogHeader>
           {selectedAccount && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm text-muted-foreground">Product</Label>
-                  <p className="font-medium">{selectedAccount.savings_products?.name || 'Savings Account'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Account Number</Label>
-                  <p className="font-medium">{selectedAccount.account_number}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Current Balance</Label>
-                  <p className="font-medium">{formatCurrency(selectedAccount.account_balance || 0)}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Available Balance</Label>
-                  <p className="font-medium">{formatCurrency(selectedAccount.available_balance || 0)}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Interest Rate</Label>
-                  <p className="font-medium">{selectedAccount.savings_products?.nominal_annual_interest_rate || 0}%</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Interest Earned</Label>
-                  <p className="font-medium">{formatCurrency(selectedAccount.interest_earned || 0)}</p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Opened Date</Label>
-                  <p className="font-medium">
-                    {format(new Date(selectedAccount.opened_date || selectedAccount.created_at), 'dd MMM yyyy')}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm text-muted-foreground">Status</Label>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">Active</span>
+            <div className="space-y-6">
+              {/* Product Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Info className="h-5 w-5" />
+                    Product Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Product Name</Label>
+                      <p className="font-medium">{selectedAccount.savings_products?.name || 'Savings Account'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Account Number</Label>
+                      <p className="font-medium">{selectedAccount.account_number}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Status</Label>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <Button onClick={() => setShowSavingsDetailsModal(false)} variant="outline" className="flex-1">
+                </CardContent>
+              </Card>
+
+              {/* Account Balances */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Account Balances
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-4 bg-primary/5 rounded-lg border">
+                      <Label className="text-sm text-muted-foreground">Current Balance</Label>
+                      <p className="font-bold text-2xl text-primary">
+                        {formatCurrency(selectedAccount.account_balance || 0)}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-green-50 rounded-lg border">
+                      <Label className="text-sm text-muted-foreground">Available Balance</Label>
+                      <p className="font-bold text-2xl text-green-600">
+                        {formatCurrency(selectedAccount.available_balance || 0)}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-blue-50 rounded-lg border">
+                      <Label className="text-sm text-muted-foreground">Interest Earned</Label>
+                      <p className="font-bold text-2xl text-blue-600">
+                        {formatCurrency(selectedAccount.interest_earned || 0)}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-orange-50 rounded-lg border">
+                      <Label className="text-sm text-muted-foreground">Interest Rate</Label>
+                      <p className="font-bold text-2xl text-orange-600">
+                        {selectedAccount.savings_products?.nominal_annual_interest_rate || 0}%
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Product Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Product Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Minimum Opening Balance</Label>
+                      <p className="font-medium">
+                        {formatCurrency(selectedAccount.savings_products?.min_required_opening_balance || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Min Balance for Interest</Label>
+                      <p className="font-medium">
+                        {formatCurrency(selectedAccount.savings_products?.min_balance_for_interest_calculation || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Currency</Label>
+                      <p className="font-medium">{selectedAccount.savings_products?.currency_code || 'KES'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Key Dates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Important Dates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Account Opened</Label>
+                      <p className="font-medium">
+                        {format(new Date(selectedAccount.opened_date || selectedAccount.created_at), 'dd MMM yyyy')}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Last Activity</Label>
+                      <p className="font-medium">
+                        {format(new Date(selectedAccount.updated_at), 'dd MMM yyyy')}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Account Age</Label>
+                      <p className="font-medium">
+                        {Math.floor((Date.now() - new Date(selectedAccount.opened_date || selectedAccount.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
+                <Button onClick={() => setShowSavingsDetailsModal(false)} variant="outline">
                   Close
                 </Button>
-                <Button variant="outline" className="flex-1">
+                <Button variant="outline">
                   <Eye className="h-4 w-4 mr-2" />
                   View Transactions
+                </Button>
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Make Deposit
+                </Button>
+                <Button variant="outline">
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  Transfer Funds
+                </Button>
+                <Button variant="outline">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Account Statement
+                </Button>
+                <Button variant="outline">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Account Settings
                 </Button>
               </div>
             </div>
