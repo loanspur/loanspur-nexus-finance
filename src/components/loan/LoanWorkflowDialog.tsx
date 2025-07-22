@@ -79,6 +79,11 @@ export const LoanWorkflowDialog = ({
   const processApproval = useProcessLoanApproval();
   const processDisbursement = useProcessLoanDisbursement();
 
+  // Guard clause to prevent null reference errors
+  if (!loanApplication) {
+    return null;
+  }
+
   const approvalForm = useForm<ApprovalData>({
     resolver: zodResolver(approvalSchema),
     defaultValues: {
