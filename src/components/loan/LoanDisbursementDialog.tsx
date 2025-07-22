@@ -5,22 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { CalendarIcon, DollarSign, PiggyBank, CreditCard, Building, Receipt, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { DollarSign, Receipt } from "lucide-react";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 import { useToast } from "@/hooks/use-toast";
+import { usePaymentTypes } from "@/hooks/usePaymentTypes";
+import { useFundSources } from "@/hooks/useFundSources";
 
 interface LoanDisbursementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loanData: any;
-  clientSavingsAccounts?: any[];
   onSuccess?: () => void;
 }
 
@@ -28,11 +23,12 @@ export const LoanDisbursementDialog = ({
   open, 
   onOpenChange, 
   loanData, 
-  clientSavingsAccounts = [],
   onSuccess 
 }: LoanDisbursementDialogProps) => {
   const { toast } = useToast();
   const processDisbursement = useProcessLoanDisbursement();
+  const { data: paymentTypes = [] } = usePaymentTypes();
+  const { data: fundSources = [] } = useFundSources();
 
   // Early return if no loan data
   if (!loanData) {
@@ -40,18 +36,9 @@ export const LoanDisbursementDialog = ({
   }
 
   // Form states
-  const [disbursementType, setDisbursementType] = useState<'savings' | 'external'>('savings');
-  const [disbursementMethod, setDisbursementMethod] = useState<'transfer_to_savings' | 'bank_transfer' | 'mpesa' | 'cash' | 'check'>('transfer_to_savings');
-  const [disbursementDate, setDisbursementDate] = useState<Date>(new Date());
   const [receiptNumber, setReceiptNumber] = useState('');
-  const [selectedSavingsAccount, setSelectedSavingsAccount] = useState('');
-  
-  // External payment fields
-  const [bankName, setBankName] = useState('');
-  const [bankAccountName, setBankAccountName] = useState('');
-  const [bankAccountNumber, setBankAccountNumber] = useState('');
-  const [mpesaPhone, setMpesaPhone] = useState('');
-  const [referenceNumber, setReferenceNumber] = useState('');
+  const [selectedPaymentType, setSelectedPaymentType] = useState('');
+  const [selectedSourceAccount, setSelectedSourceAccount] = useState('');
 
   // Generate unique receipt number on dialog open
   useEffect(() => {
@@ -65,16 +52,9 @@ export const LoanDisbursementDialog = ({
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
-      setDisbursementType('savings');
-      setDisbursementMethod('transfer_to_savings');
-      setDisbursementDate(new Date());
       setReceiptNumber('');
-      setSelectedSavingsAccount('');
-      setBankName('');
-      setBankAccountName('');
-      setBankAccountNumber('');
-      setMpesaPhone('');
-      setReferenceNumber('');
+      setSelectedPaymentType('');
+      setSelectedSourceAccount('');
     }
   }, [open]);
 
@@ -86,37 +66,12 @@ export const LoanDisbursementDialog = ({
     }).format(amount);
   };
 
-  const handleDisbursementTypeChange = (type: 'savings' | 'external') => {
-    setDisbursementType(type);
-    if (type === 'savings') {
-      setDisbursementMethod('transfer_to_savings');
-    } else {
-      setDisbursementMethod('bank_transfer');
-    }
-  };
-
   const getDisbursementAmount = () => {
     return loanData.final_approved_amount || loanData.requested_amount || loanData.principal_amount || 0;
   };
 
   const isFormValid = () => {
-    if (!disbursementDate || !receiptNumber) return false;
-    
-    if (disbursementType === 'savings') {
-      return selectedSavingsAccount && clientSavingsAccounts.length > 0;
-    } else {
-      switch (disbursementMethod) {
-        case 'bank_transfer':
-          return bankName && bankAccountName && bankAccountNumber;
-        case 'mpesa':
-          return mpesaPhone;
-        case 'cash':
-        case 'check':
-          return true;
-        default:
-          return false;
-      }
-    }
+    return receiptNumber && selectedPaymentType && selectedSourceAccount;
   };
 
   const handleSubmit = () => {
@@ -132,25 +87,11 @@ export const LoanDisbursementDialog = ({
     const disbursementData: any = {
       loan_application_id: loanData.id,
       disbursed_amount: getDisbursementAmount(),
-      disbursement_date: disbursementDate.toISOString(),
-      disbursement_method: disbursementMethod,
+      disbursement_date: new Date().toISOString(),
+      payment_type_id: selectedPaymentType,
+      source_account_id: selectedSourceAccount,
       reference_number: receiptNumber,
     };
-
-    // Add method-specific data
-    if (disbursementType === 'savings' && selectedSavingsAccount) {
-      disbursementData.savings_account_id = selectedSavingsAccount;
-    } else if (disbursementMethod === 'bank_transfer') {
-      disbursementData.bank_name = bankName;
-      disbursementData.bank_account_name = bankAccountName;
-      disbursementData.bank_account_number = bankAccountNumber;
-    } else if (disbursementMethod === 'mpesa') {
-      disbursementData.mpesa_phone = mpesaPhone;
-    }
-
-    if (referenceNumber) {
-      disbursementData.reference_number = referenceNumber;
-    }
 
     processDisbursement.mutate(disbursementData, {
       onSuccess: () => {
@@ -238,191 +179,39 @@ export const LoanDisbursementDialog = ({
                 />
               </div>
 
-              {/* Disbursement Date */}
+              {/* Payment Method */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  Disbursement Date
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !disbursementDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {disbursementDate ? format(disbursementDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={disbursementDate}
-                      onSelect={(date) => date && setDisbursementDate(date)}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label>Payment Method</Label>
+                <Select value={selectedPaymentType} onValueChange={setSelectedPaymentType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentTypes.map((paymentType) => (
+                      <SelectItem key={paymentType.id} value={paymentType.id}>
+                        {paymentType.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Separator />
-
-              {/* Disbursement Type Selection */}
-              <div className="space-y-3">
-                <Label className="text-base font-medium">Select Disbursement Method</Label>
-                <RadioGroup 
-                  value={disbursementType} 
-                  onValueChange={handleDisbursementTypeChange}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="savings" id="savings" />
-                      <Label 
-                        htmlFor="savings" 
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <PiggyBank className="h-4 w-4 text-blue-600" />
-                        Transfer to Savings
-                      </Label>
-                    </div>
-                    {clientSavingsAccounts.length === 0 && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600 ml-6">
-                        <AlertCircle className="h-4 w-4" />
-                        No active savings accounts found
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="external" id="external" />
-                    <Label 
-                      htmlFor="external" 
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <Building className="h-4 w-4 text-purple-600" />
-                      External Payment
-                    </Label>
-                  </div>
-                </RadioGroup>
+              {/* Source Account */}
+              <div className="space-y-2">
+                <Label>Source Account</Label>
+                <Select value={selectedSourceAccount} onValueChange={setSelectedSourceAccount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select source account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fundSources.map((source) => (
+                      <SelectItem key={source.id} value={source.id}>
+                        {source.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
-              {/* Conditional Fields Based on Type */}
-              {disbursementType === 'savings' && (
-                <div className="p-4 border rounded-lg bg-blue-50 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <PiggyBank className="h-5 w-5 text-blue-600" />
-                    <h5 className="font-medium text-blue-900">Savings Account Transfer</h5>
-                  </div>
-                  
-                  {clientSavingsAccounts.length > 0 ? (
-                    <>
-                      <p className="text-sm text-blue-700">
-                        Funds will be transferred to the selected savings account as a deposit transaction.
-                      </p>
-                      
-                      <div className="space-y-2">
-                        <Label>Select Savings Account</Label>
-                        <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose savings account" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clientSavingsAccounts.map((account) => (
-                              <SelectItem key={account.id} value={account.id}>
-                                {account.account_number} - {account.savings_products?.name || 'Savings'} 
-                                ({formatCurrency(account.account_balance || 0)})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center p-4 text-amber-700">
-                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                      <p>No active savings accounts available for this client.</p>
-                      <p className="text-sm">Please create a savings account first or choose external payment.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {disbursementType === 'external' && (
-                <div className="p-4 border rounded-lg bg-purple-50 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Building className="h-5 w-5 text-purple-600" />
-                    <h5 className="font-medium text-purple-900">External Payment Method</h5>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Payment Method</Label>
-                    <Select value={disbursementMethod} onValueChange={(value) => setDisbursementMethod(value as any)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="mpesa">M-Pesa</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {disbursementMethod === 'bank_transfer' && (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label>Bank Name</Label>
-                        <Input
-                          value={bankName}
-                          onChange={(e) => setBankName(e.target.value)}
-                          placeholder="Enter bank name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Account Holder Name</Label>
-                        <Input
-                          value={bankAccountName}
-                          onChange={(e) => setBankAccountName(e.target.value)}
-                          placeholder="Enter account holder name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Account Number</Label>
-                        <Input
-                          value={bankAccountNumber}
-                          onChange={(e) => setBankAccountNumber(e.target.value)}
-                          placeholder="Enter account number"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {disbursementMethod === 'mpesa' && (
-                    <div className="space-y-2">
-                      <Label>M-Pesa Phone Number</Label>
-                      <Input
-                        value={mpesaPhone}
-                        onChange={(e) => setMpesaPhone(e.target.value)}
-                        placeholder="+254712345678"
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label>Reference Number (Optional)</Label>
-                    <Input
-                      value={referenceNumber}
-                      onChange={(e) => setReferenceNumber(e.target.value)}
-                      placeholder="Additional reference number"
-                    />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 

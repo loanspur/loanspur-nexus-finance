@@ -2082,7 +2082,6 @@ const ClientDetailsPage = () => {
         open={showDisbursementModal}
         onOpenChange={setShowDisbursementModal}
         loanData={selectedAccount}
-        clientSavingsAccounts={activeSavings}
         onSuccess={() => {
           fetchClientData();
           toast({
