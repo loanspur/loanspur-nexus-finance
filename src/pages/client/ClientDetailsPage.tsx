@@ -473,25 +473,29 @@ const ClientDetailsPageRefactored = () => {
         onOpenChange={setShowTransferClient}
         client={client}
       />
-      <LoanWorkflowDialog
-        open={showLoanWorkflowModal}
-        onOpenChange={setShowLoanWorkflowModal}
-        loanApplication={selectedLoanForWorkflow}
-        onSuccess={fetchClientData}
-      />
-      <LoanDisbursementDialog
-        open={showDisbursementModal}
-        onOpenChange={setShowDisbursementModal}
-        loanData={selectedAccount}
-        clientSavingsAccounts={activeSavings}
-        onSuccess={() => {
-          fetchClientData();
-          toast({
-            title: "Success",
+      {selectedLoanForWorkflow && (
+        <LoanWorkflowDialog
+          open={showLoanWorkflowModal}
+          onOpenChange={setShowLoanWorkflowModal}
+          loanApplication={selectedLoanForWorkflow}
+          onSuccess={fetchClientData}
+        />
+      )}
+      {selectedAccount && (
+        <LoanDisbursementDialog
+          open={showDisbursementModal}
+          onOpenChange={setShowDisbursementModal}
+          loanData={selectedAccount}
+          clientSavingsAccounts={activeSavings}
+          onSuccess={() => {
+            fetchClientData();
+            toast({
+              title: "Success",
             description: "Loan disbursement completed successfully",
           });
         }}
       />
+      )}
     </div>
   );
 };
