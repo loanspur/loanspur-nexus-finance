@@ -58,6 +58,7 @@ import { NewShareAccountDialog } from "@/components/client/dialogs/NewShareAccou
 import { AddChargeDialog } from "@/components/client/dialogs/AddChargeDialog";
 import { TransferClientDialog } from "@/components/client/dialogs/TransferClientDialog";
 import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
+import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
@@ -137,6 +138,7 @@ const ClientDetailsPage = () => {
   const [showAllLoansModal, setShowAllLoansModal] = useState(false);
   const [showAllSavingsModal, setShowAllSavingsModal] = useState(false);
   const [showLoanWorkflowModal, setShowLoanWorkflowModal] = useState(false);
+  const [showDisbursementModal, setShowDisbursementModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedLoanForWorkflow, setSelectedLoanForWorkflow] = useState<any>(null);
   
@@ -1709,9 +1711,9 @@ const ClientDetailsPage = () => {
                   <>
                     <Button 
                       onClick={() => {
-                        setSelectedLoanForWorkflow(selectedAccount);
+                        setSelectedAccount(selectedAccount);
                         setShowLoanDetailsModal(false);
-                        setShowLoanWorkflowModal(true);
+                        setShowDisbursementModal(true);
                       }} 
                       className="bg-gradient-primary animate-fade-in"
                     >
@@ -2050,6 +2052,21 @@ const ClientDetailsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Loan Disbursement Dialog */}
+      <LoanDisbursementDialog
+        open={showDisbursementModal}
+        onOpenChange={setShowDisbursementModal}
+        loanData={selectedAccount}
+        clientSavingsAccounts={activeSavings}
+        onSuccess={() => {
+          fetchClientData();
+          toast({
+            title: "Success",
+            description: "Loan disbursement completed successfully",
+          });
+        }}
+      />
     </div>
   );
 };
