@@ -34,6 +34,11 @@ export const LoanDisbursementDialog = ({
   const { toast } = useToast();
   const processDisbursement = useProcessLoanDisbursement();
 
+  // Early return if no loan data
+  if (!loanData) {
+    return null;
+  }
+
   // Form states
   const [disbursementType, setDisbursementType] = useState<'savings' | 'external'>('savings');
   const [disbursementMethod, setDisbursementMethod] = useState<'transfer_to_savings' | 'bank_transfer' | 'mpesa' | 'cash' | 'check'>('transfer_to_savings');
