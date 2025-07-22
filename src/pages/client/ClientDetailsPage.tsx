@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -33,7 +34,9 @@ import {
   Check,
   Edit2,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Calculator,
+  Target
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1042,25 +1045,189 @@ const ClientDetailsPage = () => {
                   <TabsTrigger value="history">History</TabsTrigger>
                 </TabsList>
 
-                {/* Overview Tab */}
+                {/* Overview Tab - Matching Form Fields Exactly */}
                 <TabsContent value="overview" className="space-y-4">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Product Overview */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Info className="h-5 w-5" />
-                          Product Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                    {/* Left Column - Basic Information */}
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <Info className="h-5 w-5" />
+                            Basic Information
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Loan Product *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {selectedAccount.loan_products?.default_nominal_interest_rate}% • {selectedAccount.loan_products?.default_term} months
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Fund Source *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">{selectedAccount.funds?.fund_name || 'General Fund'}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  ({selectedAccount.funds?.fund_code || 'GF'}) - Balance: {formatCurrency(selectedAccount.funds?.current_balance || 0)}
+                                </p>
+                              </div>
+                            </div>
+
+                            {selectedAccount.loan_products && (
+                              <div className="p-4 bg-muted rounded-lg">
+                                <h4 className="font-medium mb-2">Product Details</h4>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Interest Rate:</span>
+                                    <span className="ml-2 font-medium">{selectedAccount.loan_products?.default_nominal_interest_rate}%</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Default Term:</span>
+                                    <span className="ml-2 font-medium">{selectedAccount.loan_products?.default_term} months</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Min Amount:</span>
+                                    <span className="ml-2 font-medium">{formatCurrency(selectedAccount.loan_products?.min_principal || 0)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Max Amount:</span>
+                                    <span className="ml-2 font-medium">{formatCurrency(selectedAccount.loan_products?.max_principal || 0)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Requested Amount *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-bold text-lg text-primary">
+                                  {formatCurrency(selectedAccount.type === 'application' 
+                                    ? selectedAccount.requested_amount || 0 
+                                    : selectedAccount.principal_amount || 0
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Loan Purpose *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border min-h-[80px]">
+                                <p className="text-sm">{selectedAccount.purpose || selectedAccount.loan_purpose || 'General Purpose'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Right Column - Loan Configuration */}
+                    <div className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <Settings className="h-5 w-5" />
+                            Loan Configuration
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Loan Term (months) *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">
+                                  {selectedAccount.final_approved_term || 
+                                   selectedAccount.requested_term || 
+                                   selectedAccount.term_frequency || 0} months
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Number of Installments *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">
+                                  {selectedAccount.final_approved_term || 
+                                   selectedAccount.requested_term || 
+                                   selectedAccount.term_frequency || 0}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Interest Rate (%) *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium text-blue-600">
+                                  {selectedAccount.final_approved_interest_rate || 
+                                   selectedAccount.nominal_annual_interest_rate || 
+                                   selectedAccount.loan_products?.default_nominal_interest_rate || 0}%
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Calculation Method *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">{selectedAccount.interest_method || 'Declining Balance'}</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Repayment Frequency *</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">{selectedAccount.repayment_frequency || 'Monthly'}</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Loan Officer</Label>
+                              <div className="p-3 bg-muted/50 rounded-md border">
+                                <p className="font-medium">{selectedAccount.loan_officer_name || 'Not Assigned'}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">First Repayment Date</Label>
+                            <div className="p-3 bg-muted/50 rounded-md border">
+                              <p className="font-medium">
+                                {selectedAccount.first_repayment_date 
+                                  ? format(new Date(selectedAccount.first_repayment_date), 'dd MMM yyyy')
+                                  : 'To be determined'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Status Information */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <Badge className="w-5 h-5" />
+                            Status Information
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
                           <div>
-                            <Label className="text-xs text-muted-foreground">Product Name</Label>
-                            <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
+                            <Label className="text-sm text-muted-foreground">Current Status</Label>
+                            <Badge className={
+                              selectedAccount.status === 'active' ? 'bg-green-100 text-green-800 text-sm px-3 py-1' :
+                              selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800 text-sm px-3 py-1' :
+                              selectedAccount.status === 'approved' ? 'bg-blue-100 text-blue-800 text-sm px-3 py-1' :
+                              'bg-gray-100 text-gray-800 text-sm px-3 py-1'
+                            }>
+                              {selectedAccount.status}
+                            </Badge>
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground">Account Number</Label>
+                            <Label className="text-sm text-muted-foreground">Account Number</Label>
                             <p className="font-medium">
                               {selectedAccount.type === 'application' 
                                 ? selectedAccount.application_number 
@@ -1068,73 +1235,17 @@ const ClientDetailsPage = () => {
                               }
                             </p>
                           </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Status</Label>
-                            <Badge className={
-                              selectedAccount.status === 'active' ? 'bg-green-100 text-green-800' :
-                              selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              selectedAccount.status === 'approved' ? 'bg-blue-100 text-blue-800' :
-                              'bg-gray-100 text-gray-800'
-                            }>
-                              {selectedAccount.status}
-                            </Badge>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Purpose</Label>
-                            <p className="font-medium">{selectedAccount.purpose || 'General Purpose'}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Financial Summary */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <DollarSign className="h-5 w-5" />
-                          Financial Summary
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 bg-primary/5 rounded-lg">
-                            <Label className="text-xs text-muted-foreground">
-                              {selectedAccount.type === 'application' ? 'Requested Amount' : 'Principal'}
-                            </Label>
-                            <p className="font-bold text-lg text-primary">
-                              {formatCurrency(selectedAccount.type === 'application' 
-                                ? selectedAccount.requested_amount || 0 
-                                : selectedAccount.principal_amount || 0
-                              )}
-                            </p>
-                          </div>
                           {selectedAccount.final_approved_amount && (
                             <div className="p-3 bg-green-50 rounded-lg">
-                              <Label className="text-xs text-muted-foreground">Approved Amount</Label>
+                              <Label className="text-xs text-muted-foreground">Final Approved Amount</Label>
                               <p className="font-bold text-lg text-green-600">
                                 {formatCurrency(selectedAccount.final_approved_amount)}
                               </p>
                             </div>
                           )}
-                          {selectedAccount.type !== 'application' && (
-                            <div className="p-3 bg-orange-50 rounded-lg">
-                              <Label className="text-xs text-muted-foreground">Outstanding</Label>
-                              <p className="font-bold text-lg text-orange-600">
-                                {formatCurrency(selectedAccount.outstanding_balance || 0)}
-                              </p>
-                            </div>
-                          )}
-                          <div className="p-3 bg-blue-50 rounded-lg">
-                            <Label className="text-xs text-muted-foreground">Interest Rate</Label>
-                            <p className="font-bold text-lg text-blue-600">
-                              {selectedAccount.final_approved_interest_rate || 
-                               selectedAccount.nominal_annual_interest_rate || 
-                               selectedAccount.loan_products?.default_nominal_interest_rate || 0}%
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
 
                   {/* Application Journey */}
@@ -1311,107 +1422,195 @@ const ClientDetailsPage = () => {
                   )}
                 </TabsContent>
 
-                {/* Repayment Schedule Tab */}
+                {/* Repayment Schedule Tab - Matching Form Design */}
                 <TabsContent value="repayment" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Repayment Schedule
-                      </CardTitle>
-                      <CardDescription>
-                        Monthly payment breakdown and schedule
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {(() => {
-                        const principal = selectedAccount.final_approved_amount || selectedAccount.requested_amount || selectedAccount.principal_amount || 0;
-                        const rate = (selectedAccount.final_approved_interest_rate || selectedAccount.nominal_annual_interest_rate || 0) / 100 / 12;
-                        const term = selectedAccount.final_approved_term || selectedAccount.requested_term || selectedAccount.term_frequency || 12;
-                        
-                        if (principal > 0 && rate > 0 && term > 0) {
-                          const monthlyPayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
-                          const totalPayment = monthlyPayment * term;
-                          const totalInterest = totalPayment - principal;
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left Column - Loan Summary */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calculator className="w-5 h-5" />
+                          Loan Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const principal = selectedAccount.final_approved_amount || selectedAccount.requested_amount || selectedAccount.principal_amount || 0;
+                          const rate = (selectedAccount.final_approved_interest_rate || selectedAccount.nominal_annual_interest_rate || 0) / 100 / 12;
+                          const term = selectedAccount.final_approved_term || selectedAccount.requested_term || selectedAccount.term_frequency || 12;
+                          
+                          if (principal > 0 && rate > 0 && term > 0) {
+                            const monthlyPayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+                            const totalPayment = monthlyPayment * term;
+                            const totalInterest = totalPayment - principal;
 
-                          return (
-                            <div className="space-y-4">
-                              {/* Payment Summary */}
-                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
-                                <div className="text-center">
-                                  <Label className="text-xs text-muted-foreground">Monthly Payment</Label>
-                                  <p className="font-bold text-lg text-primary">{formatCurrency(monthlyPayment)}</p>
+                            return (
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Principal Amount:</span>
+                                  <span className="font-semibold">{formatCurrency(principal)}</span>
                                 </div>
-                                <div className="text-center">
-                                  <Label className="text-xs text-muted-foreground">Total Interest</Label>
-                                  <p className="font-bold text-lg text-orange-600">{formatCurrency(totalInterest)}</p>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Total Interest:</span>
+                                  <span className="font-semibold">{formatCurrency(totalInterest)}</span>
                                 </div>
-                                <div className="text-center">
-                                  <Label className="text-xs text-muted-foreground">Total Payment</Label>
-                                  <p className="font-bold text-lg text-green-600">{formatCurrency(totalPayment)}</p>
+                                <Separator />
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Total Repayment:</span>
+                                  <span className="font-semibold text-lg">{formatCurrency(totalPayment)}</span>
                                 </div>
-                                <div className="text-center">
-                                  <Label className="text-xs text-muted-foreground">Term</Label>
-                                  <p className="font-bold text-lg">{term} months</p>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-muted-foreground">Monthly Payment:</span>
+                                  <span className="font-semibold text-lg text-blue-600">{formatCurrency(monthlyPayment)}</span>
                                 </div>
                               </div>
+                            );
+                          } else {
+                            return (
+                              <div className="text-center p-8 text-muted-foreground">
+                                <Calculator className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <p>Loan summary will be calculated once terms are finalized.</p>
+                              </div>
+                            );
+                          }
+                        })()}
+                      </CardContent>
+                    </Card>
 
-                              {/* Schedule Table */}
-                              <div className="max-h-96 overflow-y-auto border rounded-lg">
-                                <table className="w-full text-sm">
-                                  <thead className="bg-muted/50 sticky top-0">
-                                    <tr>
-                                      <th className="p-3 text-left">Payment #</th>
-                                      <th className="p-3 text-left">Due Date</th>
-                                      <th className="p-3 text-right">Payment</th>
-                                      <th className="p-3 text-right">Principal</th>
-                                      <th className="p-3 text-right">Interest</th>
-                                      <th className="p-3 text-right">Balance</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {Array.from({ length: Math.min(term, 12) }, (_, i) => {
-                                      const paymentNumber = i + 1;
-                                      const interestPayment = (principal - (monthlyPayment - rate * principal) * i) * rate;
-                                      const principalPayment = monthlyPayment - interestPayment;
-                                      const remainingBalance = principal - (principalPayment * paymentNumber);
-                                      const dueDate = new Date();
-                                      dueDate.setMonth(dueDate.getMonth() + paymentNumber);
+                    {/* Right Column - Payment Schedule Preview */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Target className="w-5 h-5" />
+                            Repayment Schedule
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const showFullSchedule = document.getElementById('full-schedule');
+                              if (showFullSchedule) {
+                                showFullSchedule.style.display = showFullSchedule.style.display === 'none' ? 'block' : 'none';
+                              }
+                            }}
+                          >
+                            Toggle Full Schedule
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const principal = selectedAccount.final_approved_amount || selectedAccount.requested_amount || selectedAccount.principal_amount || 0;
+                          const rate = (selectedAccount.final_approved_interest_rate || selectedAccount.nominal_annual_interest_rate || 0) / 100 / 12;
+                          const term = selectedAccount.final_approved_term || selectedAccount.requested_term || selectedAccount.term_frequency || 12;
+                          
+                          if (principal > 0 && rate > 0 && term > 0) {
+                            const monthlyPayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
 
-                                      return (
-                                        <tr key={paymentNumber} className="border-b hover:bg-muted/20">
-                                          <td className="p-3 font-medium">{paymentNumber}</td>
-                                          <td className="p-3">{format(dueDate, 'dd MMM yyyy')}</td>
-                                          <td className="p-3 text-right font-medium">{formatCurrency(monthlyPayment)}</td>
-                                          <td className="p-3 text-right">{formatCurrency(Math.max(0, principalPayment))}</td>
-                                          <td className="p-3 text-right">{formatCurrency(Math.max(0, interestPayment))}</td>
-                                          <td className="p-3 text-right font-medium">{formatCurrency(Math.max(0, remainingBalance))}</td>
-                                        </tr>
-                                      );
-                                    })}
-                                    {term > 12 && (
-                                      <tr>
-                                        <td colSpan={6} className="p-3 text-center text-muted-foreground">
-                                          ... and {term - 12} more payments
-                                        </td>
+                            // Generate proper repayment schedule
+                            const schedule = [];
+                            let remainingBalance = principal;
+                            const startDate = selectedAccount.first_repayment_date 
+                              ? new Date(selectedAccount.first_repayment_date) 
+                              : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+                            for (let i = 0; i < term; i++) {
+                              const interestPayment = remainingBalance * rate;
+                              const principalPayment = monthlyPayment - interestPayment;
+                              remainingBalance = Math.max(0, remainingBalance - principalPayment);
+
+                              const paymentDate = new Date(startDate);
+                              paymentDate.setMonth(paymentDate.getMonth() + i);
+
+                              schedule.push({
+                                installment: i + 1,
+                                dueDate: paymentDate,
+                                principalPayment: Math.max(0, principalPayment),
+                                interestPayment: Math.max(0, interestPayment),
+                                totalPayment: monthlyPayment,
+                                outstandingPrincipal: remainingBalance
+                              });
+                            }
+
+                            return (
+                              <div className="space-y-4">
+                                {/* Preview - First 5 payments */}
+                                <div className="max-h-64 overflow-y-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b">
+                                        <th className="text-left p-2">#</th>
+                                        <th className="text-left p-2">Principal</th>
+                                        <th className="text-left p-2">Interest</th>
+                                        <th className="text-left p-2">Total</th>
+                                        <th className="text-left p-2">Balance</th>
                                       </tr>
-                                    )}
-                                  </tbody>
-                                </table>
+                                    </thead>
+                                    <tbody>
+                                      {schedule.slice(0, 5).map((payment) => (
+                                        <tr key={payment.installment} className="border-b">
+                                          <td className="p-2">{payment.installment}</td>
+                                          <td className="p-2">{formatCurrency(payment.principalPayment)}</td>
+                                          <td className="p-2">{formatCurrency(payment.interestPayment)}</td>
+                                          <td className="p-2">{formatCurrency(payment.totalPayment)}</td>
+                                          <td className="p-2">{formatCurrency(payment.outstandingPrincipal)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                  {schedule.length > 5 && (
+                                    <p className="text-center text-muted-foreground mt-2">
+                                      ... and {schedule.length - 5} more payments
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Full Schedule (Hidden by default) */}
+                                <div id="full-schedule" style={{display: 'none'}} className="space-y-4">
+                                  <Separator />
+                                  <h4 className="font-medium">Complete Repayment Schedule</h4>
+                                  <div className="max-h-96 overflow-y-auto border rounded-lg">
+                                    <table className="w-full text-sm">
+                                      <thead className="bg-muted/50 sticky top-0">
+                                        <tr>
+                                          <th className="p-3 text-left">Payment #</th>
+                                          <th className="p-3 text-left">Due Date</th>
+                                          <th className="p-3 text-right">Payment</th>
+                                          <th className="p-3 text-right">Principal</th>
+                                          <th className="p-3 text-right">Interest</th>
+                                          <th className="p-3 text-right">Balance</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {schedule.map((payment) => (
+                                          <tr key={payment.installment} className="border-b hover:bg-muted/20">
+                                            <td className="p-3 font-medium">{payment.installment}</td>
+                                            <td className="p-3">{format(payment.dueDate, 'dd MMM yyyy')}</td>
+                                            <td className="p-3 text-right font-medium">{formatCurrency(payment.totalPayment)}</td>
+                                            <td className="p-3 text-right">{formatCurrency(payment.principalPayment)}</td>
+                                            <td className="p-3 text-right">{formatCurrency(payment.interestPayment)}</td>
+                                            <td className="p-3 text-right font-medium">{formatCurrency(payment.outstandingPrincipal)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        } else {
-                          return (
-                            <div className="text-center p-8 text-muted-foreground">
-                              <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                              <p>Repayment schedule will be generated once loan terms are finalized.</p>
-                            </div>
-                          );
-                        }
-                      })()}
-                    </CardContent>
-                  </Card>
+                            );
+                          } else {
+                            return (
+                              <div className="text-center p-8 text-muted-foreground">
+                                <Target className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <p>Repayment schedule will be generated once loan terms are finalized.</p>
+                              </div>
+                            );
+                          }
+                        })()}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 {/* Documents Tab */}
