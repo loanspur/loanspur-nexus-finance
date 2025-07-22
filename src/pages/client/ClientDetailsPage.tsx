@@ -125,6 +125,13 @@ const ClientDetailsPage = () => {
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
   
+  // Account Detail Modals
+  const [showLoanDetailsModal, setShowLoanDetailsModal] = useState(false);
+  const [showSavingsDetailsModal, setShowSavingsDetailsModal] = useState(false);
+  const [showAllLoansModal, setShowAllLoansModal] = useState(false);
+  const [showAllSavingsModal, setShowAllSavingsModal] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
+  
   // Loan Action Modal State
   const [showLoanActionModal, setShowLoanActionModal] = useState(false);
   const [selectedLoanItem, setSelectedLoanItem] = useState<any>(null);
@@ -555,7 +562,14 @@ const ClientDetailsPage = () => {
                       ) : (
                         <div className="space-y-2">
                           {allVisibleItems.slice(0, 3).map((item) => (
-                            <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div 
+                              key={item.id} 
+                              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => {
+                                setSelectedAccount(item);
+                                setShowLoanDetailsModal(true);
+                              }}
+                            >
                               <div className="flex-1">
                                 <div className="font-medium text-sm">
                                   {item.loan_products?.name || 'Standard Loan'}
@@ -587,7 +601,12 @@ const ClientDetailsPage = () => {
                           ))}
                           {allVisibleItems.length > 3 && (
                             <div className="text-center pt-2">
-                              <Button variant="ghost" size="sm" className="text-xs">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-xs"
+                                onClick={() => setShowAllLoansModal(true)}
+                              >
                                 +{allVisibleItems.length - 3} more loans
                               </Button>
                             </div>
@@ -633,7 +652,14 @@ const ClientDetailsPage = () => {
                       ) : (
                         <div className="space-y-2">
                           {activeSavings.slice(0, 3).map((account) => (
-                            <div key={account.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div 
+                              key={account.id} 
+                              className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                              onClick={() => {
+                                setSelectedAccount(account);
+                                setShowSavingsDetailsModal(true);
+                              }}
+                            >
                               <div className="flex-1">
                                 <div className="font-medium text-sm">
                                   {account.savings_products?.name || 'Savings Account'}
@@ -655,7 +681,12 @@ const ClientDetailsPage = () => {
                           ))}
                           {activeSavings.length > 3 && (
                             <div className="text-center pt-2">
-                              <Button variant="ghost" size="sm" className="text-xs">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-xs"
+                                onClick={() => setShowAllSavingsModal(true)}
+                              >
                                 +{activeSavings.length - 3} more accounts
                               </Button>
                             </div>
@@ -947,6 +978,285 @@ const ClientDetailsPage = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Account Details Modals */}
+      {/* Loan Details Modal */}
+      <Dialog open={showLoanDetailsModal} onOpenChange={setShowLoanDetailsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Loan Account Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedAccount && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-muted-foreground">Product</Label>
+                  <p className="font-medium">{selectedAccount.loan_products?.name || 'Standard Loan'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Account Number</Label>
+                  <p className="font-medium">
+                    {selectedAccount.type === 'application' 
+                      ? selectedAccount.application_number 
+                      : selectedAccount.loan_number || `L-${selectedAccount.id.slice(0, 8)}`
+                    }
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Amount</Label>
+                  <p className="font-medium">
+                    {formatCurrency(selectedAccount.type === 'application' 
+                      ? selectedAccount.requested_amount || 0 
+                      : selectedAccount.principal_amount || 0
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Status</Label>
+                  <Badge className={
+                    selectedAccount.status === 'active' ? 'bg-green-100 text-green-800' :
+                    selectedAccount.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }>
+                    {selectedAccount.status}
+                  </Badge>
+                </div>
+                {selectedAccount.type !== 'application' && (
+                  <>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Outstanding Balance</Label>
+                      <p className="font-medium">{formatCurrency(selectedAccount.outstanding_balance || 0)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-muted-foreground">Interest Rate</Label>
+                      <p className="font-medium">{selectedAccount.nominal_annual_interest_rate || selectedAccount.loan_products?.default_nominal_interest_rate || 0}%</p>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <Label className="text-sm text-muted-foreground">Date Created</Label>
+                  <p className="font-medium">
+                    {format(new Date(selectedAccount.created_at), 'dd MMM yyyy')}
+                  </p>
+                </div>
+                {selectedAccount.type === 'application' && selectedAccount.requested_term && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Requested Term</Label>
+                    <p className="font-medium">{selectedAccount.requested_term} months</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button onClick={() => setShowLoanDetailsModal(false)} variant="outline" className="flex-1">
+                  Close
+                </Button>
+                {selectedAccount.status === 'approved' && (
+                  <Button 
+                    onClick={() => {
+                      setSelectedLoanItem(selectedAccount);
+                      setShowLoanDetailsModal(false);
+                      setShowLoanActionModal(true);
+                    }} 
+                    className="flex-1 bg-gradient-primary"
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Process Disbursement
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Savings Details Modal */}
+      <Dialog open={showSavingsDetailsModal} onOpenChange={setShowSavingsDetailsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PiggyBank className="h-5 w-5" />
+              Savings Account Details
+            </DialogTitle>
+          </DialogHeader>
+          {selectedAccount && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-muted-foreground">Product</Label>
+                  <p className="font-medium">{selectedAccount.savings_products?.name || 'Savings Account'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Account Number</Label>
+                  <p className="font-medium">{selectedAccount.account_number}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Current Balance</Label>
+                  <p className="font-medium">{formatCurrency(selectedAccount.account_balance || 0)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Available Balance</Label>
+                  <p className="font-medium">{formatCurrency(selectedAccount.available_balance || 0)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Interest Rate</Label>
+                  <p className="font-medium">{selectedAccount.savings_products?.nominal_annual_interest_rate || 0}%</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Interest Earned</Label>
+                  <p className="font-medium">{formatCurrency(selectedAccount.interest_earned || 0)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Opened Date</Label>
+                  <p className="font-medium">
+                    {format(new Date(selectedAccount.opened_date || selectedAccount.created_at), 'dd MMM yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Status</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">Active</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button onClick={() => setShowSavingsDetailsModal(false)} variant="outline" className="flex-1">
+                  Close
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Transactions
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* All Loans Modal */}
+      <Dialog open={showAllLoansModal} onOpenChange={setShowAllLoansModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              All Loan Accounts ({allVisibleItems.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {allVisibleItems.map((item) => (
+              <div 
+                key={item.id} 
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => {
+                  setSelectedAccount(item);
+                  setShowAllLoansModal(false);
+                  setShowLoanDetailsModal(true);
+                }}
+              >
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {item.loan_products?.name || 'Standard Loan'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {item.type === 'application' 
+                      ? item.application_number 
+                      : item.loan_number || `L-${item.id.slice(0, 8)}`
+                    }
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Created: {format(new Date(item.created_at), 'dd MMM yyyy')}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-medium">
+                    {formatCurrency(
+                      item.type === 'application' 
+                        ? item.requested_amount || 0 
+                        : item.principal_amount || 0
+                    )}
+                  </div>
+                  {item.type !== 'application' && (
+                    <div className="text-sm text-muted-foreground">
+                      Outstanding: {formatCurrency(item.outstanding_balance || 0)}
+                    </div>
+                  )}
+                  <Badge className={
+                    item.status === 'active' ? 'bg-green-100 text-green-800 text-xs' :
+                    item.status === 'pending' ? 'bg-yellow-100 text-yellow-800 text-xs' :
+                    'bg-gray-100 text-gray-800 text-xs'
+                  }>
+                    {item.status}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 pt-4 border-t">
+            <Button onClick={() => setShowAllLoansModal(false)} variant="outline" className="flex-1">
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* All Savings Modal */}
+      <Dialog open={showAllSavingsModal} onOpenChange={setShowAllSavingsModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PiggyBank className="h-5 w-5" />
+              All Savings Accounts ({activeSavings.length})
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {activeSavings.map((account) => (
+              <div 
+                key={account.id} 
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => {
+                  setSelectedAccount(account);
+                  setShowAllSavingsModal(false);
+                  setShowSavingsDetailsModal(true);
+                }}
+              >
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {account.savings_products?.name || 'Savings Account'}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {account.account_number}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Opened: {format(new Date(account.opened_date || account.created_at), 'dd MMM yyyy')}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-medium">
+                    {formatCurrency(account.account_balance || 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Available: {formatCurrency(account.available_balance || 0)}
+                  </div>
+                  <div className="flex items-center gap-1 justify-end">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs text-muted-foreground">Active</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 pt-4 border-t">
+            <Button onClick={() => setShowAllSavingsModal(false)} variant="outline" className="flex-1">
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
