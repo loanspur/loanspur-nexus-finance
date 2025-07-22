@@ -514,14 +514,10 @@ const ClientDetailsPage = () => {
           </div>
         </div>
 
-        {/* Integrated Accounts Overview and Client Details */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Left Column - Account Overview */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Accounts Overview Section */}
-            <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
-              <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Accounts Overview Section - Full Width */}
+        <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   
                   {/* Loans Overview */}
                   <Card className="card-enhanced shadow-elevated">
@@ -672,89 +668,82 @@ const ClientDetailsPage = () => {
               </div>
             </div>
 
-            {/* Tab Content Container */}
-            <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
-              <div className="p-6">
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="h-auto p-0 bg-transparent w-full justify-start">
-                    <div className="flex overflow-x-auto scrollbar-hide gap-1">
-                      {shouldShowTab('general', client, loans, savings) && (
-                        <TabsTrigger value="general" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <Info className="h-4 w-4 mr-2" />
-                          General
-                        </TabsTrigger>
-                      )}
-                      {shouldShowTab('identities', client, loans, savings) && (
-                        <TabsTrigger value="identities" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <IdCard className="h-4 w-4 mr-2" />
-                          Identity
-                        </TabsTrigger>
-                      )}
-                      {shouldShowTab('documents', client, loans, savings) && (
-                        <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Documents
-                        </TabsTrigger>
-                      )}
-                      {shouldShowTab('bank-details', client, loans, savings) && (
-                        <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <Building className="h-4 w-4 mr-2" />
-                          Bank Details
-                        </TabsTrigger>
-                      )}
-                      {shouldShowTab('next-of-kin', client, loans, savings) && (
-                        <TabsTrigger value="next-of-kin" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Next of Kin
-                        </TabsTrigger>
-                      )}
-                      {shouldShowTab('additional-info', client, loans, savings) && (
-                        <TabsTrigger value="additional-info" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <Info className="h-4 w-4 mr-2" />
-                          Additional Info
-                        </TabsTrigger>
-                      )}
-                      {shouldShowTab('notes', client, loans, savings) && (
-                        <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                          <StickyNote className="h-4 w-4 mr-2" />
-                          Notes
-                        </TabsTrigger>
-                      )}
-                    </div>
-                  </TabsList>
-                  
-                  {/* Tab Content */}
-                  <div className="mt-6">
-                    <TabsContent value="general" className="mt-0">
-                      <ClientGeneralTab client={client} />
-                    </TabsContent>
-                    <TabsContent value="identities" className="mt-0">
-                      <ClientIdentitiesTab clientId={client.id} />
-                    </TabsContent>
-                    <TabsContent value="documents" className="mt-0">
-                      <ClientDocumentsTab clientId={client.id} />
-                    </TabsContent>
-                    <TabsContent value="bank-details" className="mt-0">
-                      <ClientBankDetailsTab client={client} />
-                    </TabsContent>
-                    <TabsContent value="next-of-kin" className="mt-0">
-                      <ClientNextOfKinTab client={client} />
-                    </TabsContent>
-                    <TabsContent value="additional-info" className="mt-0">
-                      <ClientAdditionalInfoTab client={client} />
-                    </TabsContent>
-                    <TabsContent value="notes" className="mt-0">
-                      <ClientNotesTab clientId={client.id} />
-                    </TabsContent>
-                  </div>
-                </Tabs>
+        {/* Client Details Tab Section */}
+        <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
+          <div className="p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="h-auto p-0 bg-transparent w-full justify-start">
+                <div className="flex overflow-x-auto scrollbar-hide gap-1">
+                  {shouldShowTab('general', client, loans, savings) && (
+                    <TabsTrigger value="general" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Info className="h-4 w-4 mr-2" />
+                      General
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('identities', client, loans, savings) && (
+                    <TabsTrigger value="identities" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <IdCard className="h-4 w-4 mr-2" />
+                      Identity
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('documents', client, loans, savings) && (
+                    <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Documents
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('bank-details', client, loans, savings) && (
+                    <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Building className="h-4 w-4 mr-2" />
+                      Bank Details
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('next-of-kin', client, loans, savings) && (
+                    <TabsTrigger value="next-of-kin" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Next of Kin
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('additional-info', client, loans, savings) && (
+                    <TabsTrigger value="additional-info" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Info className="h-4 w-4 mr-2" />
+                      Additional Info
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('notes', client, loans, savings) && (
+                    <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <StickyNote className="h-4 w-4 mr-2" />
+                      Notes
+                    </TabsTrigger>
+                  )}
+                </div>
+              </TabsList>
+              
+              {/* Tab Content */}
+              <div className="mt-6">
+                <TabsContent value="general" className="mt-0">
+                  <ClientGeneralTab client={client} />
+                </TabsContent>
+                <TabsContent value="identities" className="mt-0">
+                  <ClientIdentitiesTab clientId={client.id} />
+                </TabsContent>
+                <TabsContent value="documents" className="mt-0">
+                  <ClientDocumentsTab clientId={client.id} />
+                </TabsContent>
+                <TabsContent value="bank-details" className="mt-0">
+                  <ClientBankDetailsTab client={client} />
+                </TabsContent>
+                <TabsContent value="next-of-kin" className="mt-0">
+                  <ClientNextOfKinTab client={client} />
+                </TabsContent>
+                <TabsContent value="additional-info" className="mt-0">
+                  <ClientAdditionalInfoTab client={client} />
+                </TabsContent>
+                <TabsContent value="notes" className="mt-0">
+                  <ClientNotesTab clientId={client.id} />
+                </TabsContent>
               </div>
-            </div>
-          </div>
-
-          {/* Right Column - Empty for future use */}
-          <div className="space-y-6">
-            {/* Placeholder for additional content */}
+            </Tabs>
           </div>
         </div>
       </div>
