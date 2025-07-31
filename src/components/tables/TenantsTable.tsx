@@ -3,12 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Building2, Calendar, DollarSign, Eye, Edit, Trash2, CreditCard } from "lucide-react";
+import { Plus, Building2, Calendar, DollarSign, Eye, Edit, Trash2, CreditCard, Globe, Mail } from "lucide-react";
 import { useTenants, type Tenant } from "@/hooks/useSupabase";
 import { useMPesaCredentials } from "@/hooks/useIntegrations";
 import { format } from "date-fns";
 import { TenantDetailsDialog } from "@/components/super-admin/TenantDetailsDialog";
 import { TenantMPesaDialog } from "@/components/super-admin/TenantMPesaDialog";
+import { DomainManagementDialog } from "@/components/tenant/DomainManagementDialog";
+import { EmailConfigurationDialog } from "@/components/tenant/EmailConfigurationDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +23,8 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [mpesaDialogTenantId, setMpesaDialogTenantId] = useState<string | null>(null);
+  const [domainDialogTenantId, setDomainDialogTenantId] = useState<string | null>(null);
+  const [emailDialogTenantId, setEmailDialogTenantId] = useState<string | null>(null);
   const { data: tenants, isLoading, error } = useTenants();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -152,6 +156,8 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                 <TableHead>Trial Ends</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Actions</TableHead>
+                <TableHead>Domain/SSL</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>M-Pesa</TableHead>
               </TableRow>
             </TableHeader>
@@ -224,6 +230,34 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                     </div>
                   </TableCell>
                   <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={tenant.custom_domain_verified ? "default" : "secondary"}>
+                        {tenant.custom_domain_verified ? "Verified" : "Pending"}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDomainDialogTenantId(tenant.id)}
+                      >
+                        <Globe className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">
+                        Setup
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEmailDialogTenantId(tenant.id)}
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <MPesaStatusCell tenantId={tenant.id} />
                   </TableCell>
                 </TableRow>
@@ -253,6 +287,18 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
         tenantId={mpesaDialogTenantId}
         open={!!mpesaDialogTenantId}
         onOpenChange={(open) => !open && setMpesaDialogTenantId(null)}
+      />
+
+      <DomainManagementDialog
+        tenantId={domainDialogTenantId || ""}
+        open={!!domainDialogTenantId}
+        onOpenChange={(open) => !open && setDomainDialogTenantId(null)}
+      />
+
+      <EmailConfigurationDialog
+        tenantId={emailDialogTenantId || ""}
+        open={!!emailDialogTenantId}
+        onOpenChange={(open) => !open && setEmailDialogTenantId(null)}
       />
     </Card>
   );

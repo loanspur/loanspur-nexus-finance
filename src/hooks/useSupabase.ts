@@ -35,6 +35,10 @@ export interface Tenant {
   state_province?: string | null;
   postal_code?: string | null;
   currency_code?: string | null;
+  ssl_status?: string | null;
+  ssl_verified_at?: string | null;
+  custom_domain_verified?: boolean;
+  email_settings?: any; // JSON field
   created_at: string;
   updated_at: string;
 }

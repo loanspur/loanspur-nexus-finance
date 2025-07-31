@@ -2318,6 +2318,108 @@ export type Database = {
           },
         ]
       }
+      domain_verifications: {
+        Row: {
+          created_at: string
+          dns_record_name: string
+          dns_record_type: string
+          dns_record_value: string
+          domain: string
+          id: string
+          is_verified: boolean | null
+          ssl_certificate_issued: boolean | null
+          ssl_certificate_issued_at: string | null
+          tenant_id: string
+          updated_at: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          dns_record_name: string
+          dns_record_type?: string
+          dns_record_value: string
+          domain: string
+          id?: string
+          is_verified?: boolean | null
+          ssl_certificate_issued?: boolean | null
+          ssl_certificate_issued_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          verification_token: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          dns_record_name?: string
+          dns_record_type?: string
+          dns_record_value?: string
+          domain?: string
+          id?: string
+          is_verified?: boolean | null
+          ssl_certificate_issued?: boolean | null
+          ssl_certificate_issued_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      email_configurations: {
+        Row: {
+          api_key_encrypted: string | null
+          created_at: string
+          from_email: string
+          from_name: string | null
+          id: string
+          is_active: boolean | null
+          provider: string
+          reply_to_email: string | null
+          smtp_host: string | null
+          smtp_password_encrypted: string | null
+          smtp_port: number | null
+          smtp_username: string | null
+          tenant_id: string
+          updated_at: string
+          use_tls: boolean | null
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          reply_to_email?: string | null
+          smtp_host?: string | null
+          smtp_password_encrypted?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
+          tenant_id: string
+          updated_at?: string
+          use_tls?: boolean | null
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string
+          reply_to_email?: string | null
+          smtp_host?: string | null
+          smtp_password_encrypted?: string | null
+          smtp_port?: number | null
+          smtp_username?: string | null
+          tenant_id?: string
+          updated_at?: string
+          use_tls?: boolean | null
+        }
+        Relationships: []
+      }
       fee_structures: {
         Row: {
           amount: number
@@ -6659,6 +6761,51 @@ export type Database = {
           },
         ]
       }
+      tenant_email_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          html_content: string
+          id: string
+          is_active: boolean | null
+          subject: string
+          template_name: string
+          template_type: string
+          tenant_id: string
+          text_content: string | null
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          html_content: string
+          id?: string
+          is_active?: boolean | null
+          subject: string
+          template_name: string
+          template_type: string
+          tenant_id: string
+          text_content?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          html_content?: string
+          id?: string
+          is_active?: boolean | null
+          subject?: string
+          template_name?: string
+          template_type?: string
+          tenant_id?: string
+          text_content?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       tenant_integration_preferences: {
         Row: {
           created_at: string
@@ -6950,8 +7097,10 @@ export type Database = {
           country: string | null
           created_at: string
           currency_code: string | null
+          custom_domain_verified: boolean | null
           dns_settings: Json | null
           domain: string | null
+          email_settings: Json | null
           id: string
           logo_url: string | null
           mifos_base_url: string | null
@@ -6964,6 +7113,8 @@ export type Database = {
           postal_code: string | null
           pricing_tier: Database["public"]["Enums"]["pricing_tier"]
           slug: string
+          ssl_status: string | null
+          ssl_verified_at: string | null
           state_province: string | null
           status: Database["public"]["Enums"]["tenant_status"]
           subdomain: string | null
@@ -6986,8 +7137,10 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency_code?: string | null
+          custom_domain_verified?: boolean | null
           dns_settings?: Json | null
           domain?: string | null
+          email_settings?: Json | null
           id?: string
           logo_url?: string | null
           mifos_base_url?: string | null
@@ -7000,6 +7153,8 @@ export type Database = {
           postal_code?: string | null
           pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
           slug: string
+          ssl_status?: string | null
+          ssl_verified_at?: string | null
           state_province?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
           subdomain?: string | null
@@ -7022,8 +7177,10 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency_code?: string | null
+          custom_domain_verified?: boolean | null
           dns_settings?: Json | null
           domain?: string | null
+          email_settings?: Json | null
           id?: string
           logo_url?: string | null
           mifos_base_url?: string | null
@@ -7036,6 +7193,8 @@ export type Database = {
           postal_code?: string | null
           pricing_tier?: Database["public"]["Enums"]["pricing_tier"]
           slug?: string
+          ssl_status?: string | null
+          ssl_verified_at?: string | null
           state_province?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
           subdomain?: string | null
