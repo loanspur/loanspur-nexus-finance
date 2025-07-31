@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Home } from "lucide-react";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -142,7 +142,16 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 relative">
+          <Button
+            variant="outline"
+            size="sm"
+            className="absolute top-0 right-0"
+            onClick={() => navigate('/')}
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Home
+          </Button>
           <h1 className="text-3xl font-bold text-banking-primary mb-2">LoanSpur CBS</h1>
           <p className="text-muted-foreground">Core Banking System</p>
         </div>
