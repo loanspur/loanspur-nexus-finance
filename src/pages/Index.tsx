@@ -124,8 +124,8 @@ const Index = () => {
               </button>
             </nav>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => navigate("/pricing")}>
-                Pricing
+              <Button variant="outline" onClick={() => navigate("/auth")}>
+                Sign Up
               </Button>
               <Button variant="banking" onClick={() => navigate("/auth")}>
                 Sign In
