@@ -31,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Store OTP in database (expires in 10 minutes)
-    const { data: supabaseData, error: supabaseError } = await fetch(
+    const supabaseResponse = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/rest/v1/email_otps`,
       {
         method: 'POST',
@@ -49,8 +49,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-    if (!supabaseData.ok) {
-      const error = await supabaseData.text();
+    if (!supabaseResponse.ok) {
+      const error = await supabaseResponse.text();
       console.error("Database error:", error);
       throw new Error("Failed to store OTP");
     }

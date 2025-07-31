@@ -45,34 +45,17 @@ export const useEmailOTP = () => {
 
   const verifyOTP = useMutation({
     mutationFn: async (data: VerifyOTPRequest): Promise<boolean> => {
-      // Check if OTP exists and is valid
-      const { data: otpRecord, error } = await supabase
-        .from('email_otps')
-        .select('*')
-        .eq('email', data.email)
-        .eq('otp_code', data.otpCode)
-        .eq('used', false)
-        .gte('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      // Call edge function to verify OTP
+      const { data: result, error } = await supabase.functions.invoke('verify-otp', {
+        body: data
+      });
 
       if (error) {
-        throw new Error('Failed to verify OTP');
+        throw new Error(error.message || 'Failed to verify OTP');
       }
 
-      if (!otpRecord) {
-        throw new Error('Invalid or expired verification code');
-      }
-
-      // Mark OTP as used
-      const { error: updateError } = await supabase
-        .from('email_otps')
-        .update({ used: true })
-        .eq('id', otpRecord.id);
-
-      if (updateError) {
-        console.warn('Failed to mark OTP as used:', updateError);
+      if (!result?.success) {
+        throw new Error(result?.message || 'Invalid or expired verification code');
       }
 
       return true;

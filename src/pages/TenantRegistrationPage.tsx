@@ -9,9 +9,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTenantRegistration } from "@/hooks/useTenantRegistration";
+import { useEmailOTP } from "@/hooks/useEmailOTP";
 import { useToast } from "@/hooks/use-toast";
-import { Home, Building2, CheckCircle } from "lucide-react";
+import { Home, Building2, CheckCircle, Mail, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const tenantRegistrationSchema = z.object({
   // Tenant Details
@@ -40,9 +42,12 @@ const tenantRegistrationSchema = z.object({
 type TenantRegistrationForm = z.infer<typeof tenantRegistrationSchema>;
 
 const TenantRegistrationPage = () => {
-  const [step, setStep] = useState<'form' | 'success'>('form');
+  const [step, setStep] = useState<'form' | 'email-verification' | 'success'>('form');
   const [createdTenant, setCreatedTenant] = useState<any>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [formData, setFormData] = useState<TenantRegistrationForm | null>(null);
   const tenantRegistrationMutation = useTenantRegistration();
+  const { sendOTP, verifyOTP } = useEmailOTP();
   const navigate = useNavigate();
 
   const form = useForm<TenantRegistrationForm>({
@@ -65,29 +70,137 @@ const TenantRegistrationPage = () => {
   });
 
   const onSubmit = async (data: TenantRegistrationForm) => {
+    // Store form data and proceed to email verification
+    setFormData(data);
+    
     try {
-      const result = await tenantRegistrationMutation.mutateAsync({
-        tenantName: data.tenantName,
-        firstName: data.firstName,
-        lastName: data.lastName,
+      await sendOTP.mutateAsync({
         email: data.email,
-        password: data.password,
-        contactPersonPhone: data.contactPersonPhone,
-        country: data.country,
-        timezone: data.timezone,
-        currency: data.currency,
-        city: data.city,
-        stateProvince: data.stateProvince,
-        postalCode: data.postalCode,
+        type: 'registration',
+        tenantName: data.tenantName,
+      });
+      
+      setStep('email-verification');
+    } catch (error) {
+      console.error("OTP sending error:", error);
+    }
+  };
+
+  const handleOTPVerification = async () => {
+    if (!formData || !otpCode) return;
+
+    try {
+      await verifyOTP.mutateAsync({
+        email: formData.email,
+        otpCode: otpCode,
+      });
+
+      // OTP verified, proceed with tenant registration
+      const result = await tenantRegistrationMutation.mutateAsync({
+        tenantName: formData.tenantName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        contactPersonPhone: formData.contactPersonPhone,
+        country: formData.country,
+        timezone: formData.timezone,
+        currency: formData.currency,
+        city: formData.city,
+        stateProvince: formData.stateProvince,
+        postalCode: formData.postalCode,
       });
 
       setCreatedTenant(result.tenant);
       setStep('success');
     } catch (error) {
-      // Error handling is already done in the hook
       console.error("Registration error:", error);
     }
   };
+
+  const handleResendOTP = async () => {
+    if (!formData) return;
+    
+    try {
+      await sendOTP.mutateAsync({
+        email: formData.email,
+        type: 'registration',
+        tenantName: formData.tenantName,
+      });
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+    }
+  };
+
+  if (step === 'email-verification') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-elevated">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-banking-primary/10 rounded-full flex items-center justify-center">
+              <Mail className="w-8 h-8 text-banking-primary" />
+            </div>
+            <CardTitle className="text-2xl text-banking-primary">Verify Your Email</CardTitle>
+            <CardDescription>
+              We've sent a 6-digit verification code to <strong>{formData?.email}</strong>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Shield className="w-4 h-4" />
+                <span>Enter the verification code to continue</span>
+              </div>
+              
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(value) => setOtpCode(value)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                className="w-full" 
+                onClick={handleOTPVerification}
+                disabled={otpCode.length !== 6 || verifyOTP.isPending || tenantRegistrationMutation.isPending}
+              >
+                {verifyOTP.isPending || tenantRegistrationMutation.isPending ? "Verifying..." : "Verify & Create Account"}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={handleResendOTP}
+                disabled={sendOTP.isPending}
+              >
+                {sendOTP.isPending ? "Sending..." : "Resend Code"}
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="w-full" 
+                onClick={() => setStep('form')}
+              >
+                Back to Form
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (step === 'success') {
     return (
