@@ -15,9 +15,17 @@ import {
   Star,
   CheckCircle
 } from "lucide-react";
+import heroBankingImage from "@/assets/hero-banking.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  const handleSmoothScroll = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const features = [
     {
@@ -90,18 +98,30 @@ const Index = () => {
               </div>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium">
+              <button 
+                onClick={() => handleSmoothScroll('features')} 
+                className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium"
+              >
                 Features
-              </a>
-              <a href="#benefits" className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium">
+              </button>
+              <button 
+                onClick={() => handleSmoothScroll('benefits')} 
+                className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium"
+              >
                 Benefits
-              </a>
-              <a href="#pricing" onClick={() => navigate("/pricing")} className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium cursor-pointer">
+              </button>
+              <button 
+                onClick={() => navigate("/pricing")} 
+                className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium"
+              >
                 Pricing
-              </a>
-              <a href="#contact" className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium">
+              </button>
+              <button 
+                onClick={() => handleSmoothScroll('contact')} 
+                className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium"
+              >
                 Contact
-              </a>
+              </button>
             </nav>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => navigate("/pricing")}>
@@ -115,46 +135,76 @@ const Index = () => {
         </div>
       </header>
 
-      <section className="container mx-auto px-4 py-24 mt-20">
-        <div className="text-center max-w-5xl mx-auto">
-          <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm font-medium">
-            <Zap className="w-4 h-4 mr-2" />
-            Trusted by 500+ Financial Institutions
-          </Badge>
-          
-          <h1 className="text-6xl md:text-7xl font-heading font-bold text-foreground mb-8 leading-tight">
-            Modern Core Banking for{" "}
-            <span className="bg-gradient-primary bg-clip-text text-transparent">
-              Microfinance
-            </span>
-          </h1>
-          
-          <p className="text-xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
-            Transform your financial institution with comprehensive loan management, 
-            savings solutions, and seamless mobile money integration. Built for the future of banking.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Button size="xl" variant="banking" onClick={() => navigate("/auth")}>
-              <Star className="w-5 h-5 mr-2" />
-              Start Free Trial
-            </Button>
-            <Button size="xl" variant="outline" onClick={() => navigate("/pricing")}>
-              View Pricing
-            </Button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-primary rounded-xl mx-auto mb-3">
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-3xl font-heading font-bold text-foreground mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+      <section className="relative py-24 mt-20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-hero"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-16 items-center max-w-7xl mx-auto">
+            {/* Left Content */}
+            <div className="text-left">
+              <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm font-medium">
+                <Zap className="w-4 h-4 mr-2" />
+                Trusted by 500+ Financial Institutions
+              </Badge>
+              
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-foreground mb-8 leading-tight">
+                Modern Core Banking for{" "}
+                <span className="bg-gradient-primary bg-clip-text text-transparent">
+                  Microfinance
+                </span>
+              </h1>
+              
+              <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
+                Transform your financial institution with comprehensive loan management, 
+                savings solutions, and seamless mobile money integration. Built for the future of banking.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 mb-16">
+                <Button size="xl" variant="banking" onClick={() => navigate("/auth")}>
+                  <Star className="w-5 h-5 mr-2" />
+                  Start Free Trial
+                </Button>
+                <Button size="xl" variant="outline" onClick={() => navigate("/pricing")}>
+                  View Pricing
+                </Button>
               </div>
-            ))}
+
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-6">
+                {stats.map((stat, index) => (
+                  <div key={index} className="text-left animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center justify-center w-10 h-10 bg-gradient-primary rounded-lg">
+                        <stat.icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-2xl font-heading font-bold text-foreground">{stat.value}</div>
+                        <div className="text-sm text-muted-foreground">{stat.label}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Image */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-primary rounded-3xl opacity-20 blur-3xl transform rotate-6"></div>
+              <div className="relative z-10 rounded-2xl overflow-hidden shadow-floating">
+                <img 
+                  src={heroBankingImage} 
+                  alt="Modern Core Banking System Dashboard" 
+                  className="w-full h-auto object-cover transform hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              
+              {/* Floating elements */}
+              <div className="absolute -top-6 -right-6 w-20 h-20 bg-gradient-primary rounded-2xl flex items-center justify-center animate-fade-in shadow-floating">
+                <Building2 className="w-10 h-10 text-white" />
+              </div>
+              <div className="absolute -bottom-6 -left-6 w-16 h-16 bg-gradient-to-r from-banking-emerald to-success rounded-xl flex items-center justify-center animate-fade-in shadow-floating" style={{ animationDelay: '0.2s' }}>
+                <TrendingUp className="w-8 h-8 text-white" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
