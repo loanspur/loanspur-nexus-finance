@@ -41,7 +41,11 @@ type SignInForm = z.infer<typeof signInSchema>;
 type SignUpForm = z.infer<typeof signUpSchema>;
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
-const AuthPage = () => {
+interface AuthPageProps {
+  tenantMode?: boolean;
+}
+
+const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
   const { signIn, signUp, resetPassword, user, profile, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

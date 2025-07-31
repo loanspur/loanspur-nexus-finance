@@ -12,6 +12,7 @@ import { useCreateTenant } from "@/hooks/useSupabase";
 const tenantSchema = z.object({
   name: z.string().min(1, "Name is required"),
   slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+  subdomain: z.string().min(1, "Subdomain is required").regex(/^[a-z0-9-]+$/, "Subdomain must contain only lowercase letters, numbers, and hyphens"),
   domain: z.string().optional(),
   pricing_tier: z.enum(["starter", "professional", "enterprise", "scale"]),
   status: z.enum(["active", "suspended", "cancelled"]),
@@ -44,6 +45,7 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
     defaultValues: editingTenant ? {
       name: editingTenant.name,
       slug: editingTenant.slug,
+      subdomain: editingTenant.subdomain || editingTenant.slug,
       domain: editingTenant.domain || "",
       pricing_tier: editingTenant.pricing_tier,
       status: editingTenant.status,
@@ -60,6 +62,7 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
     } : {
       name: "",
       slug: "",
+      subdomain: "",
       domain: "",
       pricing_tier: "starter",
       status: "active",
@@ -82,6 +85,7 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
       form.reset({
         name: editingTenant.name,
         slug: editingTenant.slug,
+        subdomain: editingTenant.subdomain || editingTenant.slug,
         domain: editingTenant.domain || "",
         pricing_tier: editingTenant.pricing_tier,
         status: editingTenant.status,
@@ -105,6 +109,7 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
       await createTenantMutation.mutateAsync({
         name: data.name,
         slug: data.slug,
+        subdomain: data.subdomain,
         domain: data.domain || null,
         logo_url: null,
         theme_colors: { primary: "#1e40af", secondary: "#64748b" },
@@ -172,6 +177,23 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
                   <FormLabel>Slug</FormLabel>
                   <FormControl>
                     <Input placeholder="enter-slug" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="subdomain"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subdomain</FormLabel>
+                  <FormControl>
+                    <div className="flex items-center">
+                      <Input placeholder="company" {...field} />
+                      <span className="ml-2 text-sm text-muted-foreground">.loanspurcbs.com</span>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

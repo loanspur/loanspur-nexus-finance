@@ -147,6 +147,7 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                 <TableHead>Tenant</TableHead>
                 <TableHead>Pricing Tier</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Subdomain</TableHead>
                 <TableHead>Domain</TableHead>
                 <TableHead>Trial Ends</TableHead>
                 <TableHead>Created</TableHead>
@@ -175,6 +176,11 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                     <Badge className={getStatusColor(tenant.status)}>
                       {tenant.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {tenant.subdomain}.loanspurcbs.com
+                    </span>
                   </TableCell>
                   <TableCell>
                     {tenant.domain ? (

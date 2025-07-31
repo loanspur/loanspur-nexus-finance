@@ -6966,6 +6966,7 @@ export type Database = {
           slug: string
           state_province: string | null
           status: Database["public"]["Enums"]["tenant_status"]
+          subdomain: string | null
           subscription_ends_at: string | null
           theme_colors: Json | null
           timezone: string | null
@@ -7001,6 +7002,7 @@ export type Database = {
           slug: string
           state_province?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
+          subdomain?: string | null
           subscription_ends_at?: string | null
           theme_colors?: Json | null
           timezone?: string | null
@@ -7036,6 +7038,7 @@ export type Database = {
           slug?: string
           state_province?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
+          subdomain?: string | null
           subscription_ends_at?: string | null
           theme_colors?: Json | null
           timezone?: string | null

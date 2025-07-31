@@ -7,6 +7,7 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  subdomain?: string | null;
   domain?: string | null;
   logo_url?: string | null;
   theme_colors: any; // JSON field
