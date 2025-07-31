@@ -124,8 +124,8 @@ const Index = () => {
               </button>
             </nav>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => navigate("/auth")}>
-                Sign Up
+              <Button variant="outline" onClick={() => navigate("/register")}>
+                Start Free Trial
               </Button>
               <Button variant="banking" onClick={() => navigate("/auth")}>
                 Sign In
@@ -159,7 +159,7 @@ const Index = () => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 mb-16">
-                <Button size="xl" variant="banking" onClick={() => navigate("/auth")}>
+                <Button size="xl" variant="banking" onClick={() => navigate("/register")}>
                   <Star className="w-5 h-5 mr-2" />
                   Start Free Trial
                 </Button>
@@ -282,7 +282,7 @@ const Index = () => {
                   </div>
                   <h3 className="text-2xl font-heading font-bold text-foreground mb-4">Ready to Get Started?</h3>
                   <p className="text-muted-foreground mb-6">Join hundreds of institutions already transforming their operations.</p>
-                  <Button size="lg" variant="banking" onClick={() => navigate("/auth")} className="w-full">
+                  <Button size="lg" variant="banking" onClick={() => navigate("/register")} className="w-full">
                     Start Free Trial
                   </Button>
                 </div>
@@ -311,7 +311,7 @@ const Index = () => {
             Join hundreds of financial institutions already using LoanSpur CBS to serve their communities better. Start your digital transformation today.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Button size="xl" variant="banking" onClick={() => navigate("/auth")}>
+            <Button size="xl" variant="banking" onClick={() => navigate("/register")}>
               <Star className="w-5 h-5 mr-2" />
               Start Your Free Trial
             </Button>
