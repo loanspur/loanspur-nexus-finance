@@ -11,15 +11,11 @@ import { useCreateTenant } from "@/hooks/useSupabase";
 
 const tenantSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-  subdomain: z.string().min(1, "Subdomain is required").regex(/^[a-z0-9-]+$/, "Subdomain must contain only lowercase letters, numbers, and hyphens"),
   domain: z.string().optional(),
   pricing_tier: z.enum(["starter", "professional", "enterprise", "scale"]),
-  status: z.enum(["active", "suspended", "cancelled"]),
   contact_person_name: z.string().optional(),
   contact_person_email: z.string().email().optional().or(z.literal("")),
   contact_person_phone: z.string().optional(),
-  billing_cycle: z.enum(["monthly", "quarterly", "annually"]).optional(),
   country: z.string().optional(),
   timezone: z.string().optional(),
   currency_code: z.string().optional(),
@@ -44,15 +40,11 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
     resolver: zodResolver(tenantSchema),
     defaultValues: editingTenant ? {
       name: editingTenant.name,
-      slug: editingTenant.slug,
-      subdomain: editingTenant.subdomain || editingTenant.slug,
       domain: editingTenant.domain || "",
       pricing_tier: editingTenant.pricing_tier,
-      status: editingTenant.status,
       contact_person_name: editingTenant.contact_person_name || "",
       contact_person_email: editingTenant.contact_person_email || "",
       contact_person_phone: editingTenant.contact_person_phone || "",
-      billing_cycle: editingTenant.billing_cycle || "monthly",
       country: editingTenant.country || "",
       timezone: editingTenant.timezone || "UTC",
       currency_code: editingTenant.currency_code || "USD",
@@ -61,15 +53,11 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
       postal_code: editingTenant.postal_code || "",
     } : {
       name: "",
-      slug: "",
-      subdomain: "",
       domain: "",
       pricing_tier: "starter",
-      status: "active",
       contact_person_name: "",
       contact_person_email: "",
       contact_person_phone: "",
-      billing_cycle: "monthly",
       country: "",
       timezone: "UTC",
       currency_code: "USD",
@@ -84,15 +72,11 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
     if (editingTenant) {
       form.reset({
         name: editingTenant.name,
-        slug: editingTenant.slug,
-        subdomain: editingTenant.subdomain || editingTenant.slug,
         domain: editingTenant.domain || "",
         pricing_tier: editingTenant.pricing_tier,
-        status: editingTenant.status,
         contact_person_name: editingTenant.contact_person_name || "",
         contact_person_email: editingTenant.contact_person_email || "",
         contact_person_phone: editingTenant.contact_person_phone || "",
-        billing_cycle: editingTenant.billing_cycle || "monthly",
         country: editingTenant.country || "",
         timezone: editingTenant.timezone || "UTC",
         currency_code: editingTenant.currency_code || "USD",
@@ -106,15 +90,19 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
   const onSubmit = async (data: TenantFormData) => {
     setIsSubmitting(true);
     try {
+      // Generate unique slug and subdomain from name
+      const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const subdomain = slug;
+      
       await createTenantMutation.mutateAsync({
         name: data.name,
-        slug: data.slug,
-        subdomain: data.subdomain,
+        slug: slug,
+        subdomain: subdomain,
         domain: data.domain || null,
         logo_url: null,
         theme_colors: { primary: "#1e40af", secondary: "#64748b" },
         pricing_tier: data.pricing_tier,
-        status: data.status,
+        status: 'active',
         trial_ends_at: null,
         subscription_ends_at: null,
         mifos_base_url: null,
@@ -124,7 +112,7 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
         contact_person_name: data.contact_person_name || null,
         contact_person_email: data.contact_person_email || null,
         contact_person_phone: data.contact_person_phone || null,
-        billing_cycle: data.billing_cycle || 'monthly',
+        billing_cycle: 'monthly',
         auto_billing: true,
         payment_terms: 30,
         billing_address: {},
@@ -171,37 +159,6 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
             
             <FormField
               control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Slug</FormLabel>
-                  <FormControl>
-                    <Input placeholder="enter-slug" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="subdomain"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subdomain</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center">
-                      <Input placeholder="company" {...field} />
-                      <span className="ml-2 text-sm text-muted-foreground">.loanspurcbs.com</span>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="domain"
               render={({ field }) => (
                 <FormItem>
@@ -231,29 +188,6 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
                       <SelectItem value="professional">Professional</SelectItem>
                       <SelectItem value="enterprise">Enterprise</SelectItem>
                       <SelectItem value="scale">Scale</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -302,29 +236,6 @@ export const TenantForm = ({ open, onOpenChange, editingTenant }: TenantFormProp
                 </FormItem>
               )}
             />
-
-              <FormField
-                control={form.control}
-                name="billing_cycle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Billing Cycle</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select billing cycle" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                        <SelectItem value="annually">Annually</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
