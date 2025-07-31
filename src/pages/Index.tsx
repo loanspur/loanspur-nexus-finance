@@ -76,8 +76,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-hero">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+      {/* Static Header/Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
@@ -89,6 +89,20 @@ const Index = () => {
                 <span className="text-xs text-muted-foreground">Core Banking System</span>
               </div>
             </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium">
+                Features
+              </a>
+              <a href="#benefits" className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium">
+                Benefits
+              </a>
+              <a href="#pricing" onClick={() => navigate("/pricing")} className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium cursor-pointer">
+                Pricing
+              </a>
+              <a href="#contact" className="text-muted-foreground hover:text-banking-primary transition-colors text-sm font-medium">
+                Contact
+              </a>
+            </nav>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => navigate("/pricing")}>
                 Pricing
@@ -101,8 +115,7 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-24">
+      <section className="container mx-auto px-4 py-24 mt-20">
         <div className="text-center max-w-5xl mx-auto">
           <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm font-medium">
             <Zap className="w-4 h-4 mr-2" />
@@ -147,7 +160,7 @@ const Index = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="container mx-auto px-4 py-24 bg-gradient-to-b from-background to-muted/20">
+      <section id="features" className="container mx-auto px-4 py-24 bg-gradient-to-b from-background to-muted/20">
         <div className="text-center mb-16">
           <Badge variant="outline" className="mb-4">
             <Shield className="w-4 h-4 mr-2" />
@@ -187,7 +200,7 @@ const Index = () => {
       </section>
 
       {/* Benefits Section */}
-      <section className="container mx-auto px-4 py-24">
+      <section id="benefits" className="container mx-auto px-4 py-24">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -230,7 +243,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 overflow-hidden">
+      <section id="contact" className="relative py-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-primary opacity-5"></div>
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0 bg-gradient-to-r from-banking-primary/5 to-banking-secondary/5"></div>
