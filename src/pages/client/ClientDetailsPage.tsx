@@ -319,6 +319,36 @@ const ClientDetailsPageRefactored = () => {
                       General
                     </TabsTrigger>
                   )}
+                  {shouldShowTab('identities', client, loans, savings) && (
+                    <TabsTrigger value="identities" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <IdCard className="h-4 w-4 mr-2" />
+                      Identities
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('documents', client, loans, savings) && (
+                    <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Documents
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('employment', client, loans, savings) && (
+                    <TabsTrigger value="employment" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Employment
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('business', client, loans, savings) && (
+                    <TabsTrigger value="business" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Business
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('bank-details', client, loans, savings) && (
+                    <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Building className="h-4 w-4 mr-2" />
+                      Bank Details
+                    </TabsTrigger>
+                  )}
                   {shouldShowTab('loans', client, loans, savings) && (
                     <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                       <CreditCard className="h-4 w-4 mr-2" />
@@ -329,6 +359,18 @@ const ClientDetailsPageRefactored = () => {
                     <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                       <PiggyBank className="h-4 w-4 mr-2" />
                       Savings ({activeSavings.length})
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('transfer', client, loans, savings) && (
+                    <TabsTrigger value="transfer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Transfer
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('loan-officer', client, loans, savings) && (
+                    <TabsTrigger value="loan-officer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Users className="h-4 w-4 mr-2" />
+                      Loan Officer
                     </TabsTrigger>
                   )}
                   {shouldShowTab('groups', client, loans, savings) && (
@@ -343,6 +385,10 @@ const ClientDetailsPageRefactored = () => {
                       Next of Kin
                     </TabsTrigger>
                   )}
+                  <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    Notes
+                  </TabsTrigger>
                 </div>
               </TabsList>
               
