@@ -4,14 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Edit, 
   CreditCard, 
   PiggyBank, 
-  Settings, 
   UserMinus, 
-  ChevronDown,
   FileText,
   IdCard,
   Info,
@@ -19,6 +16,8 @@ import {
   Phone,
   StickyNote,
   Building2,
+  Users,
+  ArrowRightLeft,
 } from "lucide-react";
 import { ClientGeneralTab } from "@/components/client/tabs/ClientGeneralTab";
 import { ClientIdentitiesTab } from "@/components/client/tabs/ClientIdentitiesTab";
@@ -26,6 +25,8 @@ import { ClientDocumentsTab } from "@/components/client/tabs/ClientDocumentsTab"
 import { ClientEmploymentTab } from "@/components/client/tabs/ClientEmploymentTab";
 import { ClientBusinessTab } from "@/components/client/tabs/ClientBusinessTab";
 import { ClientSavingsTab } from "@/components/client/tabs/ClientSavingsTab";
+import { ClientTransferTab } from "@/components/client/tabs/ClientTransferTab";
+import { ClientLoanOfficerTab } from "@/components/client/tabs/ClientLoanOfficerTab";
 import { ClientBankDetailsTab } from "@/components/client/tabs/ClientBankDetailsTab";
 import { ClientUssdTab } from "@/components/client/tabs/ClientUssdTab";
 import { ClientNextOfKinTab } from "@/components/client/tabs/ClientNextOfKinTab";
@@ -86,6 +87,10 @@ const shouldShowTab = (tabName: string, client: Client, loans: any[], savings: a
       return client.employer_name || client.job_title || client.occupation;
     case 'business':
       return client.business_name || client.business_type;
+    case 'transfer':
+      return true; // Always show transfer tab
+    case 'loan-officer':
+      return true; // Always show loan officer tab
     default:
       return false;
   }
@@ -289,26 +294,14 @@ const ClientDetailsPageRefactored = () => {
               </div>
               
               <div className="flex items-center gap-3">
-                {/* Actions Dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Settings className="h-4 w-4 mr-2" />
-                      More Actions
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Client
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <UserMinus className="h-4 w-4 mr-2" />
-                      Close Client
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Client
+                </Button>
+                <Button variant="outline" size="sm">
+                  <UserMinus className="h-4 w-4 mr-2" />
+                  Close Client
+                </Button>
               </div>
             </div>
           </div>
@@ -374,6 +367,18 @@ const ClientDetailsPageRefactored = () => {
                       Business
                     </TabsTrigger>
                   )}
+                  {shouldShowTab('transfer', client, loans, savings) && (
+                    <TabsTrigger value="transfer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      Transfer
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('loan-officer', client, loans, savings) && (
+                    <TabsTrigger value="loan-officer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Users className="h-4 w-4 mr-2" />
+                      Loan Officer
+                    </TabsTrigger>
+                  )}
                   {shouldShowTab('notes', client, loans, savings) && (
                     <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                       <StickyNote className="h-4 w-4 mr-2" />
@@ -429,6 +434,12 @@ const ClientDetailsPageRefactored = () => {
                 </TabsContent>
                 <TabsContent value="business" className="mt-0">
                   <ClientBusinessTab client={client} />
+                </TabsContent>
+                <TabsContent value="transfer" className="mt-0">
+                  <ClientTransferTab client={client} />
+                </TabsContent>
+                <TabsContent value="loan-officer" className="mt-0">
+                  <ClientLoanOfficerTab client={client} />
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />
