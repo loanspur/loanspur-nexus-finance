@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -25,40 +25,36 @@ interface ClientLoanOfficerTabProps {
 export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
   const [selectedOfficer, setSelectedOfficer] = useState<string>("");
   const [updating, setUpdating] = useState(false);
+  const [loanOfficers, setLoanOfficers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock loan officers data - in real app, this would come from the profiles table
-  const loanOfficers = [
-    {
-      id: "officer1",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      phone: "+254700000001",
-      office: "Main Branch",
-      active_clients: 45,
-      portfolio_value: 2500000
-    },
-    {
-      id: "officer2", 
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      phone: "+254700000002",
-      office: "Downtown Branch",
-      active_clients: 38,
-      portfolio_value: 1800000
-    },
-    {
-      id: "officer3",
-      name: "Peter Mwangi",
-      email: "peter.mwangi@example.com", 
-      phone: "+254700000003",
-      office: "Westlands Branch",
-      active_clients: 52,
-      portfolio_value: 3200000
-    }
-  ];
+  useEffect(() => {
+    const fetchLoanOfficers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('role', ['loan_officer', 'tenant_admin'])
+          .eq('is_active', true);
 
-  const currentOfficer = loanOfficers.find(o => o.id === (client as any).loan_officer_id);
+        if (error) {
+          console.error('Error fetching loan officers:', error);
+          return;
+        }
+
+        setLoanOfficers(data || []);
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLoanOfficers();
+  }, []);
+
+  const currentOfficer = loanOfficers.find(o => o.id === client.loan_officer_id);
 
   const handleAssignOfficer = async () => {
     if (!selectedOfficer) {
@@ -122,7 +118,7 @@ export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
                     <User className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-medium">{currentOfficer.name}</h3>
+                    <h3 className="font-medium">{currentOfficer.first_name} {currentOfficer.last_name}</h3>
                     <p className="text-sm text-muted-foreground">Loan Officer</p>
                     <Badge variant="default" className="mt-1">Active</Badge>
                   </div>
@@ -137,26 +133,26 @@ export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{currentOfficer.email}</span>
+                    <span>{currentOfficer.email || 'No email provided'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{currentOfficer.phone}</span>
+                    <span>{currentOfficer.phone || 'No phone provided'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Building className="h-4 w-4 text-muted-foreground" />
-                    <span>{currentOfficer.office}</span>
+                    <span>{currentOfficer.office_name || 'No office assigned'}</span>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-sm text-muted-foreground">Active Clients</Label>
-                    <p className="text-lg font-semibold">{currentOfficer.active_clients}</p>
+                    <Label className="text-sm text-muted-foreground">Role</Label>
+                    <p className="text-lg font-semibold capitalize">{currentOfficer.role?.replace('_', ' ')}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-muted-foreground">Portfolio Value</Label>
-                    <p className="text-lg font-semibold text-success">
-                      {formatCurrency(currentOfficer.portfolio_value)}
+                    <Label className="text-sm text-muted-foreground">Joined</Label>
+                    <p className="text-lg font-semibold">
+                      {format(new Date(currentOfficer.created_at), 'MMM yyyy')}
                     </p>
                   </div>
                 </div>
@@ -188,20 +184,26 @@ export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
                 <SelectValue placeholder="Choose a loan officer" />
               </SelectTrigger>
               <SelectContent>
-                {loanOfficers.map((officer) => (
-                  <SelectItem key={officer.id} value={officer.id}>
-                    <div className="flex items-center justify-between w-full">
-                      <div>
-                        <p className="font-medium">{officer.name}</p>
-                        <p className="text-sm text-muted-foreground">{officer.office}</p>
+                {loading ? (
+                  <SelectItem value="loading" disabled>Loading officers...</SelectItem>
+                ) : loanOfficers.length === 0 ? (
+                  <SelectItem value="none" disabled>No loan officers available</SelectItem>
+                ) : (
+                  loanOfficers.map((officer) => (
+                    <SelectItem key={officer.id} value={officer.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <div>
+                          <p className="font-medium">{officer.first_name} {officer.last_name}</p>
+                          <p className="text-sm text-muted-foreground">{officer.email}</p>
+                        </div>
+                        <div className="text-right text-sm">
+                          <p className="capitalize">{officer.role?.replace('_', ' ')}</p>
+                          <p className="text-muted-foreground">{officer.office_name || 'No office'}</p>
+                        </div>
                       </div>
-                      <div className="text-right text-sm">
-                        <p>{officer.active_clients} clients</p>
-                        <p className="text-muted-foreground">{formatCurrency(officer.portfolio_value)}</p>
-                      </div>
-                    </div>
-                  </SelectItem>
-                ))}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -238,7 +240,7 @@ export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
             {currentOfficer && (
               <div className="flex items-center justify-between py-3">
                 <div>
-                  <p className="font-medium">Assigned to {currentOfficer.name}</p>
+                  <p className="font-medium">Assigned to {currentOfficer.first_name} {currentOfficer.last_name}</p>
                   <p className="text-sm text-muted-foreground">Current assignment</p>
                 </div>
                 <Badge variant="default">Active</Badge>

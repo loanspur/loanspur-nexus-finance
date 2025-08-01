@@ -27,6 +27,9 @@ import { ClientBusinessTab } from "@/components/client/tabs/ClientBusinessTab";
 import { ClientSavingsTab } from "@/components/client/tabs/ClientSavingsTab";
 import { ClientTransferTab } from "@/components/client/tabs/ClientTransferTab";
 import { ClientLoanOfficerTab } from "@/components/client/tabs/ClientLoanOfficerTab";
+import { ClientGroupsTab } from "@/components/client/tabs/ClientGroupsTab";
+import { AddSavingsAccountDialog } from "@/components/client/AddSavingsAccountDialog";
+import { SavingsAccountDetailsDialog } from "@/components/savings/SavingsAccountDetailsDialog";
 import { ClientBankDetailsTab } from "@/components/client/tabs/ClientBankDetailsTab";
 import { ClientUssdTab } from "@/components/client/tabs/ClientUssdTab";
 import { ClientNextOfKinTab } from "@/components/client/tabs/ClientNextOfKinTab";
@@ -91,6 +94,8 @@ const shouldShowTab = (tabName: string, client: Client, loans: any[], savings: a
       return true; // Always show transfer tab
     case 'loan-officer':
       return true; // Always show loan officer tab
+    case 'groups':
+      return true; // Always show groups tab
     default:
       return false;
   }
@@ -112,6 +117,9 @@ const ClientDetailsPageRefactored = () => {
   // Dialog states
   const [showNewLoan, setShowNewLoan] = useState(false);
   const [showNewSavings, setShowNewSavings] = useState(false);
+  const [showAddSavingsAccount, setShowAddSavingsAccount] = useState(false);
+  const [showSavingsAccountDetails, setShowSavingsAccountDetails] = useState(false);
+  const [selectedSavingsAccount, setSelectedSavingsAccount] = useState<any>(null);
   // Removed unwanted dialog states
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
@@ -379,6 +387,12 @@ const ClientDetailsPageRefactored = () => {
                       Loan Officer
                     </TabsTrigger>
                   )}
+                  {shouldShowTab('groups', client, loans, savings) && (
+                    <TabsTrigger value="groups" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Users className="h-4 w-4 mr-2" />
+                      Groups
+                    </TabsTrigger>
+                  )}
                   {shouldShowTab('notes', client, loans, savings) && (
                     <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                       <StickyNote className="h-4 w-4 mr-2" />
@@ -427,7 +441,17 @@ const ClientDetailsPageRefactored = () => {
                   <ClientNextOfKinTab client={client} />
                 </TabsContent>
                 <TabsContent value="savings" className="mt-0">
-                  <ClientSavingsTab savings={savings} formatCurrency={formatCurrency} />
+                  <ClientSavingsTab 
+                    savings={savings}
+                    formatCurrency={formatCurrency}
+                    showClosedAccounts={showClosedSavings}
+                    onToggleClosedAccounts={() => setShowClosedSavings(!showClosedSavings)}
+                    onNewSavingsAccount={() => setShowAddSavingsAccount(true)}
+                    onViewAccountDetails={(account) => {
+                      setSelectedSavingsAccount(account);
+                      setShowSavingsAccountDetails(true);
+                    }}
+                  />
                 </TabsContent>
                 <TabsContent value="employment" className="mt-0">
                   <ClientEmploymentTab client={client} />
@@ -440,6 +464,9 @@ const ClientDetailsPageRefactored = () => {
                 </TabsContent>
                 <TabsContent value="loan-officer" className="mt-0">
                   <ClientLoanOfficerTab client={client} />
+                </TabsContent>
+                <TabsContent value="groups" className="mt-0">
+                  <ClientGroupsTab client={client} />
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />
@@ -461,6 +488,20 @@ const ClientDetailsPageRefactored = () => {
         onOpenChange={setShowNewSavings}
         clientId={client.id}
       />
+      <AddSavingsAccountDialog
+        open={showAddSavingsAccount}
+        onOpenChange={setShowAddSavingsAccount}
+        clientId={client.id}
+        clientName={`${client.first_name} ${client.last_name}`}
+        onSuccess={fetchClientData}
+      />
+      {selectedSavingsAccount && (
+        <SavingsAccountDetailsDialog
+          open={showSavingsAccountDetails}
+          onOpenChange={setShowSavingsAccountDetails}
+          account={selectedSavingsAccount}
+        />
+      )}
       {selectedLoanForWorkflow && (
         <LoanWorkflowDialog
           open={showLoanWorkflowModal}

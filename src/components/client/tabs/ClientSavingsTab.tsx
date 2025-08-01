@@ -2,7 +2,18 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PiggyBank, ArrowDownRight, ArrowUpRight, ArrowRightLeft, Calendar, Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { 
+  PiggyBank, 
+  ArrowDownRight, 
+  ArrowUpRight, 
+  ArrowRightLeft, 
+  Calendar, 
+  Download,
+  Plus,
+  Eye
+} from "lucide-react";
 import { format } from "date-fns";
 
 interface SavingsAccount {
@@ -23,131 +34,150 @@ interface SavingsAccount {
 interface ClientSavingsTabProps {
   savings: SavingsAccount[];
   formatCurrency: (amount: number) => string;
+  showClosedAccounts: boolean;
+  onToggleClosedAccounts: () => void;
+  onNewSavingsAccount: () => void;
+  onViewAccountDetails: (account: SavingsAccount) => void;
 }
 
-export const ClientSavingsTab = ({ savings, formatCurrency }: ClientSavingsTabProps) => {
-  const [selectedAccount, setSelectedAccount] = useState<SavingsAccount | null>(
-    savings.length > 0 ? savings[0] : null
-  );
+export const ClientSavingsTab = ({ 
+  savings, 
+  formatCurrency, 
+  showClosedAccounts, 
+  onToggleClosedAccounts, 
+  onNewSavingsAccount, 
+  onViewAccountDetails 
+}: ClientSavingsTabProps) => {
+  
+  const getVisibleAccounts = () => {
+    if (showClosedAccounts) {
+      return savings.filter(account => !account.is_active);
+    } else {
+      return savings.filter(account => account.is_active);
+    }
+  };
 
-  if (savings.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <PiggyBank className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-lg font-medium mb-2">No Savings Accounts</h3>
-        <p className="text-muted-foreground">This client doesn't have any savings accounts yet.</p>
-      </div>
-    );
-  }
+  const visibleAccounts = getVisibleAccounts();
 
   return (
     <div className="space-y-6">
-      {/* Account Selector if multiple accounts */}
-      {savings.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto">
-          {savings.map((account) => (
-            <Button
-              key={account.id}
-              variant={selectedAccount?.id === account.id ? "default" : "outline"}
-              onClick={() => setSelectedAccount(account)}
-              className="whitespace-nowrap"
-            >
-              {account.account_number}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {selectedAccount && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <PiggyBank className="h-5 w-5" />
-                  Savings Account
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Account: {selectedAccount.account_number} • {selectedAccount.savings_products?.name || 'Standard Savings'}
-                </p>
-              </div>
-              <Badge variant={selectedAccount.is_active ? "default" : "secondary"}>
-                {selectedAccount.is_active ? 'Active' : 'Inactive'}
-              </Badge>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <PiggyBank className="h-5 w-5" />
+                Savings Accounts
+              </CardTitle>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Current Balance</div>
-                  <div className="text-3xl font-bold text-success">
-                    {formatCurrency(selectedAccount.account_balance || 0)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Available Balance</div>
-                  <div className="text-lg font-medium">
-                    {formatCurrency(selectedAccount.available_balance || 0)}
-                  </div>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-closed-accounts"
+                  checked={showClosedAccounts}
+                  onCheckedChange={onToggleClosedAccounts}
+                />
+                <Label htmlFor="show-closed-accounts" className="text-sm">
+                  Show closed accounts
+                </Label>
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Account Opened</div>
-                  <div className="text-lg font-medium flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {format(new Date(selectedAccount.opened_date), 'MMM dd, yyyy')}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Interest Earned</div>
-                  <div className="text-lg font-medium text-success">
-                    {formatCurrency(selectedAccount.interest_earned || 0)}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground">Product Type</div>
-                  <div className="text-lg font-medium">
-                    {selectedAccount.savings_products?.name || 'Standard Savings'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Interest Rate</div>
-                  <div className="text-lg font-medium">
-                    {selectedAccount.savings_products?.nominal_annual_interest_rate || 0}% p.a.
-                  </div>
-                </div>
-              </div>
+              <Button onClick={onNewSavingsAccount} className="bg-gradient-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                New Savings Account
+              </Button>
             </div>
-            
-            <div className="mt-6 pt-6 border-t">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button className="flex-1">
-                  <ArrowDownRight className="h-4 w-4 mr-2" />
-                  Deposit
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <ArrowUpRight className="h-4 w-4 mr-2" />
-                  Withdraw
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  Transfer
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <Download className="h-4 w-4 mr-2" />
-                  Statement
-                </Button>
-              </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {visibleAccounts.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              <PiggyBank className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">
+                {showClosedAccounts ? 'No closed savings accounts found' : 'No active savings accounts found'}
+              </p>
+              <p className="text-sm">
+                {showClosedAccounts ? 'All accounts are currently active' : 'Create a savings account to get started'}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="space-y-4">
+              {visibleAccounts.map((account) => (
+                <div 
+                  key={account.id} 
+                  className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div>
+                          <h4 className="font-medium">
+                            {account.savings_products?.name || 'Standard Savings'}
+                          </h4>
+                          <p className="text-sm text-muted-foreground font-mono">
+                            {account.account_number}
+                          </p>
+                        </div>
+                        <Badge variant={account.is_active ? "default" : "secondary"}>
+                          {account.is_active ? 'Active' : 'Closed'}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Current Balance</p>
+                          <p className="font-medium text-success">
+                            {formatCurrency(account.account_balance || 0)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Available Balance</p>
+                          <p className="font-medium">
+                            {formatCurrency(account.available_balance || 0)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Interest Earned</p>
+                          <p className="font-medium text-success">
+                            {formatCurrency(account.interest_earned || 0)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Opened</p>
+                          <p className="font-medium">
+                            {format(new Date(account.opened_date), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {account.is_active && (
+                        <>
+                          <Button size="sm" variant="outline">
+                            <ArrowDownRight className="h-4 w-4 mr-1" />
+                            Deposit
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <ArrowUpRight className="h-4 w-4 mr-1" />
+                            Withdraw
+                          </Button>
+                        </>
+                      )}
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => onViewAccountDetails(account)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
