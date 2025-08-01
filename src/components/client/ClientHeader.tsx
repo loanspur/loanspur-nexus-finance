@@ -89,9 +89,9 @@ export const ClientHeader = ({
   };
   return (
     <div className="bg-gradient-to-r from-primary to-primary/80 p-8 text-white">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-8">
         {/* Left: Client Info and Status */}
-        <div className="flex-1">
+        <div className="flex-1 max-w-4xl">
           <h1 className="text-2xl font-semibold mb-2">
             {client.first_name} {client.last_name}
           </h1>
@@ -144,7 +144,7 @@ export const ClientHeader = ({
               )}
             </div>
             {/* Financial Summary - Horizontal Cards */}
-            <div className="flex gap-6">
+            <div className="flex flex-wrap gap-4 max-w-3xl">
               <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
                 <div className="bg-white/10 p-2 rounded-full">
                   <CreditCard className="h-4 w-4 text-white" />
