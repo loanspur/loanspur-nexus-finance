@@ -74,32 +74,8 @@ interface Client {
 
 // Helper function to determine which tabs to show based on captured data
 const shouldShowTab = (tabName: string, client: Client, loans: any[], savings: any[]) => {
-  // Account opening stage tabs - always show if client exists
-  const accountOpeningTabs = ['general', 'identities', 'documents', 'bank-details', 'next-of-kin', 'notes'];
-  
-  if (accountOpeningTabs.includes(tabName)) {
-    return true;
-  }
-  
-  // Additional tabs - only show if there's actual data
-  switch (tabName) {
-    case 'loans':
-      return loans.length > 0;
-    case 'savings':
-      return savings.length > 0;
-    case 'employment':
-      return client.employer_name || client.job_title || client.occupation;
-    case 'business':
-      return client.business_name || client.business_type;
-    case 'transfer':
-      return true; // Always show transfer tab
-    case 'loan-officer':
-      return true; // Always show loan officer tab
-    case 'groups':
-      return true; // Always show groups tab
-    default:
-      return false;
-  }
+  // All tabs should be shown with equal priority
+  return true;
 };
 
 const ClientDetailsPageRefactored = () => {
@@ -365,18 +341,14 @@ const ClientDetailsPageRefactored = () => {
                     <Info className="h-4 w-4 mr-2" />
                     General
                   </TabsTrigger>
-                  {shouldShowTab('loans', client, loans, savings) && (
-                    <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Loans ({loans.length + loanApplications.length})
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('savings', client, loans, savings) && (
-                    <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <PiggyBank className="h-4 w-4 mr-2" />
-                      Savings ({activeSavings.length})
-                    </TabsTrigger>
-                  )}
+                  <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Loans ({loans.length + loanApplications.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <PiggyBank className="h-4 w-4 mr-2" />
+                    Savings ({activeSavings.length})
+                  </TabsTrigger>
                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <StickyNote className="h-4 w-4 mr-2" />
                     Notes
