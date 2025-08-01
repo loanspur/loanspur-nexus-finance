@@ -277,56 +277,51 @@ const ClientDetailsPageRefactored = () => {
 
           {/* Action Menu Bar */}
           <div className="px-8 py-4 border-t bg-muted/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
-                  <IdCard className="h-4 w-4 mr-2" />
-                  Identities
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowDocumentsModal(true)}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Documents
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowBankDetailsModal(true)}>
-                  <Building className="h-4 w-4 mr-2" />
-                  Bank Details
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Employment
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowBusinessModal(true)}>
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Business
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  Transfer
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowLoanOfficerModal(true)}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Loan Officer
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowGroupsModal(true)}>
-                  <Users className="h-4 w-4 mr-2" />
-                  Groups
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Next of Kin
-                </Button>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Client
-                </Button>
-                <Button variant="outline" size="sm">
-                  <UserMinus className="h-4 w-4 mr-2" />
-                  Close Client
-                </Button>
-              </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="outline" size="sm">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Client
+              </Button>
+              <Button variant="outline" size="sm">
+                <UserMinus className="h-4 w-4 mr-2" />
+                Close Client
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
+                <IdCard className="h-4 w-4 mr-2" />
+                Identities
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowDocumentsModal(true)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Documents
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowBankDetailsModal(true)}>
+                <Building className="h-4 w-4 mr-2" />
+                Bank Details
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Employment
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowBusinessModal(true)}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Business
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
+                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                Transfer
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowLoanOfficerModal(true)}>
+                <Users className="h-4 w-4 mr-2" />
+                Loan Officer
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowGroupsModal(true)}>
+                <Users className="h-4 w-4 mr-2" />
+                Groups
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
+                <Phone className="h-4 w-4 mr-2" />
+                Next of Kin
+              </Button>
             </div>
           </div>
         </div>
