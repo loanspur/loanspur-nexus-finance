@@ -143,18 +143,36 @@ export const ClientHeader = ({
                 </div>
               )}
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-white/90 text-sm">
-                <CreditCard className="h-4 w-4" />
-                <span>{activeLoansCount} Active Loans</span>
+            {/* Financial Summary Cards */}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-white" />
+                    <span className="text-white font-medium">Active Loans</span>
+                  </div>
+                  <span className="text-2xl font-bold text-white">{activeLoansCount}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-white/90 text-sm">
-                <PiggyBank className="h-4 w-4" />
-                <span>{formatCurrency(savingsBalance)} Savings</span>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <PiggyBank className="h-5 w-5 text-white" />
+                    <span className="text-white font-medium">Total Savings</span>
+                  </div>
+                  <span className="text-lg font-bold text-white">{formatCurrency(savingsBalance)}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-white/90 text-sm">
-                <Building className="h-4 w-4" />
-                <span>{activeSavingsCount} Savings Accounts</span>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Building className="h-5 w-5 text-white" />
+                    <span className="text-white font-medium">Savings Accounts</span>
+                  </div>
+                  <span className="text-2xl font-bold text-white">{activeSavingsCount}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -171,9 +189,9 @@ export const ClientHeader = ({
 
         {/* Right: Avatar with Upload */}
         <div className="flex-shrink-0 relative group">
-          <Avatar className="h-24 w-24 border-4 border-white/20">
+          <Avatar className="h-32 w-32 border-4 border-white/20">
             <AvatarImage src={client.profile_picture_url || ""} />
-            <AvatarFallback className="text-2xl bg-white/10 text-white border-2 border-white/20">
+            <AvatarFallback className="text-3xl bg-white/10 text-white border-2 border-white/20">
               {client.first_name.charAt(0)}{client.last_name.charAt(0)}
             </AvatarFallback>
           </Avatar>
