@@ -43,6 +43,7 @@ import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { EditClientForm } from "@/components/forms/EditClientForm";
+import { ClientIdentifiersTab } from "@/components/client/tabs/ClientIdentifiersTab";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
@@ -493,7 +494,7 @@ const ClientDetailsPageRefactored = () => {
           <DialogHeader>
             <DialogTitle>Client Identifiers</DialogTitle>
           </DialogHeader>
-          <ClientIdentitiesTab clientId={client.id} />
+          <ClientIdentifiersTab clientId={client.id} />
         </DialogContent>
       </Dialog>
 

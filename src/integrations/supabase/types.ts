@@ -1111,6 +1111,57 @@ export type Database = {
           },
         ]
       }
+      client_identifiers: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          expiry_date: string | null
+          id: string
+          identifier_type: string
+          identifier_value: string
+          is_verified: boolean
+          issuing_authority: string | null
+          notes: string | null
+          tenant_id: string
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          identifier_type: string
+          identifier_value: string
+          is_verified?: boolean
+          issuing_authority?: string | null
+          notes?: string | null
+          tenant_id: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          identifier_type?: string
+          identifier_value?: string
+          is_verified?: boolean
+          issuing_authority?: string | null
+          notes?: string | null
+          tenant_id?: string
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       client_identities: {
         Row: {
           client_id: string
