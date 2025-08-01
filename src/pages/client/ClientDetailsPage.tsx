@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Edit, 
@@ -123,6 +124,17 @@ const ClientDetailsPageRefactored = () => {
   // Removed unwanted dialog states
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
+  
+  // Modal states for moved tabs
+  const [showIdentitiesModal, setShowIdentitiesModal] = useState(false);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
+  const [showEmploymentModal, setShowEmploymentModal] = useState(false);
+  const [showBusinessModal, setShowBusinessModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showLoanOfficerModal, setShowLoanOfficerModal] = useState(false);
+  const [showGroupsModal, setShowGroupsModal] = useState(false);
+  const [showNextOfKinModal, setShowNextOfKinModal] = useState(false);
   
   // Workflow states
   const [showLoanWorkflowModal, setShowLoanWorkflowModal] = useState(false);
@@ -290,7 +302,43 @@ const ClientDetailsPageRefactored = () => {
           {/* Action Menu Bar */}
           <div className="px-8 py-4 border-t bg-muted/20">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
+                  <IdCard className="h-4 w-4 mr-2" />
+                  Identities
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowDocumentsModal(true)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Documents
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowBankDetailsModal(true)}>
+                  <Building className="h-4 w-4 mr-2" />
+                  Bank Details
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Employment
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowBusinessModal(true)}>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Business
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  Transfer
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowLoanOfficerModal(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Loan Officer
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowGroupsModal(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Groups
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
+                  <Phone className="h-4 w-4 mr-2" />
+                  Next of Kin
+                </Button>
               </div>
               
               <div className="flex items-center gap-3">
@@ -313,42 +361,10 @@ const ClientDetailsPageRefactored = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="h-auto p-0 bg-transparent w-full justify-start">
                 <div className="flex overflow-x-auto scrollbar-hide gap-1">
-                  {shouldShowTab('general', client, loans, savings) && (
-                    <TabsTrigger value="general" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Info className="h-4 w-4 mr-2" />
-                      General
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('identities', client, loans, savings) && (
-                    <TabsTrigger value="identities" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <IdCard className="h-4 w-4 mr-2" />
-                      Identities
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('documents', client, loans, savings) && (
-                    <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Documents
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('employment', client, loans, savings) && (
-                    <TabsTrigger value="employment" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Employment
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('business', client, loans, savings) && (
-                    <TabsTrigger value="business" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Business
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('bank-details', client, loans, savings) && (
-                    <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Building className="h-4 w-4 mr-2" />
-                      Bank Details
-                    </TabsTrigger>
-                  )}
+                  <TabsTrigger value="general" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Info className="h-4 w-4 mr-2" />
+                    General
+                  </TabsTrigger>
                   {shouldShowTab('loans', client, loans, savings) && (
                     <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                       <CreditCard className="h-4 w-4 mr-2" />
@@ -359,30 +375,6 @@ const ClientDetailsPageRefactored = () => {
                     <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                       <PiggyBank className="h-4 w-4 mr-2" />
                       Savings ({activeSavings.length})
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('transfer', client, loans, savings) && (
-                    <TabsTrigger value="transfer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Transfer
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('loan-officer', client, loans, savings) && (
-                    <TabsTrigger value="loan-officer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Users className="h-4 w-4 mr-2" />
-                      Loan Officer
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('groups', client, loans, savings) && (
-                    <TabsTrigger value="groups" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Users className="h-4 w-4 mr-2" />
-                      Groups
-                    </TabsTrigger>
-                  )}
-                  {shouldShowTab('next-of-kin', client, loans, savings) && (
-                    <TabsTrigger value="next-of-kin" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Phone className="h-4 w-4 mr-2" />
-                      Next of Kin
                     </TabsTrigger>
                   )}
                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
@@ -514,6 +506,88 @@ const ClientDetailsPageRefactored = () => {
         }}
       />
       )}
+
+      {/* Modal Dialogs for moved tabs */}
+      <Dialog open={showIdentitiesModal} onOpenChange={setShowIdentitiesModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Client Identities</DialogTitle>
+          </DialogHeader>
+          <ClientIdentitiesTab clientId={client.id} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Client Documents</DialogTitle>
+          </DialogHeader>
+          <ClientDocumentsTab clientId={client.id} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBankDetailsModal} onOpenChange={setShowBankDetailsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bank Details</DialogTitle>
+          </DialogHeader>
+          <ClientBankDetailsTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEmploymentModal} onOpenChange={setShowEmploymentModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Employment Information</DialogTitle>
+          </DialogHeader>
+          <ClientEmploymentTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBusinessModal} onOpenChange={setShowBusinessModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Business Information</DialogTitle>
+          </DialogHeader>
+          <ClientBusinessTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Client Transfer</DialogTitle>
+          </DialogHeader>
+          <ClientTransferTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showLoanOfficerModal} onOpenChange={setShowLoanOfficerModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Loan Officer</DialogTitle>
+          </DialogHeader>
+          <ClientLoanOfficerTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showGroupsModal} onOpenChange={setShowGroupsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Client Groups</DialogTitle>
+          </DialogHeader>
+          <ClientGroupsTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNextOfKinModal} onOpenChange={setShowNextOfKinModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Next of Kin</DialogTitle>
+          </DialogHeader>
+          <ClientNextOfKinTab client={client} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
