@@ -7,13 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Edit, 
-  Plus, 
   CreditCard, 
   PiggyBank, 
-  Share, 
-  DollarSign, 
-  ArrowRightLeft, 
-  X, 
   Settings, 
   UserMinus, 
   ChevronDown,
@@ -23,20 +18,21 @@ import {
   Building,
   Phone,
   StickyNote,
+  Building2,
 } from "lucide-react";
 import { ClientGeneralTab } from "@/components/client/tabs/ClientGeneralTab";
 import { ClientIdentitiesTab } from "@/components/client/tabs/ClientIdentitiesTab";
 import { ClientDocumentsTab } from "@/components/client/tabs/ClientDocumentsTab";
-import { ClientAdditionalInfoTab } from "@/components/client/tabs/ClientAdditionalInfoTab";
+import { ClientEmploymentTab } from "@/components/client/tabs/ClientEmploymentTab";
+import { ClientBusinessTab } from "@/components/client/tabs/ClientBusinessTab";
+import { ClientSavingsTab } from "@/components/client/tabs/ClientSavingsTab";
 import { ClientBankDetailsTab } from "@/components/client/tabs/ClientBankDetailsTab";
 import { ClientUssdTab } from "@/components/client/tabs/ClientUssdTab";
 import { ClientNextOfKinTab } from "@/components/client/tabs/ClientNextOfKinTab";
 import { ClientNotesTab } from "@/components/client/tabs/ClientNotesTab";
 import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
 import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
-import { NewShareAccountDialog } from "@/components/client/dialogs/NewShareAccountDialog";
-import { AddChargeDialog } from "@/components/client/dialogs/AddChargeDialog";
-import { TransferClientDialog } from "@/components/client/dialogs/TransferClientDialog";
+// Removed unwanted dialogs
 import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
 import { ClientHeader } from "@/components/client/ClientHeader";
@@ -66,6 +62,8 @@ interface Client {
   mifos_client_id?: number | null;
   employer_name?: string | null;
   business_name?: string | null;
+  job_title?: string | null;
+  business_type?: string | null;
   tenant_id: string;
 }
 
@@ -84,9 +82,10 @@ const shouldShowTab = (tabName: string, client: Client, loans: any[], savings: a
       return loans.length > 0;
     case 'savings':
       return savings.length > 0;
-    case 'additional-info':
-      // Show if client has employment or business information
-      return client.employer_name || client.business_name || client.occupation;
+    case 'employment':
+      return client.employer_name || client.job_title || client.occupation;
+    case 'business':
+      return client.business_name || client.business_type;
     default:
       return false;
   }
@@ -108,9 +107,7 @@ const ClientDetailsPageRefactored = () => {
   // Dialog states
   const [showNewLoan, setShowNewLoan] = useState(false);
   const [showNewSavings, setShowNewSavings] = useState(false);
-  const [showNewShareAccount, setShowNewShareAccount] = useState(false);
-  const [showAddCharge, setShowAddCharge] = useState(false);
-  const [showTransferClient, setShowTransferClient] = useState(false);
+  // Removed unwanted dialog states
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
   
@@ -289,22 +286,9 @@ const ClientDetailsPageRefactored = () => {
                   <PiggyBank className="h-4 w-4 mr-2" />
                   New Savings
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowNewShareAccount(true)}>
-                  <Share className="h-4 w-4 mr-2" />
-                  New Share Account
-                </Button>
               </div>
               
               <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm" onClick={() => setShowAddCharge(true)}>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Add Charge
-                </Button>
-                <Button variant="outline" size="sm">
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  Transfer
-                </Button>
-                
                 {/* Actions Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -318,10 +302,6 @@ const ClientDetailsPageRefactored = () => {
                     <DropdownMenuItem>
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Client
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowTransferClient(true)}>
-                      <ArrowRightLeft className="h-4 w-4 mr-2" />
-                      Transfer Client
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive">
                       <UserMinus className="h-4 w-4 mr-2" />
@@ -382,10 +362,16 @@ const ClientDetailsPageRefactored = () => {
                       Next of Kin
                     </TabsTrigger>
                   )}
-                  {shouldShowTab('additional-info', client, loans, savings) && (
-                    <TabsTrigger value="additional-info" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                      <Info className="h-4 w-4 mr-2" />
-                      Additional Info
+                  {shouldShowTab('employment', client, loans, savings) && (
+                    <TabsTrigger value="employment" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Building className="h-4 w-4 mr-2" />
+                      Employment
+                    </TabsTrigger>
+                  )}
+                  {shouldShowTab('business', client, loans, savings) && (
+                    <TabsTrigger value="business" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Business
                     </TabsTrigger>
                   )}
                   {shouldShowTab('notes', client, loans, savings) && (
@@ -435,8 +421,14 @@ const ClientDetailsPageRefactored = () => {
                 <TabsContent value="next-of-kin" className="mt-0">
                   <ClientNextOfKinTab client={client} />
                 </TabsContent>
-                <TabsContent value="additional-info" className="mt-0">
-                  <ClientAdditionalInfoTab client={client} />
+                <TabsContent value="savings" className="mt-0">
+                  <ClientSavingsTab savings={savings} formatCurrency={formatCurrency} />
+                </TabsContent>
+                <TabsContent value="employment" className="mt-0">
+                  <ClientEmploymentTab client={client} />
+                </TabsContent>
+                <TabsContent value="business" className="mt-0">
+                  <ClientBusinessTab client={client} />
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />
@@ -457,21 +449,6 @@ const ClientDetailsPageRefactored = () => {
         open={showNewSavings}
         onOpenChange={setShowNewSavings}
         clientId={client.id}
-      />
-      <NewShareAccountDialog
-        open={showNewShareAccount}
-        onOpenChange={setShowNewShareAccount}
-        clientId={client.id}
-      />
-      <AddChargeDialog
-        open={showAddCharge}
-        onOpenChange={setShowAddCharge}
-        clientId={client.id}
-      />
-      <TransferClientDialog
-        open={showTransferClient}
-        onOpenChange={setShowTransferClient}
-        client={client}
       />
       {selectedLoanForWorkflow && (
         <LoanWorkflowDialog

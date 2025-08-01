@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, Building, IdCard, CreditCard, PiggyBank } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Phone, Building, IdCard, CreditCard, PiggyBank, Camera, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClientHeaderProps {
   client: {
@@ -31,6 +36,57 @@ export const ClientHeader = ({
   activeSavingsCount,
   formatCurrency 
 }: ClientHeaderProps) => {
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Upload to Supabase storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${client.id}-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('client-documents')
+        .upload(`profile-pictures/${fileName}`, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-documents')
+        .getPublicUrl(`profile-pictures/${fileName}`);
+
+      // Update client profile picture URL
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ profile_picture_url: publicUrl })
+        .eq('id', client.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully",
+      });
+
+      // Refresh the page to show new image
+      window.location.reload();
+
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload profile picture",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
   return (
     <div className="bg-gradient-to-r from-primary to-primary/80 p-8 text-white">
       <div className="flex items-center justify-between">
@@ -113,14 +169,32 @@ export const ClientHeader = ({
           </div>
         </div>
 
-        {/* Right: Avatar */}
-        <div className="flex-shrink-0">
+        {/* Right: Avatar with Upload */}
+        <div className="flex-shrink-0 relative group">
           <Avatar className="h-24 w-24 border-4 border-white/20">
             <AvatarImage src={client.profile_picture_url || ""} />
             <AvatarFallback className="text-2xl bg-white/10 text-white border-2 border-white/20">
               {client.first_name.charAt(0)}{client.last_name.charAt(0)}
             </AvatarFallback>
           </Avatar>
+          
+          {/* Photo Upload Overlay */}
+          <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={uploading}
+            />
+            <Camera className="h-6 w-6 text-white" />
+          </div>
+          
+          {uploading && (
+            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+            </div>
+          )}
         </div>
       </div>
     </div>
