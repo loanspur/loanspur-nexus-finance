@@ -42,6 +42,7 @@ import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
+import { EditClientForm } from "@/components/forms/EditClientForm";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
@@ -476,7 +477,14 @@ const ClientDetailsPageRefactored = () => {
           <DialogHeader>
             <DialogTitle>Edit Client</DialogTitle>
           </DialogHeader>
-          <ClientGeneralTab client={client} />
+          <EditClientForm 
+            client={client} 
+            onSuccess={() => {
+              setShowEditClientModal(false);
+              fetchClientData();
+            }}
+            onCancel={() => setShowEditClientModal(false)}
+          />
         </DialogContent>
       </Dialog>
 
