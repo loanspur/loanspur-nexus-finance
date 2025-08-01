@@ -281,21 +281,21 @@ const ClientDetailsPageRefactored = () => {
           {/* Action Menu Bar */}
           <div className="px-8 py-4 border-t bg-muted/20">
             <div className="flex items-center gap-2 flex-wrap">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => setActiveTab("edit-client")}>
                 <Edit className="h-4 w-4 mr-2" />
-                Edit Client
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
-                <IdCard className="h-4 w-4 mr-2" />
-                Identities
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowDocumentsModal(true)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Documents
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowBankDetailsModal(true)}>
-                <Building className="h-4 w-4 mr-2" />
-                Bank Details
+                 Edit Client
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setActiveTab("identifiers")}>
+                 <IdCard className="h-4 w-4 mr-2" />
+                 Identifiers
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
+                 <FileText className="h-4 w-4 mr-2" />
+                 Documents
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setActiveTab("bank-details")}>
+                 <Building className="h-4 w-4 mr-2" />
+                 Bank Details
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
                 <Building2 className="h-4 w-4 mr-2" />
@@ -347,18 +347,46 @@ const ClientDetailsPageRefactored = () => {
                     <PiggyBank className="h-4 w-4 mr-2" />
                     Savings ({activeSavings.length})
                   </TabsTrigger>
-                  <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                    <StickyNote className="h-4 w-4 mr-2" />
-                    Notes
-                  </TabsTrigger>
+                  <TabsTrigger value="edit-client" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                     <Edit className="h-4 w-4 mr-2" />
+                     Edit Client
+                   </TabsTrigger>
+                   <TabsTrigger value="identifiers" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                     <IdCard className="h-4 w-4 mr-2" />
+                     Identifiers
+                   </TabsTrigger>
+                   <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                     <FileText className="h-4 w-4 mr-2" />
+                     Documents
+                   </TabsTrigger>
+                   <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                     <Building className="h-4 w-4 mr-2" />
+                     Bank Details
+                   </TabsTrigger>
+                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                     <StickyNote className="h-4 w-4 mr-2" />
+                     Notes
+                   </TabsTrigger>
                 </div>
               </TabsList>
               
               {/* Tab Content */}
               <div className="mt-6">
                 <TabsContent value="general" className="mt-0">
-                  <ClientGeneralTab client={client} />
-                </TabsContent>
+                   <ClientGeneralTab client={client} />
+                 </TabsContent>
+                 <TabsContent value="edit-client" className="mt-0">
+                   <ClientGeneralTab client={client} />
+                 </TabsContent>
+                 <TabsContent value="identifiers" className="mt-0">
+                   <ClientIdentitiesTab clientId={client.id} />
+                 </TabsContent>
+                 <TabsContent value="documents" className="mt-0">
+                   <ClientDocumentsTab clientId={client.id} />
+                 </TabsContent>
+                 <TabsContent value="bank-details" className="mt-0">
+                   <ClientBankDetailsTab client={client} />
+                 </TabsContent>
                 <TabsContent value="loans" className="mt-0">
                   <ClientLoansTab
                     loans={loans}
@@ -379,15 +407,6 @@ const ClientDetailsPageRefactored = () => {
                     }}
                     formatCurrency={formatCurrency}
                   />
-                </TabsContent>
-                <TabsContent value="identities" className="mt-0">
-                  <ClientIdentitiesTab clientId={client.id} />
-                </TabsContent>
-                <TabsContent value="documents" className="mt-0">
-                  <ClientDocumentsTab clientId={client.id} />
-                </TabsContent>
-                <TabsContent value="bank-details" className="mt-0">
-                  <ClientBankDetailsTab client={client} />
                 </TabsContent>
                 <TabsContent value="next-of-kin" className="mt-0">
                   <ClientNextOfKinTab client={client} />
