@@ -282,10 +282,6 @@ const ClientDetailsPageRefactored = () => {
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Client
               </Button>
-              <Button variant="outline" size="sm">
-                <UserMinus className="h-4 w-4 mr-2" />
-                Close Client
-              </Button>
               <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
                 <IdCard className="h-4 w-4 mr-2" />
                 Identities
@@ -321,6 +317,10 @@ const ClientDetailsPageRefactored = () => {
               <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
                 <Phone className="h-4 w-4 mr-2" />
                 Next of Kin
+              </Button>
+              <Button variant="outline" size="sm">
+                <UserMinus className="h-4 w-4 mr-2" />
+                Close Client
               </Button>
             </div>
           </div>
