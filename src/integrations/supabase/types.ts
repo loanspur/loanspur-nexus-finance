@@ -1038,14 +1038,18 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          description: string | null
           document_name: string
           document_type: string
+          expiry_date: string | null
           file_size: number | null
           file_url: string
           id: string
+          is_required: boolean
           is_verified: boolean
           mime_type: string | null
           tenant_id: string
+          updated_at: string
           uploaded_by: string | null
           verified_at: string | null
           verified_by: string | null
@@ -1053,14 +1057,18 @@ export type Database = {
         Insert: {
           client_id: string
           created_at?: string
+          description?: string | null
           document_name: string
           document_type: string
+          expiry_date?: string | null
           file_size?: number | null
           file_url: string
           id?: string
+          is_required?: boolean
           is_verified?: boolean
           mime_type?: string | null
           tenant_id: string
+          updated_at?: string
           uploaded_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
@@ -1068,14 +1076,18 @@ export type Database = {
         Update: {
           client_id?: string
           created_at?: string
+          description?: string | null
           document_name?: string
           document_type?: string
+          expiry_date?: string | null
           file_size?: number | null
           file_url?: string
           id?: string
+          is_required?: boolean
           is_verified?: boolean
           mime_type?: string | null
           tenant_id?: string
+          updated_at?: string
           uploaded_by?: string | null
           verified_at?: string | null
           verified_by?: string | null
