@@ -101,7 +101,8 @@ const ClientDetailsPageRefactored = () => {
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
   
-  // Modal states for moved tabs
+  // Modal states for all tabs
+  const [showEditClientModal, setShowEditClientModal] = useState(false);
   const [showIdentitiesModal, setShowIdentitiesModal] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
@@ -111,6 +112,7 @@ const ClientDetailsPageRefactored = () => {
   const [showLoanOfficerModal, setShowLoanOfficerModal] = useState(false);
   const [showGroupsModal, setShowGroupsModal] = useState(false);
   const [showNextOfKinModal, setShowNextOfKinModal] = useState(false);
+  const [showCloseClientModal, setShowCloseClientModal] = useState(false);
   
   // Workflow states
   const [showLoanWorkflowModal, setShowLoanWorkflowModal] = useState(false);
@@ -281,50 +283,50 @@ const ClientDetailsPageRefactored = () => {
           {/* Action Menu Bar */}
           <div className="px-8 py-4 border-t bg-muted/20">
             <div className="flex items-center gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setActiveTab("edit-client")}>
+              <Button variant="outline" size="sm" onClick={() => setShowEditClientModal(true)}>
                 <Edit className="h-4 w-4 mr-2" />
-                 Edit Client
+                Edit Client
                </Button>
-               <Button variant="outline" size="sm" onClick={() => setActiveTab("identifiers")}>
+               <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
                  <IdCard className="h-4 w-4 mr-2" />
                  Identifiers
                </Button>
-               <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
+               <Button variant="outline" size="sm" onClick={() => setShowDocumentsModal(true)}>
                  <FileText className="h-4 w-4 mr-2" />
                  Documents
                </Button>
-               <Button variant="outline" size="sm" onClick={() => setActiveTab("bank-details")}>
+               <Button variant="outline" size="sm" onClick={() => setShowBankDetailsModal(true)}>
                  <Building className="h-4 w-4 mr-2" />
                  Bank Details
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
-                <Building2 className="h-4 w-4 mr-2" />
-                Employment
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowBusinessModal(true)}>
-                <Building2 className="h-4 w-4 mr-2" />
-                Business
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
-                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                Transfer
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowLoanOfficerModal(true)}>
-                <Users className="h-4 w-4 mr-2" />
-                Loan Officer
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowGroupsModal(true)}>
-                <Users className="h-4 w-4 mr-2" />
-                Groups
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
-                <Phone className="h-4 w-4 mr-2" />
-                Next of Kin
-              </Button>
-              <Button variant="outline" size="sm">
-                <UserMinus className="h-4 w-4 mr-2" />
-                Close Client
-              </Button>
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
+                 <Building2 className="h-4 w-4 mr-2" />
+                 Employment
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowBusinessModal(true)}>
+                 <Building2 className="h-4 w-4 mr-2" />
+                 Business
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
+                 <ArrowRightLeft className="h-4 w-4 mr-2" />
+                 Transfer
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowLoanOfficerModal(true)}>
+                 <Users className="h-4 w-4 mr-2" />
+                 Loan Officer
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowGroupsModal(true)}>
+                 <Users className="h-4 w-4 mr-2" />
+                 Groups
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
+                 <Phone className="h-4 w-4 mr-2" />
+                 Next of Kin
+               </Button>
+               <Button variant="outline" size="sm" onClick={() => setShowCloseClientModal(true)}>
+                 <UserMinus className="h-4 w-4 mr-2" />
+                 Close Client
+               </Button>
             </div>
           </div>
         </div>
@@ -347,46 +349,18 @@ const ClientDetailsPageRefactored = () => {
                     <PiggyBank className="h-4 w-4 mr-2" />
                     Savings ({activeSavings.length})
                   </TabsTrigger>
-                  <TabsTrigger value="edit-client" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                     <Edit className="h-4 w-4 mr-2" />
-                     Edit Client
-                   </TabsTrigger>
-                   <TabsTrigger value="identifiers" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                     <IdCard className="h-4 w-4 mr-2" />
-                     Identifiers
-                   </TabsTrigger>
-                   <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                     <FileText className="h-4 w-4 mr-2" />
-                     Documents
-                   </TabsTrigger>
-                   <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                     <Building className="h-4 w-4 mr-2" />
-                     Bank Details
-                   </TabsTrigger>
-                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                     <StickyNote className="h-4 w-4 mr-2" />
-                     Notes
-                   </TabsTrigger>
+                  <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    Notes
+                  </TabsTrigger>
                 </div>
               </TabsList>
               
               {/* Tab Content */}
               <div className="mt-6">
                 <TabsContent value="general" className="mt-0">
-                   <ClientGeneralTab client={client} />
-                 </TabsContent>
-                 <TabsContent value="edit-client" className="mt-0">
-                   <ClientGeneralTab client={client} />
-                 </TabsContent>
-                 <TabsContent value="identifiers" className="mt-0">
-                   <ClientIdentitiesTab clientId={client.id} />
-                 </TabsContent>
-                 <TabsContent value="documents" className="mt-0">
-                   <ClientDocumentsTab clientId={client.id} />
-                 </TabsContent>
-                 <TabsContent value="bank-details" className="mt-0">
-                   <ClientBankDetailsTab client={client} />
-                 </TabsContent>
+                  <ClientGeneralTab client={client} />
+                </TabsContent>
                 <TabsContent value="loans" className="mt-0">
                   <ClientLoansTab
                     loans={loans}
@@ -496,11 +470,20 @@ const ClientDetailsPageRefactored = () => {
       />
       )}
 
-      {/* Modal Dialogs for moved tabs */}
+      {/* Modal Dialogs for all tabs */}
+      <Dialog open={showEditClientModal} onOpenChange={setShowEditClientModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Client</DialogTitle>
+          </DialogHeader>
+          <ClientGeneralTab client={client} />
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showIdentitiesModal} onOpenChange={setShowIdentitiesModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Client Identities</DialogTitle>
+            <DialogTitle>Client Identifiers</DialogTitle>
           </DialogHeader>
           <ClientIdentitiesTab clientId={client.id} />
         </DialogContent>
@@ -575,6 +558,25 @@ const ClientDetailsPageRefactored = () => {
             <DialogTitle>Next of Kin</DialogTitle>
           </DialogHeader>
           <ClientNextOfKinTab client={client} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCloseClientModal} onOpenChange={setShowCloseClientModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Close Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Are you sure you want to close this client account? This action will deactivate the client and prevent further transactions.</p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowCloseClientModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive">
+                Close Client
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
