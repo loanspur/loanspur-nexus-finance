@@ -6,7 +6,8 @@ services:
     repo: your-username/your-repo-name
     branch: main
     deploy_on_push: true
-  run_command: npm start
+  build_command: npm run build
+  run_command: npm run preview
   environment_slug: node-js
   instance_count: 1
   instance_size_slug: basic-xxs
@@ -29,7 +30,6 @@ domains:
 - domain: yourdomain.com
   type: PRIMARY
   wildcard: true
-  certificate_id: your-wildcard-cert-id
 
 alerts:
 - rule: DEPLOYMENT_FAILED
