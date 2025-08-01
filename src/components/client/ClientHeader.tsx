@@ -143,35 +143,35 @@ export const ClientHeader = ({
                 </div>
               )}
             </div>
-            {/* Financial Summary Cards */}
-            <div className="grid grid-cols-1 gap-3">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-white" />
-                    <span className="text-white font-medium">Active Loans</span>
-                  </div>
-                  <span className="text-2xl font-bold text-white">{activeLoansCount}</span>
+            {/* Financial Summary - Horizontal Cards */}
+            <div className="flex gap-6">
+              <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
+                <div className="bg-white/10 p-2 rounded-full">
+                  <CreditCard className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-white/70 text-xs uppercase tracking-wide">Active Loans</div>
+                  <div className="text-white font-semibold text-lg">{activeLoansCount}</div>
                 </div>
               </div>
               
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <PiggyBank className="h-5 w-5 text-white" />
-                    <span className="text-white font-medium">Total Savings</span>
-                  </div>
-                  <span className="text-lg font-bold text-white">{formatCurrency(savingsBalance)}</span>
+              <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
+                <div className="bg-white/10 p-2 rounded-full">
+                  <PiggyBank className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-white/70 text-xs uppercase tracking-wide">Total Savings</div>
+                  <div className="text-white font-semibold text-lg">{formatCurrency(savingsBalance)}</div>
                 </div>
               </div>
               
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Building className="h-5 w-5 text-white" />
-                    <span className="text-white font-medium">Savings Accounts</span>
-                  </div>
-                  <span className="text-2xl font-bold text-white">{activeSavingsCount}</span>
+              <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
+                <div className="bg-white/10 p-2 rounded-full">
+                  <Building className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-white/70 text-xs uppercase tracking-wide">Savings Accounts</div>
+                  <div className="text-white font-semibold text-lg">{activeSavingsCount}</div>
                 </div>
               </div>
             </div>
