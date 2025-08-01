@@ -23,17 +23,15 @@ interface ClientHeaderProps {
     mifos_client_id?: number | null;
     gender?: string | null;
   };
-  activeLoansCount: number;
+  loanBalance: number;
   savingsBalance: number;
-  activeSavingsCount: number;
   formatCurrency: (amount: number) => string;
 }
 
 export const ClientHeader = ({ 
   client, 
-  activeLoansCount, 
+  loanBalance, 
   savingsBalance, 
-  activeSavingsCount,
   formatCurrency 
 }: ClientHeaderProps) => {
   const [uploading, setUploading] = useState(false);
@@ -146,15 +144,11 @@ export const ClientHeader = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-white/90 text-sm">
                 <CreditCard className="h-4 w-4" />
-                <span>{activeLoansCount} Active Loans</span>
+                <span>{formatCurrency(loanBalance)} Total Loan Balance</span>
               </div>
               <div className="flex items-center gap-2 text-white/90 text-sm">
                 <PiggyBank className="h-4 w-4" />
-                <span>{formatCurrency(savingsBalance)} Total Savings</span>
-              </div>
-              <div className="flex items-center gap-2 text-white/90 text-sm">
-                <Building className="h-4 w-4" />
-                <span>{activeSavingsCount} Savings Accounts</span>
+                <span>{formatCurrency(savingsBalance)} Total Savings Balance</span>
               </div>
             </div>
           </div>

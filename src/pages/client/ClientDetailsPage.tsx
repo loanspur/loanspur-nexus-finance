@@ -229,6 +229,10 @@ const ClientDetailsPageRefactored = () => {
     return savings.reduce((sum, account) => sum + (account.account_balance || 0), 0);
   };
 
+  const calculateLoanBalances = () => {
+    return loans.reduce((sum, loan) => sum + (loan.principal_amount || 0), 0);
+  };
+
   const activeLoans = loans.filter(loan => {
     const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
     return !closedStatuses.includes(loan.status?.toLowerCase());
@@ -269,9 +273,8 @@ const ClientDetailsPageRefactored = () => {
         <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
           <ClientHeader 
             client={client}
-            activeLoansCount={activeLoans.length}
+            loanBalance={calculateLoanBalances()}
             savingsBalance={calculateSavingsBalance()}
-            activeSavingsCount={activeSavings.length}
             formatCurrency={formatCurrency}
           />
 
