@@ -143,36 +143,18 @@ export const ClientHeader = ({
                 </div>
               )}
             </div>
-            {/* Financial Summary - Horizontal Cards */}
-            <div className="flex flex-wrap gap-4 max-w-3xl">
-              <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
-                <div className="bg-white/10 p-2 rounded-full">
-                  <CreditCard className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-white/70 text-xs uppercase tracking-wide">Active Loans</div>
-                  <div className="text-white font-semibold text-lg">{activeLoansCount}</div>
-                </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <CreditCard className="h-4 w-4" />
+                <span>{activeLoansCount} Active Loans</span>
               </div>
-              
-              <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
-                <div className="bg-white/10 p-2 rounded-full">
-                  <PiggyBank className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-white/70 text-xs uppercase tracking-wide">Total Savings</div>
-                  <div className="text-white font-semibold text-lg">{formatCurrency(savingsBalance)}</div>
-                </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <PiggyBank className="h-4 w-4" />
+                <span>{formatCurrency(savingsBalance)} Total Savings</span>
               </div>
-              
-              <div className="flex items-center gap-3 bg-white/5 rounded-lg px-4 py-2 border border-white/10">
-                <div className="bg-white/10 p-2 rounded-full">
-                  <Building className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-white/70 text-xs uppercase tracking-wide">Savings Accounts</div>
-                  <div className="text-white font-semibold text-lg">{activeSavingsCount}</div>
-                </div>
+              <div className="flex items-center gap-2 text-white/90 text-sm">
+                <Building className="h-4 w-4" />
+                <span>{activeSavingsCount} Savings Accounts</span>
               </div>
             </div>
           </div>
