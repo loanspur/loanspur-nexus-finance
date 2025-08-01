@@ -290,15 +290,77 @@ const ClientDetailsPageRefactored = () => {
           {/* Action Menu Bar */}
           <div className="px-8 py-4 border-t bg-muted/20">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Button variant="outline" size="sm" onClick={() => setShowNewLoan(true)}>
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  New Loan
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowNewSavings(true)}>
-                  <PiggyBank className="h-4 w-4 mr-2" />
-                  New Savings
-                </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {shouldShowTab('identities', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'identities' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('identities')}
+                  >
+                    <IdCard className="h-4 w-4 mr-2" />
+                    Identity
+                  </Button>
+                )}
+                {shouldShowTab('documents', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'documents' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('documents')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Documents
+                  </Button>
+                )}
+                {shouldShowTab('transfer', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'transfer' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('transfer')}
+                  >
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Transfer
+                  </Button>
+                )}
+                {shouldShowTab('bank-details', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'bank-details' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('bank-details')}
+                  >
+                    <Building className="h-4 w-4 mr-2" />
+                    Bank Details
+                  </Button>
+                )}
+                {shouldShowTab('employment', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'employment' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('employment')}
+                  >
+                    <Building className="h-4 w-4 mr-2" />
+                    Employment
+                  </Button>
+                )}
+                {shouldShowTab('business', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'business' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('business')}
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Business
+                  </Button>
+                )}
+                {shouldShowTab('loan-officer', client, loans, savings) && (
+                  <Button 
+                    variant={activeTab === 'loan-officer' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setActiveTab('loan-officer')}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Loan Officer
+                  </Button>
+                )}
               </div>
               
               <div className="flex items-center gap-3">
