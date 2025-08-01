@@ -101,17 +101,6 @@ const ClientDetailsPageRefactored = () => {
   const [showClosedLoans, setShowClosedLoans] = useState(false);
   const [showClosedSavings, setShowClosedSavings] = useState(false);
   
-  // Modal states for moved tabs
-  const [showIdentitiesModal, setShowIdentitiesModal] = useState(false);
-  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
-  const [showEmploymentModal, setShowEmploymentModal] = useState(false);
-  const [showBusinessModal, setShowBusinessModal] = useState(false);
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [showLoanOfficerModal, setShowLoanOfficerModal] = useState(false);
-  const [showGroupsModal, setShowGroupsModal] = useState(false);
-  const [showNextOfKinModal, setShowNextOfKinModal] = useState(false);
-  
   // Workflow states
   const [showLoanWorkflowModal, setShowLoanWorkflowModal] = useState(false);
   const [showDisbursementModal, setShowDisbursementModal] = useState(false);
@@ -278,48 +267,12 @@ const ClientDetailsPageRefactored = () => {
             formatCurrency={formatCurrency}
           />
 
-          {/* Action Menu Bar */}
+          {/* Action Menu Bar - Simplified */}
           <div className="px-8 py-4 border-t bg-muted/20">
             <div className="flex items-center gap-2 flex-wrap">
               <Button variant="outline" size="sm">
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Client
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowIdentitiesModal(true)}>
-                <IdCard className="h-4 w-4 mr-2" />
-                Identities
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowDocumentsModal(true)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Documents
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowBankDetailsModal(true)}>
-                <Building className="h-4 w-4 mr-2" />
-                Bank Details
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowEmploymentModal(true)}>
-                <Building2 className="h-4 w-4 mr-2" />
-                Employment
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowBusinessModal(true)}>
-                <Building2 className="h-4 w-4 mr-2" />
-                Business
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowTransferModal(true)}>
-                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                Transfer
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowLoanOfficerModal(true)}>
-                <Users className="h-4 w-4 mr-2" />
-                Loan Officer
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowGroupsModal(true)}>
-                <Users className="h-4 w-4 mr-2" />
-                Groups
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowNextOfKinModal(true)}>
-                <Phone className="h-4 w-4 mr-2" />
-                Next of Kin
               </Button>
               <Button variant="outline" size="sm">
                 <UserMinus className="h-4 w-4 mr-2" />
@@ -339,6 +292,26 @@ const ClientDetailsPageRefactored = () => {
                     <Info className="h-4 w-4 mr-2" />
                     General
                   </TabsTrigger>
+                  <TabsTrigger value="identities" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <IdCard className="h-4 w-4 mr-2" />
+                    Identities
+                  </TabsTrigger>
+                  <TabsTrigger value="documents" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Documents
+                  </TabsTrigger>
+                  <TabsTrigger value="bank-details" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Building className="h-4 w-4 mr-2" />
+                    Bank Details
+                  </TabsTrigger>
+                  <TabsTrigger value="employment" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Employment
+                  </TabsTrigger>
+                  <TabsTrigger value="business" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Business
+                  </TabsTrigger>
                   <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <CreditCard className="h-4 w-4 mr-2" />
                     Loans ({loans.length + loanApplications.length})
@@ -346,6 +319,22 @@ const ClientDetailsPageRefactored = () => {
                   <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <PiggyBank className="h-4 w-4 mr-2" />
                     Savings ({activeSavings.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="groups" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Users className="h-4 w-4 mr-2" />
+                    Groups
+                  </TabsTrigger>
+                  <TabsTrigger value="loan-officer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Users className="h-4 w-4 mr-2" />
+                    Loan Officer
+                  </TabsTrigger>
+                  <TabsTrigger value="next-of-kin" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Next of Kin
+                  </TabsTrigger>
+                  <TabsTrigger value="transfer" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Transfer
                   </TabsTrigger>
                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <StickyNote className="h-4 w-4 mr-2" />
@@ -476,88 +465,6 @@ const ClientDetailsPageRefactored = () => {
         }}
       />
       )}
-
-      {/* Modal Dialogs for moved tabs */}
-      <Dialog open={showIdentitiesModal} onOpenChange={setShowIdentitiesModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Client Identities</DialogTitle>
-          </DialogHeader>
-          <ClientIdentitiesTab clientId={client.id} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Client Documents</DialogTitle>
-          </DialogHeader>
-          <ClientDocumentsTab clientId={client.id} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showBankDetailsModal} onOpenChange={setShowBankDetailsModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bank Details</DialogTitle>
-          </DialogHeader>
-          <ClientBankDetailsTab client={client} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showEmploymentModal} onOpenChange={setShowEmploymentModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Employment Information</DialogTitle>
-          </DialogHeader>
-          <ClientEmploymentTab client={client} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showBusinessModal} onOpenChange={setShowBusinessModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Business Information</DialogTitle>
-          </DialogHeader>
-          <ClientBusinessTab client={client} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Client Transfer</DialogTitle>
-          </DialogHeader>
-          <ClientTransferTab client={client} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showLoanOfficerModal} onOpenChange={setShowLoanOfficerModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Loan Officer</DialogTitle>
-          </DialogHeader>
-          <ClientLoanOfficerTab client={client} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showGroupsModal} onOpenChange={setShowGroupsModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Client Groups</DialogTitle>
-          </DialogHeader>
-          <ClientGroupsTab client={client} />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showNextOfKinModal} onOpenChange={setShowNextOfKinModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Next of Kin</DialogTitle>
-          </DialogHeader>
-          <ClientNextOfKinTab client={client} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
