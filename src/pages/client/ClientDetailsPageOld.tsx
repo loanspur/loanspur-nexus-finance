@@ -54,9 +54,7 @@ import { ClientNextOfKinTab } from "@/components/client/tabs/ClientNextOfKinTab"
 import { ClientNotesTab } from "@/components/client/tabs/ClientNotesTab";
 import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
 import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
-import { NewShareAccountDialog } from "@/components/client/dialogs/NewShareAccountDialog";
-import { AddChargeDialog } from "@/components/client/dialogs/AddChargeDialog";
-import { TransferClientDialog } from "@/components/client/dialogs/TransferClientDialog";
+// Removed unused dialog imports
 import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
 import { ClientHeader } from "@/components/client/ClientHeader";
@@ -824,21 +822,7 @@ const ClientDetailsPage = () => {
         onOpenChange={setShowNewSavings}
         clientId={client.id}
       />
-      <NewShareAccountDialog
-        open={showNewShareAccount}
-        onOpenChange={setShowNewShareAccount}
-        clientId={client.id}
-      />
-      <AddChargeDialog
-        open={showAddCharge}
-        onOpenChange={setShowAddCharge}
-        clientId={client.id}
-      />
-      <TransferClientDialog
-        open={showTransferClient}
-        onOpenChange={setShowTransferClient}
-        client={client}
-      />
+      {/* Removed unused dialogs */}
 
       {/* Loan Workflow Dialog */}
       {selectedLoanForWorkflow && (
