@@ -49,12 +49,9 @@ const TenantNotFoundPage = () => {
         <p className="text-muted-foreground mb-6">
           The organization you're looking for doesn't exist or is not available.
         </p>
-        <a 
-          href="https://loanspurcbs.com" 
-          className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Go to Main Site
-        </a>
+        <p className="text-sm text-muted-foreground">
+          Please contact your administrator for access.
+        </p>
       </div>
     </div>
   );

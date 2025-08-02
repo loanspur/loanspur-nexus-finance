@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Home } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -142,16 +142,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8 relative">
-          <Button
-            variant="outline"
-            size="sm"
-            className="absolute top-0 right-0"
-            onClick={() => navigate('/')}
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-banking-primary mb-2">LoanSpur CBS</h1>
           <p className="text-muted-foreground">Core Banking System</p>
         </div>
@@ -265,164 +256,6 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
           </CardContent>
         </Card>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            New to LoanSpur? 
-            <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
-              <DialogTrigger asChild>
-                <Button variant="link" className="pl-1 h-auto">
-                  Create an account
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create Account</DialogTitle>
-                  <DialogDescription>
-                    Create your LoanSpur account to get started.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...signUpForm}>
-                  <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={signUpForm.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="John" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={signUpForm.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Doe" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={signUpForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="john@example.com" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signUpForm.control}
-                      name="password"
-                      render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type={showSignUpPassword ? "text" : "password"} 
-                            placeholder="Enter password" 
-                            {...field} 
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowSignUpPassword(!showSignUpPassword)}
-                          >
-                            {showSignUpPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signUpForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type={showConfirmPassword ? "text" : "password"} 
-                            placeholder="Confirm password" 
-                            {...field} 
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                     </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={signUpForm.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Role</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select your role" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="client">Client</SelectItem>
-                              <SelectItem value="loan_officer">MFI User</SelectItem>
-                              <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button 
-                      className="w-full" 
-                      type="submit" 
-                      disabled={signUpForm.formState.isSubmitting}
-                    >
-                      {signUpForm.formState.isSubmitting ? "Creating Account..." : "Create Account"}
-                    </Button>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </p>
-        </div>
       </div>
     </div>
   );
