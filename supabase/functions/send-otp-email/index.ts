@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
-const MAILGUN_API_KEY = Deno.env.get("MAILGUN_API_KEY");
-const MAILGUN_DOMAIN = Deno.env.get("MAILGUN_DOMAIN");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const RESEND_EMAIL_FROM = Deno.env.get("RESEND_EMAIL_FROM");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +26,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!email) {
       throw new Error("Email is required");
+    }
+
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY environment variable is not set");
+    }
+
+    if (!RESEND_EMAIL_FROM) {
+      throw new Error("RESEND_EMAIL_FROM environment variable is not set");
     }
 
     // Generate 6-digit OTP
@@ -55,7 +64,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to store OTP");
     }
 
-    // Send email with OTP using Mailgun
+    // Initialize Resend
+    const resend = new Resend(RESEND_API_KEY);
+
+    // Send email with OTP using Resend
     const subject = type === 'registration' 
       ? `Verify your email for ${tenantName || 'LoanSpur'} registration`
       : 'Email verification code';
@@ -91,32 +103,20 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Prepare Mailgun form data
-    const formData = new FormData();
-    formData.append('from', `LoanSpur <noreply@${MAILGUN_DOMAIN}>`);
-    formData.append('to', email);
-    formData.append('subject', subject);
-    formData.append('html', htmlContent);
+    // Send email via Resend
+    const emailResponse = await resend.emails.send({
+      from: `LoanSpur <${RESEND_EMAIL_FROM}>`,
+      to: [email],
+      subject: subject,
+      html: htmlContent,
+    });
 
-    // Send email via Mailgun API
-    const mailgunResponse = await fetch(
-      `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${btoa(`api:${MAILGUN_API_KEY}`)}`
-        },
-        body: formData
-      }
-    );
-
-    if (!mailgunResponse.ok) {
-      const error = await mailgunResponse.text();
-      console.error("Mailgun error:", error);
-      throw new Error("Failed to send email via Mailgun");
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      throw new Error(`Failed to send email via Resend: ${emailResponse.error.message}`);
     }
 
-    console.log("Email sent successfully via Mailgun");
+    console.log("Email sent successfully via Resend:", emailResponse.data);
 
     return new Response(
       JSON.stringify({ 

@@ -172,14 +172,14 @@ export const useCreateEmailTemplate = () => {
   });
 };
 
-export const useTestEmailConfiguration = () => {
+// Simple test email function using Resend
+export const useSendTestEmail = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ configId, testEmail }: { configId: string; testEmail: string }) => {
-      // This would call an edge function to test the email configuration
-      const { data, error } = await supabase.functions.invoke('test-email-config', {
-        body: { configId, testEmail }
+    mutationFn: async ({ testEmail, fromName }: { testEmail: string; fromName?: string }) => {
+      const { data, error } = await supabase.functions.invoke('send-test-email', {
+        body: { testEmail, fromName }
       });
       
       if (error) throw error;

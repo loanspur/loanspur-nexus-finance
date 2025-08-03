@@ -26,7 +26,7 @@ import { Mail, Send, Settings, TestTube } from 'lucide-react';
 import {
   useCreateEmailConfiguration,
   useUpdateEmailConfiguration,
-  useTestEmailConfiguration,
+  useSendTestEmail,
   type EmailConfiguration,
 } from '@/hooks/useEmailManagement';
 
@@ -64,7 +64,7 @@ export const EmailConfigurationDialog = ({
   
   const createEmailConfig = useCreateEmailConfiguration();
   const updateEmailConfig = useUpdateEmailConfiguration();
-  const testEmailConfig = useTestEmailConfiguration();
+  const sendTestEmail = useSendTestEmail();
 
   const form = useForm<EmailConfigFormData>({
     resolver: zodResolver(emailConfigSchema),
@@ -116,11 +116,11 @@ export const EmailConfigurationDialog = ({
   };
 
   const handleTestEmail = async () => {
-    if (!configuration || !testEmail) return;
+    if (!testEmail) return;
     
-    await testEmailConfig.mutateAsync({
-      configId: configuration.id,
+    await sendTestEmail.mutateAsync({
       testEmail,
+      fromName: form.watch('from_name') || 'LoanSpur',
     });
   };
 
@@ -140,7 +140,7 @@ export const EmailConfigurationDialog = ({
               <Settings className="h-4 w-4" />
               Configuration
             </TabsTrigger>
-            <TabsTrigger value="test" disabled={!configuration} className="flex items-center gap-2">
+            <TabsTrigger value="test" className="flex items-center gap-2">
               <TestTube className="h-4 w-4" />
               Test
             </TabsTrigger>
@@ -303,7 +303,7 @@ export const EmailConfigurationDialog = ({
                   Test Email Configuration
                 </CardTitle>
                 <CardDescription>
-                  Send a test email to verify your configuration is working correctly
+                  Send a test email using the current Resend configuration
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -318,7 +318,7 @@ export const EmailConfigurationDialog = ({
                 </div>
                 <Button 
                   onClick={handleTestEmail}
-                  disabled={!testEmail || testEmailConfig.isPending}
+                  disabled={!testEmail || sendTestEmail.isPending}
                   className="w-full"
                 >
                   <Send className="h-4 w-4 mr-2" />
