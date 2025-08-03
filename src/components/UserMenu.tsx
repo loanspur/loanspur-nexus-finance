@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { LogOut, User, Settings, RefreshCw } from 'lucide-react';
+import { LogOut, User, Settings, RefreshCw, Building2 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ChatButton } from '@/components/chat/ChatButton';
+import { PersonalProfileDialog } from '@/components/profile/PersonalProfileDialog';
+import { BusinessSettingsDialog } from '@/components/profile/BusinessSettingsDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +23,8 @@ export const UserMenu = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showBusinessDialog, setShowBusinessDialog] = useState(false);
 
   if (!user || !profile) {
     return null;
@@ -116,13 +120,13 @@ export const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setShowProfileDialog(true)}>
           <User className="mr-2 h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          User Settings
+        <DropdownMenuItem onClick={() => setShowBusinessDialog(true)}>
+          <Building2 className="mr-2 h-4 w-4" />
+          Business Settings
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={handleRefreshProfile}
@@ -141,6 +145,16 @@ export const UserMenu = () => {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    
+    <PersonalProfileDialog 
+      open={showProfileDialog} 
+      onOpenChange={setShowProfileDialog} 
+    />
+    
+    <BusinessSettingsDialog 
+      open={showBusinessDialog} 
+      onOpenChange={setShowBusinessDialog} 
+    />
     </div>
   );
 };

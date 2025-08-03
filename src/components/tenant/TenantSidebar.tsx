@@ -127,7 +127,7 @@ const TenantSidebar = () => {
           icon: Bell
         },
         {
-          title: "Settings",
+          title: "System Settings",
           path: "/tenant/settings",
           icon: Settings
         }
