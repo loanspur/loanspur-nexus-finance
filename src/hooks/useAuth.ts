@@ -30,6 +30,7 @@ export interface AuthContextType extends AuthState {
   signUp: (email: string, password: string, userData?: Partial<Profile>) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
   isRole: (role: UserRole) => boolean;
   hasRole: (roles: UserRole[]) => boolean;
 }
@@ -197,6 +198,66 @@ export const useAuthState = () => {
     setState({ user: null, session: null, profile: null, loading: false });
   };
 
+  const refreshProfile = async () => {
+    if (!state.user) return;
+    
+    setState(prev => ({ ...prev, loading: true }));
+    try {
+      // Check if current user is super admin and has dev profile set
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', state.user.id)
+        .single();
+      
+      const devProfile = localStorage.getItem('dev_target_profile');
+      if (devProfile && currentProfile?.role === 'super_admin') {
+        try {
+          const parsedDevProfile = JSON.parse(devProfile);
+          // Fetch the full profile for the development user
+          const { data: fullProfile, error: devError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', parsedDevProfile.profile_id)
+            .single();
+          
+          if (!devError && fullProfile) {
+            setState(prev => ({ ...prev, profile: fullProfile, loading: false }));
+            return;
+          }
+        } catch (e) {
+          console.error('Error loading dev profile:', e);
+          localStorage.removeItem('dev_target_profile');
+        }
+      } else if (devProfile && currentProfile?.role !== 'super_admin') {
+        // Remove dev profile data if not super admin
+        localStorage.removeItem('dev_target_profile');
+      }
+      
+      // Normal profile loading - only get active profiles
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', state.user.id)
+        .eq('is_active', true)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Profile Error",
+          description: "Could not load user profile",
+          variant: "destructive",
+        });
+      } else {
+        setState(prev => ({ ...prev, profile, loading: false }));
+      }
+    } catch (error) {
+      console.error('Profile fetch error:', error);
+      setState(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   const resetPassword = async (email: string) => {
     const redirectUrl = `${window.location.origin}/auth`;
     
@@ -234,6 +295,7 @@ export const useAuthState = () => {
     signUp,
     signOut,
     resetPassword,
+    refreshProfile,
     isRole,
     hasRole,
   };

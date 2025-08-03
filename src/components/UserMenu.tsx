@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, RefreshCw } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ChatButton } from '@/components/chat/ChatButton';
 import {
@@ -17,9 +17,10 @@ import { useToast } from '@/hooks/use-toast';
 
 
 export const UserMenu = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   if (!user || !profile) {
     return null;
@@ -41,6 +42,25 @@ export const UserMenu = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRefreshProfile = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshProfile();
+      toast({
+        title: "Profile Refreshed",
+        description: "Your profile information has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -103,6 +123,13 @@ export const UserMenu = () => {
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />
           Settings
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={handleRefreshProfile}
+          disabled={isRefreshing}
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh Profile'}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
