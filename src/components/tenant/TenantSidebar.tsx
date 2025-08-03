@@ -74,41 +74,6 @@ const TenantSidebar = () => {
       ]
     },
     {
-      label: "System Configuration",
-      items: [
-        {
-          title: "User Management",
-          path: "/tenant/user-management",
-          icon: Users
-        },
-        {
-          title: "Roles & Permissions",
-          path: "/tenant/roles-permissions",
-          icon: Shield
-        },
-        {
-          title: "Office Management",
-          path: "/tenant/office-management",
-          icon: Building2
-        },
-        {
-          title: "Funds Management",
-          path: "/tenant/funds-management",
-          icon: PiggyBank
-        },
-        {
-          title: "Product & Fee Management",
-          path: "/tenant/product-fee-management",
-          icon: TrendingUp
-        },
-        {
-          title: "Accounting",
-          path: "/tenant/accounting",
-          icon: Calculator
-        }
-      ]
-    },
-    {
       label: "Management",
       items: [
         {
