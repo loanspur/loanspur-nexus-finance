@@ -105,12 +105,7 @@ const TenantSidebar = () => {
           title: "Accounting",
           path: "/tenant/accounting",
           icon: Calculator
-        }
-      ]
-    },
-    {
-      label: "Management",
-      items: [
+        },
         {
           title: "Audit Trail",
           path: "/tenant/audit-trail",
