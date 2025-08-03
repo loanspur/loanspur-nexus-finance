@@ -65,6 +65,15 @@ const TenantNotFoundPage = () => {
 export const TenantRouter = () => {
   const { currentTenant, loading, error, isSubdomainTenant } = useTenant();
 
+  // Debug logging
+  console.log('TenantRouter - Debug Info:', {
+    currentTenant,
+    loading,
+    error,
+    isSubdomainTenant,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'undefined'
+  });
+
   // Show loading state
   if (loading) {
     return (
@@ -106,13 +115,7 @@ export const TenantRouter = () => {
           } 
         />
         
-        {/* Default redirect based on user role */}
-        <Route 
-          path="/dashboard" 
-          element={<Navigate to="/tenant" replace />} 
-        />
-        
-        {/* Catch all - redirect to root */}
+        {/* Catch all - redirect to root to show login */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
