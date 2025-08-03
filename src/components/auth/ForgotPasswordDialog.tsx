@@ -139,7 +139,7 @@ export const ForgotPasswordDialog = ({ onClose, onSuccess }: ForgotPasswordDialo
             ) : (
               <Form {...resetForm}>
                 <form onSubmit={resetForm.handleSubmit(onResetPassword)} className="space-y-4">
-                  <FormField
+                   <FormField
                     control={resetForm.control}
                     name="token"
                     render={({ field }) => (
@@ -148,8 +148,7 @@ export const ForgotPasswordDialog = ({ onClose, onSuccess }: ForgotPasswordDialo
                         <FormControl>
                           <InputOTP 
                             maxLength={6} 
-                            value={field.value}
-                            onChange={field.onChange}
+                            {...field}
                             className="w-full justify-center"
                           >
                             <InputOTPGroup>
