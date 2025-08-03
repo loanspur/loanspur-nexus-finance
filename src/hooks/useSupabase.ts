@@ -285,7 +285,25 @@ export const useCreateClient = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        // Handle unique constraint violations with user-friendly messages
+        if (error.code === '23505') {
+          if (error.message.includes('unique_client_national_id')) {
+            throw new Error('A client with this National ID already exists');
+          } else if (error.message.includes('unique_client_passport')) {
+            throw new Error('A client with this Passport Number already exists');
+          } else if (error.message.includes('unique_client_driving_license')) {
+            throw new Error('A client with this Driving License already exists');
+          } else if (error.message.includes('unique_client_email')) {
+            throw new Error('A client with this Email already exists');
+          } else if (error.message.includes('unique_client_phone')) {
+            throw new Error('A client with this Phone Number already exists');
+          } else {
+            throw new Error('A client with these details already exists');
+          }
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
@@ -302,6 +320,71 @@ export const useCreateClient = () => {
         variant: "destructive",
       });
     },
+  });
+};
+
+// Client activation hook  
+export const useActivateClient = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (clientId: string) => {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!profileData?.id) {
+        throw new Error('No user profile available');
+      }
+
+      const { data, error } = await supabase.rpc('activate_client', {
+        client_id: clientId,
+        activated_by_id: profileData.id
+      });
+
+      if (error) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({
+        title: "Success",
+        description: "Client activated successfully",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error activating client:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to activate client",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Check client activation eligibility hook
+export const useCheckClientActivation = (clientId?: string) => {
+  return useQuery({
+    queryKey: ['client-activation-eligibility', clientId],
+    queryFn: async () => {
+      if (!clientId) return false;
+      
+      const { data, error } = await supabase.rpc('check_client_activation_eligibility', {
+        client_id: clientId
+      });
+
+      if (error) {
+        throw error;
+      }
+      return data as boolean;
+    },
+    enabled: !!clientId,
   });
 };
 

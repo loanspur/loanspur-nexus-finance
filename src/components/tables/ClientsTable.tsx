@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search, Eye, FileText } from "lucide-react";
-import { useClients, type Client } from "@/hooks/useSupabase";
+import { Plus, Users, Phone, Mail, Building, CreditCard, PiggyBank, Search, Eye, FileText, CheckCircle } from "lucide-react";
+import { useClients, useActivateClient, type Client } from "@/hooks/useSupabase";
 import { CleanClientDetailsDialog } from "@/components/client/CleanClientDetailsDialog";
 import { FullLoanApplicationDialog } from "@/components/client/FullLoanApplicationDialog";
 import { format } from "date-fns";
@@ -18,6 +18,7 @@ interface ClientsTableProps {
 
 export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const { data: clients, isLoading, error } = useClients();
+  const activateClient = useActivateClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState("10");
@@ -54,6 +55,19 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
     // Refresh clients data or show success message
     setIsLoanApplicationDialogOpen(false);
     setSelectedClientForLoan("");
+  };
+
+  const handleActivateClient = (clientId: string) => {
+    activateClient.mutate(clientId);
+  };
+
+  const canActivateClient = (client: any) => {
+    return !client.is_active && 
+           client.first_name && 
+           client.last_name && 
+           client.phone && 
+           client.date_of_birth &&
+           (client.national_id || client.passport_number || client.driving_license_number);
   };
 
   const formatCurrency = (amount: number | null) => {
@@ -173,9 +187,16 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={client.is_active ? "default" : "secondary"}>
-                      {client.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={client.is_active ? "default" : "secondary"}>
+                        {client.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                      {canActivateClient(client) && (
+                        <Badge variant="outline" className="text-xs">
+                          Ready to Activate
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 text-sm">
@@ -199,6 +220,17 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                         <Eye className="h-4 w-4 mr-2" />
                         View
                       </Button>
+                      {canActivateClient(client) && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleActivateClient(client.id)}
+                          disabled={activateClient.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Activate
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
