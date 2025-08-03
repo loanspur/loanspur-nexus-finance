@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/hooks/useAuth';
+import { useTenantSwitching } from '@/contexts/TenantSwitchingContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,6 +16,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
+  
+  // Check if super admin is in tenant switching mode
+  const { selectedTenant } = useTenantSwitching();
 
   if (loading) {
     return (
@@ -28,7 +32,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(profile.role)) {
+  // Super admins in tenant switching mode can access any route
+  const isSuperAdminSwitching = profile.role === 'super_admin' && selectedTenant;
+  
+  if (allowedRoles && !allowedRoles.includes(profile.role) && !isSuperAdminSwitching) {
     // Redirect to appropriate dashboard based on role
     const roleRoutes = {
       super_admin: '/super-admin',
