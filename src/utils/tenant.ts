@@ -6,6 +6,7 @@ export interface TenantInfo {
   slug: string;
   subdomain: string;
   domain?: string | null;
+  logo_url?: string | null;
   status: 'active' | 'suspended' | 'cancelled';
 }
 
@@ -56,7 +57,7 @@ export async function getTenantBySubdomain(subdomain: string): Promise<TenantInf
     
     const { data, error } = await supabase
       .from('tenants')
-      .select('id, name, slug, subdomain, domain, status')
+      .select('id, name, slug, subdomain, domain, logo_url, status')
       .eq('subdomain', subdomain)
       .eq('status', 'active')
       .maybeSingle();

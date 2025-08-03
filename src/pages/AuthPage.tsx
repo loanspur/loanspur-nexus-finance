@@ -12,7 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, UserPlus, Key } from "lucide-react";
+import { ForgotPasswordDialog } from "@/components/auth/ForgotPasswordDialog";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -50,7 +51,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
-  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -75,12 +76,6 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     },
   });
 
-  const resetPasswordForm = useForm<ResetPasswordForm>({
-    resolver: zodResolver(resetPasswordSchema),
-    defaultValues: {
-      email: "",
-    },
-  });
 
   // Redirect authenticated users
   useEffect(() => {
@@ -123,13 +118,6 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     }
   };
 
-  const onResetPassword = async (data: ResetPasswordForm) => {
-    const { error } = await resetPassword(data.email);
-    if (!error) {
-      setIsResetPasswordOpen(false);
-      resetPasswordForm.reset();
-    }
-  };
 
   if (loading) {
     return (
@@ -139,32 +127,57 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     );
   }
 
+  if (isForgotPasswordOpen) {
+    return (
+      <ForgotPasswordDialog 
+        onClose={() => setIsForgotPasswordOpen(false)}
+        onSuccess={() => {
+          setIsForgotPasswordOpen(false);
+          // Optional: show success message or redirect to login
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-banking-primary mb-2">LoanSpur CBS</h1>
-          <p className="text-muted-foreground">Core Banking System</p>
-        </div>
+        {!tenantMode && (
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-banking-primary mb-3">LoanSpur CBS</h1>
+            <p className="text-lg text-muted-foreground">Core Banking System</p>
+          </div>
+        )}
 
-        <Card className="shadow-elevated">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
-            <CardDescription className="text-center">
-              Choose your login method
-            </CardDescription>
+        <Card className="shadow-2xl border-0 backdrop-blur-sm bg-card/95">
+          <CardHeader className="space-y-3 pb-6">
+            <div className="text-center">
+              <CardTitle className="text-2xl font-bold text-foreground">
+                {tenantMode ? "Welcome Back" : "Sign In"}
+              </CardTitle>
+              <CardDescription className="text-muted-foreground mt-2">
+                {tenantMode ? "Access your account" : "Enter your credentials to continue"}
+              </CardDescription>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <Form {...signInForm}>
-              <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-4">
+              <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-5">
                 <FormField
                   control={signInForm.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-sm font-medium">Email Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your email" {...field} />
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            placeholder="Enter your email" 
+                            className="pl-10 h-11"
+                            {...field} 
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -175,12 +188,14 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-sm font-medium">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input 
                             type={showSignInPassword ? "text" : "password"} 
                             placeholder="Enter your password" 
+                            className="pl-10 pr-10 h-11"
                             {...field} 
                           />
                           <Button
@@ -202,8 +217,21 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                     </FormItem>
                   )}
                 />
+                
+                <div className="flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-sm text-banking-primary hover:text-banking-primary/80 p-0 h-auto"
+                    onClick={() => setIsForgotPasswordOpen(true)}
+                  >
+                    <Key className="h-4 w-4 mr-1" />
+                    Forgot password?
+                  </Button>
+                </div>
+                
                 <Button 
-                  className="w-full" 
+                  className="w-full h-11 text-base font-medium" 
                   type="submit" 
                   disabled={signInForm.formState.isSubmitting}
                 >
@@ -212,24 +240,65 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
               </form>
             </Form>
 
-            <div className="mt-6 flex flex-col space-y-2">
-              <Dialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen}>
+            {!tenantMode && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">New to LoanSpur?</span>
+                </div>
+              </div>
+            )}
+
+            {!tenantMode && (
+              <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="link" className="text-sm">
-                    Forgot your password?
+                  <Button variant="outline" className="w-full h-11 text-base">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Account
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Reset Password</DialogTitle>
+                    <DialogTitle>Create Account</DialogTitle>
                     <DialogDescription>
-                      Enter your email address and we'll send you a link to reset your password.
+                      Sign up for a new LoanSpur CBS account
                     </DialogDescription>
                   </DialogHeader>
-                  <Form {...resetPasswordForm}>
-                    <form onSubmit={resetPasswordForm.handleSubmit(onResetPassword)} className="space-y-4">
+                  <Form {...signUpForm}>
+                    <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={signUpForm.control}
+                          name="firstName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>First Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="First name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={signUpForm.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Last Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Last name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
                       <FormField
-                        control={resetPasswordForm.control}
+                        control={signUpForm.control}
                         name="email"
                         render={({ field }) => (
                           <FormItem>
@@ -241,21 +310,102 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                           </FormItem>
                         )}
                       />
+                      
+                      <FormField
+                        control={signUpForm.control}
+                        name="role"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Role</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select your role" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="client">Client</SelectItem>
+                                <SelectItem value="loan_officer">Loan Officer</SelectItem>
+                                <SelectItem value="tenant_admin">Admin</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={signUpForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input 
+                                  type={showSignUpPassword ? "text" : "password"} 
+                                  placeholder="Enter password" 
+                                  {...field} 
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                  onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                                >
+                                  {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={signUpForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input 
+                                  type={showConfirmPassword ? "text" : "password"} 
+                                  placeholder="Confirm password" 
+                                  {...field} 
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                >
+                                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <Button 
                         className="w-full" 
                         type="submit" 
-                        disabled={resetPasswordForm.formState.isSubmitting}
+                        disabled={signUpForm.formState.isSubmitting}
                       >
-                        {resetPasswordForm.formState.isSubmitting ? "Sending..." : "Send Reset Link"}
+                        {signUpForm.formState.isSubmitting ? "Creating Account..." : "Create Account"}
                       </Button>
                     </form>
                   </Form>
                 </DialogContent>
               </Dialog>
-            </div>
+            )}
           </CardContent>
         </Card>
-
       </div>
     </div>
   );
