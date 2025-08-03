@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getCurrentSubdomain, getTenantBySubdomain, TenantInfo } from '@/utils/tenant';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TenantContextType {
   currentTenant: TenantInfo | null;
@@ -28,12 +29,45 @@ export function TenantProvider({ children }: TenantProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subdomain, setSubdomain] = useState<string | null>(null);
+  const { profile } = useAuth();
 
   useEffect(() => {
     async function loadTenant() {
       setLoading(true);
       setError(null);
       
+      // Check if super admin has selected a tenant for switching
+      const isSuperAdmin = profile?.role === 'super_admin';
+      let selectedTenantData = null;
+      
+      if (isSuperAdmin) {
+        const storedTenant = sessionStorage.getItem('superadmin_selected_tenant');
+        if (storedTenant) {
+          try {
+            selectedTenantData = JSON.parse(storedTenant);
+          } catch (e) {
+            sessionStorage.removeItem('superadmin_selected_tenant');
+          }
+        }
+      }
+      
+      // If super admin has selected a tenant, use that instead of subdomain
+      if (selectedTenantData) {
+        const tenantInfo: TenantInfo = {
+          id: selectedTenantData.id,
+          name: selectedTenantData.name,
+          slug: selectedTenantData.slug,
+          subdomain: selectedTenantData.subdomain || selectedTenantData.slug,
+          logo_url: null,
+          status: 'active' as const
+        };
+        setCurrentTenant(tenantInfo);
+        setSubdomain(selectedTenantData.subdomain || selectedTenantData.slug);
+        setLoading(false);
+        return;
+      }
+      
+      // Regular subdomain-based tenant loading
       const currentSubdomain = getCurrentSubdomain();
       setSubdomain(currentSubdomain);
       
@@ -58,7 +92,26 @@ export function TenantProvider({ children }: TenantProviderProps) {
     }
 
     loadTenant();
-  }, []);
+    
+    // Listen for tenant switching changes
+    const handleStorageChange = () => {
+      loadTenant();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events for same-tab changes
+    const handleTenantSwitch = () => {
+      loadTenant();
+    };
+    
+    window.addEventListener('tenantSwitched', handleTenantSwitch);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('tenantSwitched', handleTenantSwitch);
+    };
+  }, [profile?.role]);
 
   const isSubdomainTenant = subdomain !== null;
 
