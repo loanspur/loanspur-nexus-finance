@@ -1218,6 +1218,8 @@ export type Database = {
       }
       clients: {
         Row: {
+          activated_by: string | null
+          activation_date: string | null
           address: Json | null
           approval_status: string | null
           approved_at: string | null
@@ -1229,6 +1231,7 @@ export type Database = {
           business_name: string | null
           business_registration_number: string | null
           business_type: string | null
+          can_be_activated: boolean | null
           client_number: string
           created_at: string
           date_of_birth: string | null
@@ -1264,6 +1267,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activated_by?: string | null
+          activation_date?: string | null
           address?: Json | null
           approval_status?: string | null
           approved_at?: string | null
@@ -1275,6 +1280,7 @@ export type Database = {
           business_name?: string | null
           business_registration_number?: string | null
           business_type?: string | null
+          can_be_activated?: boolean | null
           client_number: string
           created_at?: string
           date_of_birth?: string | null
@@ -1310,6 +1316,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activated_by?: string | null
+          activation_date?: string | null
           address?: Json | null
           approval_status?: string | null
           approved_at?: string | null
@@ -1321,6 +1329,7 @@ export type Database = {
           business_name?: string | null
           business_registration_number?: string | null
           business_type?: string | null
+          can_be_activated?: boolean | null
           client_number?: string
           created_at?: string
           date_of_birth?: string | null
@@ -1356,6 +1365,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_activated_by_fkey"
+            columns: ["activated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_approved_by_fkey"
             columns: ["approved_by"]
@@ -7661,9 +7677,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_client: {
+        Args: { client_id: string; activated_by_id: string }
+        Returns: boolean
+      }
       calculate_account_balance: {
         Args: { p_account_id: string; p_date?: string }
         Returns: number
+      }
+      check_client_activation_eligibility: {
+        Args: { client_id: string }
+        Returns: boolean
       }
       dev_switch_user_context: {
         Args: { target_profile_id: string }
