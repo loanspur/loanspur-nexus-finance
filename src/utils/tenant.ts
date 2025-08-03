@@ -52,6 +52,8 @@ export function getCurrentSubdomain(): string | null {
  */
 export async function getTenantBySubdomain(subdomain: string): Promise<TenantInfo | null> {
   try {
+    console.log('Querying tenant with subdomain:', subdomain);
+    
     const { data, error } = await supabase
       .from('tenants')
       .select('id, name, slug, subdomain, domain, status')
@@ -59,11 +61,14 @@ export async function getTenantBySubdomain(subdomain: string): Promise<TenantInf
       .eq('status', 'active')
       .maybeSingle();
 
+    console.log('Query result - data:', data, 'error:', error);
+
     if (error || !data) {
       console.error('Error fetching tenant:', error);
       return null;
     }
 
+    console.log('Found tenant:', data);
     return data;
   } catch (error) {
     console.error('Error fetching tenant by subdomain:', error);
