@@ -21,8 +21,8 @@ const AppRouter = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TenantProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <TenantProvider>
         <CurrencyProvider>
           <TooltipProvider>
             <Toaster />
@@ -33,8 +33,8 @@ const App = () => (
             </BrowserRouter>
           </TooltipProvider>
         </CurrencyProvider>
-      </AuthProvider>
-    </TenantProvider>
+      </TenantProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
