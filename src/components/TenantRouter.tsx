@@ -10,11 +10,16 @@ import { ProtectedRoute } from './ProtectedRoute';
 // Tenant subdomain landing page
 const TenantLandingPage = () => {
   const { currentTenant } = useTenant();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
-  if (user) {
-    // User is logged in, redirect to appropriate dashboard
-    return <Navigate to="/dashboard" replace />;
+  if (user && profile) {
+    // Redirect based on user role
+    if (profile.role === 'client') {
+      return <Navigate to="/client" replace />;
+    } else if (profile.role === 'tenant_admin' || profile.role === 'loan_officer') {
+      return <Navigate to="/tenant" replace />;
+    }
+    // For other roles or no role, stay on landing page
   }
 
   return (
