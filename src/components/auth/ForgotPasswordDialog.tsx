@@ -66,6 +66,7 @@ export const ForgotPasswordDialog = ({ onClose, onSuccess }: ForgotPasswordDialo
     });
     
     resetForm.setValue('email', data.email);
+    resetForm.setValue('token', ''); // Clear the token field
     setStep('verify');
   };
 
