@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, User, Mail, Phone, Shield, Calendar } from "lucide-react";
 
 const profileSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters"),
@@ -33,10 +34,11 @@ type ProfileForm = z.infer<typeof profileSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 export const ProfileSettings = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const profileForm = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -47,6 +49,18 @@ export const ProfileSettings = () => {
       phone: profile?.phone || "",
     },
   });
+
+  // Update form when profile changes
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        first_name: profile.first_name || "",
+        last_name: profile.last_name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+      });
+    }
+  }, [profile, profileForm]);
 
   const passwordForm = useForm<PasswordForm>({
     resolver: zodResolver(passwordSchema),
@@ -73,10 +87,16 @@ export const ProfileSettings = () => {
 
       if (error) throw error;
 
+      // Update last updated timestamp
+      setLastUpdated(new Date());
+
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
       });
+
+      // Refresh the page to reflect changes
+      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Update Failed",
@@ -147,10 +167,13 @@ export const ProfileSettings = () => {
       {/* Profile Overview */}
       <Card>
         <CardHeader>
-          <CardTitle>Profile Overview</CardTitle>
-          <CardDescription>Your account information</CardDescription>
+          <div className="flex items-center space-x-2">
+            <User className="h-5 w-5" />
+            <CardTitle>Profile Overview</CardTitle>
+          </div>
+          <CardDescription>Your account information and role details</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
               <AvatarImage src={profile.avatar_url || undefined} />
@@ -162,11 +185,45 @@ export const ProfileSettings = () => {
               <h3 className="text-xl font-semibold">
                 {profile.first_name} {profile.last_name}
               </h3>
-              <p className="text-muted-foreground">{profile.email}</p>
-              <Badge className={getRoleColor(profile.role)}>
-                {formatRole(profile.role)}
-              </Badge>
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Mail className="h-4 w-4" />
+                <span>{profile.email}</span>
+              </div>
+              {profile.phone && (
+                <div className="flex items-center space-x-2 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  <span>{profile.phone}</span>
+                </div>
+              )}
+              <div className="flex items-center space-x-2">
+                <Shield className="h-4 w-4" />
+                <Badge className={getRoleColor(profile.role)}>
+                  {formatRole(profile.role)}
+                </Badge>
+              </div>
             </div>
+          </div>
+          
+          {/* Account Details */}
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Account Status</label>
+              <p className="text-sm">{profile.is_active ? 'Active' : 'Inactive'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">User ID</label>
+              <p className="text-sm font-mono text-xs">{profile.user_id}</p>
+            </div>
+            {lastUpdated && (
+              <div className="col-span-2">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Last updated: {lastUpdated.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -235,7 +292,14 @@ export const ProfileSettings = () => {
                 )}
               />
               <Button type="submit" disabled={isUpdatingProfile}>
-                {isUpdatingProfile ? "Updating..." : "Update Profile"}
+                {isUpdatingProfile ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Profile"
+                )}
               </Button>
             </form>
           </Form>
@@ -293,7 +357,14 @@ export const ProfileSettings = () => {
                 )}
               />
               <Button type="submit" disabled={isUpdatingPassword}>
-                {isUpdatingPassword ? "Updating..." : "Update Password"}
+                {isUpdatingPassword ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
               </Button>
             </form>
           </Form>
