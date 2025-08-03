@@ -71,11 +71,6 @@ const TenantSidebar = () => {
           path: "/tenant/reconciliation",
           icon: RefreshCw
         },
-        {
-          title: "Audit & Compliance",
-          path: "/tenant/audit",
-          icon: Shield
-        }
       ]
     },
     {
@@ -95,11 +90,6 @@ const TenantSidebar = () => {
           title: "Office Management",
           path: "/tenant/office-management",
           icon: Building2
-        },
-        {
-          title: "Currency Configuration",
-          path: "/tenant/currency-config",
-          icon: CreditCard
         },
         {
           title: "Funds Management",
@@ -130,11 +120,6 @@ const TenantSidebar = () => {
           title: "Schedule Jobs",
           path: "/tenant/schedule-jobs",
           icon: RefreshCw
-        },
-        {
-          title: "Documents",
-          path: "/tenant/documents",
-          icon: FileText
         },
         {
           title: "Notifications",
