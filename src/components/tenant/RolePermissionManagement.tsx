@@ -27,6 +27,17 @@ export const RolePermissionManagement = () => {
   const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch } = useRolePermissions();
   const bulkUpdateMutation = useBulkUpdateRolePermissions();
 
+  // Debug logging
+  console.log('RolePermissionManagement Debug:', {
+    permissions,
+    permissionsCount: permissions.length,
+    rolePermissions,
+    rolePermissionsCount: rolePermissions.length,
+    permissionsLoading,
+    rolePermissionsLoading,
+    selectedRole
+  });
+
   // Group permissions by module
   const groupedPermissions = permissions.reduce((acc, permission) => {
     if (!acc[permission.module]) {
@@ -96,6 +107,7 @@ export const RolePermissionManagement = () => {
   };
 
   if (permissionsLoading || rolePermissionsLoading) {
+    console.log('Loading state:', { permissionsLoading, rolePermissionsLoading });
     return (
       <div className="flex items-center justify-center py-8">
         <RefreshCw className="h-6 w-6 animate-spin" />
@@ -103,6 +115,8 @@ export const RolePermissionManagement = () => {
       </div>
     );
   }
+
+  console.log('About to render. Permissions length:', permissions.length, 'RolePermissions length:', rolePermissions.length);
 
   return (
     <div className="space-y-6">

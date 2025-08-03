@@ -29,6 +29,7 @@ export interface RolePermission {
 
 // Fetch all available permissions
 export const usePermissions = () => {
+  console.log('usePermissions called');
   return useQuery({
     queryKey: ['permissions'],
     queryFn: async () => {
@@ -47,6 +48,12 @@ export const usePermissions = () => {
 // Fetch role permissions for current tenant
 export const useRolePermissions = () => {
   const { profile } = useAuth();
+  
+  console.log('useRolePermissions Debug:', {
+    profile,
+    tenantId: profile?.tenant_id,
+    hasProfile: !!profile
+  });
   
   return useQuery({
     queryKey: ['role-permissions', profile?.tenant_id],
