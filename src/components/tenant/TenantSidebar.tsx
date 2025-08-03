@@ -151,16 +151,6 @@ const TenantSidebar = () => {
           </div>
         </div>
         
-        {/* Quick stats */}
-        <div className="p-4 mx-4 mt-4 bg-gradient-primary rounded-xl text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-white/80">Active Loans</p>
-              <p className="text-xl font-bold">234</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-white/80" />
-          </div>
-        </div>
         
         {menuGroups.map((group) => {
           return (

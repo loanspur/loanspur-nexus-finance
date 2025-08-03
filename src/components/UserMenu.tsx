@@ -122,7 +122,7 @@ export const UserMenu = () => {
         </DropdownMenuItem>
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />
-          Settings
+          User Settings
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={handleRefreshProfile}
