@@ -14,6 +14,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ClientLoansTabProps {
   loans: any[];
@@ -24,7 +25,6 @@ interface ClientLoansTabProps {
   onViewLoanDetails: (loan: any) => void;
   onProcessDisbursement: (loan: any) => void;
   onLoanWorkflow: (loan: any) => void;
-  formatCurrency: (amount: number) => string;
 }
 
 export const ClientLoansTab = ({
@@ -35,9 +35,9 @@ export const ClientLoansTab = ({
   onNewLoan,
   onViewLoanDetails,
   onProcessDisbursement,
-  onLoanWorkflow,
-  formatCurrency
+  onLoanWorkflow
 }: ClientLoansTabProps) => {
+  const { formatAmount } = useCurrency();
   const getVisibleLoansAndApplications = () => {
     const rejectedClosedStatuses = ['rejected', 'closed'];
     
@@ -206,7 +206,7 @@ export const ClientLoansTab = ({
                         <div>
                           <p className="text-muted-foreground">Amount</p>
                           <p className="font-medium">
-                            {formatCurrency(
+                            {formatAmount(
                               item.type === 'application' 
                                 ? item.requested_amount || 0 
                                 : item.principal_amount || 0
@@ -217,7 +217,7 @@ export const ClientLoansTab = ({
                           <div>
                             <p className="text-muted-foreground">Outstanding</p>
                             <p className="font-medium text-destructive">
-                              {formatCurrency(item.outstanding_balance || 0)}
+                              {formatAmount(item.outstanding_balance || 0)}
                             </p>
                           </div>
                         )}

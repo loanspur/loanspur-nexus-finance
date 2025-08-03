@@ -799,7 +799,6 @@ const ClientDetailsPage = () => {
                       setSelectedLoanForWorkflow(loan);
                       setShowLoanWorkflowModal(true);
                     }}
-                    formatCurrency={formatCurrency}
                   />
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">

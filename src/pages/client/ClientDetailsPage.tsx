@@ -279,7 +279,6 @@ const ClientDetailsPageRefactored = () => {
             client={client}
             loanBalance={calculateLoanBalances()}
             savingsBalance={calculateSavingsBalance()}
-            formatCurrency={formatCurrency}
           />
 
           {/* Action Menu Bar */}
@@ -381,7 +380,6 @@ const ClientDetailsPageRefactored = () => {
                       setSelectedLoanForWorkflow(loan);
                       setShowLoanWorkflowModal(true);
                     }}
-                    formatCurrency={formatCurrency}
                   />
                 </TabsContent>
                 <TabsContent value="next-of-kin" className="mt-0">

@@ -16,6 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ChartData {
   [key: string]: any;
@@ -52,6 +53,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
   monthlyPerformance = [],
   riskAnalysis = []
 }) => {
+  const { currencySymbol } = useCurrency();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Loan Portfolio Trends */}
@@ -72,7 +74,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
               <YAxis 
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => `${currencySymbol}${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip 
                 contentStyle={{
@@ -80,7 +82,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '6px',
                 }}
-                formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                formatter={(value: number) => [`${currencySymbol}${value.toLocaleString()}`, '']}
               />
               <Area 
                 type="monotone" 
@@ -134,7 +136,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '6px',
                 }}
-                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
+                formatter={(value: number) => [`${currencySymbol}${value.toLocaleString()}`, 'Amount']}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -159,7 +161,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
               <YAxis 
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={12}
-                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                tickFormatter={(value) => `${currencySymbol}${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip 
                 contentStyle={{
@@ -167,7 +169,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '6px',
                 }}
-                formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                formatter={(value: number) => [`${currencySymbol}${value.toLocaleString()}`, '']}
               />
               <Legend />
               <Bar dataKey="target" fill={COLORS.muted} name="Target" />

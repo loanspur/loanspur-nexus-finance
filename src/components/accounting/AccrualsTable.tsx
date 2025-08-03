@@ -10,6 +10,7 @@ import { Search, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { useAccruals, useDeleteAccrual, usePostAccrual, useReverseAccrual, type Accrual } from "@/hooks/useAccruals";
 import { AccrualForm } from "./AccrualForm";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export const AccrualsTable = () => {
   const [filters, setFilters] = useState({
@@ -19,6 +20,7 @@ export const AccrualsTable = () => {
   });
   const [showForm, setShowForm] = useState(false);
   const [editingAccrual, setEditingAccrual] = useState<Accrual | undefined>();
+  const { formatAmount } = useCurrency();
 
   const { data: accruals, isLoading } = useAccruals();
   const deleteAccrual = useDeleteAccrual();
@@ -56,12 +58,6 @@ export const AccrualsTable = () => {
     return <Badge className={colorClass}>{type.toUpperCase()}</Badge>;
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const handleEdit = (accrual: Accrual) => {
     setEditingAccrual(accrual);
@@ -126,7 +122,7 @@ export const AccrualsTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Accruals</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totals.total)}</div>
+            <div className="text-2xl font-bold">{formatAmount(totals.total)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -134,7 +130,7 @@ export const AccrualsTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{formatCurrency(totals.pending)}</div>
+            <div className="text-2xl font-bold text-yellow-600">{formatAmount(totals.pending)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -142,7 +138,7 @@ export const AccrualsTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Posted</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.posted)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatAmount(totals.posted)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -150,7 +146,7 @@ export const AccrualsTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Reversed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totals.reversed)}</div>
+            <div className="text-2xl font-bold text-red-600">{formatAmount(totals.reversed)}</div>
           </CardContent>
         </Card>
       </div>
@@ -251,7 +247,7 @@ export const AccrualsTable = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      {formatCurrency(accrual.amount)}
+                      {formatAmount(accrual.amount)}
                     </TableCell>
                     <TableCell>{format(new Date(accrual.accrual_date), 'PP')}</TableCell>
                     <TableCell>

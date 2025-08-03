@@ -11,6 +11,7 @@ import { useClients, useActivateClient, type Client } from "@/hooks/useSupabase"
 import { CleanClientDetailsDialog } from "@/components/client/CleanClientDetailsDialog";
 import { FullLoanApplicationDialog } from "@/components/client/FullLoanApplicationDialog";
 import { format } from "date-fns";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ClientsTableProps {
   onCreateClient: () => void;
@@ -20,6 +21,7 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const { data: clients, isLoading, error } = useClients();
   const activateClient = useActivateClient();
   const navigate = useNavigate();
+  const { formatAmount } = useCurrency();
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState("10");
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -70,13 +72,6 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
            (client.national_id || client.passport_number || client.driving_license_number);
   };
 
-  const formatCurrency = (amount: number | null) => {
-    if (!amount) return "KES 0";
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
 
   const calculateTotalLoanBalance = (client: any) => {
     if (!client.loans || client.loans.length === 0) return 0;
@@ -201,13 +196,13 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
                   <TableCell>
                     <div className="flex items-center gap-1 text-sm">
                       <CreditCard className="h-3 w-3" />
-                      {formatCurrency(calculateTotalLoanBalance(client))}
+                      {formatAmount(calculateTotalLoanBalance(client))}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1 text-sm">
                       <PiggyBank className="h-3 w-3" />
-                      {formatCurrency(calculateTotalSavingsBalance(client))}
+                      {formatAmount(calculateTotalSavingsBalance(client))}
                     </div>
                   </TableCell>
                   <TableCell>

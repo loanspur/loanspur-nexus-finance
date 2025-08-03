@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Phone, Building, IdCard, CreditCard, PiggyBank, Camera, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ClientHeaderProps {
   client: {
@@ -25,17 +26,16 @@ interface ClientHeaderProps {
   };
   loanBalance: number;
   savingsBalance: number;
-  formatCurrency: (amount: number) => string;
 }
 
 export const ClientHeader = ({ 
   client, 
   loanBalance, 
-  savingsBalance, 
-  formatCurrency 
+  savingsBalance
 }: ClientHeaderProps) => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { formatAmount } = useCurrency();
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -144,11 +144,11 @@ export const ClientHeader = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-white/90 text-sm">
                 <CreditCard className="h-4 w-4" />
-                <span>{formatCurrency(loanBalance)} Total Loan Balance</span>
+                <span>{formatAmount(loanBalance)} Total Loan Balance</span>
               </div>
               <div className="flex items-center gap-2 text-white/90 text-sm">
                 <PiggyBank className="h-4 w-4" />
-                <span>{formatCurrency(savingsBalance)} Total Savings Balance</span>
+                <span>{formatAmount(savingsBalance)} Total Savings Balance</span>
               </div>
             </div>
           </div>

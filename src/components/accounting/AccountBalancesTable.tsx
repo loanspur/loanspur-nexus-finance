@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useAccountBalances, useCurrentAccountBalances } from "@/hooks/useAccountBalances";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export const AccountBalancesTable = () => {
   const [filters, setFilters] = useState({
@@ -18,6 +19,7 @@ export const AccountBalancesTable = () => {
     balanceDate: ""
   });
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const { formatAmount } = useCurrency();
 
   const { data: accountBalances, isLoading: balancesLoading } = useAccountBalances(filters.balanceDate);
   const { data: currentAccounts, isLoading: accountsLoading } = useCurrentAccountBalances();
@@ -51,12 +53,6 @@ export const AccountBalancesTable = () => {
     return <Badge className={colorClass}>{type.toUpperCase()}</Badge>;
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const getTotalsByType = () => {
     const totals = {
@@ -106,7 +102,7 @@ export const AccountBalancesTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Assets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.assets)}</div>
+            <div className="text-2xl font-bold text-green-600">{formatAmount(totals.assets)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -114,7 +110,7 @@ export const AccountBalancesTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Liabilities</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totals.liabilities)}</div>
+            <div className="text-2xl font-bold text-red-600">{formatAmount(totals.liabilities)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -122,7 +118,7 @@ export const AccountBalancesTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Equity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totals.equity)}</div>
+            <div className="text-2xl font-bold text-blue-600">{formatAmount(totals.equity)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -130,7 +126,7 @@ export const AccountBalancesTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{formatCurrency(totals.income)}</div>
+            <div className="text-2xl font-bold text-purple-600">{formatAmount(totals.income)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -138,7 +134,7 @@ export const AccountBalancesTable = () => {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{formatCurrency(totals.expenses)}</div>
+            <div className="text-2xl font-bold text-orange-600">{formatAmount(totals.expenses)}</div>
           </CardContent>
         </Card>
       </div>
@@ -248,11 +244,11 @@ export const AccountBalancesTable = () => {
                     <TableCell className="capitalize">
                       {balance.chart_of_accounts.account_category.replace('_', ' ')}
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(balance.opening_balance)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(balance.period_debits)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(balance.period_credits)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(balance.opening_balance)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(balance.period_debits)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(balance.period_credits)}</TableCell>
                     <TableCell className="text-right font-semibold">
-                      {formatCurrency(balance.closing_balance)}
+                      {formatAmount(balance.closing_balance)}
                     </TableCell>
                     <TableCell>{format(new Date(balance.balance_date), 'PP')}</TableCell>
                   </TableRow>

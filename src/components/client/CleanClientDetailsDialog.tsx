@@ -32,6 +32,7 @@ import {
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { LoanAccountStatusView } from "./LoanAccountStatusView";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Client {
   id: string;
@@ -73,6 +74,7 @@ export const CleanClientDetailsDialog = ({ client, open, onOpenChange }: CleanCl
   const [clientLoanApplications, setClientLoanApplications] = useState<any[]>([]);
   const [hideClosedAccounts, setHideClosedAccounts] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { formatAmount } = useCurrency();
   
   const { toast } = useToast();
 
@@ -136,13 +138,6 @@ export const CleanClientDetailsDialog = ({ client, open, onOpenChange }: CleanCl
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
 
   const calculateTotalLoanBalance = () => {
     return clientLoans.reduce((sum, loan) => sum + (loan.outstanding_balance || 0), 0);
@@ -271,13 +266,13 @@ export const CleanClientDetailsDialog = ({ client, open, onOpenChange }: CleanCl
         <div className="grid grid-cols-3 gap-4 py-4 border-b">
           <div className="text-center">
             <div className="text-2xl font-bold text-destructive">
-              {formatCurrency(calculateTotalLoanBalance())}
+              {formatAmount(calculateTotalLoanBalance())}
             </div>
             <div className="text-sm text-muted-foreground">Outstanding Loans</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-success">
-              {formatCurrency(calculateTotalSavingsBalance())}
+              {formatAmount(calculateTotalSavingsBalance())}
             </div>
             <div className="text-sm text-muted-foreground">Total Savings</div>
           </div>
@@ -344,7 +339,7 @@ export const CleanClientDetailsDialog = ({ client, open, onOpenChange }: CleanCl
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
                                 <p className="text-muted-foreground">Balance</p>
-                                <p className="font-medium">{formatCurrency(account.account_balance)}</p>
+                                <p className="font-medium">{formatAmount(account.account_balance)}</p>
                               </div>
                               <div>
                                 <p className="text-muted-foreground">Interest Rate</p>
@@ -394,7 +389,7 @@ export const CleanClientDetailsDialog = ({ client, open, onOpenChange }: CleanCl
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Monthly Income</Label>
                           <p className="text-sm">
-                            {client.monthly_income ? formatCurrency(client.monthly_income) : 'Not provided'}
+                            {client.monthly_income ? formatAmount(client.monthly_income) : 'Not provided'}
                           </p>
                         </div>
                         <div>
