@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
 import { useClientDashboardData } from "@/hooks/useDashboardData";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { 
   CreditCard, 
   PiggyBank, 
@@ -24,6 +25,7 @@ import {
 
 const ClientDashboard = () => {
   const { data: clientData, isLoading } = useClientDashboardData();
+  const { formatAmount } = useCurrency();
 
   if (isLoading) {
     return (
@@ -240,7 +242,7 @@ const ClientDashboard = () => {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <div className={`font-medium text-sm ${getTransactionColor(transaction.transaction_type, transaction.amount)}`}>
-                          ${Math.abs(transaction.amount).toLocaleString()}
+                          {formatAmount(Math.abs(transaction.amount))}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {transaction.payment_status}
@@ -280,7 +282,7 @@ const ClientDashboard = () => {
                       <div>
                         <div className="font-medium">Loan #{loan.loan_number}</div>
                         <div className="text-sm text-muted-foreground">
-                          Principal: ${loan.principal_amount.toLocaleString()}
+                          Principal: {formatAmount(loan.principal_amount)}
                         </div>
                       </div>
                       <Badge variant={loan.status === 'active' ? 'default' : 'secondary'}>
@@ -288,7 +290,7 @@ const ClientDashboard = () => {
                       </Badge>
                     </div>
                     <div className="text-xl font-semibold text-primary">
-                      ${(loan.outstanding_balance || 0).toLocaleString()}
+                      {formatAmount(loan.outstanding_balance || 0)}
                     </div>
                     <div className="text-sm text-muted-foreground">Outstanding Balance</div>
                   </div>
@@ -316,7 +318,7 @@ const ClientDashboard = () => {
                       <div>
                         <div className="font-medium">Account #{account.account_number}</div>
                         <div className="text-sm text-muted-foreground">
-                          Interest Earned: ${(account.interest_earned || 0).toLocaleString()}
+                          Interest Earned: {formatAmount(account.interest_earned || 0)}
                         </div>
                       </div>
                       <Badge variant={account.is_active ? 'default' : 'secondary'}>
@@ -324,7 +326,7 @@ const ClientDashboard = () => {
                       </Badge>
                     </div>
                     <div className="text-xl font-semibold text-success">
-                      ${(account.account_balance || 0).toLocaleString()}
+                      {formatAmount(account.account_balance || 0)}
                     </div>
                     <div className="text-sm text-muted-foreground">Available Balance</div>
                   </div>
