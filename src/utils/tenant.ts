@@ -17,20 +17,25 @@ export function getSubdomainFromHostname(hostname: string): string | null {
   // Remove port if present
   const cleanHostname = hostname.split(':')[0];
   
+  console.log('Subdomain detection - hostname:', hostname, 'cleanHostname:', cleanHostname);
+  
   // Check if it's the main domain or localhost
   if (cleanHostname === 'loanspurcbs.com' || 
       cleanHostname === 'localhost' || 
       cleanHostname.includes('127.0.0.1') ||
       cleanHostname.includes('lovableproject.com')) {
+    console.log('Detected as main domain/localhost, returning null');
     return null;
   }
   
   // Extract subdomain from *.loanspurcbs.com
   if (cleanHostname.endsWith('.loanspurcbs.com')) {
     const subdomain = cleanHostname.replace('.loanspurcbs.com', '');
+    console.log('Extracted subdomain:', subdomain);
     return subdomain === 'www' ? null : subdomain;
   }
   
+  console.log('No subdomain pattern matched, returning null');
   return null;
 }
 
