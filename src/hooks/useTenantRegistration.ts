@@ -131,6 +131,34 @@ export const useTenantRegistration = () => {
         }
       }
 
+      // Step 4: Send welcome email with tenant subdomain links
+      try {
+        const currentOrigin = window.location.origin;
+        const baseUrl = currentOrigin.includes('://') 
+          ? currentOrigin.split('://')[1] 
+          : currentOrigin;
+        
+        // Construct the tenant's subdomain URL
+        const tenantUrl = `https://${subdomain}.${baseUrl.replace(/^[^.]+\./, '')}`;
+        
+        const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+          body: {
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            tenantName: data.tenantName,
+            subdomain: subdomain,
+            loginUrl: tenantUrl,
+          },
+        });
+
+        if (emailError) {
+          console.warn('Warning: Could not send welcome email:', emailError);
+        }
+      } catch (emailError) {
+        console.warn('Warning: Welcome email sending failed:', emailError);
+      }
+
       return {
         tenant,
         user: authData.user,
