@@ -94,9 +94,6 @@ export const ProfileSettings = () => {
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
       });
-
-      // Refresh the page to reflect changes
-      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Update Failed",

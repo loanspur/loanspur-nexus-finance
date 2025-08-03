@@ -94,11 +94,12 @@ export const useAuthState = () => {
                 localStorage.removeItem('dev_target_profile');
               }
               
-              // Normal profile loading
+              // Normal profile loading - only get active profiles
               const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('user_id', session.user.id)
+                .eq('is_active', true)
                 .single();
               
               if (error) {
