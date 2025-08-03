@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/hooks/useAuth';
-import { useTenantSwitching } from '@/contexts/TenantSwitchingContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,8 +16,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, profile, loading } = useAuth();
   const location = useLocation();
   
-  // Check if super admin is in tenant switching mode
-  const { selectedTenant } = useTenantSwitching();
+  // Check if super admin is in tenant switching mode (check sessionStorage directly)
+  const getSuperAdminTenantSelection = () => {
+    try {
+      const storedTenant = sessionStorage.getItem('superadmin_selected_tenant');
+      return storedTenant ? JSON.parse(storedTenant) : null;
+    } catch {
+      return null;
+    }
+  };
+  
+  const selectedTenant = getSuperAdminTenantSelection();
 
   if (loading) {
     return (
