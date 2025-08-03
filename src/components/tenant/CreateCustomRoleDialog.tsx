@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
 import { useCreateCustomRole } from "@/hooks/useCustomRoles";
 import { usePermissions, Permission } from "@/hooks/useRolePermissions";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -138,13 +140,21 @@ export const CreateCustomRoleDialog = ({ open, onOpenChange, onSuccess }: Create
                                   handlePermissionToggle(permission.id, checked as boolean)
                                 }
                               />
-                              <div className="grid gap-1.5 leading-none">
-                                <label
-                                  htmlFor={permission.id}
-                                  className="text-sm font-medium leading-none cursor-pointer"
-                                >
-                                  {permission.name}
-                                </label>
+                              <div className="grid gap-1.5 leading-none flex-1">
+                                <div className="flex items-center gap-2">
+                                  <label
+                                    htmlFor={permission.id}
+                                    className="text-sm font-medium leading-none cursor-pointer"
+                                  >
+                                    {permission.name}
+                                  </label>
+                                  {permission.requires_maker_checker && (
+                                    <Badge variant="outline" className="text-xs">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />
+                                      Maker-Checker
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   {permission.description}
                                 </p>

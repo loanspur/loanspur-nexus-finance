@@ -10,6 +10,8 @@ export interface Permission {
   module: string;
   action: string;
   resource?: string;
+  requires_maker_checker?: boolean;
+  maker_checker_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +21,8 @@ export interface RolePermission {
   role: string;
   permission_id: string;
   tenant_id: string;
+  can_make?: boolean;
+  can_check?: boolean;
   created_at: string;
   permission?: Permission;
 }
@@ -97,7 +101,17 @@ export const useAddRolePermission = () => {
   const { profile } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ role, permissionId }: { role: string; permissionId: string }) => {
+    mutationFn: async ({ 
+      role, 
+      permissionId, 
+      canMake = true, 
+      canCheck = false 
+    }: { 
+      role: string; 
+      permissionId: string; 
+      canMake?: boolean; 
+      canCheck?: boolean; 
+    }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID');
       
       const { data, error } = await supabase
@@ -105,7 +119,9 @@ export const useAddRolePermission = () => {
         .insert([{
           role,
           permission_id: permissionId,
-          tenant_id: profile.tenant_id
+          tenant_id: profile.tenant_id,
+          can_make: canMake,
+          can_check: canCheck
         }])
         .select()
         .single();
@@ -168,14 +184,24 @@ export const useRemoveRolePermission = () => {
   });
 };
 
-// Bulk update role permissions
+// Bulk update role permissions with maker-checker support
 export const useBulkUpdateRolePermissions = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { profile } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ role, permissionIds }: { role: string; permissionIds: string[] }) => {
+    mutationFn: async ({ 
+      role, 
+      permissions 
+    }: { 
+      role: string; 
+      permissions: Array<{
+        permissionId: string;
+        canMake: boolean;
+        canCheck: boolean;
+      }>;
+    }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID');
       
       // First, remove all existing permissions for this role
@@ -185,15 +211,17 @@ export const useBulkUpdateRolePermissions = () => {
         .eq('role', role)
         .eq('tenant_id', profile.tenant_id);
       
-      // Then, add the new permissions
-      if (permissionIds.length > 0) {
+      // Then, add the new permissions with maker-checker settings
+      if (permissions.length > 0) {
         const { error } = await supabase
           .from('role_permissions')
           .insert(
-            permissionIds.map(permissionId => ({
+            permissions.map(({ permissionId, canMake, canCheck }) => ({
               role,
               permission_id: permissionId,
-              tenant_id: profile.tenant_id
+              tenant_id: profile.tenant_id,
+              can_make: canMake,
+              can_check: canCheck
             }))
           );
         

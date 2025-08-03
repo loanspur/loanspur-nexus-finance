@@ -5750,8 +5750,10 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          maker_checker_enabled: boolean | null
           module: string
           name: string
+          requires_maker_checker: boolean | null
           resource: string | null
           updated_at: string
         }
@@ -5760,8 +5762,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          maker_checker_enabled?: boolean | null
           module: string
           name: string
+          requires_maker_checker?: boolean | null
           resource?: string | null
           updated_at?: string
         }
@@ -5770,8 +5774,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          maker_checker_enabled?: boolean | null
           module?: string
           name?: string
+          requires_maker_checker?: boolean | null
           resource?: string | null
           updated_at?: string
         }
@@ -6224,6 +6230,8 @@ export type Database = {
       }
       role_permissions: {
         Row: {
+          can_check: boolean | null
+          can_make: boolean | null
           created_at: string
           id: string
           permission_id: string
@@ -6231,6 +6239,8 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          can_check?: boolean | null
+          can_make?: boolean | null
           created_at?: string
           id?: string
           permission_id: string
@@ -6238,6 +6248,8 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          can_check?: boolean | null
+          can_make?: boolean | null
           created_at?: string
           id?: string
           permission_id?: string

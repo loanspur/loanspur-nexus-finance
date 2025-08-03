@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Save, RefreshCw } from "lucide-react";
+import { Shield, Save, RefreshCw, AlertTriangle } from "lucide-react";
 import { 
   usePermissions, 
   useRolePermissions, 
@@ -71,9 +71,19 @@ export const RolePermissionManagement = () => {
 
   // Handle save changes
   const handleSave = async () => {
+    // Convert selectedPermissions to the new format with maker-checker settings
+    const permissionsWithMakerChecker = selectedPermissions.map(permissionId => {
+      const permission = permissions.find(p => p.id === permissionId);
+      return {
+        permissionId,
+        canMake: true, // Default to maker capability
+        canCheck: permission?.requires_maker_checker ? false : true // Only allow check if maker-checker is required
+      };
+    });
+
     await bulkUpdateMutation.mutateAsync({
       role: selectedRole,
-      permissionIds: selectedPermissions
+      permissions: permissionsWithMakerChecker
     });
     setHasChanges(false);
     refetch();
@@ -153,7 +163,7 @@ export const RolePermissionManagement = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {modulePermissions.map((permission) => (
+                           {modulePermissions.map((permission) => (
                             <div key={permission.id} className="flex items-start space-x-3">
                               <Checkbox
                                 id={permission.id}
@@ -162,13 +172,21 @@ export const RolePermissionManagement = () => {
                                   handlePermissionToggle(permission.id, checked as boolean)
                                 }
                               />
-                              <div className="grid gap-1.5 leading-none">
-                                <label
-                                  htmlFor={permission.id}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {permission.name}
-                                </label>
+                              <div className="grid gap-1.5 leading-none flex-1">
+                                <div className="flex items-center gap-2">
+                                  <label
+                                    htmlFor={permission.id}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                  >
+                                    {permission.name}
+                                  </label>
+                                  {permission.requires_maker_checker && (
+                                    <Badge variant="outline" className="text-xs">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />
+                                      Maker-Checker
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   {permission.description}
                                 </p>

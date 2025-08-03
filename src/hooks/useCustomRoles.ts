@@ -19,6 +19,8 @@ export interface CustomRolePermission {
   custom_role_id: string;
   permission_id: string;
   tenant_id: string;
+  can_make?: boolean;
+  can_check?: boolean;
   created_at: string;
   permission?: {
     id: string;
@@ -26,6 +28,8 @@ export interface CustomRolePermission {
     description: string;
     module: string;
     action: string;
+    requires_maker_checker?: boolean;
+    maker_checker_enabled?: boolean;
   };
 }
 
@@ -112,7 +116,9 @@ export const useCreateCustomRole = () => {
             roleData.permissionIds.map(permissionId => ({
               custom_role_id: role.id,
               permission_id: permissionId,
-              tenant_id: profile.tenant_id
+              tenant_id: profile.tenant_id,
+              can_make: true,
+              can_check: false
             }))
           );
         
@@ -191,7 +197,9 @@ export const useUpdateCustomRole = () => {
               updates.permissionIds.map(permissionId => ({
                 custom_role_id: roleId,
                 permission_id: permissionId,
-                tenant_id: profile.tenant_id
+                tenant_id: profile.tenant_id,
+                can_make: true,
+                can_check: false
               }))
             );
           
