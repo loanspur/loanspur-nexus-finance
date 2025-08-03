@@ -1,17 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const smtpClient = new SMTPClient({
-  connection: {
-    hostname: "smtp.zoho.com",
-    port: 587,
-    tls: true,
-    auth: {
-      username: Deno.env.get("ZOHO_EMAIL_USERNAME") || "",
-      password: Deno.env.get("ZOHO_EMAIL_PASSWORD") || "",
-    },
-  },
-});
+const MAILGUN_API_KEY = Deno.env.get("MAILGUN_API_KEY");
+const MAILGUN_DOMAIN = Deno.env.get("MAILGUN_DOMAIN");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,7 +55,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to store OTP");
     }
 
-    // Send email with OTP using Zoho Mail SMTP
+    // Send email with OTP using Mailgun
     const subject = type === 'registration' 
       ? `Verify your email for ${tenantName || 'LoanSpur'} registration`
       : 'Email verification code';
@@ -101,15 +91,32 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    await smtpClient.send({
-      from: `LoanSpur <${Deno.env.get("ZOHO_EMAIL_USERNAME")}>`,
-      to: email,
-      subject,
-      content: htmlContent,
-      html: htmlContent,
-    });
+    // Prepare Mailgun form data
+    const formData = new FormData();
+    formData.append('from', `LoanSpur <noreply@${MAILGUN_DOMAIN}>`);
+    formData.append('to', email);
+    formData.append('subject', subject);
+    formData.append('html', htmlContent);
 
-    console.log("Email sent successfully via Zoho Mail");
+    // Send email via Mailgun API
+    const mailgunResponse = await fetch(
+      `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`api:${MAILGUN_API_KEY}`)}`
+        },
+        body: formData
+      }
+    );
+
+    if (!mailgunResponse.ok) {
+      const error = await mailgunResponse.text();
+      console.error("Mailgun error:", error);
+      throw new Error("Failed to send email via Mailgun");
+    }
+
+    console.log("Email sent successfully via Mailgun");
 
     return new Response(
       JSON.stringify({ 
