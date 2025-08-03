@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CompanyProfileSection } from "@/components/profile/CompanyProfileSection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, User, Mail, Phone, Shield, Calendar } from "lucide-react";
 
 const profileSchema = z.object({
@@ -161,212 +163,225 @@ export const ProfileSettings = () => {
 
   return (
     <div className="space-y-6">
-      {/* Profile Overview */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <CardTitle>Profile Overview</CardTitle>
-          </div>
-          <CardDescription>Your account information and role details</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="text-lg">
-                {profile.first_name?.[0]}{profile.last_name?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">
-                {profile.first_name} {profile.last_name}
-              </h3>
-              <div className="flex items-center space-x-2 text-muted-foreground">
-                <Mail className="h-4 w-4" />
-                <span>{profile.email}</span>
-              </div>
-              {profile.phone && (
-                <div className="flex items-center space-x-2 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{profile.phone}</span>
-                </div>
-              )}
+      <Tabs defaultValue="personal" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="personal">Personal Profile</TabsTrigger>
+          <TabsTrigger value="company">Company Profile</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="personal" className="space-y-6">
+          {/* Profile Overview */}
+          <Card>
+            <CardHeader>
               <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4" />
-                <Badge className={getRoleColor(profile.role)}>
-                  {formatRole(profile.role)}
-                </Badge>
+                <User className="h-5 w-5" />
+                <CardTitle>Profile Overview</CardTitle>
               </div>
-            </div>
-          </div>
-          
-          {/* Account Details */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Account Status</label>
-              <p className="text-sm">{profile.is_active ? 'Active' : 'Inactive'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">User ID</label>
-              <p className="text-sm font-mono text-xs">{profile.user_id}</p>
-            </div>
-            {lastUpdated && (
-              <div className="col-span-2">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Last updated: {lastUpdated.toLocaleString()}
-                  </span>
+              <CardDescription>Your account information and role details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="text-lg">
+                    {profile.first_name?.[0]}{profile.last_name?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold">
+                    {profile.first_name} {profile.last_name}
+                  </h3>
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    <span>{profile.email}</span>
+                  </div>
+                  {profile.phone && (
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      <span>{profile.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <Shield className="h-4 w-4" />
+                    <Badge className={getRoleColor(profile.role)}>
+                      {formatRole(profile.role)}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Edit Profile */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Profile</CardTitle>
-          <CardDescription>Update your personal information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...profileForm}>
-            <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={profileForm.control}
-                  name="first_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={profileForm.control}
-                  name="last_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              
+              {/* Account Details */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Account Status</label>
+                  <p className="text-sm">{profile.is_active ? 'Active' : 'Inactive'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">User ID</label>
+                  <p className="text-sm font-mono text-xs">{profile.user_id}</p>
+                </div>
+                {lastUpdated && (
+                  <div className="col-span-2">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Last updated: {lastUpdated.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <FormField
-                control={profileForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={profileForm.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Optional" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isUpdatingProfile}>
-                {isUpdatingProfile ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Profile"
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      <Separator />
+          {/* Edit Profile */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Profile</CardTitle>
+              <CardDescription>Update your personal information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onUpdateProfile)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={profileForm.control}
+                      name="first_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={profileForm.control}
+                      name="last_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input {...field} disabled />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={profileForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Optional" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" disabled={isUpdatingProfile}>
+                    {isUpdatingProfile ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Profile"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
 
-      {/* Change Password */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Change Password</CardTitle>
-          <CardDescription>Update your account password</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...passwordForm}>
-            <form onSubmit={passwordForm.handleSubmit(onUpdatePassword)} className="space-y-4">
-              <FormField
-                control={passwordForm.control}
-                name="current_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Current Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={passwordForm.control}
-                name="new_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={passwordForm.control}
-                name="confirm_password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm New Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isUpdatingPassword}>
-                {isUpdatingPassword ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Password"
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+          <Separator />
+
+          {/* Change Password */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Password</CardTitle>
+              <CardDescription>Update your account password</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(onUpdatePassword)} className="space-y-4">
+                  <FormField
+                    control={passwordForm.control}
+                    name="current_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={passwordForm.control}
+                    name="new_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirm_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" disabled={isUpdatingPassword}>
+                    {isUpdatingPassword ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Password"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="company" className="space-y-6">
+          <CompanyProfileSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
