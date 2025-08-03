@@ -55,12 +55,12 @@ const TenantSidebar = () => {
           title: "M-Pesa Integration",
           path: "/tenant/mpesa",
           icon: CreditCard
-        }
-      ]
-    },
-    {
-      label: "Reports & Analytics",
-      items: [
+        },
+        {
+          title: "Accounting",
+          path: "/tenant/accounting",
+          icon: Calculator
+        },
         {
           title: "Reports",
           path: "/tenant/reports",
@@ -70,7 +70,7 @@ const TenantSidebar = () => {
           title: "Reconciliation",
           path: "/tenant/reconciliation",
           icon: RefreshCw
-        },
+        }
       ]
     },
     {
@@ -100,11 +100,6 @@ const TenantSidebar = () => {
           title: "Product & Fee Management",
           path: "/tenant/product-fee-management",
           icon: TrendingUp
-        },
-        {
-          title: "Accounting",
-          path: "/tenant/accounting",
-          icon: Calculator
         },
         {
           title: "Audit Trail",
