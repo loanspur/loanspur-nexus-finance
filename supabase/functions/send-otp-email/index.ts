@@ -1,7 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const smtpClient = new SMTPClient({
+  connection: {
+    hostname: "smtp.zoho.com",
+    port: 587,
+    tls: true,
+    auth: {
+      username: Deno.env.get("ZOHO_EMAIL_USERNAME") || "",
+      password: Deno.env.get("ZOHO_EMAIL_PASSWORD") || "",
+    },
+  },
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,48 +65,51 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to store OTP");
     }
 
-    // Send email with OTP
+    // Send email with OTP using Zoho Mail SMTP
     const subject = type === 'registration' 
       ? `Verify your email for ${tenantName || 'LoanSpur'} registration`
       : 'Email verification code';
 
-    const emailResponse = await resend.emails.send({
-      from: "LoanSpur <noreply@loanspurcbs.com>",
-      to: [email],
-      subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #1e40af; margin: 0;">LoanSpur</h1>
-            <p style="color: #64748b; margin: 5px 0;">Core Banking System</p>
-          </div>
-          
-          <div style="background: #f8fafc; border-radius: 8px; padding: 30px; text-align: center;">
-            <h2 style="color: #334155; margin-bottom: 20px;">Email Verification</h2>
-            <p style="color: #64748b; margin-bottom: 30px;">
-              ${type === 'registration' 
-                ? `Complete your registration for ${tenantName || 'your organization'} by entering this verification code:`
-                : 'Please use the following verification code:'
-              }
-            </p>
-            
-            <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0; display: inline-block;">
-              <span style="font-size: 32px; font-weight: bold; color: #1e40af; letter-spacing: 4px;">${otp}</span>
-            </div>
-            
-            <p style="color: #64748b; font-size: 14px; margin-top: 20px;">
-              This code will expire in 10 minutes.
-            </p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 12px;">
-            <p>If you didn't request this verification code, please ignore this email.</p>
-          </div>
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #1e40af; margin: 0;">LoanSpur</h1>
+          <p style="color: #64748b; margin: 5px 0;">Core Banking System</p>
         </div>
-      `,
+        
+        <div style="background: #f8fafc; border-radius: 8px; padding: 30px; text-align: center;">
+          <h2 style="color: #334155; margin-bottom: 20px;">Email Verification</h2>
+          <p style="color: #64748b; margin-bottom: 30px;">
+            ${type === 'registration' 
+              ? `Complete your registration for ${tenantName || 'your organization'} by entering this verification code:`
+              : 'Please use the following verification code:'
+            }
+          </p>
+          
+          <div style="background: white; border: 2px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0; display: inline-block;">
+            <span style="font-size: 32px; font-weight: bold; color: #1e40af; letter-spacing: 4px;">${otp}</span>
+          </div>
+          
+          <p style="color: #64748b; font-size: 14px; margin-top: 20px;">
+            This code will expire in 10 minutes.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 12px;">
+          <p>If you didn't request this verification code, please ignore this email.</p>
+        </div>
+      </div>
+    `;
+
+    await smtpClient.send({
+      from: `LoanSpur <${Deno.env.get("ZOHO_EMAIL_USERNAME")}>`,
+      to: email,
+      subject,
+      content: htmlContent,
+      html: htmlContent,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent successfully via Zoho Mail");
 
     return new Response(
       JSON.stringify({ 
