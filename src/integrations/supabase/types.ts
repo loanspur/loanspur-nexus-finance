@@ -7883,10 +7883,6 @@ export type Database = {
         Args: { client_id: string }
         Returns: boolean
       }
-      dev_switch_user_context: {
-        Args: { target_profile_id: string }
-        Returns: Json
-      }
       get_current_account_balance: {
         Args: { p_account_id: string }
         Returns: number
