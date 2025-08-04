@@ -16,8 +16,10 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
   const selectedOfficeId = form.watch("office_id");
   const { data: officeStaff = [] } = useOfficeStaff(selectedOfficeId);
   
-  // Filter to get only active offices and loan officers
-  const activeOffices = offices.filter(office => office.is_active);
+  // Filter to get only active offices (excluding head offices) and loan officers
+  const activeOffices = offices.filter(office => 
+    office.is_active && office.office_type !== 'head_office'
+  );
   const loanOfficers = officeStaff.filter(staff => 
     staff.role_in_office === 'loan_officer' && staff.is_active
   );
