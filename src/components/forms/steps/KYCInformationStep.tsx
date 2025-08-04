@@ -109,6 +109,16 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
         placeholder="Enter full residential address"
         rows={3}
       />
+
+      <ValidationFormField
+        form={form}
+        name="national_id"
+        label="National ID Number"
+        placeholder="12345678"
+        required
+        type="text"
+        maxLength={8}
+      />
     </div>
   );
 };

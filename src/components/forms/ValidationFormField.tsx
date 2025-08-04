@@ -18,6 +18,7 @@ interface ValidationFormFieldProps {
   disabled?: boolean;
   guidelines?: string[];
   className?: string;
+  maxLength?: number;
 }
 
 export const ValidationFormField = ({
@@ -31,7 +32,8 @@ export const ValidationFormField = ({
   rows = 3,
   disabled = false,
   guidelines = [],
-  className
+  className,
+  maxLength
 }: ValidationFormFieldProps) => {
   const fieldState = form.getFieldState(name);
   const hasError = !!fieldState.error;
@@ -105,6 +107,7 @@ export const ValidationFormField = ({
             placeholder={placeholder}
             disabled={disabled}
             className={inputClassName}
+            maxLength={maxLength}
             {...field}
           />
         );

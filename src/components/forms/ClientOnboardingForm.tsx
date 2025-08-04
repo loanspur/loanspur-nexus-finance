@@ -15,7 +15,6 @@ import { useCreateClient } from "@/hooks/useSupabase";
 
 // Step Components
 import { KYCInformationStep } from "./steps/KYCInformationStep";
-import { UniqueIdentifiersStep } from "./steps/UniqueIdentifiersStep";
 import { BankingInformationStep } from "./steps/BankingInformationStep";
 import { EmploymentBusinessStep } from "./steps/EmploymentBusinessStep";
 import { NextOfKinStep } from "./steps/NextOfKinStep";
@@ -40,12 +39,8 @@ const clientOnboardingSchema = z.object({
   gender: z.string().optional(),
   address: z.string().optional(),
   
-  // Unique Identifiers
-  selected_identifier_type: z.string().optional(),
-  national_id: z.string().optional().refine((val) => {
-    if (!val) return true;
-    return /^[0-9]{8}$/.test(val);
-  }, "National ID must be 8 digits"),
+  // National ID (moved to KYC section and made required)
+  national_id: z.string().min(1, "National ID is required").regex(/^[0-9]{8}$/, "National ID must be 8 digits"),
   passport_number: z.string().optional().refine((val) => {
     if (!val) return true;
     return /^[A-Z0-9]{6,12}$/.test(val);
@@ -104,7 +99,6 @@ interface ClientOnboardingFormProps {
 
 const steps = [
   { id: 'kyc', title: 'KYC Information', icon: User, description: 'Personal details' },
-  { id: 'identifiers', title: 'Unique Identifiers', icon: FileText, description: 'ID verification' },
   { id: 'banking', title: 'Banking Information', icon: CreditCard, description: 'Bank details' },
   { id: 'employment_business', title: 'Income Source', icon: Building, description: 'Income details' },
   { id: 'next_of_kin', title: 'Next of Kin', icon: Users, description: 'Emergency contact' },
@@ -142,7 +136,6 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       nationality: "",
       gender: "",
       address: "",
-      selected_identifier_type: "",
       national_id: "",
       passport_number: "",
       driving_license_number: "",
@@ -215,21 +208,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
     switch (stepId) {
       case 'kyc':
-        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth'];
-        break;
-      case 'identifiers':
-        const selectedType = form.getValues('selected_identifier_type');
-        if (!selectedType) {
-          toast({
-            title: "Identifier Required",
-            description: "Select an identifier type",
-            variant: "destructive",
-          });
-          return false;
-        }
-        if (selectedType) {
-          fieldsToValidate = [selectedType];
-        }
+        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth', 'national_id'];
         break;
       case 'employment_business':
         const incomeType = form.getValues('income_source_type');
@@ -333,8 +312,8 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         place_of_birth: data.place_of_birth || null,
         nationality: data.nationality || null,
         gender: data.gender || null,
-        address: data.address ? { street: data.address } : null,
-        national_id: data.national_id || null,
+      address: data.address ? { street: data.address } : null,
+        national_id: data.national_id,
         passport_number: data.passport_number || null,
         driving_license_number: data.driving_license_number || null,
         bank_name: data.bank_name || null,
@@ -378,13 +357,25 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       setCurrentStep(0);
       setUploadedDocuments([]);
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating client:", error);
-      toast({
-        title: "Error",
-        description: "Failed to complete client onboarding",
-        variant: "destructive",
-      });
+      
+      // Handle unique constraint violation for national_id
+      if (error?.message?.includes('clients_national_id_unique') || 
+          error?.message?.includes('duplicate key') ||
+          error?.code === '23505') {
+        toast({
+          title: "Duplicate National ID",
+          description: "This National ID number is already registered in the system. Please verify the number or contact support.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to complete client onboarding",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -397,8 +388,6 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
     switch (stepId) {
       case 'kyc':
         return <KYCInformationStep {...commonProps} />;
-      case 'identifiers':
-        return <UniqueIdentifiersStep {...commonProps} />;
       case 'banking':
         return <BankingInformationStep {...commonProps} />;
       case 'employment_business':
