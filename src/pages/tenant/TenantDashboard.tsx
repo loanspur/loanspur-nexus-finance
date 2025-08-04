@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
+import { ActiveBranchesCard } from "@/components/dashboard/ActiveBranchesCard";
 
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { 

@@ -47,6 +47,10 @@ const clientOnboardingSchema = z.object({
   }, "Invalid passport number format"),
   driving_license_number: z.string().optional(),
   
+  // Office and Loan Officer Assignment
+  office_id: z.string().min(1, "Office selection is required"),
+  loan_officer_id: z.string().optional(),
+  
   // Banking Information
   bank_name: z.string().optional(),
   bank_account_number: z.string().optional().refine((val) => {
@@ -312,10 +316,12 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         place_of_birth: data.place_of_birth || null,
         nationality: data.nationality || null,
         gender: data.gender || null,
-      address: data.address ? { street: data.address } : null,
+        address: data.address ? { street: data.address } : null,
         national_id: data.national_id,
         passport_number: data.passport_number || null,
         driving_license_number: data.driving_license_number || null,
+        office_id: data.office_id,
+        loan_officer_id: data.loan_officer_id || null,
         bank_name: data.bank_name || null,
         bank_account_number: data.bank_account_number || null,
         bank_branch: data.bank_branch || null,

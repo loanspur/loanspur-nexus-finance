@@ -28,7 +28,7 @@ import { ClientSavingsTab } from "@/components/client/tabs/ClientSavingsTab";
 import { ClientTransferTab } from "@/components/client/tabs/ClientTransferTab";
 import { ClientLoanOfficerTab } from "@/components/client/tabs/ClientLoanOfficerTab";
 import { ClientGroupsTab } from "@/components/client/tabs/ClientGroupsTab";
-import { ClientOfficeAssignment } from "@/components/client/ClientOfficeAssignment";
+
 import { AddSavingsAccountDialog } from "@/components/client/AddSavingsAccountDialog";
 import { SavingsAccountDetailsDialog } from "@/components/savings/SavingsAccountDetailsDialog";
 import { ClientBankDetailsTab } from "@/components/client/tabs/ClientBankDetailsTab";
@@ -418,7 +418,14 @@ const ClientDetailsPageRefactored = () => {
                   <ClientGroupsTab client={client} />
                 </TabsContent>
                 <TabsContent value="offices" className="mt-0">
-                  <ClientOfficeAssignment clientId={client.id} />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Office Assignment</h3>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Office assignment is now managed during client onboarding and can be updated in the client edit form.
+                    </div>
+                  </div>
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />

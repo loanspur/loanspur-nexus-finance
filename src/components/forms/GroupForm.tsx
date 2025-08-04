@@ -11,11 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useOffices } from "@/hooks/useOfficeManagement";
 import { Loader2 } from "lucide-react";
 
 const groupSchema = z.object({
   name: z.string().min(1, "Group name is required"),
   group_number: z.string().min(1, "Group number is required"),
+  office_id: z.string().min(1, "Office selection is required"),
   meeting_frequency: z.enum(["weekly", "bi_weekly", "monthly", "quarterly"]).optional(),
   meeting_day: z.string().optional(),
   meeting_time: z.string().optional(),
@@ -33,12 +35,14 @@ export const GroupForm = ({ open, onOpenChange, onSuccess }: GroupFormProps) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { profile } = useAuth();
   const { toast } = useToast();
+  const { data: offices = [] } = useOffices();
 
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: {
       name: "",
       group_number: "",
+      office_id: "",
       meeting_frequency: undefined,
       meeting_day: "",
       meeting_time: "",
@@ -63,6 +67,7 @@ export const GroupForm = ({ open, onOpenChange, onSuccess }: GroupFormProps) => 
           tenant_id: profile.tenant_id,
           name: values.name,
           group_number: values.group_number,
+          office_id: values.office_id,
           meeting_frequency: values.meeting_frequency || null,
           meeting_day: values.meeting_day || null,
           meeting_time: values.meeting_time || null,
@@ -143,6 +148,34 @@ export const GroupForm = ({ open, onOpenChange, onSuccess }: GroupFormProps) => 
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="office_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Office/Branch *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select office/branch" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {offices.filter(office => office.is_active).map((office) => (
+                        <SelectItem key={office.id} value={office.id}>
+                          {office.office_name} ({office.office_type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Office where this group operates
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
