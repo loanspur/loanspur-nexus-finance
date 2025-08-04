@@ -1289,6 +1289,7 @@ export type Database = {
           kyc_completed_at: string | null
           kyc_status: string | null
           last_name: string
+          loan_officer_id: string | null
           mifos_client_id: number | null
           monthly_income: number | null
           national_id: string | null
@@ -1299,6 +1300,7 @@ export type Database = {
           next_of_kin_phone: string | null
           next_of_kin_relationship: string | null
           occupation: string | null
+          office_id: string | null
           passport_number: string | null
           phone: string | null
           place_of_birth: string | null
@@ -1338,6 +1340,7 @@ export type Database = {
           kyc_completed_at?: string | null
           kyc_status?: string | null
           last_name: string
+          loan_officer_id?: string | null
           mifos_client_id?: number | null
           monthly_income?: number | null
           national_id?: string | null
@@ -1348,6 +1351,7 @@ export type Database = {
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
           occupation?: string | null
+          office_id?: string | null
           passport_number?: string | null
           phone?: string | null
           place_of_birth?: string | null
@@ -1387,6 +1391,7 @@ export type Database = {
           kyc_completed_at?: string | null
           kyc_status?: string | null
           last_name?: string
+          loan_officer_id?: string | null
           mifos_client_id?: number | null
           monthly_income?: number | null
           national_id?: string | null
@@ -1397,6 +1402,7 @@ export type Database = {
           next_of_kin_phone?: string | null
           next_of_kin_relationship?: string | null
           occupation?: string | null
+          office_id?: string | null
           passport_number?: string | null
           phone?: string | null
           place_of_birth?: string | null
@@ -1418,6 +1424,20 @@ export type Database = {
             columns: ["approved_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_loan_officer_id_fkey"
+            columns: ["loan_officer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
@@ -3794,6 +3814,7 @@ export type Database = {
           meeting_time: string | null
           mifos_group_id: number | null
           name: string
+          office_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -3807,6 +3828,7 @@ export type Database = {
           meeting_time?: string | null
           mifos_group_id?: number | null
           name: string
+          office_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -3820,10 +3842,18 @@ export type Database = {
           meeting_time?: string | null
           mifos_group_id?: number | null
           name?: string
+          office_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "groups_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "groups_tenant_id_fkey"
             columns: ["tenant_id"]
