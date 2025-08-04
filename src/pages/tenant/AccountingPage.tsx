@@ -16,14 +16,13 @@ import { JournalEntriesTable } from "@/components/accounting/JournalEntriesTable
 import { ChartOfAccountsTable } from "@/components/accounting/ChartOfAccountsTable";
 import { AccountBalancesTable } from "@/components/accounting/AccountBalancesTable";
 import { FinancialActivityMappingsTable } from "@/components/accounting/FinancialActivityMappingsTable";
-import { ProductAccountingIntegration } from "@/components/accounting/ProductAccountingIntegration";
 import { ReconciliationManagement } from "@/components/accounting/ReconciliationManagement";
 
 import { useAuth } from "@/hooks/useAuth";
 
 const AccountingPage = () => {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState("products");
+  const [activeTab, setActiveTab] = useState("journal-entries");
 
   if (!profile || profile.role === 'client') {
     return (
@@ -79,11 +78,7 @@ const AccountingPage = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="products" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Products
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="journal-entries" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Journal Entries
@@ -108,15 +103,7 @@ const AccountingPage = () => {
             <Calendar className="h-4 w-4" />
             Closing Entries
           </TabsTrigger>
-          <TabsTrigger value="reports" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Reports
-          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="products" className="space-y-4">
-          <ProductAccountingIntegration />
-        </TabsContent>
 
         <TabsContent value="journal-entries" className="space-y-4">
           <JournalEntriesTable />
@@ -146,19 +133,6 @@ const AccountingPage = () => {
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
                 Closing entries management coming soon...
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Accounting Reports</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                Financial reports coming soon...
               </div>
             </CardContent>
           </Card>
