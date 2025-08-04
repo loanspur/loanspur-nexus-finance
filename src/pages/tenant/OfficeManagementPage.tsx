@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, Building2, Users, MapPin, Phone, Mail } from "lucide-react";
 import { useOffices, useOfficeStaff, useDeleteOffice, Office } from "@/hooks/useOfficeManagement";
+import { useClientOfficeAssignments } from "@/hooks/useClientOfficeAssignment";
 import { CreateOfficeDialog } from "@/components/tenant/CreateOfficeDialog";
 import { EditOfficeDialog } from "@/components/tenant/EditOfficeDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ const OfficeManagementPage = () => {
 
   const { data: offices = [], isLoading, refetch } = useOffices();
   const { data: officeStaff = [] } = useOfficeStaff();
+  const { data: clientAssignments = [] } = useClientOfficeAssignments();
   const deleteOfficeMutation = useDeleteOffice();
 
   const filteredOffices = offices.filter(office => 
@@ -29,18 +31,18 @@ const OfficeManagementPage = () => {
     office.branch_manager?.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getOfficeTypeBadgeColor = (type: string) => {
+  const getOfficeTypeBadgeColor = (type: string): "default" | "destructive" | "outline" | "secondary" => {
     switch (type) {
       case 'head_office':
-        return 'bg-purple-100 text-purple-800';
+        return 'default';
       case 'branch':
-        return 'bg-blue-100 text-blue-800';
+        return 'secondary';
       case 'sub_branch':
-        return 'bg-green-100 text-green-800';
+        return 'outline';
       case 'collection_center':
-        return 'bg-orange-100 text-orange-800';
+        return 'destructive';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'outline';
     }
   };
 
@@ -155,6 +157,7 @@ const OfficeManagementPage = () => {
         <TabsList>
           <TabsTrigger value="offices">Offices</TabsTrigger>
           <TabsTrigger value="staff">Office Staff</TabsTrigger>
+          <TabsTrigger value="assignments">Client Assignments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="offices" className="space-y-6">
@@ -217,7 +220,7 @@ const OfficeManagementPage = () => {
                           </TableCell>
                           <TableCell className="font-mono">{office.office_code}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className={getOfficeTypeBadgeColor(office.office_type)}>
+                            <Badge variant={getOfficeTypeBadgeColor(office.office_type)}>
                               {getOfficeTypeLabel(office.office_type)}
                             </Badge>
                           </TableCell>
@@ -344,6 +347,57 @@ const OfficeManagementPage = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="assignments" className="space-y-4">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Client Number</TableHead>
+                  <TableHead>Office</TableHead>
+                  <TableHead>Office Type</TableHead>
+                  <TableHead>Assigned Date</TableHead>
+                  <TableHead>Primary</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                 {clientAssignments.length === 0 ? (
+                   <TableRow>
+                     <TableCell colSpan={6} className="text-center py-8">
+                       No client assignments found
+                     </TableCell>
+                   </TableRow>
+                 ) : (
+                   clientAssignments.map((assignment: any) => (
+                     <TableRow key={assignment.id}>
+                       <TableCell>
+                         {assignment.client?.first_name} {assignment.client?.last_name}
+                       </TableCell>
+                       <TableCell>{assignment.client?.client_number}</TableCell>
+                       <TableCell>{assignment.office?.office_name}</TableCell>
+                       <TableCell>
+                         <Badge variant={getOfficeTypeBadgeColor(assignment.office?.office_type || '')}>
+                           {getOfficeTypeLabel(assignment.office?.office_type || '')}
+                         </Badge>
+                       </TableCell>
+                       <TableCell>
+                         {new Date(assignment.assigned_date).toLocaleDateString()}
+                       </TableCell>
+                       <TableCell>
+                         {assignment.is_primary ? (
+                           <Badge variant="default">Primary</Badge>
+                         ) : (
+                           <Badge variant="outline">Secondary</Badge>
+                         )}
+                       </TableCell>
+                     </TableRow>
+                   ))
+                 )}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
       </Tabs>
 

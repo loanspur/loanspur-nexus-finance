@@ -28,6 +28,7 @@ import { ClientSavingsTab } from "@/components/client/tabs/ClientSavingsTab";
 import { ClientTransferTab } from "@/components/client/tabs/ClientTransferTab";
 import { ClientLoanOfficerTab } from "@/components/client/tabs/ClientLoanOfficerTab";
 import { ClientGroupsTab } from "@/components/client/tabs/ClientGroupsTab";
+import { ClientOfficeAssignment } from "@/components/client/ClientOfficeAssignment";
 import { AddSavingsAccountDialog } from "@/components/client/AddSavingsAccountDialog";
 import { SavingsAccountDetailsDialog } from "@/components/savings/SavingsAccountDetailsDialog";
 import { ClientBankDetailsTab } from "@/components/client/tabs/ClientBankDetailsTab";
@@ -349,6 +350,10 @@ const ClientDetailsPageRefactored = () => {
                     <PiggyBank className="h-4 w-4 mr-2" />
                     Savings ({activeSavings.length})
                   </TabsTrigger>
+                  <TabsTrigger value="offices" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Offices
+                  </TabsTrigger>
                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <StickyNote className="h-4 w-4 mr-2" />
                     Notes
@@ -411,6 +416,9 @@ const ClientDetailsPageRefactored = () => {
                 </TabsContent>
                 <TabsContent value="groups" className="mt-0">
                   <ClientGroupsTab client={client} />
+                </TabsContent>
+                <TabsContent value="offices" className="mt-0">
+                  <ClientOfficeAssignment clientId={client.id} />
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />
