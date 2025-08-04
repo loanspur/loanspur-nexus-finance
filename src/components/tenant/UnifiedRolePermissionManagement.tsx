@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Shield, 
   Save, 
@@ -15,7 +17,8 @@ import {
   Eye,
   Edit,
   Trash2,
-  Plus
+  Plus,
+  Users
 } from "lucide-react";
 import { 
   usePermissions, 
@@ -23,49 +26,67 @@ import {
   useBulkUpdateRolePermissions,
   Permission 
 } from "@/hooks/useRolePermissions";
+import { useCustomRoles, useCreateCustomRole, useUpdateCustomRole, useDeleteCustomRole } from "@/hooks/useCustomRoles";
+import { useTenantMakerCheckerSettings } from "@/hooks/usePermissionManagement";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const ROLES = [
+const DEFAULT_ROLES = [
   { 
     value: "admin", 
     label: "Admin", 
     color: "bg-red-500", 
     description: "Full access to all features and settings",
-    icon: Shield
+    icon: Shield,
+    isDefault: true
   },
   { 
     value: "manager", 
     label: "Manager", 
     color: "bg-blue-500", 
     description: "Full access except critical deletions",
-    icon: Settings
+    icon: Settings,
+    isDefault: true
   },
   { 
     value: "accountant", 
     label: "Accountant", 
     color: "bg-purple-500", 
     description: "Accounting, payments, and financial operations",
-    icon: CheckCircle
+    icon: CheckCircle,
+    isDefault: true
   },
   { 
     value: "loan_officer", 
     label: "Loan Officer", 
     color: "bg-green-500", 
     description: "Client management and loan operations",
-    icon: Edit
+    icon: Edit,
+    isDefault: true
   },
   { 
     value: "read_only", 
     label: "Read Only", 
     color: "bg-gray-500", 
     description: "View-only access to all features",
-    icon: Eye
-  },
-  { 
-    value: "tenant_admin", 
-    label: "Legacy Admin", 
-    color: "bg-orange-500", 
-    description: "Legacy role - migrate to Admin role",
-    icon: AlertTriangle
+    icon: Eye,
+    isDefault: true
   },
 ];
 
@@ -101,14 +122,60 @@ interface SelectedPermission {
   canCheck: boolean;
 }
 
-export const EnhancedRolePermissionManagement = () => {
-  const [selectedRole, setSelectedRole] = useState("admin");
+interface RoleFormData {
+  name: string;
+  description: string;
+  is_active: boolean;
+}
+
+export const UnifiedRolePermissionManagement = () => {
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<SelectedPermission[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [createRoleDialog, setCreateRoleDialog] = useState(false);
+  const [editRoleDialog, setEditRoleDialog] = useState(false);
+  const [deleteRoleDialog, setDeleteRoleDialog] = useState(false);
+  const [roleToEdit, setRoleToEdit] = useState<any>(null);
+  const [roleToDelete, setRoleToDelete] = useState<any>(null);
+  const [roleFormData, setRoleFormData] = useState<RoleFormData>({
+    name: "",
+    description: "",
+    is_active: true
+  });
 
   const { data: permissions = [], isLoading: permissionsLoading } = usePermissions();
   const { data: rolePermissions = [], isLoading: rolePermissionsLoading, refetch } = useRolePermissions();
+  const { data: customRoles = [], refetch: refetchCustomRoles } = useCustomRoles();
+  const { data: makerCheckerSettings } = useTenantMakerCheckerSettings();
   const bulkUpdateMutation = useBulkUpdateRolePermissions();
+  const createRoleMutation = useCreateCustomRole();
+  const updateRoleMutation = useUpdateCustomRole();
+  const deleteRoleMutation = useDeleteCustomRole();
+
+  // Define role interface
+  interface RoleData {
+    value: string;
+    label: string;
+    color: string;
+    description: string;
+    icon: any;
+    isDefault: boolean;
+    customRoleData?: any;
+  }
+
+  // Combine default and custom roles
+  const allRoles: RoleData[] = [
+    ...DEFAULT_ROLES,
+    ...customRoles.map(role => ({
+      value: role.name.toLowerCase().replace(/\s+/g, '_'),
+      label: role.name,
+      color: "bg-cyan-500",
+      description: role.description || "Custom role",
+      icon: Users,
+      isDefault: false,
+      customRoleData: role
+    }))
+  ];
 
   // Group permissions by bundle and module
   const groupedPermissions = permissions.reduce((acc, permission) => {
@@ -134,10 +201,27 @@ export const EnhancedRolePermissionManagement = () => {
   });
 
   // Get current role permissions
-  const currentRolePermissions = rolePermissions.filter(rp => rp.role === selectedRole);
+  const currentRolePermissions = rolePermissions.filter(rp => {
+    if (!selectedRole) return false;
+    
+    // For custom roles, match by custom role name
+    const selectedRoleData = allRoles.find(r => r.value === selectedRole);
+    if (selectedRoleData?.customRoleData) {
+      return rp.custom_role_id === selectedRoleData.customRoleData.id;
+    }
+    
+    // For default roles, match by role string
+    return rp.role === selectedRole;
+  });
 
   // Update selected permissions when role changes
   useEffect(() => {
+    if (!selectedRole) {
+      setSelectedPermissions([]);
+      setHasChanges(false);
+      return;
+    }
+
     const rolePerms = currentRolePermissions.map(rp => ({
       permissionId: rp.permission_id,
       canMake: rp.can_make || true,
@@ -145,10 +229,10 @@ export const EnhancedRolePermissionManagement = () => {
     }));
     setSelectedPermissions(rolePerms);
     setHasChanges(false);
-  }, [selectedRole, rolePermissions]);
+  }, [selectedRole, rolePermissions, customRoles]);
 
-  const handleRoleChange = (role: string) => {
-    setSelectedRole(role);
+  const handleRoleChange = (roleValue: string) => {
+    setSelectedRole(roleValue);
   };
 
   const handlePermissionToggle = (permissionId: string) => {
@@ -232,8 +316,13 @@ export const EnhancedRolePermissionManagement = () => {
   };
 
   const handleSave = async () => {
+    if (!selectedRole) return;
+
+    const selectedRoleData = allRoles.find(r => r.value === selectedRole);
+    
     await bulkUpdateMutation.mutateAsync({
-      role: selectedRole,
+      role: selectedRoleData?.isDefault ? selectedRole : undefined,
+      customRoleId: selectedRoleData?.customRoleData?.id,
       permissions: selectedPermissions
     });
     setHasChanges(false);
@@ -248,6 +337,55 @@ export const EnhancedRolePermissionManagement = () => {
     }));
     setSelectedPermissions(rolePerms);
     setHasChanges(false);
+  };
+
+  const handleCreateRole = async () => {
+    await createRoleMutation.mutateAsync(roleFormData);
+    setCreateRoleDialog(false);
+    setRoleFormData({ name: "", description: "", is_active: true });
+    refetchCustomRoles();
+  };
+
+  const handleEditRole = (role: any) => {
+    setRoleToEdit(role);
+    setRoleFormData({
+      name: role.name,
+      description: role.description || "",
+      is_active: role.is_active
+    });
+    setEditRoleDialog(true);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!roleToEdit) return;
+    
+    await updateRoleMutation.mutateAsync({
+      roleId: roleToEdit.id,
+      updates: roleFormData
+    });
+    setEditRoleDialog(false);
+    setRoleToEdit(null);
+    setRoleFormData({ name: "", description: "", is_active: true });
+    refetchCustomRoles();
+  };
+
+  const handleDeleteRole = (role: any) => {
+    setRoleToDelete(role);
+    setDeleteRoleDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!roleToDelete) return;
+    
+    await deleteRoleMutation.mutateAsync(roleToDelete.id);
+    setDeleteRoleDialog(false);
+    setRoleToDelete(null);
+    refetchCustomRoles();
+    
+    // If the deleted role was selected, clear selection
+    if (selectedRole === roleToDelete.name.toLowerCase().replace(/\s+/g, '_')) {
+      setSelectedRole(null);
+    }
   };
 
   if (permissionsLoading || rolePermissionsLoading) {
@@ -266,32 +404,39 @@ export const EnhancedRolePermissionManagement = () => {
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Shield className="h-6 w-6" />
-            Enhanced Role & Permission Management
+            Role & Permission Management
           </h2>
-          <p className="text-muted-foreground">Configure comprehensive permissions with maker-checker controls</p>
+          <p className="text-muted-foreground">Manage roles and configure permissions with optional maker-checker controls</p>
         </div>
         
-        {hasChanges && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleReset}>
-              Reset
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={bulkUpdateMutation.isPending}
-              className="gap-2"
-            >
-              <Save className="h-4 w-4" />
-              {bulkUpdateMutation.isPending ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button onClick={() => setCreateRoleDialog(true)} variant="outline" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Role
+          </Button>
+          
+          {hasChanges && (
+            <>
+              <Button variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={bulkUpdateMutation.isPending}
+                className="gap-2"
+              >
+                <Save className="h-4 w-4" />
+                {bulkUpdateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Role Selection Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {ROLES.map((role) => {
-          const rolePerms = rolePermissions.filter(rp => rp.role === role.value);
+        {allRoles.map((role) => {
+          const rolePerms = currentRolePermissions.length;
           const IconComponent = role.icon;
           
           return (
@@ -308,13 +453,48 @@ export const EnhancedRolePermissionManagement = () => {
                     <IconComponent className="h-5 w-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{role.label}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold truncate">{role.label}</h3>
+                      {!role.isDefault && (
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditRole(role.customRoleData);
+                            }}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRole(role.customRoleData);
+                            }}
+                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                       {role.description}
                     </p>
-                    <Badge variant="secondary" className="text-xs">
-                      {rolePerms.length} permissions
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedRole === role.value ? selectedPermissions.length : rolePerms} permissions
+                      </Badge>
+                      {role.isDefault && (
+                        <Badge variant="outline" className="text-xs">
+                          Default
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -329,11 +509,19 @@ export const EnhancedRolePermissionManagement = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Configure {ROLES.find(r => r.value === selectedRole)?.label} Permissions
+              Configure {allRoles.find(r => r.value === selectedRole)?.label} Permissions
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Select permissions and configure maker-checker controls for sensitive operations
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Select permissions and configure maker-checker controls for sensitive operations
+              </p>
+              {makerCheckerSettings?.enabled && (
+                <Badge variant="outline" className="gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Maker-Checker Enabled
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {Object.entries(groupedPermissions).map(([bundle, bundleGroups]) => {
@@ -434,12 +622,12 @@ export const EnhancedRolePermissionManagement = () => {
                                 </div>
                                 
                                 {/* Maker-Checker Controls */}
-                                {isSelected && permission.requires_maker_checker && (
+                                {isSelected && permission.requires_maker_checker && makerCheckerSettings?.enabled && (
                                   <div className="mt-3 pt-3 border-t">
                                     <div className="flex items-center justify-between text-sm">
                                       <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-2">
-                                        <Switch
+                                          <Switch
                                             checked={selectedPerm?.canMake || false}
                                             onCheckedChange={() => handleMakerCheckerToggle(permission.id, 'canMake')}
                                           />
@@ -477,12 +665,18 @@ export const EnhancedRolePermissionManagement = () => {
       {/* Summary Statistics */}
       <Card>
         <CardHeader>
-          <CardTitle>Permission Summary</CardTitle>
+          <CardTitle>Role Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {ROLES.map((role) => {
-              const rolePerms = rolePermissions.filter(rp => rp.role === role.value);
+            {allRoles.slice(0, 6).map((role) => {
+              const rolePerms = rolePermissions.filter(rp => {
+                if (role.customRoleData) {
+                  return rp.custom_role_id === role.customRoleData.id;
+                }
+                return rp.role === role.value;
+              });
+              
               const makerCheckerPerms = rolePerms.filter(rp => {
                 const permission = permissions.find(p => p.id === rp.permission_id);
                 return permission?.requires_maker_checker;
@@ -504,6 +698,124 @@ export const EnhancedRolePermissionManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Role Dialog */}
+      <Dialog open={createRoleDialog} onOpenChange={setCreateRoleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Role</DialogTitle>
+            <DialogDescription>
+              Create a custom role with specific permissions for your organization.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Role Name</label>
+              <Input
+                value={roleFormData.name}
+                onChange={(e) => setRoleFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter role name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={roleFormData.description}
+                onChange={(e) => setRoleFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter role description"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={roleFormData.is_active}
+                onCheckedChange={(checked) => setRoleFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+              <label className="text-sm font-medium">Active</label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateRoleDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateRole}
+              disabled={createRoleMutation.isPending || !roleFormData.name}
+            >
+              {createRoleMutation.isPending ? 'Creating...' : 'Create Role'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={editRoleDialog} onOpenChange={setEditRoleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Role</DialogTitle>
+            <DialogDescription>
+              Update the role details and settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Role Name</label>
+              <Input
+                value={roleFormData.name}
+                onChange={(e) => setRoleFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter role name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={roleFormData.description}
+                onChange={(e) => setRoleFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter role description"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={roleFormData.is_active}
+                onCheckedChange={(checked) => setRoleFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+              <label className="text-sm font-medium">Active</label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditRoleDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateRole}
+              disabled={updateRoleMutation.isPending || !roleFormData.name}
+            >
+              {updateRoleMutation.isPending ? 'Updating...' : 'Update Role'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Role Dialog */}
+      <AlertDialog open={deleteRoleDialog} onOpenChange={setDeleteRoleDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the role "{roleToDelete?.name}"? 
+              This action cannot be undone and will fail if the role is currently assigned to users.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Role
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

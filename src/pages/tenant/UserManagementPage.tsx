@@ -13,8 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreateUserDialog } from "@/components/tenant/CreateUserDialog";
 import { EditUserDialog } from "@/components/tenant/EditUserDialog";
 import { DeleteUserDialog } from "@/components/tenant/DeleteUserDialog";
-import { RolePermissionManagement } from "@/components/tenant/RolePermissionManagement";
-import { CustomRoleManagement } from "@/components/tenant/CustomRoleManagement";
+import { UnifiedRolePermissionManagement } from "@/components/tenant/UnifiedRolePermissionManagement";
 import { ApprovalWorkflowManagement } from "@/components/tenant/ApprovalWorkflowManagement";
 
 const UserManagementPage = () => {
@@ -228,11 +227,11 @@ const UserManagementPage = () => {
         </TabsContent>
 
         <TabsContent value="permissions">
-          <RolePermissionManagement />
+          <UnifiedRolePermissionManagement />
         </TabsContent>
 
         <TabsContent value="custom-roles">
-          <CustomRoleManagement />
+          <UnifiedRolePermissionManagement />
         </TabsContent>
 
         <TabsContent value="approvals">
