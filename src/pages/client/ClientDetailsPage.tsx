@@ -21,7 +21,6 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { ClientGeneralTab } from "@/components/client/tabs/ClientGeneralTab";
-import { ClientIdentitiesTab } from "@/components/client/tabs/ClientIdentitiesTab";
 import { ClientDocumentsTab } from "@/components/client/tabs/ClientDocumentsTab";
 import { ClientEmploymentTab } from "@/components/client/tabs/ClientEmploymentTab";
 import { ClientBusinessTab } from "@/components/client/tabs/ClientBusinessTab";

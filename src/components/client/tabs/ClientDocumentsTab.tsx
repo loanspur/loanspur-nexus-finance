@@ -148,11 +148,21 @@ export const ClientDocumentsTab = ({ clientId }: ClientDocumentsTabProps) => {
       setIsUploading(true);
       
       // Get current user's tenant_id
-      const { data: profile } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('tenant_id, id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', user.id)
         .single();
+
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw new Error('Failed to get user profile');
+      }
 
       let fileUrl = editingDocument?.file_url;
       let fileSize = editingDocument?.file_size;
@@ -338,11 +348,21 @@ export const ClientDocumentsTab = ({ clientId }: ClientDocumentsTabProps) => {
 
   const toggleVerification = async (document: Document) => {
     try {
-      const { data: profile } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', user.id)
         .single();
+
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw new Error('Failed to get user profile');
+      }
 
       const { error } = await supabase
         .from('client_documents')

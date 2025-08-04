@@ -330,13 +330,18 @@ export const useActivateClient = () => {
 
   return useMutation({
     mutationFn: async (clientId: string) => {
-      const { data: profileData } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('user_id', user.id)
         .single();
 
-      if (!profileData?.id) {
+      if (profileError || !profileData?.id) {
         throw new Error('No user profile available');
       }
 
