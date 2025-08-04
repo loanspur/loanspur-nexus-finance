@@ -16,7 +16,7 @@ import ReconciliationPage from "@/pages/tenant/ReconciliationPage";
 import FinancialReportsPage from "@/pages/tenant/FinancialReportsPage";
 import AuditCompliancePage from "@/pages/tenant/AuditCompliancePage";
 import UserManagementPage from "@/pages/tenant/UserManagementPage";
-import RolesPermissionsPage from "@/pages/tenant/RolesPermissionsPage";
+
 import OfficeManagementPage from "@/pages/tenant/OfficeManagementPage";
 import CurrencyConfigPage from "@/pages/tenant/CurrencyConfigPage";
 import FundsManagementPage from "@/pages/tenant/FundsManagementPage";
@@ -67,7 +67,6 @@ const TenantLayout = () => {
               <Route path="/reports" element={<FinancialReportsPage />} />
               <Route path="/audit" element={<AuditCompliancePage />} />
               <Route path="/user-management" element={<UserManagementPage />} />
-              <Route path="/roles-permissions" element={<RolesPermissionsPage />} />
               <Route path="/office-management" element={<OfficeManagementPage />} />
               <Route path="/currency-config" element={<CurrencyConfigPage />} />
               <Route path="/funds-management" element={<FundsManagementPage />} />

@@ -72,11 +72,6 @@ const TenantSidebar = () => {
           icon: Users
         },
         {
-          title: "Roles & Permissions",
-          path: "/tenant/roles-permissions",
-          icon: Shield
-        },
-        {
           title: "Office Management",
           path: "/tenant/office-management",
           icon: Building2
