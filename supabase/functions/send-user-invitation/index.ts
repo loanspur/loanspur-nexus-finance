@@ -73,12 +73,28 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialize Resend
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
+    // Fetch tenant data to get subdomain if not provided
+    let actualSubdomain = tenantSubdomain;
+    if (!actualSubdomain) {
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .select('subdomain')
+        .eq('id', tenantId)
+        .single();
+      
+      if (!tenantError && tenantData) {
+        actualSubdomain = tenantData.subdomain;
+      }
+    }
+    
     // Generate invitation URL using tenant subdomain
-    const baseUrl = tenantSubdomain 
-      ? `https://${tenantSubdomain}.lovable.app`
+    const baseUrl = actualSubdomain 
+      ? `https://${actualSubdomain}.lovable.app`
       : `https://app.lovable.app`;
     
     const invitationUrl = `${baseUrl}/auth/accept-invitation?token=${invitationToken}`;
+    
+    console.log(`Generated invitation URL: ${invitationUrl}`);
 
     const roleDisplayName = role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
