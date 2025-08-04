@@ -1216,6 +1216,47 @@ export type Database = {
         }
         Relationships: []
       }
+      client_office_assignments: {
+        Row: {
+          assigned_by: string | null
+          assigned_date: string
+          client_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          office_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_date?: string
+          client_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          office_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_date?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          office_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_office_assignments_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activated_by: string | null
@@ -7827,6 +7868,18 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_user_accessible_client_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          client_id: string
+        }[]
+      }
+      get_user_accessible_offices: {
+        Args: { user_profile_id: string }
+        Returns: {
+          office_id: string
+        }[]
       }
       get_user_chat_room_ids: {
         Args: Record<PropertyKey, never>
