@@ -18,9 +18,17 @@ const OfficeManagementPage = () => {
   const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
   const { toast } = useToast();
 
-  const { data: offices = [], isLoading } = useOffices();
+  const { data: offices = [], isLoading, error } = useOffices();
   const { data: officeStaff = [] } = useOfficeStaff();
   const deleteOfficeMutation = useDeleteOffice();
+
+  // Debug logging
+  console.log('OfficeManagementPage - Debug Info:', {
+    offices,
+    isLoading,
+    error,
+    officesCount: offices.length
+  });
 
   const filteredOffices = offices.filter(office => 
     office.office_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

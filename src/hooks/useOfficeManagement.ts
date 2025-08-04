@@ -58,8 +58,13 @@ export const useOffices = () => {
   const query = useQuery({
     queryKey: ['offices', profile?.tenant_id],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      console.log('useOffices queryFn - profile:', profile);
+      if (!profile?.tenant_id) {
+        console.log('useOffices - No tenant_id, returning empty array');
+        return [];
+      }
 
+      console.log('useOffices - Making query for tenant_id:', profile.tenant_id);
       const { data, error } = await supabase
         .from('offices')
         .select(`
@@ -70,7 +75,11 @@ export const useOffices = () => {
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('useOffices - Query result:', { data, error });
+      if (error) {
+        console.error('useOffices - Query error:', error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!profile?.tenant_id,
