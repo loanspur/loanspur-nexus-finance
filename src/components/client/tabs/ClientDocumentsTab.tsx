@@ -204,10 +204,23 @@ export const ClientDocumentsTab = ({ clientId }: ClientDocumentsTabProps) => {
       };
 
       if (editingDocument) {
-        // Update existing document
+        // Update existing document - exclude immutable fields
+        const updateData = {
+          document_name: formData.document_name,
+          document_type: formData.document_type,
+          description: formData.description || null,
+          file_url: fileUrl,
+          file_size: fileSize,
+          mime_type: mimeType,
+          is_verified: formData.is_verified,
+          is_required: formData.is_required,
+          expiry_date: formData.expiry_date || null,
+          updated_at: new Date().toISOString(),
+        };
+        
         const { error } = await supabase
           .from('client_documents')
-          .update(documentData)
+          .update(updateData)
           .eq('id', editingDocument.id);
 
         if (error) throw error;

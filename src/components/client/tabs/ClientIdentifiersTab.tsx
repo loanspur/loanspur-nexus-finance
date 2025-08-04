@@ -112,9 +112,19 @@ export const ClientIdentifiersTab = ({ clientId }: ClientIdentifiersTabProps) =>
       };
 
       if (editingId) {
+        // For updates, exclude client_id and tenant_id as they shouldn't change
+        const updateData = {
+          identifier_type: formData.identifier_type,
+          identifier_value: formData.identifier_value,
+          expiry_date: formData.expiry_date || null,
+          issuing_authority: formData.issuing_authority || null,
+          notes: formData.notes || null,
+          is_verified: formData.is_verified,
+        };
+        
         const { error } = await supabase
           .from('client_identifiers')
-          .update(submitData)
+          .update(updateData)
           .eq('id', editingId);
 
         if (error) throw error;
@@ -139,11 +149,15 @@ export const ClientIdentifiersTab = ({ clientId }: ClientIdentifiersTabProps) =>
       resetForm();
       setDialogOpen(false);
       fetchIdentifiers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving identifier:', error);
+      const errorMessage = error?.message?.includes('duplicate') || error?.code === '23505' 
+        ? "This identifier value already exists. Please use a different value."
+        : "Failed to save identifier. Please try again.";
+      
       toast({
         title: "Error",
-        description: "Failed to save identifier",
+        description: errorMessage,
         variant: "destructive",
       });
     }
