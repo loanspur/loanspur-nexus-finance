@@ -88,6 +88,20 @@ export const useAuthState = () => {
               
               if (error) {
                 console.error('Error fetching profile:', error);
+                
+                // If it's a 406 error or profile not found, this might be a deleted user
+                // Clear the session to prevent infinite loops
+                if (error.code === 'PGRST116' || error.message?.includes('not found') || error.message?.includes('JSON object requested, multiple (or no) rows returned')) {
+                  console.warn('Profile not found for user, clearing session:', session.user.id);
+                  await supabase.auth.signOut();
+                  toast({
+                    title: "Session Cleared",
+                    description: "Invalid session detected and cleared. Please login again.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
                 toast({
                   title: "Profile Error", 
                   description: "Could not load user profile",
@@ -96,6 +110,13 @@ export const useAuthState = () => {
                 setState(prev => ({ ...prev, loading: false }));
               } else if (!profile) {
                 console.warn('No active profile found for user:', session.user.id);
+                // If no profile found, also clear the session
+                await supabase.auth.signOut();
+                toast({
+                  title: "No Profile Found",
+                  description: "No active profile found. Please contact support.",
+                  variant: "destructive",
+                });
                 setState(prev => ({ ...prev, loading: false }));
               } else {
                 setState(prev => ({ ...prev, profile, loading: false }));
