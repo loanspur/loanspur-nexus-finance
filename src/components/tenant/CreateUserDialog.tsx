@@ -10,8 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOffices } from "@/hooks/useOfficeManagement";
 import { usePasswordReset } from "@/hooks/usePasswordReset";
 import { useTenant } from "@/contexts/TenantContext";
-import { useSystemRoles, useCombinedRoles } from "@/hooks/useSystemRoles";
-import { useCustomRoles } from "@/hooks/useCustomRoles";
+import { useSystemRoles } from "@/hooks/useSystemRoles";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -26,7 +25,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     firstName: "",
     lastName: "",
     role: "",
-    customRoleId: "",
     officeId: "",
     isLoanOfficer: false
   });
@@ -36,7 +34,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
   const { sendUserInvitation } = usePasswordReset();
   const { currentTenant } = useTenant();
   const { data: systemRoles = [] } = useSystemRoles();
-  const { data: customRoles = [] } = useCustomRoles();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,24 +49,22 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         throw new Error('Please fill in all required fields.');
       }
 
-      // For loan officers, office assignment is required
-      if (formData.role === "loan_officer" && !formData.officeId) {
-        throw new Error('Please assign an office for loan officers.');
+      // Office assignment is required for all staff roles (not clients)
+      if (formData.role !== "client" && !formData.officeId) {
+        throw new Error('Please assign an office for staff members.');
       }
 
-      // Build metadata for office assignment if applicable
+      // Build metadata for office assignment and loan officer status
       const metadata: any = {};
-      if (formData.role === "loan_officer" && formData.officeId) {
+      if (formData.officeId) {
         metadata.officeId = formData.officeId;
-        metadata.roleInOffice = 'loan_officer';
+        metadata.roleInOffice = formData.role;
       }
       
-      // Add custom role if selected
-      if (formData.customRoleId) {
-        metadata.customRoleId = formData.customRoleId;
-      }
+      // Set loan officer flag
+      metadata.isLoanOfficer = formData.isLoanOfficer;
 
-      // Send user invitation instead of creating directly
+      // Send user invitation
       await sendUserInvitation.mutateAsync({
         email: formData.email,
         firstName: formData.firstName,
@@ -88,7 +83,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         firstName: "",
         lastName: "",
         role: "",
-        customRoleId: "",
         officeId: "",
         isLoanOfficer: false
       });
@@ -169,8 +163,7 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
                 onValueChange={(value) => setFormData(prev => ({ 
                   ...prev, 
                   role: value,
-                  isLoanOfficer: value === "loan_officer",
-                  customRoleId: "" // Reset custom role when system role changes
+                  isLoanOfficer: value === "loan_officer" || prev.isLoanOfficer
                 }))}
               >
                 <SelectTrigger>
@@ -193,48 +186,29 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
               </Select>
             </div>
 
-            {customRoles.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="customRole">Additional Custom Role (Optional)</Label>
-                <Select 
-                  value={formData.customRoleId || undefined} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select additional permissions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customRoles
-                      .filter(role => role.is_active)
-                      .map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          <div className="flex flex-col items-start">
-                            <span>{role.name}</span>
-                            {role.description && (
-                              <span className="text-xs text-muted-foreground">{role.description}</span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Custom roles provide additional permissions beyond the system role
-                </p>
-              </div>
-            )}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isLoanOfficer"
+                checked={formData.isLoanOfficer}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isLoanOfficer: !!checked }))}
+              />
+              <Label htmlFor="isLoanOfficer" className="text-sm">
+                Assign loan officer responsibilities
+              </Label>
+            </div>
           </div>
 
-          {/* Office Assignment Section */}
-          {formData.role === "loan_officer" && (
+          {/* Office Assignment Section - Required for staff */}
+          {formData.role !== "client" && (
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground border-b pb-2">Office Assignment</h3>
+              <h3 className="text-sm font-medium text-foreground border-b pb-2">
+                Branch/Office Assignment
+              </h3>
               <div className="space-y-2">
-                <Label htmlFor="office">Assign to Office *</Label>
+                <Label htmlFor="office">Assign to Branch/Office *</Label>
                 <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an office" />
+                    <SelectValue placeholder="Select a branch or office" />
                   </SelectTrigger>
                   <SelectContent>
                     {offices
@@ -245,6 +219,7 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
                             <span>{office.office_name}</span>
                             <span className="text-xs text-muted-foreground">
                               Code: {office.office_code} • Type: {office.office_type}
+                              {office.parent_office_id && ' • Sub-office'}
                             </span>
                           </div>
                         </SelectItem>
@@ -253,7 +228,7 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Loan officers must be assigned to an office for client management
+                  All staff members must be assigned to a branch or office
                 </p>
               </div>
             </div>
