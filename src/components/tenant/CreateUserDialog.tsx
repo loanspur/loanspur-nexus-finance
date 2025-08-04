@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
+import { useOffices } from "@/hooks/useOfficeManagement";
+import { usePasswordReset } from "@/hooks/usePasswordReset";
+import { useTenant } from "@/contexts/TenantContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -19,89 +23,75 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
-    password: "",
     firstName: "",
     lastName: "",
     role: "loan_officer",
-    customRoleId: ""
+    customRoleId: "",
+    officeId: "",
+    isLoanOfficer: false
   });
   const { toast } = useToast();
   const { profile } = useAuth();
   const { data: customRoles = [] } = useCustomRoles();
+  const { data: offices = [] } = useOffices();
+  const { sendUserInvitation } = usePasswordReset();
+  const { currentTenant } = useTenant();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Check if profile and tenant_id are available
-      if (!profile?.tenant_id) {
+      // Validate required fields
+      if (!profile?.tenant_id || !currentTenant) {
         throw new Error('User profile or tenant information not available. Please refresh and try again.');
       }
-      
-      // Create the user in Supabase auth
-      const { data, error: signUpError } = await supabase.auth.signUp({
+
+      if (!formData.email || !formData.firstName || !formData.lastName || !formData.role) {
+        throw new Error('Please fill in all required fields.');
+      }
+
+      // For loan officers, office assignment is required
+      if (formData.isLoanOfficer && !formData.officeId) {
+        throw new Error('Please assign an office for loan officers.');
+      }
+
+      // Send user invitation instead of creating directly
+      await sendUserInvitation.mutateAsync({
         email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: undefined, // Disable email confirmation redirect
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            role: formData.role
-          }
-        }
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role as 'tenant_admin' | 'loan_officer' | 'client',
+        tenantId: profile.tenant_id,
+        tenantName: currentTenant.name,
+        tenantSubdomain: currentTenant.subdomain || '',
+        invitedBy: profile.id,
       });
 
-      if (signUpError) {
-        throw signUpError;
+      // If user is a loan officer and office is selected, we'll handle office assignment
+      // after they accept the invitation (this would need to be stored temporarily)
+      if (formData.isLoanOfficer && formData.officeId) {
+        // Note: Office assignment will need to be handled after user accepts invitation
+        // Store this info temporarily or handle during acceptance flow
+        console.log('User will be assigned to office:', formData.officeId, 'after accepting invitation');
       }
 
-      if (!data.user) {
-        throw new Error('User creation failed - no user returned');
-      }
-
-      // Insert/update the profile with tenant info
-      const profileData = {
-        user_id: data.user.id,
-        tenant_id: profile?.tenant_id,
-        email: formData.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        role: formData.role as any,
-        custom_role_id: formData.customRoleId || null,
-        is_active: true
-      };
-
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(profileData, {
-          onConflict: 'user_id'
-        });
-
-      if (upsertError) {
-        throw upsertError;
-      }
-
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
-
+      // Reset form
       setFormData({
         email: "",
-        password: "",
         firstName: "",
         lastName: "",
         role: "loan_officer",
-        customRoleId: ""
+        customRoleId: "",
+        officeId: "",
+        isLoanOfficer: false
       });
       
       onSuccess();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
+        description: error.message || "Failed to send invitation",
         variant: "destructive",
       });
     } finally {
@@ -149,17 +139,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-              required
-              minLength={6}
-            />
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="role">System Role</Label>
@@ -174,6 +153,42 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="isLoanOfficer"
+              checked={formData.isLoanOfficer}
+              onCheckedChange={(checked) => setFormData(prev => ({ 
+                ...prev, 
+                isLoanOfficer: checked as boolean,
+                role: checked ? "loan_officer" : prev.role
+              }))}
+            />
+            <Label htmlFor="isLoanOfficer" className="text-sm font-medium">
+              This user is a Loan Officer
+            </Label>
+          </div>
+
+          {formData.isLoanOfficer && (
+            <div className="space-y-2">
+              <Label htmlFor="office">Assign to Office *</Label>
+              <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an office" />
+                </SelectTrigger>
+                <SelectContent>
+                  {offices
+                    .filter(office => office.is_active)
+                    .map((office) => (
+                      <SelectItem key={office.id} value={office.id}>
+                        {office.office_name} ({office.office_code})
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="customRole">Custom Role (Optional)</Label>
@@ -198,8 +213,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creating..." : "Create User"}
+            <Button type="submit" disabled={loading || sendUserInvitation.isPending}>
+              {loading || sendUserInvitation.isPending ? "Sending Invitation..." : "Send Invitation"}
             </Button>
           </div>
         </form>

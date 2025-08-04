@@ -71,10 +71,12 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialize Resend
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
-    // Generate invitation URL
-    const invitationUrl = tenantSubdomain 
-      ? `https://${tenantSubdomain}.lovable.app/auth/accept-invitation?token=${invitationToken}`
-      : `https://app.lovable.app/auth/accept-invitation?token=${invitationToken}`;
+    // Generate invitation URL using tenant subdomain
+    const baseUrl = tenantSubdomain 
+      ? `https://${tenantSubdomain}.lovable.app`
+      : `https://app.lovable.app`;
+    
+    const invitationUrl = `${baseUrl}/auth/accept-invitation?token=${invitationToken}`;
 
     const roleDisplayName = role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 

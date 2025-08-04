@@ -137,8 +137,16 @@ export const AcceptInvitationPage = () => {
         description: "Your account has been created. Please check your email to verify your account.",
       });
 
-      // Redirect to login
-      navigate('/auth');
+      // Redirect to tenant-specific auth page or main auth
+      const currentSubdomain = window.location.hostname.split('.')[0];
+      const isSubdomain = window.location.hostname.includes('.') && currentSubdomain !== 'www';
+      
+      if (isSubdomain) {
+        // Stay on subdomain for login
+        window.location.href = `${window.location.origin}/auth`;
+      } else {
+        navigate('/auth');
+      }
     } catch (error: any) {
       console.error("Error creating account:", error);
       toast({
