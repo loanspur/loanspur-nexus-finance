@@ -84,15 +84,19 @@ export const useAuthState = () => {
                 .select('*')
                 .eq('user_id', session.user.id)
                 .eq('is_active', true)
-                .single();
+                .maybeSingle();
               
               if (error) {
                 console.error('Error fetching profile:', error);
                 toast({
-                  title: "Profile Error",
+                  title: "Profile Error", 
                   description: "Could not load user profile",
                   variant: "destructive",
                 });
+                setState(prev => ({ ...prev, loading: false }));
+              } else if (!profile) {
+                console.warn('No active profile found for user:', session.user.id);
+                setState(prev => ({ ...prev, loading: false }));
               } else {
                 setState(prev => ({ ...prev, profile, loading: false }));
               }
@@ -206,15 +210,19 @@ export const useAuthState = () => {
         .select('*')
         .eq('user_id', state.user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching profile:', error);
         toast({
           title: "Profile Error",
-          description: "Could not load user profile",
+          description: "Could not load user profile", 
           variant: "destructive",
         });
+        setState(prev => ({ ...prev, loading: false }));
+      } else if (!profile) {
+        console.warn('No active profile found for user:', state.user.id);
+        setState(prev => ({ ...prev, loading: false }));
       } else {
         setState(prev => ({ ...prev, profile, loading: false }));
       }
