@@ -7917,6 +7917,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_user_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       get_user_tenant_id: {
         Args: Record<PropertyKey, never>
         Returns: string
