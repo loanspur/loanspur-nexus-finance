@@ -1,13 +1,10 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { useTenantSwitching } from "@/contexts/TenantSwitchingContext";
-import { Building2, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 const SuperAdminSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { selectedTenant } = useTenantSwitching();
 
   const menuItems = [
     {
@@ -37,17 +34,10 @@ const SuperAdminSidebar = () => {
       <SidebarContent>
         <div className="p-4">
           <div className="flex items-center space-x-2">
-            {selectedTenant ? <Building2 className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+            <Users className="h-5 w-5" />
             <div>
               <h2 className="text-lg font-semibold text-primary">LoanSpur CBS</h2>
-              <div className="flex items-center space-x-2">
-                <p className="text-sm text-muted-foreground">
-                  {selectedTenant ? `Viewing: ${selectedTenant.name}` : 'Super Admin'}
-                </p>
-                {selectedTenant && (
-                  <Badge variant="secondary" className="text-xs">Dev Mode</Badge>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground">Super Admin</p>
             </div>
           </div>
         </div>

@@ -16,17 +16,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, profile, loading } = useAuth();
   const location = useLocation();
   
-  // Check if super admin is in tenant switching mode (check sessionStorage directly)
-  const getSuperAdminTenantSelection = () => {
-    try {
-      const storedTenant = sessionStorage.getItem('superadmin_selected_tenant');
-      return storedTenant ? JSON.parse(storedTenant) : null;
-    } catch {
-      return null;
-    }
-  };
-  
-  const selectedTenant = getSuperAdminTenantSelection();
 
   if (loading) {
     return (
@@ -40,10 +29,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // Super admins in tenant switching mode can access any route
-  const isSuperAdminSwitching = profile.role === 'super_admin' && selectedTenant;
-  
-  if (allowedRoles && !allowedRoles.includes(profile.role) && !isSuperAdminSwitching) {
+  if (allowedRoles && !allowedRoles.includes(profile.role)) {
     // Redirect to appropriate dashboard based on role
     const roleRoutes = {
       super_admin: '/super-admin',

@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useTenantSwitching } from '@/contexts/TenantSwitchingContext';
 import AuthPage from '@/pages/AuthPage';
 import TenantLayout from '@/layouts/TenantLayout';
 import ClientLayout from '@/layouts/ClientLayout';
@@ -12,14 +11,8 @@ import { ProtectedRoute } from './ProtectedRoute';
 const TenantLandingPage = () => {
   const { currentTenant } = useTenant();
   const { user, profile } = useAuth();
-  const { selectedTenant } = useTenantSwitching();
 
   if (user && profile) {
-    // If super admin is in tenant switching mode, go directly to tenant dashboard
-    if (profile.role === 'super_admin' && selectedTenant) {
-      return <Navigate to="/tenant" replace />;
-    }
-    
     // Redirect based on user role for regular users
     if (profile.role === 'client') {
       return <Navigate to="/client" replace />;
