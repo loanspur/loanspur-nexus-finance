@@ -107,112 +107,159 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Send an invitation email to create a new user account with the specified role and permissions.
+          </p>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-foreground border-b pb-2">Personal Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter last name"
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="email">Email Address *</Label>
               <Input
-                id="firstName"
-                value={formData.firstName}
-                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="user@example.com"
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={formData.lastName}
-                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                required
-              />
+              <p className="text-xs text-muted-foreground">
+                An invitation email will be sent to this address
+              </p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              required
-            />
-          </div>
-
-
-          <div className="space-y-2">
-            <Label htmlFor="role">System Role</Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(value) => setFormData(prev => ({ 
-                ...prev, 
-                role: value,
-                isLoanOfficer: value === "loan_officer"
-              }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a system role" />
-              </SelectTrigger>
-              <SelectContent>
-                {systemRoles.map(role => (
-                  <SelectItem key={role.value} value={role.value}>
-                    {role.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="customRole">Custom Role (Optional)</Label>
-            <Select 
-              value={formData.customRoleId || undefined} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a custom role (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {customRoles
-                  .filter(role => role.is_active)
-                  .map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name}
-                    </SelectItem>
-                  ))
-                }
-              </SelectContent>
-            </Select>
-          </div>
-
-          {formData.role === "loan_officer" && (
+          {/* Role & Permissions Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-foreground border-b pb-2">Role & Permissions</h3>
+            
             <div className="space-y-2">
-              <Label htmlFor="office">Assign to Office *</Label>
-              <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
+              <Label htmlFor="role">System Role *</Label>
+              <Select 
+                value={formData.role} 
+                onValueChange={(value) => setFormData(prev => ({ 
+                  ...prev, 
+                  role: value,
+                  isLoanOfficer: value === "loan_officer",
+                  customRoleId: "" // Reset custom role when system role changes
+                }))}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select an office" />
+                  <SelectValue placeholder="Select a system role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {offices
-                    .filter(office => office.is_active)
-                    .map((office) => (
-                      <SelectItem key={office.id} value={office.id}>
-                        {office.office_name} ({office.office_code})
-                      </SelectItem>
-                    ))
-                  }
+                  {systemRoles.map(role => (
+                    <SelectItem key={role.value} value={role.value}>
+                      <div className="flex flex-col items-start">
+                        <span>{role.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {role.value === 'tenant_admin' && 'Full administrative access'}
+                          {role.value === 'loan_officer' && 'Loan management and client services'}
+                          {role.value === 'client' && 'Client portal access only'}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {customRoles.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="customRole">Additional Custom Role (Optional)</Label>
+                <Select 
+                  value={formData.customRoleId || undefined} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select additional permissions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customRoles
+                      .filter(role => role.is_active)
+                      .map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          <div className="flex flex-col items-start">
+                            <span>{role.name}</span>
+                            {role.description && (
+                              <span className="text-xs text-muted-foreground">{role.description}</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Custom roles provide additional permissions beyond the system role
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Office Assignment Section */}
+          {formData.role === "loan_officer" && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-foreground border-b pb-2">Office Assignment</h3>
+              <div className="space-y-2">
+                <Label htmlFor="office">Assign to Office *</Label>
+                <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an office" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {offices
+                      .filter(office => office.is_active)
+                      .map((office) => (
+                        <SelectItem key={office.id} value={office.id}>
+                          <div className="flex flex-col items-start">
+                            <span>{office.office_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Code: {office.office_code} • Type: {office.office_type}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Loan officers must be assigned to an office for client management
+                </p>
+              </div>
+            </div>
           )}
 
-          <div className="flex justify-end gap-4 pt-4">
+          <div className="flex justify-end gap-4 pt-6 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
