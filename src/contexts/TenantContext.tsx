@@ -29,7 +29,6 @@ export function TenantProvider({ children }: TenantProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subdomain, setSubdomain] = useState<string | null>(null);
-  const { profile } = useAuth();
 
   useEffect(() => {
     async function loadTenant() {
@@ -61,7 +60,7 @@ export function TenantProvider({ children }: TenantProviderProps) {
     }
 
     loadTenant();
-  }, [profile?.role]);
+  }, []); // Remove profile dependency to avoid circular dependencies
 
   const isSubdomainTenant = subdomain !== null;
 

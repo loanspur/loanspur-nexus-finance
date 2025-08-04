@@ -21,20 +21,20 @@ const AppRouter = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TenantProvider>
-        <CurrencyProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TenantProvider>
+          <CurrencyProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
               <AppRouter />
               <DevToolsBar />
-            </BrowserRouter>
-          </TooltipProvider>
-        </CurrencyProvider>
-      </TenantProvider>
-    </AuthProvider>
+            </TooltipProvider>
+          </CurrencyProvider>
+        </TenantProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
