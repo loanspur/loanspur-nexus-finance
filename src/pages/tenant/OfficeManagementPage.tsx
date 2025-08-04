@@ -221,6 +221,11 @@ const OfficeManagementPage = () => {
                                 <MapPin className="inline h-3 w-3 mr-1" />
                                 {formatAddress(office.address)}
                               </div>
+                              {office.parent_office_id && (
+                                <div className="text-xs text-muted-foreground">
+                                  Parent Office ID: {office.parent_office_id}
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="font-mono">{office.office_code}</TableCell>

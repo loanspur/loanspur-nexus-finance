@@ -69,8 +69,7 @@ export const useOffices = () => {
         .from('offices')
         .select(`
           *,
-          branch_manager:profiles!offices_branch_manager_id_fkey(first_name, last_name, email),
-          parent_office:offices!offices_parent_office_id_fkey(office_name)
+          branch_manager:profiles!offices_branch_manager_id_fkey(first_name, last_name, email)
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -112,6 +111,26 @@ export const useOffices = () => {
   }, [profile?.tenant_id, queryClient]);
 
   return query;
+};
+
+// Separate hook to get parent office information when needed
+export const useParentOffice = (parentOfficeId?: string) => {
+  return useQuery({
+    queryKey: ['parent-office', parentOfficeId],
+    queryFn: async () => {
+      if (!parentOfficeId) return null;
+      
+      const { data, error } = await supabase
+        .from('offices')
+        .select('office_name')
+        .eq('id', parentOfficeId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!parentOfficeId,
+  });
 };
 
 export const useOfficeStaff = (officeId?: string) => {
