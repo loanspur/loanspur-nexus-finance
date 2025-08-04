@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAssignUserToOffice } from "@/hooks/useUserInvitations";
 
 const setPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -30,6 +31,7 @@ interface InvitationData {
   tenant?: {
     name: string;
     logo_url?: string;
+    subdomain?: string;
   };
 }
 
@@ -37,6 +39,7 @@ export const AcceptInvitationPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { mutateAsync: assignUserToOffice } = useAssignUserToOffice();
   const [loading, setLoading] = useState(true);
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -66,7 +69,7 @@ export const AcceptInvitationPage = () => {
           .from('user_invitations')
           .select(`
             *,
-            tenant:tenants!inner(name, logo_url)
+            tenant:tenants!inner(name, logo_url, subdomain)
           `)
           .eq('invitation_token', token)
           .eq('used', false)
@@ -104,19 +107,23 @@ export const AcceptInvitationPage = () => {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: invitation.email,
         password: data.password,
-        options: {
-          data: {
-            first_name: invitation.first_name,
-            last_name: invitation.last_name,
-            role: invitation.role,
-            tenant_id: invitation.tenant_id,
+          options: {
+            data: {
+              first_name: invitation.first_name,
+              last_name: invitation.last_name,
+              role: invitation.role,
+              tenant_id: invitation.tenant_id,
+            },
+            emailRedirectTo: `${window.location.origin}/auth`,
           },
-          emailRedirectTo: `${window.location.origin}/auth`,
-        },
       });
 
       if (signUpError) {
         throw new Error(signUpError.message);
+      }
+
+      if (!authData.user) {
+        throw new Error('Failed to create user account');
       }
 
       // Mark invitation as used
@@ -134,19 +141,26 @@ export const AcceptInvitationPage = () => {
 
       toast({
         title: "Account Created Successfully",
-        description: "Your account has been created. Please check your email to verify your account.",
+        description: "Your account has been created successfully. Redirecting to login...",
       });
 
-      // Redirect to tenant-specific auth page or main auth
-      const currentSubdomain = window.location.hostname.split('.')[0];
-      const isSubdomain = window.location.hostname.includes('.') && currentSubdomain !== 'www';
+      // Redirect to tenant-specific auth page
+      const tenantSubdomain = invitation.tenant?.subdomain;
       
-      if (isSubdomain) {
-        // Stay on subdomain for login
-        window.location.href = `${window.location.origin}/auth`;
-      } else {
-        navigate('/auth');
-      }
+      setTimeout(() => {
+        if (tenantSubdomain) {
+          window.location.href = `https://${tenantSubdomain}.lovable.app/auth`;
+        } else {
+          const currentSubdomain = window.location.hostname.split('.')[0];
+          const isSubdomain = window.location.hostname.includes('.') && currentSubdomain !== 'www';
+          
+          if (isSubdomain) {
+            window.location.href = `${window.location.origin}/auth`;
+          } else {
+            navigate('/auth');
+          }
+        }
+      }, 2000);
     } catch (error: any) {
       console.error("Error creating account:", error);
       toast({
