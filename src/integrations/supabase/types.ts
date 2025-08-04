@@ -5749,10 +5749,14 @@ export type Database = {
           action: string
           created_at: string
           description: string | null
+          display_order: number | null
           id: string
+          is_core_permission: boolean | null
           maker_checker_enabled: boolean | null
           module: string
           name: string
+          permission_bundle: string | null
+          permission_group: string | null
           requires_maker_checker: boolean | null
           resource: string | null
           updated_at: string
@@ -5761,10 +5765,14 @@ export type Database = {
           action: string
           created_at?: string
           description?: string | null
+          display_order?: number | null
           id?: string
+          is_core_permission?: boolean | null
           maker_checker_enabled?: boolean | null
           module: string
           name: string
+          permission_bundle?: string | null
+          permission_group?: string | null
           requires_maker_checker?: boolean | null
           resource?: string | null
           updated_at?: string
@@ -5773,10 +5781,14 @@ export type Database = {
           action?: string
           created_at?: string
           description?: string | null
+          display_order?: number | null
           id?: string
+          is_core_permission?: boolean | null
           maker_checker_enabled?: boolean | null
           module?: string
           name?: string
+          permission_bundle?: string | null
+          permission_group?: string | null
           requires_maker_checker?: boolean | null
           resource?: string | null
           updated_at?: string
@@ -7296,6 +7308,8 @@ export type Database = {
           email_settings: Json | null
           id: string
           logo_url: string | null
+          maker_checker_enabled: boolean | null
+          maker_checker_settings: Json | null
           mifos_base_url: string | null
           mifos_password: string | null
           mifos_tenant_identifier: string | null
@@ -7336,6 +7350,8 @@ export type Database = {
           email_settings?: Json | null
           id?: string
           logo_url?: string | null
+          maker_checker_enabled?: boolean | null
+          maker_checker_settings?: Json | null
           mifos_base_url?: string | null
           mifos_password?: string | null
           mifos_tenant_identifier?: string | null
@@ -7376,6 +7392,8 @@ export type Database = {
           email_settings?: Json | null
           id?: string
           logo_url?: string | null
+          maker_checker_enabled?: boolean | null
+          maker_checker_settings?: Json | null
           mifos_base_url?: string | null
           mifos_password?: string | null
           mifos_tenant_identifier?: string | null

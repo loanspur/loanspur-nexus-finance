@@ -12,6 +12,10 @@ export interface Permission {
   resource?: string;
   requires_maker_checker?: boolean;
   maker_checker_enabled?: boolean;
+  permission_bundle?: string;
+  permission_group?: string;
+  display_order?: number;
+  is_core_permission?: boolean;
   created_at: string;
   updated_at: string;
 }
