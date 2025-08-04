@@ -90,6 +90,7 @@ export const useCreateCustomRole = () => {
     mutationFn: async (roleData: {
       name: string;
       description?: string;
+      is_active?: boolean;
       permissionIds?: string[];
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID');
@@ -100,6 +101,7 @@ export const useCreateCustomRole = () => {
         .insert([{
           name: roleData.name,
           description: roleData.description,
+          is_active: roleData.is_active ?? true,
           tenant_id: profile.tenant_id,
           created_by: profile.id
         }])

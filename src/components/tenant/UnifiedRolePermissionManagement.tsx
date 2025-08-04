@@ -128,6 +128,10 @@ interface RoleFormData {
   is_active: boolean;
 }
 
+interface ExtendedRoleFormData extends RoleFormData {
+  permissionIds?: string[];
+}
+
 export const UnifiedRolePermissionManagement = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<SelectedPermission[]>([]);
@@ -340,7 +344,11 @@ export const UnifiedRolePermissionManagement = () => {
   };
 
   const handleCreateRole = async () => {
-    await createRoleMutation.mutateAsync(roleFormData);
+    await createRoleMutation.mutateAsync({
+      name: roleFormData.name,
+      description: roleFormData.description,
+      is_active: roleFormData.is_active
+    });
     setCreateRoleDialog(false);
     setRoleFormData({ name: "", description: "", is_active: true });
     refetchCustomRoles();
