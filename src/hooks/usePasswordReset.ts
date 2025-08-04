@@ -22,6 +22,7 @@ interface UserInvitationRequest {
   tenantName: string;
   tenantSubdomain: string;
   invitedBy: string;
+  metadata?: any;
 }
 
 export const usePasswordReset = () => {

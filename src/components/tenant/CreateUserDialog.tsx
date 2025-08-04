@@ -7,11 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useCustomRoles } from "@/hooks/useCustomRoles";
 import { useOffices } from "@/hooks/useOfficeManagement";
 import { usePasswordReset } from "@/hooks/usePasswordReset";
 import { useTenant } from "@/contexts/TenantContext";
-import { supabase } from "@/integrations/supabase/client";
+import { Constants } from "@/integrations/supabase/types";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -25,17 +24,18 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     email: "",
     firstName: "",
     lastName: "",
-    role: "loan_officer",
-    customRoleId: "",
+    role: "loan_officer" as "super_admin" | "tenant_admin" | "loan_officer" | "client",
     officeId: "",
     isLoanOfficer: false
   });
   const { toast } = useToast();
   const { profile } = useAuth();
-  const { data: customRoles = [] } = useCustomRoles();
   const { data: offices = [] } = useOffices();
   const { sendUserInvitation } = usePasswordReset();
   const { currentTenant } = useTenant();
+
+  // Get available user roles from database enum
+  const availableRoles = Constants.public.Enums.user_role.filter(role => role !== 'super_admin');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +52,15 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
       }
 
       // For loan officers, office assignment is required
-      if (formData.isLoanOfficer && !formData.officeId) {
+      if (formData.role === "loan_officer" && !formData.officeId) {
         throw new Error('Please assign an office for loan officers.');
+      }
+
+      // Build metadata for office assignment if applicable
+      const metadata: any = {};
+      if (formData.role === "loan_officer" && formData.officeId) {
+        metadata.officeId = formData.officeId;
+        metadata.roleInOffice = 'loan_officer';
       }
 
       // Send user invitation instead of creating directly
@@ -66,23 +73,15 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         tenantName: currentTenant.name,
         tenantSubdomain: currentTenant.subdomain || '',
         invitedBy: profile.id,
+        metadata,
       });
-
-      // If user is a loan officer and office is selected, we'll handle office assignment
-      // after they accept the invitation (this would need to be stored temporarily)
-      if (formData.isLoanOfficer && formData.officeId) {
-        // Note: Office assignment will need to be handled after user accepts invitation
-        // Store this info temporarily or handle during acceptance flow
-        console.log('User will be assigned to office:', formData.officeId, 'after accepting invitation');
-      }
 
       // Reset form
       setFormData({
         email: "",
         firstName: "",
         lastName: "",
-        role: "loan_officer",
-        customRoleId: "",
+        role: "loan_officer" as "super_admin" | "tenant_admin" | "loan_officer" | "client",
         officeId: "",
         isLoanOfficer: false
       });
@@ -142,34 +141,30 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
 
           <div className="space-y-2">
             <Label htmlFor="role">System Role</Label>
-            <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}>
+            <Select 
+              value={formData.role} 
+              onValueChange={(value) => setFormData(prev => ({ 
+                ...prev, 
+                role: value as "super_admin" | "tenant_admin" | "loan_officer" | "client",
+                isLoanOfficer: value === "loan_officer"
+              }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a system role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-                <SelectItem value="loan_officer">Loan Officer</SelectItem>
-                <SelectItem value="client">Client</SelectItem>
+                {availableRoles.map(role => (
+                  <SelectItem key={role} value={role}>
+                    {role === 'tenant_admin' ? 'Tenant Admin' : 
+                     role === 'loan_officer' ? 'Loan Officer' : 
+                     role === 'client' ? 'Client' : role}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="isLoanOfficer"
-              checked={formData.isLoanOfficer}
-              onCheckedChange={(checked) => setFormData(prev => ({ 
-                ...prev, 
-                isLoanOfficer: checked as boolean,
-                role: checked ? "loan_officer" : prev.role
-              }))}
-            />
-            <Label htmlFor="isLoanOfficer" className="text-sm font-medium">
-              This user is a Loan Officer
-            </Label>
-          </div>
-
-          {formData.isLoanOfficer && (
+          {formData.role === "loan_officer" && (
             <div className="space-y-2">
               <Label htmlFor="office">Assign to Office *</Label>
               <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
@@ -189,25 +184,6 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
               </Select>
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="customRole">Custom Role (Optional)</Label>
-            <Select value={formData.customRoleId || undefined} onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a custom role (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {customRoles
-                  .filter(role => role.is_active)
-                  .map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name}
-                    </SelectItem>
-                  ))
-                }
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="flex justify-end gap-4 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

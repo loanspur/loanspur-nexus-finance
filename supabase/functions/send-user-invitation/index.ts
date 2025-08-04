@@ -16,6 +16,7 @@ interface UserInvitationRequest {
   tenantName: string;
   tenantSubdomain: string;
   invitedBy: string;
+  metadata?: any;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -32,7 +33,8 @@ const handler = async (req: Request): Promise<Response> => {
       tenantId, 
       tenantName, 
       tenantSubdomain,
-      invitedBy 
+      invitedBy,
+      metadata 
     }: UserInvitationRequest = await req.json();
 
     if (!email || !firstName || !lastName || !role || !tenantId || !tenantName) {
