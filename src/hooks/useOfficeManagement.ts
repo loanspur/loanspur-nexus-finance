@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import { useEffect } from "react";
 
 export interface Office {
   id: string;
@@ -52,8 +53,9 @@ export interface OfficeStaff {
 
 export const useOffices = () => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['offices', profile?.tenant_id],
     queryFn: async () => {
       if (!profile?.tenant_id) return [];
@@ -73,12 +75,41 @@ export const useOffices = () => {
     },
     enabled: !!profile?.tenant_id,
   });
+
+  // Set up real-time subscription for offices
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('offices-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'offices',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        () => {
+          // Invalidate and refetch offices data when changes occur
+          queryClient.invalidateQueries({ queryKey: ['offices', profile.tenant_id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
+
+  return query;
 };
 
 export const useOfficeStaff = (officeId?: string) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['office-staff', profile?.tenant_id, officeId],
     queryFn: async () => {
       if (!profile?.tenant_id) return [];
@@ -103,6 +134,33 @@ export const useOfficeStaff = (officeId?: string) => {
     },
     enabled: !!profile?.tenant_id,
   });
+
+  // Set up real-time subscription for office staff
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('office-staff-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'office_staff'
+        },
+        () => {
+          // Invalidate and refetch office staff data when changes occur
+          queryClient.invalidateQueries({ queryKey: ['office-staff'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
+
+  return query;
 };
 
 export const useCreateOffice = () => {

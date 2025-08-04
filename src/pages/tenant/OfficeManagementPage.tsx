@@ -18,7 +18,7 @@ const OfficeManagementPage = () => {
   const [selectedOffice, setSelectedOffice] = useState<Office | null>(null);
   const { toast } = useToast();
 
-  const { data: offices = [], isLoading, refetch } = useOffices();
+  const { data: offices = [], isLoading } = useOffices();
   const { data: officeStaff = [] } = useOfficeStaff();
   const deleteOfficeMutation = useDeleteOffice();
 
@@ -68,7 +68,7 @@ const OfficeManagementPage = () => {
     if (window.confirm(`Are you sure you want to delete ${office.office_name}? This action cannot be undone.`)) {
       try {
         await deleteOfficeMutation.mutateAsync(office.id);
-        refetch();
+        // Data will automatically refresh via real-time subscription
       } catch (error) {
         console.error('Error deleting office:', error);
       }
@@ -353,7 +353,7 @@ const OfficeManagementPage = () => {
         open={createOfficeOpen} 
         onOpenChange={setCreateOfficeOpen}
         onSuccess={() => {
-          refetch();
+          // Data will automatically refresh via real-time subscription
           setCreateOfficeOpen(false);
         }}
       />
@@ -363,7 +363,7 @@ const OfficeManagementPage = () => {
         onOpenChange={setEditOfficeOpen}
         office={selectedOffice}
         onSuccess={() => {
-          refetch();
+          // Data will automatically refresh via real-time subscription
           setEditOfficeOpen(false);
         }}
       />
