@@ -30,7 +30,7 @@ export const MainSiteRouter = () => {
       <Route 
         path="/tenant/*" 
         element={
-          <ProtectedRoute allowedRoles={['tenant_admin', 'loan_officer', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['tenant_admin', 'loan_officer']}>
             <TenantLayout />
           </ProtectedRoute>
         } 

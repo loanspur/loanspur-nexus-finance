@@ -71,28 +71,11 @@ export const useAuthState = () => {
                 .eq('user_id', session.user.id)
                 .single();
               
+              // Remove any dev profile switching for strict super admin isolation
               const devProfile = localStorage.getItem('dev_target_profile');
-              if (devProfile && currentProfile?.role === 'super_admin') {
-                try {
-                  const parsedDevProfile = JSON.parse(devProfile);
-                  // Fetch the full profile for the development user
-                  const { data: fullProfile, error: devError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', parsedDevProfile.profile_id)
-                    .single();
-                  
-                  if (!devError && fullProfile) {
-                    setState(prev => ({ ...prev, profile: fullProfile, loading: false }));
-                    return;
-                  }
-                } catch (e) {
-                  console.error('Error loading dev profile:', e);
-                  localStorage.removeItem('dev_target_profile');
-                }
-              } else if (devProfile && currentProfile?.role !== 'super_admin') {
-                // Remove dev profile data if not super admin
+              if (devProfile) {
                 localStorage.removeItem('dev_target_profile');
+                console.log('Dev profile switching disabled for strict role separation');
               }
               
               // Normal profile loading - only get active profiles
@@ -210,28 +193,11 @@ export const useAuthState = () => {
         .eq('user_id', state.user.id)
         .single();
       
+      // Remove any dev profile switching for strict super admin isolation
       const devProfile = localStorage.getItem('dev_target_profile');
-      if (devProfile && currentProfile?.role === 'super_admin') {
-        try {
-          const parsedDevProfile = JSON.parse(devProfile);
-          // Fetch the full profile for the development user
-          const { data: fullProfile, error: devError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', parsedDevProfile.profile_id)
-            .single();
-          
-          if (!devError && fullProfile) {
-            setState(prev => ({ ...prev, profile: fullProfile, loading: false }));
-            return;
-          }
-        } catch (e) {
-          console.error('Error loading dev profile:', e);
-          localStorage.removeItem('dev_target_profile');
-        }
-      } else if (devProfile && currentProfile?.role !== 'super_admin') {
-        // Remove dev profile data if not super admin
+      if (devProfile) {
         localStorage.removeItem('dev_target_profile');
+        console.log('Dev profile switching disabled for strict role separation');
       }
       
       // Normal profile loading - only get active profiles
