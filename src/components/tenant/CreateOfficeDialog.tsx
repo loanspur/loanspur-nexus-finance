@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ export const CreateOfficeDialog = ({ open, onOpenChange, onSuccess }: CreateOffi
     email: "",
     branch_manager_id: "",
     parent_office_id: "",
+    opening_date: new Date().toISOString().split('T')[0], // Default to today
     is_active: true,
     address: {
       street: "",
@@ -39,6 +40,24 @@ export const CreateOfficeDialog = ({ open, onOpenChange, onSuccess }: CreateOffi
   const createOfficeMutation = useCreateOffice();
   const { data: offices = [] } = useOffices();
   const { profile } = useAuth();
+
+  // Auto-generate office code when office name changes
+  useEffect(() => {
+    if (formData.office_name && !formData.office_code) {
+      const generatedCode = generateOfficeCode(formData.office_name, formData.office_type);
+      setFormData(prev => ({ ...prev, office_code: generatedCode }));
+    }
+  }, [formData.office_name, formData.office_type]);
+
+  const generateOfficeCode = (officeName: string, officeType: string) => {
+    // Generate code: first 3 letters of office name + office type abbreviation + random number
+    const namePrefix = officeName.replace(/\s+/g, '').toUpperCase().substring(0, 3);
+    const typePrefix = officeType === 'head_office' ? 'HO' : 
+                      officeType === 'branch' ? 'BR' : 
+                      officeType === 'sub_branch' ? 'SB' : 'CC';
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${namePrefix}${typePrefix}${randomSuffix}`;
+  };
 
   // Fetch available staff for branch manager selection
   const { data: staff = [], isLoading: staffLoading } = useQuery({
@@ -80,6 +99,7 @@ export const CreateOfficeDialog = ({ open, onOpenChange, onSuccess }: CreateOffi
       email: "",
       branch_manager_id: "",
       parent_office_id: "",
+      opening_date: new Date().toISOString().split('T')[0],
       is_active: true,
       address: {
         street: "",
@@ -125,8 +145,10 @@ export const CreateOfficeDialog = ({ open, onOpenChange, onSuccess }: CreateOffi
                 id="office_code"
                 value={formData.office_code}
                 onChange={(e) => setFormData(prev => ({ ...prev, office_code: e.target.value }))}
+                placeholder="Auto-generated from office name"
                 required
               />
+              <p className="text-xs text-muted-foreground">Code will be auto-generated when you enter the office name</p>
             </div>
           </div>
 
@@ -149,6 +171,19 @@ export const CreateOfficeDialog = ({ open, onOpenChange, onSuccess }: CreateOffi
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="opening_date">Opening Date *</Label>
+              <Input
+                id="opening_date"
+                type="date"
+                value={formData.opening_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, opening_date: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="parent_office">Parent Office</Label>
               <Select 
