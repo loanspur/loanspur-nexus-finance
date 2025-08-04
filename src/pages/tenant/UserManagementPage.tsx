@@ -14,7 +14,6 @@ import { CreateUserDialog } from "@/components/tenant/CreateUserDialog";
 import { EditUserDialog } from "@/components/tenant/EditUserDialog";
 import { DeleteUserDialog } from "@/components/tenant/DeleteUserDialog";
 import { UnifiedRolePermissionManagement } from "@/components/tenant/UnifiedRolePermissionManagement";
-import { ApprovalWorkflowManagement } from "@/components/tenant/ApprovalWorkflowManagement";
 
 const UserManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -87,8 +86,6 @@ const UserManagementPage = () => {
         <TabsList>
           <TabsTrigger value="users">User Directory</TabsTrigger>
           <TabsTrigger value="permissions">Roles & Permissions</TabsTrigger>
-          <TabsTrigger value="custom-roles">Custom Roles</TabsTrigger>
-          <TabsTrigger value="approvals">Approval Workflows</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-6">
@@ -228,14 +225,6 @@ const UserManagementPage = () => {
 
         <TabsContent value="permissions">
           <UnifiedRolePermissionManagement />
-        </TabsContent>
-
-        <TabsContent value="custom-roles">
-          <UnifiedRolePermissionManagement />
-        </TabsContent>
-
-        <TabsContent value="approvals">
-          <ApprovalWorkflowManagement />
         </TabsContent>
       </Tabs>
 
