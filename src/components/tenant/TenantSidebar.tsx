@@ -47,11 +47,6 @@ const TenantSidebar = () => {
       label: "Operations",
       items: [
         {
-          title: "Transactions",
-          path: "/tenant/transactions",
-          icon: ArrowLeftRight
-        },
-        {
           title: "M-Pesa Integration",
           path: "/tenant/mpesa",
           icon: CreditCard
@@ -65,11 +60,6 @@ const TenantSidebar = () => {
           title: "Reports",
           path: "/tenant/reports",
           icon: TrendingUp
-        },
-        {
-          title: "Reconciliation",
-          path: "/tenant/reconciliation",
-          icon: RefreshCw
         }
       ]
     },

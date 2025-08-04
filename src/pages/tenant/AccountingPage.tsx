@@ -9,13 +9,15 @@ import {
   FileText, 
   Calendar,
   PieChart,
-  Settings
+  Settings,
+  RefreshCw
 } from "lucide-react";
 import { JournalEntriesTable } from "@/components/accounting/JournalEntriesTable";
 import { ChartOfAccountsTable } from "@/components/accounting/ChartOfAccountsTable";
 import { AccountBalancesTable } from "@/components/accounting/AccountBalancesTable";
 import { FinancialActivityMappingsTable } from "@/components/accounting/FinancialActivityMappingsTable";
 import { ProductAccountingIntegration } from "@/components/accounting/ProductAccountingIntegration";
+import { ReconciliationManagement } from "@/components/accounting/ReconciliationManagement";
 
 import { useAuth } from "@/hooks/useAuth";
 
@@ -77,7 +79,7 @@ const AccountingPage = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Products
@@ -97,6 +99,10 @@ const AccountingPage = () => {
           <TabsTrigger value="activity-mappings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Activity Mappings
+          </TabsTrigger>
+          <TabsTrigger value="reconciliation" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Reconciliation
           </TabsTrigger>
           <TabsTrigger value="closing-entries" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -126,6 +132,10 @@ const AccountingPage = () => {
 
         <TabsContent value="activity-mappings" className="space-y-4">
           <FinancialActivityMappingsTable />
+        </TabsContent>
+
+        <TabsContent value="reconciliation" className="space-y-4">
+          <ReconciliationManagement />
         </TabsContent>
 
         <TabsContent value="closing-entries" className="space-y-4">
