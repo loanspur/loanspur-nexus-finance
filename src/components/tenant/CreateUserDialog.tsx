@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOffices } from "@/hooks/useOfficeManagement";
 import { usePasswordReset } from "@/hooks/usePasswordReset";
 import { useTenant } from "@/contexts/TenantContext";
-import { Constants } from "@/integrations/supabase/types";
+import { useSystemRoles, useCombinedRoles } from "@/hooks/useSystemRoles";
+import { useCustomRoles } from "@/hooks/useCustomRoles";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -24,7 +25,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
     email: "",
     firstName: "",
     lastName: "",
-    role: "loan_officer" as "super_admin" | "tenant_admin" | "loan_officer" | "client",
+    role: "",
+    customRoleId: "",
     officeId: "",
     isLoanOfficer: false
   });
@@ -33,9 +35,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
   const { data: offices = [] } = useOffices();
   const { sendUserInvitation } = usePasswordReset();
   const { currentTenant } = useTenant();
-
-  // Get available user roles from database enum
-  const availableRoles = Constants.public.Enums.user_role.filter(role => role !== 'super_admin');
+  const { data: systemRoles = [] } = useSystemRoles();
+  const { data: customRoles = [] } = useCustomRoles();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +63,11 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         metadata.officeId = formData.officeId;
         metadata.roleInOffice = 'loan_officer';
       }
+      
+      // Add custom role if selected
+      if (formData.customRoleId) {
+        metadata.customRoleId = formData.customRoleId;
+      }
 
       // Send user invitation instead of creating directly
       await sendUserInvitation.mutateAsync({
@@ -81,7 +87,8 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         email: "",
         firstName: "",
         lastName: "",
-        role: "loan_officer" as "super_admin" | "tenant_admin" | "loan_officer" | "client",
+        role: "",
+        customRoleId: "",
         officeId: "",
         isLoanOfficer: false
       });
@@ -145,7 +152,7 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
               value={formData.role} 
               onValueChange={(value) => setFormData(prev => ({ 
                 ...prev, 
-                role: value as "super_admin" | "tenant_admin" | "loan_officer" | "client",
+                role: value,
                 isLoanOfficer: value === "loan_officer"
               }))}
             >
@@ -153,13 +160,33 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
                 <SelectValue placeholder="Select a system role" />
               </SelectTrigger>
               <SelectContent>
-                {availableRoles.map(role => (
-                  <SelectItem key={role} value={role}>
-                    {role === 'tenant_admin' ? 'Tenant Admin' : 
-                     role === 'loan_officer' ? 'Loan Officer' : 
-                     role === 'client' ? 'Client' : role}
+                {systemRoles.map(role => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="customRole">Custom Role (Optional)</Label>
+            <Select 
+              value={formData.customRoleId || undefined} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, customRoleId: value || "" }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a custom role (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {customRoles
+                  .filter(role => role.is_active)
+                  .map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
           </div>

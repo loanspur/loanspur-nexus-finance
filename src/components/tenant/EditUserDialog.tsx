@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCustomRoles } from "@/hooks/useCustomRoles";
+import { useSystemRoles } from "@/hooks/useSystemRoles";
 
 interface EditUserDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
   });
   const { toast } = useToast();
   const { data: customRoles = [] } = useCustomRoles();
+  const { data: systemRoles = [] } = useSystemRoles();
 
   useEffect(() => {
     if (user) {
@@ -127,9 +129,11 @@ export const EditUserDialog = ({ open, onOpenChange, user, onSuccess }: EditUser
                 <SelectValue placeholder="Select a system role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-                <SelectItem value="loan_officer">Loan Officer</SelectItem>
-                <SelectItem value="client">Client</SelectItem>
+                {systemRoles.map(role => (
+                  <SelectItem key={role.value} value={role.value}>
+                    {role.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
