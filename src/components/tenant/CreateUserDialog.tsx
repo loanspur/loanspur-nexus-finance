@@ -49,9 +49,9 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
         throw new Error('Please fill in all required fields.');
       }
 
-      // Office assignment is required for all staff roles (not clients)
-      if (formData.role !== "client" && !formData.officeId) {
-        throw new Error('Please assign an office for staff members.');
+      // Office assignment is required for all users
+      if (!formData.officeId) {
+        throw new Error('Please select a domicile office for the user.');
       }
 
       // Build metadata for office assignment and loan officer status
@@ -198,41 +198,39 @@ export const CreateUserDialog = ({ open, onOpenChange, onSuccess }: CreateUserDi
             </div>
           </div>
 
-          {/* Office Assignment Section - Required for staff */}
-          {formData.role !== "client" && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-foreground border-b pb-2">
-                Branch/Office Assignment
-              </h3>
-              <div className="space-y-2">
-                <Label htmlFor="office">Assign to Branch/Office *</Label>
-                <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a branch or office" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {offices
-                      .filter(office => office.is_active)
-                      .map((office) => (
-                        <SelectItem key={office.id} value={office.id}>
-                          <div className="flex flex-col items-start">
-                            <span>{office.office_name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              Code: {office.office_code} • Type: {office.office_type}
-                              {office.parent_office_id && ' • Sub-office'}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  All staff members must be assigned to a branch or office
-                </p>
-              </div>
+          {/* Office Domicile Section - Required for all users */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-foreground border-b pb-2">
+              Office Domicile
+            </h3>
+            <div className="space-y-2">
+              <Label htmlFor="office">Select Domicile Office *</Label>
+              <Select value={formData.officeId} onValueChange={(value) => setFormData(prev => ({ ...prev, officeId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select the user's home office" />
+                </SelectTrigger>
+                <SelectContent>
+                  {offices
+                    .filter(office => office.is_active)
+                    .map((office) => (
+                      <SelectItem key={office.id} value={office.id}>
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{office.office_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Code: {office.office_code} • Type: {office.office_type}
+                            {office.parent_office_id && ' • Sub-office'}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                The office where this user will be primarily based and report to
+              </p>
             </div>
-          )}
+          </div>
 
           <div className="flex justify-end gap-4 pt-6 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
