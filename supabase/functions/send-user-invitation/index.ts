@@ -73,28 +73,34 @@ const handler = async (req: Request): Promise<Response> => {
     // Initialize Resend
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
     
-    // Fetch tenant data to get subdomain if not provided
-    let actualSubdomain = tenantSubdomain;
-    if (!actualSubdomain) {
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .select('subdomain')
-        .eq('id', tenantId)
-        .single();
-      
-      if (!tenantError && tenantData) {
-        actualSubdomain = tenantData.subdomain;
-      }
+    // Fetch tenant data to get domain and subdomain
+    const { data: tenantData, error: tenantError } = await supabase
+      .from('tenants')
+      .select('domain, subdomain')
+      .eq('id', tenantId)
+      .single();
+    
+    if (tenantError) {
+      console.error("Error fetching tenant data:", tenantError);
+      throw new Error('Failed to fetch tenant information');
     }
     
-    // Generate invitation URL using tenant subdomain
-    const baseUrl = actualSubdomain 
-      ? `https://${actualSubdomain}.lovable.app`
-      : `https://app.lovable.app`;
+    // Generate invitation URL using custom domain first, then subdomain, then fallback
+    let baseUrl;
+    if (tenantData.domain) {
+      // Use custom domain if available
+      baseUrl = `https://${tenantData.domain}`;
+    } else if (tenantData.subdomain) {
+      // Fall back to lovable subdomain
+      baseUrl = `https://${tenantData.subdomain}.lovable.app`;
+    } else {
+      // Final fallback
+      baseUrl = `https://app.lovable.app`;
+    }
     
     const invitationUrl = `${baseUrl}/auth/accept-invitation?token=${invitationToken}`;
     
-    console.log(`Generated invitation URL: ${invitationUrl}`);
+    console.log(`Generated invitation URL: ${invitationUrl} (using ${tenantData.domain ? 'custom domain' : tenantData.subdomain ? 'subdomain' : 'fallback'})`);
 
     const roleDisplayName = role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
