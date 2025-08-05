@@ -187,7 +187,18 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
           min_required_opening_balance: values.min_required_opening_balance,
           min_balance_for_interest_calculation: values.min_balance_for_interest_calculation,
           is_active: values.is_active,
-        });
+          // Accounting configuration (using any to bypass type checking for new fields)
+          ...values.max_overdraft_amount !== undefined && { max_overdraft_amount: values.max_overdraft_amount },
+          ...values.accounting_method && { accounting_method: values.accounting_method },
+          ...values.savings_reference_account_id && { savings_reference_account_id: values.savings_reference_account_id },
+          ...values.savings_control_account_id && { savings_control_account_id: values.savings_control_account_id },
+          ...values.interest_on_savings_account_id && { interest_on_savings_account_id: values.interest_on_savings_account_id },
+          ...values.income_from_fees_account_id && { income_from_fees_account_id: values.income_from_fees_account_id },
+          ...values.income_from_penalties_account_id && { income_from_penalties_account_id: values.income_from_penalties_account_id },
+          ...values.overdraft_portfolio_control_id && { overdraft_portfolio_control_id: values.overdraft_portfolio_control_id },
+          ...values.payment_type_mappings && { payment_type_mappings: values.payment_type_mappings },
+          ...values.fee_mappings && { fee_mappings: values.fee_mappings },
+        } as any);
       } else {
         await createSavingsProduct.mutateAsync({
           tenant_id: tenantId,
@@ -200,7 +211,18 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
           min_balance_for_interest_calculation: values.min_balance_for_interest_calculation,
           is_active: values.is_active,
           mifos_product_id: null,
-        });
+          // Accounting configuration (using any to bypass type checking for new fields)
+          ...values.max_overdraft_amount !== undefined && { max_overdraft_amount: values.max_overdraft_amount },
+          ...values.accounting_method && { accounting_method: values.accounting_method },
+          ...values.savings_reference_account_id && { savings_reference_account_id: values.savings_reference_account_id },
+          ...values.savings_control_account_id && { savings_control_account_id: values.savings_control_account_id },
+          ...values.interest_on_savings_account_id && { interest_on_savings_account_id: values.interest_on_savings_account_id },
+          ...values.income_from_fees_account_id && { income_from_fees_account_id: values.income_from_fees_account_id },
+          ...values.income_from_penalties_account_id && { income_from_penalties_account_id: values.income_from_penalties_account_id },
+          ...values.overdraft_portfolio_control_id && { overdraft_portfolio_control_id: values.overdraft_portfolio_control_id },
+          ...values.payment_type_mappings && { payment_type_mappings: values.payment_type_mappings },
+          ...values.fee_mappings && { fee_mappings: values.fee_mappings },
+        } as any);
       }
       form.reset();
       onOpenChange(false);
