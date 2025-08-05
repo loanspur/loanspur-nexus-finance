@@ -28,6 +28,7 @@ const approvalSchema = z.object({
   approved_amount: z.string().optional(),
   approved_term: z.string().optional(),
   approved_interest_rate: z.string().optional(),
+  approval_date: z.string().min(1, "Approval date is required"),
   conditions: z.string().optional(),
 });
 
@@ -51,6 +52,9 @@ interface LoanWorkflowDialogProps {
     status: string;
     requested_amount: number;
     requested_term: number;
+    requested_interest_rate?: number;
+    purpose?: string;
+    loan_charges?: any[];
     final_approved_amount?: number;
     final_approved_term?: number;
     final_approved_interest_rate?: number;
@@ -58,9 +62,19 @@ interface LoanWorkflowDialogProps {
       first_name: string;
       last_name: string;
       client_number: string;
+      phone?: string;
+      email?: string;
     };
     loan_products?: {
       name: string;
+      short_name?: string;
+      currency_code?: string;
+      default_nominal_interest_rate?: number;
+      min_principal?: number;
+      max_principal?: number;
+      default_term?: number;
+      min_term?: number;
+      max_term?: number;
     };
   };
   open: boolean;
@@ -90,6 +104,8 @@ export const LoanWorkflowDialog = ({
       action: 'approve',
       approved_amount: loanApplication.requested_amount?.toString(),
       approved_term: loanApplication.requested_term?.toString(),
+      approved_interest_rate: loanApplication.requested_interest_rate?.toString() || loanApplication.loan_products?.default_nominal_interest_rate?.toString(),
+      approval_date: format(new Date(), 'yyyy-MM-dd'),
     },
   });
 
@@ -142,6 +158,7 @@ export const LoanWorkflowDialog = ({
         approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
         approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
         approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
+        approval_date: data.approval_date,
         conditions: data.conditions,
       });
       
@@ -219,46 +236,147 @@ export const LoanWorkflowDialog = ({
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Client</span>
-                    <div className="font-medium">
-                      {loanApplication.clients?.first_name} {loanApplication.clients?.last_name}
+              <CardContent className="space-y-6">
+                {/* Client & Product Information */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Client Information</h4>
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {loanApplication.clients?.first_name} {loanApplication.clients?.last_name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Client: {loanApplication.clients?.client_number}
+                        </div>
+                        {loanApplication.clients?.phone && (
+                          <div className="text-xs text-muted-foreground">
+                            Phone: {loanApplication.clients?.phone}
+                          </div>
+                        )}
+                        {loanApplication.clients?.email && (
+                          <div className="text-xs text-muted-foreground">
+                            Email: {loanApplication.clients?.email}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {loanApplication.clients?.client_number}
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Loan Product</h4>
+                      <div className="space-y-1">
+                        <div className="font-medium">{loanApplication.loan_products?.name}</div>
+                        {loanApplication.loan_products?.short_name && (
+                          <div className="text-xs text-muted-foreground">
+                            Code: {loanApplication.loan_products?.short_name}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          Currency: {loanApplication.loan_products?.currency_code || 'KES'}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Loan Product</span>
-                    <div className="font-medium">{loanApplication.loan_products?.name}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Requested Amount</span>
-                    <div className="font-medium text-blue-600">
-                      {formatCurrency(loanApplication.requested_amount)}
+                </div>
+
+                {/* Loan Request Details */}
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-3">Loan Request Details</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-muted-foreground text-sm">Requested Amount</span>
+                      <div className="font-medium text-lg text-primary">
+                        {formatCurrency(loanApplication.requested_amount)}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-sm">Requested Term</span>
+                      <div className="font-medium text-lg">{loanApplication.requested_term} months</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-sm">Interest Rate</span>
+                      <div className="font-medium text-lg">
+                        {loanApplication.requested_interest_rate || loanApplication.loan_products?.default_nominal_interest_rate || 'TBD'}%
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Product Terms & Limits */}
+                {loanApplication.loan_products && (
                   <div>
-                    <span className="text-muted-foreground">Requested Term</span>
-                    <div className="font-medium">{loanApplication.requested_term} months</div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Product Terms & Limits</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      {loanApplication.loan_products.min_principal && (
+                        <div>
+                          <span className="text-muted-foreground">Min Amount</span>
+                          <div className="font-medium">{formatCurrency(loanApplication.loan_products.min_principal)}</div>
+                        </div>
+                      )}
+                      {loanApplication.loan_products.max_principal && (
+                        <div>
+                          <span className="text-muted-foreground">Max Amount</span>
+                          <div className="font-medium">{formatCurrency(loanApplication.loan_products.max_principal)}</div>
+                        </div>
+                      )}
+                      {loanApplication.loan_products.default_term && (
+                        <div>
+                          <span className="text-muted-foreground">Default Term</span>
+                          <div className="font-medium">{loanApplication.loan_products.default_term} months</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {loanApplication.final_approved_amount && (
-                    <>
+                )}
+
+                {/* Purpose */}
+                {loanApplication.purpose && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-2">Loan Purpose</h4>
+                    <div className="text-sm">{loanApplication.purpose}</div>
+                  </div>
+                )}
+
+                {/* Charges & Fees */}
+                {loanApplication.loan_charges && loanApplication.loan_charges.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Applicable Charges & Fees</h4>
+                    <div className="space-y-2">
+                      {loanApplication.loan_charges.map((charge: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <span className="text-sm">{charge.name || charge.fee_name}</span>
+                          <span className="font-medium">{formatCurrency(charge.amount || charge.calculated_amount || 0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Approved Details (if exists) */}
+                {loanApplication.final_approved_amount && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Approved Terms</h4>
+                    <div className="grid grid-cols-3 gap-4 p-4 bg-green-50 rounded-lg">
                       <div>
-                        <span className="text-muted-foreground">Approved Amount</span>
-                        <div className="font-medium text-green-600">
+                        <span className="text-muted-foreground text-sm">Approved Amount</span>
+                        <div className="font-medium text-lg text-green-600">
                           {formatCurrency(loanApplication.final_approved_amount)}
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Approved Term</span>
-                        <div className="font-medium">{loanApplication.final_approved_term} months</div>
+                        <span className="text-muted-foreground text-sm">Approved Term</span>
+                        <div className="font-medium text-lg">{loanApplication.final_approved_term} months</div>
                       </div>
-                    </>
-                  )}
-                </div>
+                      {loanApplication.final_approved_interest_rate && (
+                        <div>
+                          <span className="text-muted-foreground text-sm">Approved Rate</span>
+                          <div className="font-medium text-lg">{loanApplication.final_approved_interest_rate}%</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -310,62 +428,81 @@ export const LoanWorkflowDialog = ({
                         )}
                       />
 
+                      <FormField
+                        control={approvalForm.control}
+                        name="approval_date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Approval Date *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
                       {approvalForm.watch("action") === "approve" && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={approvalForm.control}
-                            name="approved_amount"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Approved Amount (KES)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Enter approved amount"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-3 gap-4">
+                            <FormField
+                              control={approvalForm.control}
+                              name="approved_amount"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Approved Amount ({loanApplication.loan_products?.currency_code || 'KES'})</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="Enter approved amount"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                          <FormField
-                            control={approvalForm.control}
-                            name="approved_term"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Approved Term (Months)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Enter approved term"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            <FormField
+                              control={approvalForm.control}
+                              name="approved_term"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Approved Term (months)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="Enter approved term"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                          <FormField
-                            control={approvalForm.control}
-                            name="approved_interest_rate"
-                            render={({ field }) => (
-                              <FormItem className="col-span-2">
-                                <FormLabel>Approved Interest Rate (%)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="Enter approved interest rate"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            <FormField
+                              control={approvalForm.control}
+                              name="approved_interest_rate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Approved Interest Rate (%)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="Enter approved interest rate"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
                       )}
 

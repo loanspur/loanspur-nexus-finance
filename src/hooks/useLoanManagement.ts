@@ -121,7 +121,17 @@ export const useLoanApplications = () => {
         .select(`
           *,
           clients(first_name, last_name, client_number, phone, email),
-          loan_products(name, short_name, currency_code)
+          loan_products(
+            name, 
+            short_name, 
+            currency_code, 
+            default_nominal_interest_rate,
+            min_principal,
+            max_principal,
+            default_term,
+            min_term,
+            max_term
+          )
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -152,7 +162,17 @@ export const useAllLoans = () => {
         .select(`
           *,
           clients(first_name, last_name, client_number, phone, email),
-          loan_products(name, short_name, currency_code)
+          loan_products(
+            name, 
+            short_name, 
+            currency_code, 
+            default_nominal_interest_rate,
+            min_principal,
+            max_principal,
+            default_term,
+            min_term,
+            max_term
+          )
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -480,6 +500,7 @@ export const useProcessLoanApproval = () => {
       approved_amount?: number;
       approved_term?: number;
       approved_interest_rate?: number;
+      approval_date?: string;
       conditions?: string;
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
