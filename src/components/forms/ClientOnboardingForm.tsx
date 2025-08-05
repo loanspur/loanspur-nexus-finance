@@ -41,6 +41,7 @@ const clientOnboardingSchema = z.object({
   
   // National ID (moved to KYC section and made required)
   national_id: z.string().min(1, "National ID is required").regex(/^[0-9]{8}$/, "National ID must be 8 digits"),
+  account_opening_date: z.string().min(1, "Account opening date is required"),
   passport_number: z.string().optional().refine((val) => {
     if (!val) return true;
     return /^[A-Z0-9]{6,12}$/.test(val);
@@ -141,6 +142,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       gender: "",
       address: "",
       national_id: "",
+      account_opening_date: "",
       passport_number: "",
       driving_license_number: "",
       bank_name: "",
@@ -212,7 +214,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
     switch (stepId) {
       case 'kyc':
-        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth', 'national_id'];
+        fieldsToValidate = ['first_name', 'last_name', 'phone', 'date_of_birth', 'national_id', 'account_opening_date'];
         break;
       case 'employment_business':
         const incomeType = form.getValues('income_source_type');
@@ -321,6 +323,13 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       console.log('Creating client with data:', clientData);
       await createClientMutation.mutateAsync(clientData);
       console.log('Client created successfully');
+
+      // Show success message
+      toast({
+        title: "Client Created Successfully",
+        description: `Client ${data.first_name} ${data.last_name} has been created and is pending approval. The client will need to be approved and then activated before they can access services.`,
+        variant: "default",
+      });
 
       // TODO: Handle additional features if needed
       // - Save additional next of kin contacts (beyond the first one)

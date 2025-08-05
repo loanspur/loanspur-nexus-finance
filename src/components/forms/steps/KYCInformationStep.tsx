@@ -124,15 +124,25 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
         rows={3}
       />
 
-      <ValidationFormField
-        form={form}
-        name="national_id"
-        label="National ID Number"
-        placeholder="12345678"
-        required
-        type="text"
-        maxLength={8}
-      />
+      <div className="grid grid-cols-2 gap-4">
+        <ValidationFormField
+          form={form}
+          name="national_id"
+          label="National ID Number"
+          placeholder="12345678"
+          required
+          type="text"
+          maxLength={8}
+        />
+        
+        <ValidationFormField
+          form={form}
+          name="account_opening_date"
+          label="Account Opening Date"
+          type="date"
+          required
+        />
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <FormField
