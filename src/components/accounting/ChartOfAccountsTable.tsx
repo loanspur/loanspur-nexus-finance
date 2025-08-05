@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, Plus, Edit, Trash2 } from "lucide-react";
 import { useChartOfAccounts, useDeleteAccount, type ChartOfAccount } from "@/hooks/useChartOfAccounts";
 import { ChartOfAccountForm } from "./ChartOfAccountForm";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export const ChartOfAccountsTable = () => {
   const [filters, setFilters] = useState({
@@ -20,6 +21,7 @@ export const ChartOfAccountsTable = () => {
   const [editingAccount, setEditingAccount] = useState<ChartOfAccount | undefined>();
 
   const { data: accounts, isLoading } = useChartOfAccounts();
+  const { formatAmount } = useCurrency();
   const deleteAccount = useDeleteAccount();
 
   const filteredAccounts = accounts?.filter((account) => {
@@ -149,7 +151,7 @@ export const ChartOfAccountsTable = () => {
                     </TableCell>
                     <TableCell>{getAccountTypeBadge(account.account_type)}</TableCell>
                     <TableCell className="capitalize">{account.account_category.replace('_', ' ')}</TableCell>
-                    <TableCell className="text-right">{account.balance.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(account.balance)}</TableCell>
                     <TableCell>
                       <Badge variant={account.is_active ? "default" : "secondary"}>
                         {account.is_active ? "Active" : "Inactive"}

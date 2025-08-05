@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, Download, CheckCircle, XCircle, AlertCircle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const reconciliationSchema = z.object({
   report_name: z.string().min(1, "Report name is required"),
@@ -59,6 +60,7 @@ export const ReconciliationManagement = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [reports, setReports] = useState(mockReports);
   const { toast } = useToast();
+  const { formatAmount } = useCurrency();
 
   const form = useForm<ReconciliationFormData>({
     resolver: zodResolver(reconciliationSchema),
@@ -109,12 +111,7 @@ export const ReconciliationManagement = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  // Use the currency context for formatting
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -321,14 +318,14 @@ export const ReconciliationManagement = () => {
                   <div className="text-sm text-muted-foreground">Match Rate</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{formatCurrency(214000)}</div>
+                  <div className="text-2xl font-bold text-primary">{formatAmount(214000)}</div>
                   <div className="text-sm text-muted-foreground">Total Reconciled</div>
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 border rounded-lg">
-                  <div className="text-2xl font-bold text-warning">{formatCurrency(1500)}</div>
+                  <div className="text-2xl font-bold text-warning">{formatAmount(1500)}</div>
                   <div className="text-sm text-muted-foreground">Unmatched</div>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
@@ -382,11 +379,11 @@ export const ReconciliationManagement = () => {
                       {format(new Date(report.period_start), 'MMM dd')} - {format(new Date(report.period_end), 'MMM dd')}
                     </div>
                   </TableCell>
-                  <TableCell>{formatCurrency(report.total_statement_amount)}</TableCell>
-                  <TableCell>{formatCurrency(report.total_system_amount)}</TableCell>
+                  <TableCell>{formatAmount(report.total_statement_amount)}</TableCell>
+                  <TableCell>{formatAmount(report.total_system_amount)}</TableCell>
                   <TableCell>
                     <div className={report.unmatched_amount > 1000 ? "text-destructive" : "text-muted-foreground"}>
-                      {formatCurrency(report.unmatched_amount)}
+                      {formatAmount(report.unmatched_amount)}
                     </div>
                   </TableCell>
                   <TableCell>

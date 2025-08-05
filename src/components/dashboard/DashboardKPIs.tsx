@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface KPI {
   title: string;
@@ -16,14 +17,11 @@ interface DashboardKPIsProps {
 }
 
 export const DashboardKPIs: React.FC<DashboardKPIsProps> = ({ kpis }) => {
+  const { formatAmount } = useCurrency();
+  
   const formatValue = (value: string | number, format?: string) => {
     if (format === 'currency' && typeof value === 'number') {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
+      return formatAmount(value);
     }
     if (format === 'percentage' && typeof value === 'number') {
       return `${value}%`;

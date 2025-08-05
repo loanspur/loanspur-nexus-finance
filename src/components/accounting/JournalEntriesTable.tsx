@@ -10,6 +10,7 @@ import { Search, Filter, Plus, Eye } from "lucide-react";
 import { useJournalEntries, type JournalEntry } from "@/hooks/useAccounting";
 import { JournalEntryForm } from "./JournalEntryForm";
 import { JournalEntryDetailsDialog } from "./JournalEntryDetailsDialog";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 export const JournalEntriesTable = () => {
   const [filters, setFilters] = useState({
@@ -22,6 +23,7 @@ export const JournalEntriesTable = () => {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   const { data: journalEntries, isLoading } = useJournalEntries(filters);
+  const { formatAmount } = useCurrency();
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -135,7 +137,7 @@ export const JournalEntriesTable = () => {
                       {entry.description}
                     </TableCell>
                     <TableCell>{entry.reference_id || "-"}</TableCell>
-                    <TableCell className="text-right">{entry.total_amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(entry.total_amount)}</TableCell>
                     <TableCell>{getStatusBadge(entry.status)}</TableCell>
                     <TableCell>
                       <Button

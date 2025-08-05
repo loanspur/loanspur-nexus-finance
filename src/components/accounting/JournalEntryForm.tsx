@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2 } from "lucide-react";
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const journalEntrySchema = z.object({
   transaction_date: z.string().min(1, "Transaction date is required"),
@@ -36,6 +37,7 @@ interface JournalEntryFormProps {
 export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) => {
   const createJournalEntryMutation = useCreateJournalEntry();
   const { data: accounts } = useChartOfAccounts();
+  const { formatAmount } = useCurrency();
 
   const form = useForm<JournalEntryFormData>({
     resolver: zodResolver(journalEntrySchema),
@@ -297,8 +299,8 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
                     Balance Check: {isBalanced ? "✓ Balanced" : "⚠ Not Balanced"}
                   </div>
                   <div className="text-sm">
-                    <span className="mr-4">Total Debits: {totalDebits.toFixed(2)}</span>
-                    <span>Total Credits: {totalCredits.toFixed(2)}</span>
+                    <span className="mr-4">Total Debits: {formatAmount(totalDebits)}</span>
+                    <span>Total Credits: {formatAmount(totalCredits)}</span>
                   </div>
                 </div>
               </CardContent>

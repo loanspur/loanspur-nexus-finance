@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type JournalEntry } from "@/hooks/useAccounting";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface JournalEntryDetailsDialogProps {
   entry: JournalEntry;
@@ -12,6 +13,8 @@ interface JournalEntryDetailsDialogProps {
 }
 
 export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: JournalEntryDetailsDialogProps) => {
+  const { formatAmount } = useCurrency();
+  
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       draft: { label: "Draft", variant: "secondary" as const },
@@ -74,7 +77,7 @@ export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: Journal
                 )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Total Amount</label>
-                  <p className="font-medium">{entry.total_amount.toFixed(2)}</p>
+                  <p className="font-medium">{formatAmount(entry.total_amount)}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
@@ -126,10 +129,10 @@ export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: Journal
                         </TableCell>
                         <TableCell>{line.description || "-"}</TableCell>
                         <TableCell className="text-right">
-                          {line.debit_amount > 0 ? line.debit_amount.toFixed(2) : "-"}
+                          {line.debit_amount > 0 ? formatAmount(line.debit_amount) : "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          {line.credit_amount > 0 ? line.credit_amount.toFixed(2) : "-"}
+                          {line.credit_amount > 0 ? formatAmount(line.credit_amount) : "-"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -142,7 +145,7 @@ export const JournalEntryDetailsDialog = ({ entry, open, onOpenChange }: Journal
                 <div className="text-right space-y-1">
                   <div className="flex justify-between gap-8">
                     <span className="font-medium">Total Amount:</span>
-                    <span className="font-medium">{entry.total_amount.toFixed(2)}</span>
+                    <span className="font-medium">{formatAmount(entry.total_amount)}</span>
                   </div>
                 </div>
               </div>
