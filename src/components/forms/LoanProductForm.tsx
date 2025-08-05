@@ -29,6 +29,11 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
   const createLoanProductMutation = useCreateLoanProduct();
   const updateLoanProductMutation = useUpdateLoanProduct();
 
+  console.log("=== LOAN PRODUCT FORM RENDER ===");
+  console.log("Open:", open);
+  console.log("Editing product:", editingProduct);
+  console.log("Current tab:", currentTab);
+
   const tabs = [
     { value: "basic", label: "Basic Info" },
     { value: "terms", label: "Loan Terms" },
@@ -420,8 +425,18 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
                   <Button 
                     type="button"
                     onClick={(e) => {
-                      console.log("Update button clicked", { editingProduct: !!editingProduct });
-                      form.handleSubmit(onSubmit)(e);
+                      console.log("=== BUTTON CLICKED ===");
+                      console.log("Current tab:", currentTab);
+                      console.log("Is last tab:", isLastTab);
+                      console.log("Editing product:", editingProduct);
+                      console.log("Is submitting:", isSubmitting);
+                      console.log("Form errors:", form.formState.errors);
+                      e.preventDefault();
+                      try {
+                        form.handleSubmit(onSubmit)(e);
+                      } catch (error) {
+                        console.error("Submit error:", error);
+                      }
                     }}
                     disabled={isSubmitting}
                   >
@@ -431,10 +446,13 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
                     }
                   </Button>
                 ) : (
-                  <Button type="button" onClick={handleNext}>
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
+                  <>
+                    <Button type="button" onClick={handleNext}>
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-2" />
+                    </Button>
+                    {/* {console.log("Showing Next button instead of Submit button")} */}
+                  </>
                 )}
               </div>
             </div>
