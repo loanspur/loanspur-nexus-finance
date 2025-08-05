@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ClientsTable } from "@/components/tables/ClientsTable";
 import { ClientOnboardingForm } from "@/components/forms/ClientOnboardingForm";
 import { ClientDataUpload } from "@/components/client/ClientDataUpload";
+import { LoanListTabs } from "@/components/loan/LoanListTabs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ClientsPage = () => {
@@ -17,6 +18,7 @@ const ClientsPage = () => {
         <TabsList>
           <TabsTrigger value="clients">Client List</TabsTrigger>
           <TabsTrigger value="import">Data Import</TabsTrigger>
+          <TabsTrigger value="loans">Loan Management</TabsTrigger>
         </TabsList>
         
         <TabsContent value="clients" className="space-y-6">
@@ -25,6 +27,10 @@ const ClientsPage = () => {
         
         <TabsContent value="import" className="space-y-6">
           <ClientDataUpload />
+        </TabsContent>
+        
+        <TabsContent value="loans" className="space-y-6">
+          <LoanListTabs />
         </TabsContent>
       </Tabs>
       

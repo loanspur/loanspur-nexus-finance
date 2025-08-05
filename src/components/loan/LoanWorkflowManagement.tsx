@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { LoanStatusBadge } from "./LoanStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -169,10 +170,7 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
               <div className="text-sm">{app.requested_term} months</div>
             </TableCell>
             <TableCell>
-              <Badge variant={getStatusColor(app.status)} className="flex items-center gap-1 w-fit">
-                {getStatusIcon(app.status)}
-                {app.status === 'disbursed' ? 'ACTIVE' : app.status.replace('_', ' ').toUpperCase()}
-              </Badge>
+              <LoanStatusBadge status={app.status} />
             </TableCell>
             <TableCell>
               <div className="text-sm text-muted-foreground">
