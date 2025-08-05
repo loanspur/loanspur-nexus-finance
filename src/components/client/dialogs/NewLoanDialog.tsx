@@ -143,21 +143,26 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     enabled: !!profile?.tenant_id && open,
   });
 
-  // Fetch client's savings accounts (mock data since table structure is unclear)
-  const savingsAccounts = [
-    { 
-      id: '1', 
-      account_number: 'SAV001', 
-      account_balance: 5000, 
-      savings_products: { name: 'Basic Savings' } 
+  // Fetch client's savings accounts from database
+  const { data: savingsAccounts = [] } = useQuery({
+    queryKey: ['client-savings-accounts', clientId],
+    queryFn: async () => {
+      if (!clientId) return [];
+      
+      const { data, error } = await supabase
+        .from('savings_accounts')
+        .select(`
+          *,
+          savings_products(name)
+        `)
+        .eq('client_id', clientId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+      return data || [];
     },
-    { 
-      id: '2', 
-      account_number: 'SAV002', 
-      account_balance: 12000, 
-      savings_products: { name: 'Premium Savings' } 
-    },
-  ];
+    enabled: !!clientId,
+  });
 
   // Fetch product charges (mock data since table doesn't exist)
   const productCharges = [

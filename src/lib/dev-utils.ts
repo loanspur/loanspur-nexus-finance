@@ -116,8 +116,8 @@ export const generateSampleLoanProductData = () => {
 
 export const generateSampleSavingsProductData = () => {
   const productNames = [
-    'Basic Savings',
-    'Premium Savings',
+    'Standard Savings',
+    'High Yield Savings',
     'Youth Savings',
     'Business Savings',
     'Fixed Deposit',

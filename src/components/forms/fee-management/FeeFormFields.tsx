@@ -203,8 +203,18 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  <SelectItem value="regular">Regular</SelectItem>
-                  <SelectItem value="transfer">Transfer</SelectItem>
+                  <SelectItem value="regular">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Regular</span>
+                      <span className="text-xs text-muted-foreground">Adds to account balance - no automatic transfer</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="transfer">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Transfer</span>
+                      <span className="text-xs text-muted-foreground">Automatically transfers from savings to income account</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
