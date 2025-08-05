@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, DollarSign, Calendar, Percent, FileText, User, Building, Shield, Trash2 } from "lucide-react";
+import { CreditCard, DollarSign, Calendar, Percent, FileText, User, Building, Shield, Trash2, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +33,8 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { FormDescription } from "@/components/ui/form";
 import { format } from "date-fns";
+import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loanApplicationSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
@@ -222,15 +224,36 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
   };
 
   const getTotalCharges = () => {
-    return selectedCharges.reduce((total, charge) => {
-      if (charge.calculation_type === 'flat') {
-        return total + charge.amount;
-      } else {
-        // For percentage charges, calculate based on loan amount
-        const loanAmount = form.watch('requested_amount') || 0;
-        return total + (loanAmount * charge.amount / 100);
-      }
-    }, 0);
+    const loanAmount = form.watch('requested_amount') || 0;
+    const feeStructures: FeeStructure[] = selectedCharges.map(charge => ({
+      id: charge.id,
+      name: charge.name,
+      calculation_type: charge.calculation_type as 'fixed' | 'percentage' | 'flat',
+      amount: charge.amount,
+      min_amount: charge.min_amount,
+      max_amount: charge.max_amount,
+      fee_type: charge.fee_type,
+      charge_time_type: charge.charge_time_type,
+    }));
+
+    const { total } = calculateTotalFees(feeStructures, loanAmount);
+    return total;
+  };
+
+  const getCalculatedCharges = () => {
+    const loanAmount = form.watch('requested_amount') || 0;
+    const feeStructures: FeeStructure[] = selectedCharges.map(charge => ({
+      id: charge.id,
+      name: charge.name,
+      calculation_type: charge.calculation_type as 'fixed' | 'percentage' | 'flat',
+      amount: charge.amount,
+      min_amount: charge.min_amount,
+      max_amount: charge.max_amount,
+      fee_type: charge.fee_type,
+      charge_time_type: charge.charge_time_type,
+    }));
+
+    return calculateTotalFees(feeStructures, loanAmount);
   };
 
   // Helper for collateral coverage
@@ -894,37 +917,84 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {selectedCharges.map((charge, index) => (
-                              <TableRow key={index}>
-                                <TableCell>{charge.name}</TableCell>
-                                <TableCell>
-                                  {charge.calculation_type === 'flat' 
-                                    ? formatCurrency(charge.amount)
-                                    : `${charge.amount}%`}
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeSelectedCharge(index)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                        
-                        <div className="flex justify-between items-center pt-2 border-t">
-                          <span className="font-medium">Total Charges:</span>
-                          <span className="font-bold">{formatCurrency(getTotalCharges())}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                             {selectedCharges.map((charge, index) => {
+                               const loanAmount = form.watch('requested_amount') || 0;
+                               const feeStructure: FeeStructure = {
+                                 id: charge.id,
+                                 name: charge.name,
+                                 calculation_type: charge.calculation_type as 'fixed' | 'percentage' | 'flat',
+                                 amount: charge.amount,
+                                 min_amount: charge.min_amount,
+                                 max_amount: charge.max_amount,
+                                 fee_type: charge.fee_type,
+                                 charge_time_type: charge.charge_time_type,
+                               };
+                               const calculatedFee = calculateFeeAmount(feeStructure, loanAmount);
+                               
+                               return (
+                                 <TableRow key={index}>
+                                   <TableCell>{charge.name}</TableCell>
+                                   <TableCell>
+                                     <div className="flex flex-col">
+                                       <span>
+                                         {formatFeeDisplay(calculatedFee)}
+                                       </span>
+                                       {calculatedFee.applied_limit && (
+                                         <span className="text-xs text-orange-600 font-medium">
+                                           {calculatedFee.applied_limit === 'minimum' ? 'Min limit applied' : 'Max limit applied'}
+                                         </span>
+                                       )}
+                                     </div>
+                                   </TableCell>
+                                   <TableCell>
+                                     <Button
+                                       type="button"
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={() => removeSelectedCharge(index)}
+                                     >
+                                       <Trash2 className="w-4 h-4" />
+                                     </Button>
+                                   </TableCell>
+                                 </TableRow>
+                               );
+                             })}
+                           </TableBody>
+                         </Table>
+                         
+                         {/* Fee calculation warnings */}
+                         {(() => {
+                           const calculatedCharges = getCalculatedCharges();
+                           const warningMessage = getFeeWarningMessage(calculatedCharges.fees);
+                           
+                           return (
+                             <>
+                               {warningMessage && (
+                                 <Alert>
+                                   <AlertCircle className="h-4 w-4" />
+                                   <AlertDescription>
+                                     {warningMessage}
+                                   </AlertDescription>
+                                 </Alert>
+                               )}
+                               
+                               <div className="flex justify-between items-center pt-2 border-t">
+                                 <span className="font-medium">Total Charges:</span>
+                                 <span className="font-bold">{formatCurrency(calculatedCharges.total)}</span>
+                               </div>
+                               
+                               {calculatedCharges.hasLimitsApplied && (
+                                 <p className="text-xs text-muted-foreground">
+                                   * Some charges have been adjusted due to minimum/maximum limits
+                                 </p>
+                               )}
+                             </>
+                           );
+                         })()}
+                       </div>
+                     )}
+                   </div>
+                 </div>
               </CardContent>
             </Card>
 

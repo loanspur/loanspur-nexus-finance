@@ -1,5 +1,5 @@
-import { UseFormReturn } from "react-hook-form";
 import { useState } from "react";
+import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,8 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CreditCard, Search } from "lucide-react";
+import { Plus, Trash2, CreditCard, Search, AlertCircle } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface EnhancedChargesAndFeesStepProps {
   form: UseFormReturn<any>;
