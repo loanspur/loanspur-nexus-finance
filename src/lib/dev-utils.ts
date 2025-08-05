@@ -226,7 +226,7 @@ export const generateSampleTenantData = () => {
 export const generateSampleUserData = () => {
   const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'James', 'Lisa', 'Robert', 'Anna'];
   const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
-  const roles = ['tenant_admin', 'loan_officer', 'accountant', 'manager'];
+  const roles = ['tenant_admin', 'loan_officer'];
   
   const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
   const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];

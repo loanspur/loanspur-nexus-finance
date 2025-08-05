@@ -44,16 +44,21 @@ export const CreateCustomRoleDialog = ({ open, onOpenChange, onSuccess }: Create
       return;
     }
 
-    await createRoleMutation.mutateAsync({
-      name: formData.name,
-      description: formData.description || undefined,
-      permissionIds: selectedPermissions,
-    });
+    try {
+      await createRoleMutation.mutateAsync({
+        name: formData.name,
+        description: formData.description || undefined,
+        permissionIds: selectedPermissions,
+      });
 
-    // Reset form
-    setFormData({ name: "", description: "" });
-    setSelectedPermissions([]);
-    onSuccess();
+      // Reset form
+      setFormData({ name: "", description: "" });
+      setSelectedPermissions([]);
+      onSuccess();
+    } catch (error) {
+      console.error('Failed to create custom role:', error);
+      // Error is already handled by the mutation hook's onError
+    }
   };
 
   const handlePermissionToggle = (permissionId: string, checked: boolean) => {

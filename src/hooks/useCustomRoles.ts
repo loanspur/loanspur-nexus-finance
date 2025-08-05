@@ -137,9 +137,10 @@ export const useCreateCustomRole = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Custom role creation error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create custom role",
         variant: "destructive",
       });
     },

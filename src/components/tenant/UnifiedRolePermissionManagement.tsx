@@ -57,30 +57,6 @@ const DEFAULT_ROLES = [
     isDefault: true
   },
   { 
-    value: "manager", 
-    label: "Manager", 
-    color: "bg-blue-500", 
-    description: "Full access except critical deletions",
-    icon: Settings,
-    isDefault: true
-  },
-  { 
-    value: "accountant", 
-    label: "Accountant", 
-    color: "bg-purple-500", 
-    description: "Accounting, payments, and financial operations",
-    icon: CheckCircle,
-    isDefault: true
-  },
-  { 
-    value: "loan_officer", 
-    label: "Loan Officer", 
-    color: "bg-green-500", 
-    description: "Client management and loan operations",
-    icon: Edit,
-    isDefault: true
-  },
-  { 
     value: "read_only", 
     label: "Read Only", 
     color: "bg-gray-500", 
@@ -344,14 +320,19 @@ export const UnifiedRolePermissionManagement = () => {
   };
 
   const handleCreateRole = async () => {
-    await createRoleMutation.mutateAsync({
-      name: roleFormData.name,
-      description: roleFormData.description,
-      is_active: roleFormData.is_active
-    });
-    setCreateRoleDialog(false);
-    setRoleFormData({ name: "", description: "", is_active: true });
-    refetchCustomRoles();
+    try {
+      await createRoleMutation.mutateAsync({
+        name: roleFormData.name,
+        description: roleFormData.description,
+        is_active: roleFormData.is_active
+      });
+      setCreateRoleDialog(false);
+      setRoleFormData({ name: "", description: "", is_active: true });
+      refetchCustomRoles();
+    } catch (error) {
+      console.error('Failed to create role:', error);
+      // Error is already handled by the mutation hook's onError
+    }
   };
 
   const handleEditRole = (role: any) => {
@@ -367,14 +348,19 @@ export const UnifiedRolePermissionManagement = () => {
   const handleUpdateRole = async () => {
     if (!roleToEdit) return;
     
-    await updateRoleMutation.mutateAsync({
-      roleId: roleToEdit.id,
-      updates: roleFormData
-    });
-    setEditRoleDialog(false);
-    setRoleToEdit(null);
-    setRoleFormData({ name: "", description: "", is_active: true });
-    refetchCustomRoles();
+    try {
+      await updateRoleMutation.mutateAsync({
+        roleId: roleToEdit.id,
+        updates: roleFormData
+      });
+      setEditRoleDialog(false);
+      setRoleToEdit(null);
+      setRoleFormData({ name: "", description: "", is_active: true });
+      refetchCustomRoles();
+    } catch (error) {
+      console.error('Failed to update role:', error);
+      // Error is already handled by the mutation hook's onError
+    }
   };
 
   const handleDeleteRole = (role: any) => {
