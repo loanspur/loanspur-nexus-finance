@@ -300,13 +300,23 @@ export const UnifiedRolePermissionManagement = () => {
 
     const selectedRoleData = allRoles.find(r => r.value === selectedRole);
     
-    await bulkUpdateMutation.mutateAsync({
-      role: selectedRoleData?.isDefault ? selectedRole : undefined,
-      customRoleId: selectedRoleData?.customRoleData?.id,
-      permissions: selectedPermissions
-    });
-    setHasChanges(false);
-    refetch();
+    if (!selectedRoleData) {
+      console.error('Selected role not found:', selectedRole);
+      return;
+    }
+
+    try {
+      await bulkUpdateMutation.mutateAsync({
+        role: selectedRoleData.isDefault ? selectedRole : undefined,
+        customRoleId: selectedRoleData.isDefault ? undefined : selectedRoleData.customRoleData?.id,
+        permissions: selectedPermissions
+      });
+      setHasChanges(false);
+      refetch();
+    } catch (error) {
+      console.error('Error saving permissions:', error);
+      // Error is already handled by the mutation hook's onError
+    }
   };
 
   const handleReset = () => {
