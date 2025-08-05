@@ -245,6 +245,18 @@ export const useClients = () => {
   return useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
+      // Get current user's profile to get tenant_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) throw new Error('User has no tenant association');
+
       const { data, error } = await supabase
         .from('clients')
         .select(`
@@ -257,6 +269,7 @@ export const useClients = () => {
             account_balance
           )
         `)
+        .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
