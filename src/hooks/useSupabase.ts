@@ -261,7 +261,7 @@ export const useClients = () => {
             loan_number,
             status,
             outstanding_balance,
-            next_payment_date
+            next_repayment_date
           ),
           savings_accounts (
             id,
