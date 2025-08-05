@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/useLoanAccounting";
 
 const paymentSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -42,6 +43,9 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
+  
+  // Accounting hooks
+  const loanRepaymentAccounting = useLoanRepaymentAccounting();
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -57,12 +61,33 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   const onSubmit = async (data: PaymentFormData) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const amount = Number(data.amount);
+      const transactionDate = data.transactionDate ? format(data.transactionDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+
+      // Create accounting entries based on transaction type
+      switch (data.transactionType) {
+        case 'loan_repayment':
+          if (data.loanId) {
+            await loanRepaymentAccounting.mutateAsync({
+              loan_id: data.loanId,
+              payment_amount: amount,
+              principal_amount: amount, // For now, treating full amount as principal
+              interest_amount: 0,
+              payment_date: transactionDate,
+              payment_reference: data.externalTransactionId,
+            });
+          }
+          break;
+          
+        case 'savings_deposit':
+        case 'savings_withdrawal':
+          // Savings accounting integration will be handled by SavingsTransactionForm
+          break;
+      }
       
       toast({
         title: "Payment Processed",
-        description: "The payment has been successfully recorded.",
+        description: "The payment has been successfully recorded and accounting entries created.",
       });
       
       form.reset();

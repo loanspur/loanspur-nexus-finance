@@ -4,7 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertTriangle, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface FeeFormFieldsProps {
   form: UseFormReturn<any>;
@@ -138,6 +143,7 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                   { value: "on_transaction", label: "Per Transaction" },
                   { value: "on_withdrawal", label: "On Withdrawal" },
                   { value: "on_deposit", label: "On Deposit" },
+                  { value: "custom_date", label: "Custom Date" },
                 ];
               } else if (category === "loan") {
                 return [
@@ -148,6 +154,7 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                   { value: "on_maturity", label: "On Maturity" },
                   { value: "late_payment", label: "Late Payment" },
                   { value: "early_settlement", label: "Early Settlement" },
+                  { value: "custom_date", label: "Custom Date" },
                 ];
               } else {
                 return [
@@ -155,6 +162,7 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                   { value: "monthly", label: "Monthly" },
                   { value: "annually", label: "Annually" },
                   { value: "on_transaction", label: "Per Transaction" },
+                  { value: "custom_date", label: "Custom Date" },
                 ];
               }
             };
@@ -204,6 +212,47 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
           )}
         />
       </div>
+
+      {form.watch("chargeTimeType") === "custom_date" && (
+        <FormField
+          control={form.control}
+          name="customChargeDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Custom Charge Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
 
       <FormField
         control={form.control}
@@ -269,6 +318,40 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
           </FormItem>
         )}
       />
+
+      {form.watch("chargePaymentBy") === "transfer" && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-2">
+            <div className="text-blue-600 dark:text-blue-400 mt-0.5">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div className="text-sm">
+              <p className="font-medium text-blue-700 dark:text-blue-300">Transfer Mode Selected</p>
+              <p className="text-blue-600 dark:text-blue-400 mt-1">
+                When "Transfer" is selected, charges will be automatically transferred from the client's savings account to the appropriate income account. 
+                This creates automatic accounting entries when the charge is applied.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {form.watch("chargePaymentBy") === "regular" && (
+        <div className="p-4 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="flex items-start gap-2">
+            <div className="text-gray-600 dark:text-gray-400 mt-0.5">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div className="text-sm">
+              <p className="font-medium text-gray-700 dark:text-gray-300">Regular Mode Selected</p>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                When "Regular" is selected, charges will be added to the client's account balance but no automatic transfer will occur. 
+                Payment must be collected separately.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
