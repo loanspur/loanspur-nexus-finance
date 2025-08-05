@@ -140,11 +140,18 @@ export const useUserAccessibleOffices = () => {
   return useQuery({
     queryKey: ['user-accessible-offices', profile?.id],
     queryFn: async () => {
-      if (!profile?.id) return [];
+      if (!profile?.id) {
+        console.log('useUserAccessibleOffices: No profile ID');
+        return [];
+      }
+
+      console.log('useUserAccessibleOffices: Fetching for profile ID:', profile.id);
 
       // Get office IDs accessible to the user
       const { data: accessibleOfficeIds, error: officeError } = await supabase
         .rpc('get_user_accessible_offices', { user_profile_id: profile.id });
+
+      console.log('useUserAccessibleOffices: RPC result:', { accessibleOfficeIds, officeError });
 
       if (officeError) {
         console.error('Error fetching accessible offices:', officeError);
@@ -152,6 +159,33 @@ export const useUserAccessibleOffices = () => {
       }
 
       if (!accessibleOfficeIds || accessibleOfficeIds.length === 0) {
+        console.log('useUserAccessibleOffices: No accessible offices found, checking if user is super_admin');
+        
+        // Fallback: If user is super_admin or tenant_admin, allow access to all tenant offices
+        if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin') {
+          console.log('useUserAccessibleOffices: User is admin, fetching all tenant offices');
+          
+          const { data: allOffices, error: allOfficesError } = await supabase
+            .from('offices')
+            .select(`
+              *,
+              branch_manager:profiles!offices_branch_manager_id_fkey(first_name, last_name, email)
+            `)
+            .eq('tenant_id', profile.tenant_id)
+            .eq('is_active', true)
+            .neq('office_type', 'head_office')
+            .order('office_name');
+
+          if (allOfficesError) {
+            console.error('Error fetching all offices for admin:', allOfficesError);
+            throw allOfficesError;
+          }
+
+          console.log('useUserAccessibleOffices: Admin fallback found offices:', allOffices);
+          return allOffices || [];
+        }
+        
+        console.log('useUserAccessibleOffices: No offices accessible and user is not admin');
         return [];
       }
 
@@ -172,6 +206,7 @@ export const useUserAccessibleOffices = () => {
         throw detailsError;
       }
 
+      console.log('useUserAccessibleOffices: Final offices result:', offices);
       return offices || [];
     },
     enabled: !!profile?.id,

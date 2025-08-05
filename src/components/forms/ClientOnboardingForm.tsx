@@ -148,6 +148,8 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       account_opening_date: "",
       passport_number: "",
       driving_license_number: "",
+      office_id: "", // Set to empty string instead of undefined
+      loan_officer_id: "",
       bank_name: "",
       bank_account_number: "",
       bank_branch: "",
@@ -324,8 +326,11 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
 
       // Create the client in the database
       console.log('Creating client with data:', clientData);
-      await createClientMutation.mutateAsync(clientData);
-      console.log('Client created successfully');
+      console.log('Current user profile:', profile);
+      console.log('Office ID being used:', data.office_id);
+      
+      const result = await createClientMutation.mutateAsync(clientData);
+      console.log('Client created successfully:', result);
 
       // Show success message
       toast({
