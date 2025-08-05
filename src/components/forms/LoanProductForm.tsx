@@ -56,6 +56,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       description: editingProduct.description || "",
       currency_code: editingProduct.currency_code,
       repayment_frequency: editingProduct.repayment_frequency || "monthly",
+      payment_frequency: editingProduct.repayment_frequency || "monthly", // Map to payment_frequency
       
       // Loan Terms
       min_principal: editingProduct.min_principal?.toString() || "",
@@ -86,6 +87,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         description: editingProduct.description || "",
         currency_code: editingProduct.currency_code,
         repayment_frequency: editingProduct.repayment_frequency || "monthly",
+        payment_frequency: editingProduct.repayment_frequency || "monthly", // Map to payment_frequency
         fund_id: (editingProduct as any).fund_id || "",
         
         // Loan Terms
