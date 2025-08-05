@@ -172,10 +172,10 @@ export const LoanProductManagement = () => {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <DollarSign className="w-3 h-3" />
-                        <span>${product.min_principal?.toLocaleString()} - ${product.max_principal?.toLocaleString()}</span>
+                        <span>{product.currency_code} {product.min_principal?.toLocaleString()} - {product.currency_code} {product.max_principal?.toLocaleString()}</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        Default: ${product.default_principal?.toLocaleString()}
+                        Default: {product.currency_code} {product.default_principal?.toLocaleString()}
                       </div>
                     </TableCell>
                     <TableCell>

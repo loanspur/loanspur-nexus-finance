@@ -171,6 +171,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       description: data.description || null,
       currency_code: data.currency_code,
       repayment_frequency: data.repayment_frequency,
+      payment_frequency: data.payment_frequency,
       
       // Principal amounts
       min_principal: parseFloat(data.min_principal),
