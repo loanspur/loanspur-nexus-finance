@@ -35,8 +35,10 @@ interface OverdueCharge {
 export const LoanProductFeesTab = ({ form, tenantId }: LoanProductFeesTabProps) => {
   const { data: feeStructures = [] } = useFeeStructures();
   const activeFeeStructures = feeStructures.filter(fee => fee.is_active);
-  const regularCharges = activeFeeStructures.filter(fee => !fee.is_overdue_charge);
-  const overdueCharges = activeFeeStructures.filter(fee => fee.is_overdue_charge);
+  // Filter for loan-related fees only
+  const loanFeeStructures = activeFeeStructures.filter(fee => fee.fee_type === 'loan');
+  const regularCharges = loanFeeStructures.filter(fee => !fee.is_overdue_charge);
+  const overdueCharges = loanFeeStructures.filter(fee => fee.is_overdue_charge);
 
   const [charges, setCharges] = useState<Charge[]>([]);
   const [overdueChargesState, setOverdueChargesState] = useState<OverdueCharge[]>([]);

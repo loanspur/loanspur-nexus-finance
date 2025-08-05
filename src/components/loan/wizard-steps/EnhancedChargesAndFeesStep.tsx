@@ -53,6 +53,7 @@ export function EnhancedChargesAndFeesStep({ form }: EnhancedChargesAndFeesStepP
         .select('*')
         .eq('tenant_id', profile?.tenant_id)
         .eq('is_active', true)
+        .eq('fee_type', 'loan') // Only loan-related fees
         .order('fee_name');
 
       if (error) throw error;

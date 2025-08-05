@@ -119,9 +119,9 @@ export const FullLoanApplicationDialog = ({
     due_date: ''
   });
 
-  // Get available charges from fee structures
+  // Get available charges from fee structures - only loan-related fees
   const { data: feeStructures = [] } = useFeeStructures();
-  const availableCharges = feeStructures.filter(fee => fee.is_active && fee.fee_type === 'Loan');
+  const availableCharges = feeStructures.filter(fee => fee.is_active && fee.fee_type === 'loan');
 
   // Get loan application approval workflow
   const { data: approvalWorkflow } = useGetApprovalWorkflow('loan_applications', 'loan_approval');

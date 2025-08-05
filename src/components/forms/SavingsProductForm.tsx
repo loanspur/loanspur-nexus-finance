@@ -861,19 +861,23 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                         name={`fee_mappings.${index}.fee_type`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Fee Type</FormLabel>
+                            <FormLabel>Available Savings Fees</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select fee type" />
+                                  <SelectValue placeholder="Select savings fee" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="maintenance">Maintenance Fee</SelectItem>
+                                <SelectItem value="account_opening">Account Opening Fee</SelectItem>
+                                <SelectItem value="monthly_maintenance">Monthly Maintenance Fee</SelectItem>
+                                <SelectItem value="quarterly_maintenance">Quarterly Maintenance Fee</SelectItem>
+                                <SelectItem value="annual_service">Annual Service Fee</SelectItem>
                                 <SelectItem value="withdrawal">Withdrawal Fee</SelectItem>
+                                <SelectItem value="deposit">Deposit Fee</SelectItem>
+                                <SelectItem value="transaction">Transaction Fee</SelectItem>
                                 <SelectItem value="overdraft">Overdraft Fee</SelectItem>
                                 <SelectItem value="closure">Account Closure Fee</SelectItem>
-                                <SelectItem value="other">Other Fee</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
