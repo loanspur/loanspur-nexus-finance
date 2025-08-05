@@ -65,13 +65,14 @@ const createLoanApplicationSchema = (selectedProduct?: any) => z.object({
       return { message: `Amount must be between ${min.toLocaleString()} and ${max.toLocaleString()}` };
     }),
   requested_term: z.number()
-    .min(1, "Term must be at least 1 month")
+    .min(1, "Term must be at least 1")
     .refine((term) => {
       if (!selectedProduct) return true;
       console.log('Validating term:', term, 'against product limits:', { 
         min: selectedProduct.min_term, 
         max: selectedProduct.max_term,
-        product: selectedProduct.name 
+        product: selectedProduct.name,
+        frequency: selectedProduct.repayment_frequency
       });
       if (selectedProduct.min_term && term < selectedProduct.min_term) {
         return false;
@@ -84,7 +85,9 @@ const createLoanApplicationSchema = (selectedProduct?: any) => z.object({
       if (!selectedProduct) return { message: "Please select a loan product first" };
       const min = selectedProduct.min_term || 1;
       const max = selectedProduct.max_term || 360;
-      return { message: `Term must be between ${min} and ${max} months` };
+      const unit = selectedProduct.repayment_frequency === 'daily' ? 'days' : 
+                   selectedProduct.repayment_frequency === 'weekly' ? 'weeks' : 'months';
+      return { message: `Term must be between ${min} and ${max} ${unit}` };
     }),
   purpose: z.string().min(10, "Purpose must be at least 10 characters"),
   collateral_description: z.string().optional(),
@@ -113,7 +116,7 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
       if (!profile?.tenant_id) return [];
       const { data, error } = await supabase
         .from('loan_products')
-        .select('*')
+        .select('*, repayment_frequency, min_term, max_term')
         .eq('tenant_id', profile.tenant_id)
         .eq('is_active', true)
         .order('name');
@@ -332,8 +335,19 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Term:</span>
-                    <Badge variant="secondary" className="ml-2">{selectedProduct.default_term} months</Badge>
+                    <Badge variant="secondary" className="ml-2">
+                      {selectedProduct.default_term} {
+                        selectedProduct.repayment_frequency === 'daily' ? 'days' : 
+                        selectedProduct.repayment_frequency === 'weekly' ? 'weeks' : 'months'
+                      }
+                    </Badge>
                   </div>
+                  {selectedProduct.repayment_frequency && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Payment Frequency:</span>
+                      <Badge variant="outline" className="ml-2 capitalize">{selectedProduct.repayment_frequency}</Badge>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -368,12 +382,18 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       <CalendarDays className="w-4 h-4" />
-                      Term (Months)
+                      Term ({
+                        selectedProduct?.repayment_frequency === 'daily' ? 'Days' : 
+                        selectedProduct?.repayment_frequency === 'weekly' ? 'Weeks' : 'Months'
+                      })
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="12"
+                        placeholder={
+                          selectedProduct?.repayment_frequency === 'daily' ? '10' : 
+                          selectedProduct?.repayment_frequency === 'weekly' ? '4' : '12'
+                        }
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />

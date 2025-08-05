@@ -51,6 +51,36 @@ const createSimpleLoanSchema = (selectedProduct?: any) => z.object({
       const max = selectedProduct.max_principal || Infinity;
       return { message: `Amount must be between ${min.toLocaleString()} and ${max.toLocaleString()}` };
     }),
+  requested_term: z.string()
+    .min(1, "Loan term is required")
+    .refine((val) => {
+      const term = parseInt(val);
+      return !isNaN(term) && term > 0;
+    }, "Please enter a valid term")
+    .refine((val) => {
+      if (!selectedProduct) return true;
+      const term = parseInt(val);
+      console.log('Validating term:', term, 'against product limits:', { 
+        min: selectedProduct.min_term, 
+        max: selectedProduct.max_term,
+        product: selectedProduct.name,
+        frequency: selectedProduct.repayment_frequency
+      });
+      if (selectedProduct.min_term && term < selectedProduct.min_term) {
+        return false;
+      }
+      if (selectedProduct.max_term && term > selectedProduct.max_term) {
+        return false;
+      }
+      return true;
+    }, (ctx) => {
+      if (!selectedProduct) return { message: "Please select a loan product first" };
+      const min = selectedProduct.min_term || 1;
+      const max = selectedProduct.max_term || 360;
+      const unit = selectedProduct.repayment_frequency === 'daily' ? 'days' : 
+                   selectedProduct.repayment_frequency === 'weekly' ? 'weeks' : 'months';
+      return { message: `Term must be between ${min} and ${max} ${unit}` };
+    }),
   loan_purpose: z.string().min(10, "Please provide a detailed purpose (min 10 characters)"),
   fund_id: z.string().min(1, "Fund selection is required"),
 });
@@ -88,7 +118,7 @@ export const SimpleLoanApplicationDialog = ({
       if (!profile?.tenant_id) return [];
       const { data, error } = await supabase
         .from('loan_products')
-        .select('*')
+        .select('*, repayment_frequency, min_term, max_term')
         .eq('tenant_id', profile.tenant_id)
         .eq('is_active', true)
         .order('name');
@@ -118,6 +148,7 @@ export const SimpleLoanApplicationDialog = ({
     defaultValues: {
       loan_product_id: "",
       requested_amount: "",
+      requested_term: "",
       loan_purpose: "",
       fund_id: "",
     },
@@ -134,7 +165,7 @@ export const SimpleLoanApplicationDialog = ({
       form.clearErrors();
       // Re-validate fields that depend on product
       setTimeout(() => {
-        form.trigger(['requested_amount']);
+        form.trigger(['requested_amount', 'requested_term']);
       }, 100);
     }
   }, [watchedProductId, selectedProductId, loanProducts, form]);
@@ -143,12 +174,14 @@ export const SimpleLoanApplicationDialog = ({
     if (loanProducts.length > 0 && funds.length > 0) {
       form.setValue("loan_product_id", loanProducts[0].id);
       form.setValue("requested_amount", loanProducts[0].default_principal?.toString() || "5000");
+      form.setValue("requested_term", loanProducts[0].default_term?.toString() || "12");
       form.setValue("loan_purpose", "Business expansion and working capital requirements");
       form.setValue("fund_id", funds[0].id);
       // Auto-populate amount based on selected product
       const product = loanProducts.find(p => p.id === loanProducts[0].id);
       if (product) {
         form.setValue("requested_amount", product.default_principal?.toString() || "");
+        form.setValue("requested_term", product.default_term?.toString() || "");
       }
     }
   };
@@ -188,7 +221,7 @@ export const SimpleLoanApplicationDialog = ({
         client_id: clientId,
         loan_product_id: data.loan_product_id,
         requested_amount: requestedAmount,
-        requested_term: selectedProduct?.default_term || 12,
+        requested_term: parseInt(data.requested_term) || selectedProduct?.default_term || 12,
         purpose: data.loan_purpose,
         fund_id: data.fund_id,
         status: 'pending' as const

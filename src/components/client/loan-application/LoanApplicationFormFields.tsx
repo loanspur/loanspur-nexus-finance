@@ -4,6 +4,7 @@ import { FundSourceSelector } from "./FundSourceSelector";
 import { ProductDetailsDisplay } from "./ProductDetailsDisplay";
 import { LoanAmountInput } from "./LoanAmountInput";
 import { LoanPurposeInput } from "./LoanPurposeInput";
+import { LoanTermInput } from "./LoanTermInput";
 
 interface LoanProduct {
   id: string;
@@ -13,6 +14,9 @@ interface LoanProduct {
   default_principal?: number;
   min_principal?: number;
   max_principal?: number;
+  min_term?: number;
+  max_term?: number;
+  repayment_frequency?: string;
 }
 
 interface Fund {
@@ -64,6 +68,11 @@ export const LoanApplicationFormFields = ({
       )}
 
       <LoanAmountInput
+        control={control}
+        selectedProduct={selectedProduct}
+      />
+
+      <LoanTermInput
         control={control}
         selectedProduct={selectedProduct}
       />
