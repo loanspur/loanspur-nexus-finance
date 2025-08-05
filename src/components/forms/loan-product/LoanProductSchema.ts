@@ -53,7 +53,7 @@ export const loanProductSchema = z.object({
   linked_fee_ids: z.array(z.string()).default([]),
   
   // Accounting Configuration
-  accounting_type: z.string().default("cash"),
+  accounting_type: z.string().default("none"),
   
   // Accounting Journal Mappings
   loan_portfolio_account_id: z.string().optional(),
@@ -130,7 +130,7 @@ export const defaultValues: LoanProductFormData = {
   linked_fee_ids: [],
   
   // Accounting Configuration
-  accounting_type: "cash",
+  accounting_type: "none",
   
   // Accounting Journal Mappings
   loan_portfolio_account_id: "",

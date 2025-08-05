@@ -99,49 +99,6 @@ export const LoanProductTermsTab = ({ form }: LoanProductTermsTabProps) => {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <FormField
-          control={form.control}
-          name="min_nominal_interest_rate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Min Interest Rate (%)</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" placeholder="5.0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="max_nominal_interest_rate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Max Interest Rate (%)</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" placeholder="25.0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="default_nominal_interest_rate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Default Interest Rate (%)</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" placeholder="12.0" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
     </div>
   );
 };

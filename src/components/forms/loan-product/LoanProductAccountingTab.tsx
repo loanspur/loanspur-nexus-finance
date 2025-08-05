@@ -115,6 +115,7 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
                     <SelectItem value="cash">Cash Accounting</SelectItem>
                     <SelectItem value="accrual_periodic">Accrual Periodic</SelectItem>
                     <SelectItem value="accrual_upfront">Accrual Upfront</SelectItem>

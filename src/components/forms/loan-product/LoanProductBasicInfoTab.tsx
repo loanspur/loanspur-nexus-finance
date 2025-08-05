@@ -89,11 +89,11 @@ export const LoanProductBasicInfoTab = ({ form, tenantId }: LoanProductBasicInfo
         name="fund_id"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Fund Source *</FormLabel>
+            <FormLabel>Fund Type *</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value} disabled={fundsLoading}>
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder={fundsLoading ? "Loading funds..." : "Select fund source"} />
+                  <SelectValue placeholder={fundsLoading ? "Loading funds..." : "Select fund type"} />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
@@ -122,11 +122,9 @@ export const LoanProductBasicInfoTab = ({ form, tenantId }: LoanProductBasicInfo
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
+                <SelectItem value="daily">Daily</SelectItem>
                 <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="biweekly">Bi-weekly</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly</SelectItem>
-                <SelectItem value="annually">Annually</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
