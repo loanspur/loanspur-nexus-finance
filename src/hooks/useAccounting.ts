@@ -204,8 +204,8 @@ export const useCreateJournalEntry = () => {
           entry_number: entryNumber,
           transaction_date: data.transaction_date,
           description: data.description,
-          reference_type: data.reference_type,
-          reference_id: data.reference_id,
+          reference_type: data.reference_type || null,
+          reference_id: data.reference_id && data.reference_id.trim() !== '' ? data.reference_id : null,
           total_amount: totalDebit,
           created_by: profile.id,
         })
