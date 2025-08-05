@@ -76,11 +76,11 @@ const clientOnboardingSchema = z.object({
   business_registration_number: z.string().optional(),
   business_address: z.string().optional(),
   
-  // Next of Kin Information (array support)
+  // Next of Kin Information (array support) - All fields optional
   next_of_kin: z.array(z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    relationship: z.string().min(1, "Relationship is required"),
-    phone: z.string().min(10, "Phone number must be at least 10 digits"),
+    name: z.string().optional(),
+    relationship: z.string().optional(),
+    phone: z.string().optional(),
     email: z.union([
       z.string().email("Invalid email format"),
       z.literal("")
@@ -231,39 +231,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         }
         break;
       case 'next_of_kin':
-        const nextOfKin = form.getValues('next_of_kin');
-        if (nextOfKin.length === 0) {
-          toast({
-            title: "Next of Kin Required",
-            description: "Add at least one contact",
-            variant: "destructive",
-          });
-          return false;
-        }
-        // Validate each next of kin entry
-        const nokErrors: string[] = [];
-        nextOfKin.forEach((nok: any, index: number) => {
-          if (!nok.name || nok.name.length < 2) {
-            nokErrors.push(`Contact ${index + 1}: Name must be at least 2 characters`);
-          }
-          if (!nok.relationship) {
-            nokErrors.push(`Contact ${index + 1}: Relationship is required`);
-          }
-          if (!nok.phone || nok.phone.length < 10) {
-            nokErrors.push(`Contact ${index + 1}: Valid phone number required`);
-          }
-          if (nok.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nok.email)) {
-            nokErrors.push(`Contact ${index + 1}: Valid email format required`);
-          }
-        });
-        if (nokErrors.length > 0) {
-          toast({
-            title: "Next of Kin Validation Errors",
-            description: nokErrors.join(" • "),
-            variant: "destructive",
-          });
-          return false;
-        }
+        // Next of kin is now optional - no validation required
         break;
     }
 
