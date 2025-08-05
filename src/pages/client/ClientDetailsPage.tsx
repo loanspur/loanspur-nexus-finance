@@ -44,6 +44,10 @@ import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { EditClientForm } from "@/components/forms/EditClientForm";
 import { ClientIdentifiersTab } from "@/components/client/tabs/ClientIdentifiersTab";
+import { EditBankDetailsDialog } from "@/components/client/dialogs/EditBankDetailsDialog";
+import { EditEmploymentDialog } from "@/components/client/dialogs/EditEmploymentDialog";
+import { EditBusinessDialog } from "@/components/client/dialogs/EditBusinessDialog";
+import { EditNextOfKinDialog } from "@/components/client/dialogs/EditNextOfKinDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
@@ -387,7 +391,7 @@ const ClientDetailsPageRefactored = () => {
                   />
                 </TabsContent>
                 <TabsContent value="next-of-kin" className="mt-0">
-                  <ClientNextOfKinTab client={client} />
+                  <ClientNextOfKinTab client={client} onEdit={() => setShowNextOfKinModal(true)} />
                 </TabsContent>
                 <TabsContent value="savings" className="mt-0">
                   <ClientSavingsTab 
@@ -403,10 +407,10 @@ const ClientDetailsPageRefactored = () => {
                   />
                 </TabsContent>
                 <TabsContent value="employment" className="mt-0">
-                  <ClientEmploymentTab client={client} />
+                  <ClientEmploymentTab client={client} onEdit={() => setShowEmploymentModal(true)} />
                 </TabsContent>
                 <TabsContent value="business" className="mt-0">
-                  <ClientBusinessTab client={client} />
+                  <ClientBusinessTab client={client} onEdit={() => setShowBusinessModal(true)} />
                 </TabsContent>
                 <TabsContent value="transfer" className="mt-0">
                   <ClientTransferTab client={client} />
@@ -519,32 +523,26 @@ const ClientDetailsPageRefactored = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showBankDetailsModal} onOpenChange={setShowBankDetailsModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bank Details</DialogTitle>
-          </DialogHeader>
-          <ClientBankDetailsTab client={client} />
-        </DialogContent>
-      </Dialog>
+      <EditBankDetailsDialog
+        client={client}
+        open={showBankDetailsModal}
+        onOpenChange={setShowBankDetailsModal}
+        onSuccess={fetchClientData}
+      />
 
-      <Dialog open={showEmploymentModal} onOpenChange={setShowEmploymentModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Employment Information</DialogTitle>
-          </DialogHeader>
-          <ClientEmploymentTab client={client} />
-        </DialogContent>
-      </Dialog>
+      <EditEmploymentDialog
+        client={client}
+        open={showEmploymentModal}
+        onOpenChange={setShowEmploymentModal}
+        onSuccess={fetchClientData}
+      />
 
-      <Dialog open={showBusinessModal} onOpenChange={setShowBusinessModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Business Information</DialogTitle>
-          </DialogHeader>
-          <ClientBusinessTab client={client} />
-        </DialogContent>
-      </Dialog>
+      <EditBusinessDialog
+        client={client}
+        open={showBusinessModal}
+        onOpenChange={setShowBusinessModal}
+        onSuccess={fetchClientData}
+      />
 
       <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -573,14 +571,12 @@ const ClientDetailsPageRefactored = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showNextOfKinModal} onOpenChange={setShowNextOfKinModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Next of Kin</DialogTitle>
-          </DialogHeader>
-          <ClientNextOfKinTab client={client} />
-        </DialogContent>
-      </Dialog>
+      <EditNextOfKinDialog
+        client={client}
+        open={showNextOfKinModal}
+        onOpenChange={setShowNextOfKinModal}
+        onSuccess={fetchClientData}
+      />
 
       <Dialog open={showCloseClientModal} onOpenChange={setShowCloseClientModal}>
         <DialogContent className="max-w-md">

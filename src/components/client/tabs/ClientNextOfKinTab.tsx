@@ -14,9 +14,10 @@ interface Client {
 
 interface ClientNextOfKinTabProps {
   client: Client;
+  onEdit?: () => void;
 }
 
-export const ClientNextOfKinTab = ({ client }: ClientNextOfKinTabProps) => {
+export const ClientNextOfKinTab = ({ client, onEdit }: ClientNextOfKinTabProps) => {
   return (
     <div className="space-y-6">
       <Card>
@@ -25,7 +26,7 @@ export const ClientNextOfKinTab = ({ client }: ClientNextOfKinTabProps) => {
             <Users className="h-5 w-5" />
             NEXT OF KIN INFORMATION
           </CardTitle>
-          <Button variant="outline">
+          <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Next of Kin
           </Button>
@@ -62,7 +63,7 @@ export const ClientNextOfKinTab = ({ client }: ClientNextOfKinTabProps) => {
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No next of kin information provided</p>
-              <Button className="mt-4">
+              <Button className="mt-4" onClick={onEdit}>
                 <Edit className="h-4 w-4 mr-2" />
                 Add Next of Kin Details
               </Button>

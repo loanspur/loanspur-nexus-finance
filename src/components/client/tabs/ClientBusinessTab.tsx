@@ -13,9 +13,10 @@ interface Client {
 
 interface ClientBusinessTabProps {
   client: Client;
+  onEdit?: () => void;
 }
 
-export const ClientBusinessTab = ({ client }: ClientBusinessTabProps) => {
+export const ClientBusinessTab = ({ client, onEdit }: ClientBusinessTabProps) => {
   return (
     <div className="space-y-6">
       <Card>
@@ -24,7 +25,7 @@ export const ClientBusinessTab = ({ client }: ClientBusinessTabProps) => {
             <Building2 className="h-5 w-5" />
             Business Information
           </CardTitle>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>

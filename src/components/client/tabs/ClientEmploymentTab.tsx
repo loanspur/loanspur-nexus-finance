@@ -16,9 +16,10 @@ interface Client {
 
 interface ClientEmploymentTabProps {
   client: Client;
+  onEdit?: () => void;
 }
 
-export const ClientEmploymentTab = ({ client }: ClientEmploymentTabProps) => {
+export const ClientEmploymentTab = ({ client, onEdit }: ClientEmploymentTabProps) => {
   const formatCurrency = (amount: number | null) => {
     if (!amount) return "KES 0";
     return new Intl.NumberFormat('en-KE', {
@@ -35,7 +36,7 @@ export const ClientEmploymentTab = ({ client }: ClientEmploymentTabProps) => {
             <Building className="h-5 w-5" />
             Employment Information
           </CardTitle>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>

@@ -12,9 +12,10 @@ interface Client {
 
 interface ClientBankDetailsTabProps {
   client: Client;
+  onEdit?: () => void;
 }
 
-export const ClientBankDetailsTab = ({ client }: ClientBankDetailsTabProps) => {
+export const ClientBankDetailsTab = ({ client, onEdit }: ClientBankDetailsTabProps) => {
   return (
     <div className="space-y-6">
       <Card>
@@ -23,7 +24,7 @@ export const ClientBankDetailsTab = ({ client }: ClientBankDetailsTabProps) => {
             <Building className="h-5 w-5" />
             BANK ACCOUNT DETAILS
           </CardTitle>
-          <Button variant="outline">
+          <Button variant="outline" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Bank Details
           </Button>
@@ -52,7 +53,7 @@ export const ClientBankDetailsTab = ({ client }: ClientBankDetailsTabProps) => {
             <div className="text-center py-8 text-muted-foreground">
               <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No bank account details provided</p>
-              <Button className="mt-4">
+              <Button className="mt-4" onClick={onEdit}>
                 <Edit className="h-4 w-4 mr-2" />
                 Add Bank Details
               </Button>
