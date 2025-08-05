@@ -14,6 +14,7 @@ import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Loader2 } from "lucide-react";
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { generateSampleSavingsProductData } from "@/lib/dev-utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const savingsProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -53,6 +54,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
   const createSavingsProduct = useCreateSavingsProduct();
   const updateSavingsProduct = useUpdateSavingsProduct();
   const { data: accounts } = useChartOfAccounts();
+  const { currency, currencySymbol } = useCurrency();
 
   const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];
   const liabilityAccounts = accounts?.filter(acc => acc.account_type === 'liability') || [];
@@ -260,19 +262,16 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || currency}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select currency" />
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Default currency" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                        <SelectItem value="KES">KES - Kenyan Shilling</SelectItem>
-                        <SelectItem value="UGX">UGX - Ugandan Shilling</SelectItem>
-                        <SelectItem value="TZS">TZS - Tanzanian Shilling</SelectItem>
-                        <SelectItem value="EUR">EUR - Euro</SelectItem>
-                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                      <SelectContent className="bg-background border shadow-md z-50">
+                        <SelectItem value={currency}>
+                          {currency} - {currencySymbol}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

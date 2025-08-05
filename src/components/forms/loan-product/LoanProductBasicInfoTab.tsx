@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UseFormReturn } from "react-hook-form";
 import { LoanProductFormData } from "./LoanProductSchema";
 import { useFunds } from "@/hooks/useFundsManagement";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface LoanProductBasicInfoTabProps {
   form: UseFormReturn<LoanProductFormData>;
@@ -13,6 +14,7 @@ interface LoanProductBasicInfoTabProps {
 
 export const LoanProductBasicInfoTab = ({ form, tenantId }: LoanProductBasicInfoTabProps) => {
   const { data: funds = [], isLoading: fundsLoading } = useFunds();
+  const { currency, currencySymbol } = useCurrency();
   
   return (
     <div className="space-y-4">
@@ -66,17 +68,16 @@ export const LoanProductBasicInfoTab = ({ form, tenantId }: LoanProductBasicInfo
         render={({ field }) => (
           <FormItem>
             <FormLabel>Currency</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select onValueChange={field.onChange} defaultValue={field.value || currency}>
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Default currency" />
                 </SelectTrigger>
               </FormControl>
-              <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="KES">KES</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="GBP">GBP</SelectItem>
+              <SelectContent className="bg-background border shadow-md z-50">
+                <SelectItem value={currency}>
+                  {currency} - {currencySymbol}
+                </SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
