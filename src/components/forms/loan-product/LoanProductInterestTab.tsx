@@ -22,13 +22,13 @@ export const LoanProductInterestTab = ({ form }: LoanProductInterestTabProps) =>
             control={form.control}
             name="min_nominal_interest_rate"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Min Interest Rate (%)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="5.0" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            <FormItem>
+              <FormLabel>Min Interest Rate (% Annual)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="5.0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
             )}
           />
           
@@ -36,13 +36,13 @@ export const LoanProductInterestTab = ({ form }: LoanProductInterestTabProps) =>
             control={form.control}
             name="max_nominal_interest_rate"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Max Interest Rate (%)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="25.0" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            <FormItem>
+              <FormLabel>Max Interest Rate (% Annual)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="25.0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
             )}
           />
 
@@ -50,13 +50,13 @@ export const LoanProductInterestTab = ({ form }: LoanProductInterestTabProps) =>
             control={form.control}
             name="default_nominal_interest_rate"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Default Interest Rate (%)</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" placeholder="12.0" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            <FormItem>
+              <FormLabel>Default Interest Rate (% Annual)</FormLabel>
+              <FormControl>
+                <Input type="number" step="0.01" placeholder="12.0" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
             )}
           />
         </div>
