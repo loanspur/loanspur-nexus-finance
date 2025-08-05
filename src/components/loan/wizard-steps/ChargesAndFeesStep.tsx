@@ -21,8 +21,7 @@ interface LoanCharge {
   description?: string;
   fee_type: string;
   calculation_type: string;
-  amount: number;
-  percentage_rate?: number;
+  amount: number; // Single field for both fixed amounts and percentages
   min_amount?: number;
   max_amount?: number;
   charge_time_type: string;
@@ -224,7 +223,7 @@ export function ChargesAndFeesStep({ form }: ChargesAndFeesStepProps) {
                             step="0.01"
                             min="0"
                             max={charge.max_amount || 100}
-                            value={charge.custom_amount || charge.percentage_rate || 0}
+                            value={charge.custom_amount || charge.amount || 0}
                             onChange={(e) => handleAmountChange(charge.id, e.target.value)}
                             disabled={!charge.selected}
                             className="pr-8"
@@ -260,7 +259,7 @@ export function ChargesAndFeesStep({ form }: ChargesAndFeesStepProps) {
                     <Label>Charge Amount</Label>
                     <div className="text-sm font-medium">
                       {charge.calculation_type === 'percentage' 
-                        ? `${charge.custom_amount || charge.percentage_rate || 0}%`
+                        ? `${charge.custom_amount || charge.amount || 0}%`
                         : formatCurrency(charge.custom_amount || charge.amount)
                       }
                     </div>
@@ -294,7 +293,7 @@ export function ChargesAndFeesStep({ form }: ChargesAndFeesStepProps) {
                     <span className="text-sm">{charge.name}</span>
                     <span className="text-sm font-medium">
                       {charge.calculation_type === 'percentage' 
-                        ? `${charge.custom_amount || charge.percentage_rate || 0}%`
+                        ? `${charge.custom_amount || charge.amount || 0}%`
                         : formatCurrency(charge.custom_amount || charge.amount)
                       }
                     </span>
