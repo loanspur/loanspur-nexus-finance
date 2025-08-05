@@ -2647,7 +2647,6 @@ export type Database = {
           max_amount: number | null
           min_amount: number | null
           name: string
-          percentage_rate: number | null
           tenant_id: string
           updated_at: string
         }
@@ -2665,7 +2664,6 @@ export type Database = {
           max_amount?: number | null
           min_amount?: number | null
           name: string
-          percentage_rate?: number | null
           tenant_id: string
           updated_at?: string
         }
@@ -2683,7 +2681,6 @@ export type Database = {
           max_amount?: number | null
           min_amount?: number | null
           name?: string
-          percentage_rate?: number | null
           tenant_id?: string
           updated_at?: string
         }
