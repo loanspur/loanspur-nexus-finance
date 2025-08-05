@@ -267,7 +267,7 @@ export const useClients = () => {
             id,
             account_number,
             account_balance,
-            status
+            is_active
           )
         `)
         .eq('tenant_id', profile.tenant_id)
