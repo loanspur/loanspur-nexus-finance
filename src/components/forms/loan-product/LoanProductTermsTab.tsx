@@ -10,20 +10,20 @@ interface LoanProductTermsTabProps {
 }
 
 export const LoanProductTermsTab = ({ form }: LoanProductTermsTabProps) => {
-  const [paymentFrequency, setPaymentFrequency] = useState("monthly");
+  const [repaymentFrequency, setRepaymentFrequency] = useState("monthly");
 
-  // Watch for payment frequency changes
+  // Watch for repayment frequency changes
   useEffect(() => {
     const subscription = form.watch((value) => {
-      if (value.payment_frequency) {
-        setPaymentFrequency(value.payment_frequency);
+      if (value.repayment_frequency) {
+        setRepaymentFrequency(value.repayment_frequency);
       }
     });
     return () => subscription.unsubscribe();
   }, [form]);
 
   const getTermUnit = () => {
-    switch (paymentFrequency) {
+    switch (repaymentFrequency) {
       case "daily":
         return "Days";
       case "weekly":

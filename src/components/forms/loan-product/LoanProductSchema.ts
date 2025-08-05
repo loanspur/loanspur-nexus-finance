@@ -8,7 +8,6 @@ export const loanProductSchema = z.object({
   description: z.string().optional(),
   currency_code: z.string().min(1, "Currency is required"),
   repayment_frequency: z.string().min(1, "Repayment frequency is required"),
-  payment_frequency: z.string().min(1, "Payment frequency is required"),
   fund_id: z.string().min(1, "Fund selection is required"),
   
   // Loan Terms
@@ -86,7 +85,6 @@ export const defaultValues: LoanProductFormData = {
   description: "",
   currency_code: "USD",
   repayment_frequency: "monthly",
-  payment_frequency: "monthly",
   fund_id: "",
   
   // Loan Terms
