@@ -517,7 +517,11 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                 {currentStep === steps.length - 1 ? (
                   <Button
                     type="button"
-                    onClick={form.handleSubmit(onSubmit)}
+                    onClick={() => {
+                      console.log('Submit button clicked, form data:', form.getValues());
+                      console.log('Form errors:', form.formState.errors);
+                      form.handleSubmit(onSubmit)();
+                    }}
                     disabled={isSubmitting}
                     className="bg-success hover:bg-success/90 flex items-center gap-2"
                   >
