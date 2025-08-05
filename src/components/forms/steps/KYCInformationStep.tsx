@@ -2,7 +2,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { ValidationFormField } from "../ValidationFormField";
-import { useOffices, useOfficeStaff } from "@/hooks/useOfficeManagement";
+import { useUserAccessibleOffices, useOfficeStaff } from "@/hooks/useOfficeManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface KYCInformationStepProps {
@@ -12,14 +12,13 @@ interface KYCInformationStepProps {
 }
 
 export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
-  const { data: offices = [] } = useOffices();
+  const { data: offices = [] } = useUserAccessibleOffices();
   const selectedOfficeId = form.watch("office_id");
   const { data: officeStaff = [] } = useOfficeStaff(selectedOfficeId);
   
-  // Filter to get only active offices (excluding head offices) and loan officers
-  const activeOffices = offices.filter(office => 
-    office.is_active && office.office_type !== 'head_office'
-  );
+  // Since useUserAccessibleOffices already filters out head offices and inactive offices,
+  // we can use the offices directly
+  const activeOffices = offices;
   const loanOfficers = officeStaff.filter(staff => 
     staff.role_in_office === 'loan_officer' && staff.is_active
   );

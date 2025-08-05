@@ -133,6 +133,51 @@ export const useParentOffice = (parentOfficeId?: string) => {
   });
 };
 
+// Hook to get offices that the current user has access to (for client creation)
+export const useUserAccessibleOffices = () => {
+  const { profile } = useAuth();
+
+  return useQuery({
+    queryKey: ['user-accessible-offices', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+
+      // Get office IDs accessible to the user
+      const { data: accessibleOfficeIds, error: officeError } = await supabase
+        .rpc('get_user_accessible_offices', { user_profile_id: profile.id });
+
+      if (officeError) {
+        console.error('Error fetching accessible offices:', officeError);
+        throw officeError;
+      }
+
+      if (!accessibleOfficeIds || accessibleOfficeIds.length === 0) {
+        return [];
+      }
+
+      // Get office details for accessible offices
+      const { data: offices, error: detailsError } = await supabase
+        .from('offices')
+        .select(`
+          *,
+          branch_manager:profiles!offices_branch_manager_id_fkey(first_name, last_name, email)
+        `)
+        .in('id', accessibleOfficeIds.map((item: any) => item.office_id))
+        .eq('is_active', true)
+        .neq('office_type', 'head_office') // Exclude head offices for client assignment
+        .order('office_name');
+
+      if (detailsError) {
+        console.error('Error fetching office details:', detailsError);
+        throw detailsError;
+      }
+
+      return offices || [];
+    },
+    enabled: !!profile?.id,
+  });
+};
+
 export const useOfficeStaff = (officeId?: string) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
