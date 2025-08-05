@@ -120,8 +120,8 @@ export const useLoanApplications = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients(first_name, last_name, client_number, phone, email),
-          loan_products(
+          clients!loan_applications_client_id_fkey(first_name, last_name, client_number, phone, email),
+          loan_products!loan_applications_loan_product_id_fkey(
             name, 
             short_name, 
             currency_code, 
@@ -161,8 +161,8 @@ export const useAllLoans = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients(first_name, last_name, client_number, phone, email),
-          loan_products(
+          clients!loan_applications_client_id_fkey(first_name, last_name, client_number, phone, email),
+          loan_products!loan_applications_loan_product_id_fkey(
             name, 
             short_name, 
             currency_code, 
@@ -187,8 +187,8 @@ export const useAllLoans = () => {
         .from('loans')
         .select(`
           *,
-          clients(first_name, last_name, client_number, phone, email),
-          loan_products(name, short_name, currency_code)
+          clients!loans_client_id_fkey(first_name, last_name, client_number, phone, email),
+          loan_products!loans_loan_product_id_fkey(name, short_name, currency_code)
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
