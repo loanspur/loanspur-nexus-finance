@@ -184,8 +184,8 @@ export const FeeStructureManagement = () => {
                               <p className="text-sm text-muted-foreground">{fee.description}</p>
                             )}
                             {fee.is_overdue_charge && (
-                              <Badge variant="secondary" className="text-xs mt-1">
-                                Overdue Charge
+                              <Badge variant="secondary" className="text-xs mt-1 bg-orange-100 text-orange-800 border-orange-200">
+                                🚨 Overdue Charge
                               </Badge>
                             )}
                           </div>
