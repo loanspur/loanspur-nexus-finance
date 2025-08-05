@@ -259,9 +259,8 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="basic">Basic Information</TabsTrigger>
-                <TabsTrigger value="terms">Terms & Limits</TabsTrigger>
                 <TabsTrigger value="accounting">Advanced Accounting</TabsTrigger>
               </TabsList>
 
@@ -314,33 +313,30 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="currency_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Currency</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || currency}>
-                        <FormControl>
-                          <SelectTrigger className="bg-background">
-                            <SelectValue placeholder="Default currency" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-background border shadow-md z-50">
-                          <SelectItem value={currency}>
-                            {currency} - {currencySymbol}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-
-              <TabsContent value="terms" className="space-y-6">
-                {/* Interest Rate and Terms */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="currency_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Currency</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value || currency}>
+                          <FormControl>
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder="Default currency" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-background border shadow-md z-50">
+                            <SelectItem value={currency}>
+                              {currency} - {currencySymbol}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="nominal_annual_interest_rate"
@@ -458,6 +454,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                   )}
                 />
               </TabsContent>
+
 
               <TabsContent value="accounting" className="space-y-6">
                 {/* Basic Accounting Configuration */}
