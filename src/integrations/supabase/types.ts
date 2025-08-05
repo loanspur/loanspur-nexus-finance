@@ -4522,6 +4522,7 @@ export type Database = {
           moratorium_period: number | null
           name: string
           overpayment_liability_account_id: string | null
+          payment_frequency: string | null
           penalty_income_account_id: string | null
           penalty_payment_account_id: string | null
           penalty_receivable_account_id: string | null
@@ -4594,6 +4595,7 @@ export type Database = {
           moratorium_period?: number | null
           name: string
           overpayment_liability_account_id?: string | null
+          payment_frequency?: string | null
           penalty_income_account_id?: string | null
           penalty_payment_account_id?: string | null
           penalty_receivable_account_id?: string | null
@@ -4666,6 +4668,7 @@ export type Database = {
           moratorium_period?: number | null
           name?: string
           overpayment_liability_account_id?: string | null
+          payment_frequency?: string | null
           penalty_income_account_id?: string | null
           penalty_payment_account_id?: string | null
           penalty_receivable_account_id?: string | null
