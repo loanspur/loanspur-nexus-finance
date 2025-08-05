@@ -20,8 +20,7 @@ const feeSchema = z.object({
   description: z.string().optional(),
   fee_type: z.string(),
   calculation_type: z.string(),
-  amount: z.string().min(1, "Amount is required"),
-  percentage_rate: z.string().optional(),
+  amount: z.string().min(1, "Amount/Percentage is required"),
   min_amount: z.string().optional(),
   max_amount: z.string().optional(),
   charge_time_type: z.string(),
@@ -48,7 +47,6 @@ export const FeeStructureManagement = () => {
       fee_type: "loan",
       calculation_type: "fixed",
       amount: "",
-      percentage_rate: "",
       min_amount: "",
       max_amount: "",
       charge_time_type: "upfront",
@@ -66,7 +64,6 @@ export const FeeStructureManagement = () => {
       fee_type: data.fee_type,
       calculation_type: data.calculation_type,
       amount: parseFloat(data.amount),
-      percentage_rate: data.percentage_rate ? parseFloat(data.percentage_rate) : undefined,
       min_amount: data.min_amount ? parseFloat(data.min_amount) : undefined,
       max_amount: data.max_amount ? parseFloat(data.max_amount) : undefined,
       charge_time_type: data.charge_time_type,
@@ -100,7 +97,6 @@ export const FeeStructureManagement = () => {
       fee_type: fee.fee_type,
       calculation_type: fee.calculation_type,
       amount: fee.amount.toString(),
-      percentage_rate: fee.percentage_rate?.toString() || "",
       min_amount: fee.min_amount?.toString() || "",
       max_amount: fee.max_amount?.toString() || "",
       charge_time_type: (fee as any).charge_time_type || "upfront",
@@ -211,12 +207,12 @@ export const FeeStructureManagement = () => {
                         </TableCell>
                         <TableCell className="font-semibold">
                           {fee.calculation_type === 'percentage' 
-                            ? `${fee.percentage_rate || 0}%` 
-                            : `$${fee.amount}`
+                            ? `${fee.amount}%` 
+                            : `KSh ${fee.amount}`
                           }
                           {fee.min_amount && fee.min_amount > 0 && (
                             <div className="text-xs text-muted-foreground">
-                              Min: ${fee.min_amount}
+                              Min: KSh {fee.min_amount}
                             </div>
                           )}
                         </TableCell>
@@ -342,13 +338,13 @@ export const FeeStructureManagement = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        Amount {watchCalculationType === "percentage" ? "(%)" : "(KSh)"}
+                        {watchCalculationType === "percentage" ? "Percentage (%)" : "Amount (KSh)"}
                       </FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
                           step="0.01" 
-                          placeholder={watchCalculationType === "percentage" ? "2.5" : "100.00"} 
+                          placeholder={watchCalculationType === "percentage" ? "e.g., 2.5" : "e.g., 100.00"} 
                           {...field} 
                         />
                       </FormControl>
@@ -356,22 +352,6 @@ export const FeeStructureManagement = () => {
                     </FormItem>
                   )}
                 />
-
-                {watchCalculationType === 'percentage' && (
-                  <FormField
-                    control={form.control}
-                    name="percentage_rate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Percentage Rate (%)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="2.5" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

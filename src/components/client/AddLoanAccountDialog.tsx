@@ -998,8 +998,8 @@ export const AddLoanAccountDialog = ({
                                  loanFeeStructures.map((fee) => (
                                    <SelectItem key={fee.id} value={fee.id}>
                                      {fee.name} ({fee.calculation_type === 'fixed' ? 
-                                       `KES ${fee.amount}` : 
-                                       `${fee.percentage_rate || fee.amount}%`})
+                                        `KES ${fee.amount}` : 
+                                        `${fee.amount}%`})
                                    </SelectItem>
                                  ))
                               )}

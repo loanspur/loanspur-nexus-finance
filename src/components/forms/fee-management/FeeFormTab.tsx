@@ -93,8 +93,7 @@ export const FeeFormTab = ({ editingFee, onComplete, onCancel }: FeeFormTabProps
         description: data.description,
         fee_type: data.category,
         calculation_type: data.type,
-        amount: Number(data.amount),
-        percentage_rate: data.type === 'percentage' ? Number(data.amount) : undefined,
+        amount: Number(data.amount), // Single field holds either fixed amount or percentage
         min_amount: 0,
         charge_time_type: data.chargeTimeType,
         charge_payment_by: data.chargePaymentBy,

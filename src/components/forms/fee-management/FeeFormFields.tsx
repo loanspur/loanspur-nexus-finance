@@ -82,11 +82,13 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Amount {form.watch("type") === "percentage" ? "(%)" : "(KSh)"}
+                {form.watch("type") === "percentage" ? "Percentage (%)" : "Amount (KSh)"}
               </FormLabel>
               <FormControl>
                 <Input 
-                  placeholder={form.watch("type") === "percentage" ? "2.5" : "1000"} 
+                  type="number"
+                  step="0.01"
+                  placeholder={form.watch("type") === "percentage" ? "e.g., 2.5" : "e.g., 1000"} 
                   {...field} 
                 />
               </FormControl>

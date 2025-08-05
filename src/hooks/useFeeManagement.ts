@@ -10,8 +10,7 @@ export interface FeeStructure {
   description?: string;
   fee_type: string;
   calculation_type: string;
-  amount: number;
-  percentage_rate?: number;
+  amount: number; // This will hold either fixed amount or percentage value
   min_amount?: number;
   max_amount?: number;
   charge_time_type: string;
@@ -27,8 +26,7 @@ export interface CreateFeeStructureData {
   description?: string;
   fee_type: string;
   calculation_type: string;
-  amount: number;
-  percentage_rate?: number;
+  amount: number; // This will hold either fixed amount or percentage value
   min_amount?: number;
   max_amount?: number;
   charge_time_type: string;

@@ -139,9 +139,9 @@ export const SavingsTransactionForm = ({
     
     if (selectedFee.calculation_type === 'fixed') {
       return selectedFee.amount;
-    } else if (selectedFee.calculation_type === 'percentage' && selectedFee.percentage_rate) {
+    } else if (selectedFee.calculation_type === 'percentage') {
       const baseAmount = savingsAccount.account_balance;
-      let calculatedAmount = (baseAmount * selectedFee.percentage_rate) / 100;
+      let calculatedAmount = (baseAmount * selectedFee.amount) / 100;
       
       // Apply min/max limits
       if (selectedFee.min_amount && calculatedAmount < selectedFee.min_amount) {
@@ -456,7 +456,7 @@ export const SavingsTransactionForm = ({
                                     <span className="text-xs text-muted-foreground">
                                       {fee.calculation_type === 'fixed' 
                                         ? formatCurrency(fee.amount)
-                                        : `${fee.percentage_rate}%${fee.min_amount ? ` (min ${formatCurrency(fee.min_amount)})` : ''}${fee.max_amount ? ` (max ${formatCurrency(fee.max_amount)})` : ''}`
+                                        : `${fee.amount}%${fee.min_amount ? ` (min ${formatCurrency(fee.min_amount)})` : ''}${fee.max_amount ? ` (max ${formatCurrency(fee.max_amount)})` : ''}`
                                       }
                                     </span>
                                   </div>

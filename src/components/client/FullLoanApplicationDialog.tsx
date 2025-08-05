@@ -929,7 +929,7 @@ export const FullLoanApplicationDialog = ({
                                        setNewCharge({
                                          name: selectedFee.name,
                                          type: selectedFee.fee_type,
-                                         amount: selectedFee.fee_type === 'Flat' ? selectedFee.amount.toString() : selectedFee.percentage_rate?.toString() || '',
+                                         amount: selectedFee.amount.toString(),
                                          collected_on: selectedFee.charge_time_type === 'upfront' ? 'Disbursement' : 'Specified due date',
                                          due_date: ''
                                        });
