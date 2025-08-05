@@ -154,6 +154,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
   }, [editingProduct, form]);
 
   const onSubmit = async (data: LoanProductFormData) => {
+    console.log("Form submission started", { editingProduct: !!editingProduct, data });
     setIsSubmitting(true);
     
     const productData = {
@@ -236,11 +237,13 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
 
     try {
       if (editingProduct) {
+        console.log("Updating loan product", { id: editingProduct.id });
         await updateLoanProductMutation.mutateAsync({
           id: editingProduct.id,
           ...productData,
         });
       } else {
+        console.log("Creating new loan product");
         await createLoanProductMutation.mutateAsync(productData);
       }
       
@@ -416,7 +419,10 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
                 {isLastTab ? (
                   <Button 
                     type="button"
-                    onClick={form.handleSubmit(onSubmit)} 
+                    onClick={(e) => {
+                      console.log("Update button clicked", { editingProduct: !!editingProduct });
+                      form.handleSubmit(onSubmit)(e);
+                    }}
                     disabled={isSubmitting}
                   >
                     {isSubmitting 
