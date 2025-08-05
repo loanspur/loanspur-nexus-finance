@@ -266,13 +266,31 @@ export const ReviewStep = ({ formData, onSubmit, isSubmitting }: ReviewStepProps
         </Card>
       )}
 
-      {/* Information Display Only - No Submit Button */}
+      {/* Submit Application */}
       <Card>
         <CardContent className="pt-6">
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <p className="text-sm text-muted-foreground">
-              Please review all information above. Click "Next" to proceed to the final step where you can submit your application.
+              Please review all information above. Once you submit, the client will be created and awaiting approval and activation.
             </p>
+            <Button
+              onClick={onSubmit}
+              disabled={isSubmitting}
+              className="bg-success hover:bg-success/90 flex items-center gap-2 px-8"
+              size="lg"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Creating Client...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5" />
+                  Complete Onboarding
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
