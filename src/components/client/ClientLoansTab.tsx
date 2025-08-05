@@ -113,7 +113,7 @@ export const ClientLoansTab = ({
         );
       }
       
-      if (item.status?.toLowerCase() === 'approved') {
+      if (['approved', 'pending_disbursement'].includes(item.status?.toLowerCase())) {
         actions.push(
           <Button 
             key="disburse"
@@ -128,6 +128,7 @@ export const ClientLoansTab = ({
       }
     }
 
+    // Show view button for both loans and applications
     actions.push(
       <Button 
         key="view"
@@ -238,6 +239,32 @@ export const ClientLoansTab = ({
                             <p className="text-muted-foreground">Interest Rate</p>
                             <p className="font-medium">
                               {item.loan_products.default_nominal_interest_rate}%
+                            </p>
+                          </div>
+                        )}
+                        {/* Show processing info for applications */}
+                        {item.type === 'application' && item.reviewed_by_profile && (
+                          <div>
+                            <p className="text-muted-foreground">Reviewed By</p>
+                            <p className="font-medium text-xs">
+                              {item.reviewed_by_profile.first_name} {item.reviewed_by_profile.last_name}
+                            </p>
+                          </div>
+                        )}
+                        {/* Show processing info for loans */}
+                        {item.type === 'loan' && item.approved_by_profile && (
+                          <div>
+                            <p className="text-muted-foreground">Approved By</p>
+                            <p className="font-medium text-xs">
+                              {item.approved_by_profile.first_name} {item.approved_by_profile.last_name}
+                            </p>
+                          </div>
+                        )}
+                        {item.type === 'loan' && item.loan_disbursements?.[0]?.disbursed_by_profile && (
+                          <div>
+                            <p className="text-muted-foreground">Disbursed By</p>
+                            <p className="font-medium text-xs">
+                              {item.loan_disbursements[0].disbursed_by_profile.first_name} {item.loan_disbursements[0].disbursed_by_profile.last_name}
                             </p>
                           </div>
                         )}

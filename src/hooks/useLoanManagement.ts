@@ -172,7 +172,8 @@ export const useAllLoans = () => {
             default_term,
             min_term,
             max_term
-          )
+          ),
+          reviewed_by_profile:profiles!reviewed_by(first_name, last_name)
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -188,7 +189,13 @@ export const useAllLoans = () => {
         .select(`
           *,
           clients!loans_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loans_loan_product_id_fkey(name, short_name, currency_code)
+          loan_products!loans_loan_product_id_fkey(name, short_name, currency_code),
+          approved_by_profile:profiles!approved_by(first_name, last_name),
+          loan_disbursements!loan_disbursements_loan_id_fkey(
+            disbursed_by,
+            disbursement_date,
+            disbursed_by_profile:profiles!disbursed_by(first_name, last_name)
+          )
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -495,7 +502,7 @@ export const useProcessLoanApproval = () => {
   return useMutation({
     mutationFn: async (approval: {
       loan_application_id: string;
-      action: 'approve' | 'reject' | 'request_changes';
+      action: 'approve' | 'reject' | 'request_changes' | 'undo_approval';
       comments?: string;
       approved_amount?: number;
       approved_term?: number;
@@ -581,6 +588,8 @@ export const useProcessLoanApproval = () => {
         newStatus = 'pending_disbursement';
       } else if (approval.action === 'reject') {
         newStatus = 'rejected';
+      } else if (approval.action === 'undo_approval') {
+        newStatus = 'pending';
       } else {
         newStatus = 'under_review';
       }
@@ -618,11 +627,24 @@ export const useProcessLoanApproval = () => {
             outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
             status: 'pending_disbursement',
             loan_officer_id: profile.id,
+            approved_by: profile.id,
+            approved_at: approval.approval_date || new Date().toISOString(),
           }])
           .select()
           .single();
         
         if (loanError) throw loanError;
+      }
+
+      // If undoing approval, delete any pending loan records
+      if (approval.action === 'undo_approval') {
+        const { error: deleteLoanError } = await supabase
+          .from('loans')
+          .delete()
+          .eq('application_id', approval.loan_application_id)
+          .eq('status', 'pending_disbursement');
+        
+        if (deleteLoanError) console.warn('Error deleting pending loan:', deleteLoanError);
       }
 
       return approvalData;

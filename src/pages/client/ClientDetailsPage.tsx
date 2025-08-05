@@ -37,8 +37,8 @@ import { ClientNextOfKinTab } from "@/components/client/tabs/ClientNextOfKinTab"
 import { ClientNotesTab } from "@/components/client/tabs/ClientNotesTab";
 import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
 import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
-// Removed unwanted dialogs
-import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
+// Using enhanced workflow dialog
+import { EnhancedLoanWorkflowDialog } from "@/components/loan/EnhancedLoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
@@ -466,7 +466,7 @@ const ClientDetailsPageRefactored = () => {
         />
       )}
       {selectedLoanForWorkflow && (
-        <LoanWorkflowDialog
+        <EnhancedLoanWorkflowDialog
           open={showLoanWorkflowModal}
           onOpenChange={setShowLoanWorkflowModal}
           loanApplication={selectedLoanForWorkflow}
