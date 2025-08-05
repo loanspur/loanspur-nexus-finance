@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,14 +21,41 @@ import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { useFunds } from "@/hooks/useFundsManagement";
 import { LoanApplicationFormFields } from "./loan-application/LoanApplicationFormFields";
 
-const simpleLoanSchema = z.object({
+// Create dynamic schema function with product validation
+const createSimpleLoanSchema = (selectedProduct?: any) => z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
-  requested_amount: z.string().min(1, "Loan amount is required"),
+  requested_amount: z.string()
+    .min(1, "Loan amount is required")
+    .refine((val) => {
+      const amount = parseFloat(val);
+      return !isNaN(amount) && amount > 0;
+    }, "Please enter a valid amount")
+    .refine((val) => {
+      if (!selectedProduct) return true;
+      const amount = parseFloat(val);
+      console.log('Validating amount:', amount, 'against product limits:', { 
+        min: selectedProduct.min_principal, 
+        max: selectedProduct.max_principal,
+        product: selectedProduct.name 
+      });
+      if (selectedProduct.min_principal && amount < selectedProduct.min_principal) {
+        return false;
+      }
+      if (selectedProduct.max_principal && amount > selectedProduct.max_principal) {
+        return false;
+      }
+      return true;
+    }, (ctx) => {
+      if (!selectedProduct) return { message: "Please select a loan product first" };
+      const min = selectedProduct.min_principal || 0;
+      const max = selectedProduct.max_principal || Infinity;
+      return { message: `Amount must be between ${min.toLocaleString()} and ${max.toLocaleString()}` };
+    }),
   loan_purpose: z.string().min(10, "Please provide a detailed purpose (min 10 characters)"),
   fund_id: z.string().min(1, "Fund selection is required"),
 });
 
-type SimpleLoanData = z.infer<typeof simpleLoanSchema>;
+type SimpleLoanData = z.infer<ReturnType<typeof createSimpleLoanSchema>>;
 
 interface SimpleLoanApplicationDialogProps {
   clientId: string;
@@ -46,22 +73,13 @@ export const SimpleLoanApplicationDialog = ({
   onSuccess 
 }: SimpleLoanApplicationDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const { toast } = useToast();
   const { profile } = useAuth();
   const createLoanApplication = useCreateLoanApplication();
 
   // Debug logging
   console.log('SimpleLoanApplicationDialog render:', { open, clientId, clientName });
-
-  const form = useForm<SimpleLoanData>({
-    resolver: zodResolver(simpleLoanSchema),
-    defaultValues: {
-      loan_product_id: "",
-      requested_amount: "",
-      loan_purpose: "",
-      fund_id: "",
-    },
-  });
 
   // Fetch loan products and funds
   const { data: loanProducts = [], isLoading: isLoadingProducts } = useQuery({
@@ -92,7 +110,34 @@ export const SimpleLoanApplicationDialog = ({
     fundsData: funds
   });
 
-  const selectedProduct = loanProducts.find(p => p.id === form.watch("loan_product_id"));
+  // Initialize form with dynamic schema
+  const selectedProduct = loanProducts?.find(p => p.id === selectedProductId);
+  
+  const form = useForm<SimpleLoanData>({
+    resolver: zodResolver(createSimpleLoanSchema(selectedProduct)),
+    defaultValues: {
+      loan_product_id: "",
+      requested_amount: "",
+      loan_purpose: "",
+      fund_id: "",
+    },
+  });
+
+  // Watch product selection and update schema
+  const watchedProductId = form.watch('loan_product_id');
+  
+  useEffect(() => {
+    if (watchedProductId !== selectedProductId) {
+      setSelectedProductId(watchedProductId);
+      // Reset resolver with new product validation
+      const newSchema = createSimpleLoanSchema(loanProducts?.find(p => p.id === watchedProductId));
+      form.clearErrors();
+      // Re-validate fields that depend on product
+      setTimeout(() => {
+        form.trigger(['requested_amount']);
+      }, 100);
+    }
+  }, [watchedProductId, selectedProductId, loanProducts, form]);
 
   const fillSampleData = () => {
     if (loanProducts.length > 0 && funds.length > 0) {
@@ -112,11 +157,37 @@ export const SimpleLoanApplicationDialog = ({
     setIsSubmitting(true);
     try {
       const selectedProduct = loanProducts.find(p => p.id === data.loan_product_id);
+      const requestedAmount = parseFloat(data.requested_amount);
+      
+      // Final validation before submission
+      if (selectedProduct) {
+        console.log('Final validation before submission:', {
+          amount: requestedAmount,
+          product: selectedProduct.name,
+          limits: { min: selectedProduct.min_principal, max: selectedProduct.max_principal }
+        });
+        
+        if (selectedProduct.min_principal && requestedAmount < selectedProduct.min_principal) {
+          form.setError('requested_amount', { 
+            message: `Amount must be at least ${selectedProduct.min_principal.toLocaleString()}` 
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        if (selectedProduct.max_principal && requestedAmount > selectedProduct.max_principal) {
+          form.setError('requested_amount', { 
+            message: `Amount cannot exceed ${selectedProduct.max_principal.toLocaleString()}` 
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
       
       const loanApplicationData = {
         client_id: clientId,
         loan_product_id: data.loan_product_id,
-        requested_amount: parseFloat(data.requested_amount),
+        requested_amount: requestedAmount,
         requested_term: selectedProduct?.default_term || 12,
         purpose: data.loan_purpose,
         fund_id: data.fund_id,
