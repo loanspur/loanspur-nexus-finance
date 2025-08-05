@@ -159,7 +159,13 @@ export const useCreateLoanApplication = () => {
       return data;
     },
     onSuccess: () => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans-dialog'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
       toast({
         title: "Success",
         description: "Loan application created successfully",
@@ -334,8 +340,15 @@ export const useProcessLoanPayment = () => {
       return data;
     },
     onSuccess: (_, variables) => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loan-schedules', variables.loan_id] });
       queryClient.invalidateQueries({ queryKey: ['collection-cases'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans-dialog'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast({
         title: "Success",
         description: "Payment processed successfully",

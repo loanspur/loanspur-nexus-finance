@@ -139,9 +139,13 @@ export const useProcessSavingsTransaction = () => {
       return data;
     },
     onSuccess: (_, variables) => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['savings-transactions', variables.savings_account_id] });
       queryClient.invalidateQueries({ queryKey: ['all-savings-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
       toast({
         title: "Success",
         description: "Transaction processed successfully",

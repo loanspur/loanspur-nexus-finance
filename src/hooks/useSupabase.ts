@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
+import { defaultQueryOptions, rareUpdateOptions } from './useOptimizedQueries';
 
 // Types
 export interface Tenant {
@@ -203,8 +205,9 @@ export const useTenants = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Tenant[];
+      return (data || []) as Tenant[];
     },
+    ...rareUpdateOptions,
   });
 };
 
@@ -242,47 +245,39 @@ export const useCreateTenant = () => {
 
 // Client hooks
 export const useClients = () => {
+  const { profile } = useAuth();
+  
   return useQuery({
-    queryKey: ['clients'],
+    queryKey: ['clients', profile?.tenant_id],
     queryFn: async () => {
-      // Get current user's profile to get tenant_id
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile?.tenant_id) throw new Error('User has no tenant association');
-
+      if (!profile?.tenant_id) return [];
+      
       const { data, error } = await supabase
         .from('clients')
         .select(`
           *,
-          loans(
+          loans (
+            id,
+            loan_number,
+            status,
             outstanding_balance,
-            status
+            next_payment_date
           ),
-          savings_accounts(
-            account_balance
+          savings_accounts (
+            id,
+            account_number,
+            account_balance,
+            status
           )
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as (Client & {
-        loans?: Array<{
-          outstanding_balance: number;
-          status: string;
-        }>;
-        savings_accounts?: Array<{
-          account_balance: number;
-        }>;
-      })[];
+      return data as Client[];
     },
+    enabled: !!profile?.tenant_id,
+    ...defaultQueryOptions,
   });
 };
 
@@ -320,7 +315,9 @@ export const useCreateClient = () => {
       return data;
     },
     onSuccess: () => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
       toast({
         title: "Success",
         description: "Client created successfully",
@@ -419,6 +416,7 @@ export const useLoanProducts = () => {
       if (error) throw error;
       return data as LoanProduct[];
     },
+    ...rareUpdateOptions,
   });
 };
 
@@ -471,7 +469,10 @@ export const useUpdateLoanProduct = () => {
       return data;
     },
     onSuccess: () => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loan-products'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
       toast({
         title: "Success",
         description: "Loan product updated successfully",
@@ -517,6 +518,7 @@ export const useLoans = () => {
       if (error) throw error;
       return data as Loan[];
     },
+    ...defaultQueryOptions,
   });
 };
 
@@ -536,7 +538,12 @@ export const useCreateLoan = () => {
       return data;
     },
     onSuccess: () => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans-dialog'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
       toast({
         title: "Success",
         description: "Loan created successfully",
@@ -677,7 +684,10 @@ export const useCreateSavingsAccount = () => {
       return data;
     },
     onSuccess: () => {
+      // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
       toast({
         title: "Success",
         description: "Savings account created successfully",
