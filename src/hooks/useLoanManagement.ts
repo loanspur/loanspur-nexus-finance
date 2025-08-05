@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useMifosIntegration } from './useMifosIntegration';
+import { defaultQueryOptions } from './useOptimizedQueries';
 
 export interface LoanApplication {
   id: string;
@@ -119,16 +120,90 @@ export const useLoanApplications = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients(first_name, last_name, client_number),
-          loan_products(name, short_name)
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(name, short_name, currency_code)
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Loan applications query error:', error);
+        throw new Error(`Failed to fetch loan applications: ${error.message}`);
+      }
       return data as any[];
     },
     enabled: !!profile?.tenant_id,
+    ...defaultQueryOptions,
+  });
+};
+
+// Enhanced hook to get all loans (both applications and disbursed loans)
+export const useAllLoans = () => {
+  const { profile } = useAuth();
+
+  return useQuery({
+    queryKey: ['all-loans', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      // Fetch loan applications
+      const { data: applications, error: appsError } = await supabase
+        .from('loan_applications')
+        .select(`
+          *,
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(name, short_name, currency_code)
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false });
+
+      if (appsError) {
+        console.error('Loan applications error:', appsError);
+        throw new Error(`Failed to fetch loan applications: ${appsError.message}`);
+      }
+
+      // Fetch actual loans (disbursed)
+      const { data: loans, error: loansError } = await supabase
+        .from('loans')
+        .select(`
+          *,
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(name, short_name, currency_code)
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false });
+
+      if (loansError) {
+        console.error('Loans error:', loansError);
+        throw new Error(`Failed to fetch loans: ${loansError.message}`);
+      }
+
+      // Combine and normalize data
+      const normalizedApplications = applications?.map(app => ({
+        ...app,
+        type: 'application',
+        amount: app.requested_amount,
+        number: app.application_number,
+        term: app.requested_term,
+        disbursement_date: null,
+        outstanding_balance: null,
+        next_repayment_date: null
+      })) || [];
+
+      const normalizedLoans = loans?.map(loan => ({
+        ...loan,
+        type: 'loan',
+        amount: loan.principal_amount,
+        number: loan.loan_number,
+        term: loan.term_months,
+        requested_amount: loan.principal_amount,
+        requested_term: loan.term_months
+      })) || [];
+
+      return [...normalizedApplications, ...normalizedLoans];
+    },
+    enabled: !!profile?.tenant_id,
+    ...defaultQueryOptions,
   });
 };
 
@@ -161,6 +236,7 @@ export const useCreateLoanApplication = () => {
     onSuccess: () => {
       // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['all-loans'] });
       queryClient.invalidateQueries({ queryKey: ['client-loans'] });
       queryClient.invalidateQueries({ queryKey: ['client-loans-dialog'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });

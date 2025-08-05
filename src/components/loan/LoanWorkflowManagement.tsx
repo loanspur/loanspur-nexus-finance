@@ -29,7 +29,7 @@ interface LoanWorkflowManagementProps {
 }
 
 export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkflowManagementProps) => {
-  const { data: loanApplications, isLoading } = useLoanApplications();
+  const { data: loanApplications, isLoading, error } = useLoanApplications();
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isWorkflowDialogOpen, setIsWorkflowDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,6 +48,18 @@ export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkf
     
     return matchesSearch && matchesStatus;
   }) || [];
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-destructive">
+            Error loading loan applications: {error.message}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Group applications by status
   const groupedApplications = {

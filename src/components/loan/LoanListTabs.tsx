@@ -13,39 +13,39 @@ import {
   Eye,
   CreditCard
 } from "lucide-react";
-import { useLoanApplications } from "@/hooks/useLoanManagement";
+import { useAllLoans } from "@/hooks/useLoanManagement";
 import { LoanStatusBadge } from "./LoanStatusBadge";
 import { BulkLoanActions } from "./BulkLoanActions";
 import { LoanWorkflowDialog } from "./LoanWorkflowDialog";
 import { format } from "date-fns";
 
 export const LoanListTabs = () => {
-  const { data: loanApplications, isLoading } = useLoanApplications();
+  const { data: allLoans, isLoading, error } = useAllLoans();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isWorkflowDialogOpen, setIsWorkflowDialogOpen] = useState(false);
 
-  // Filter applications based on search criteria
-  const filteredApplications = loanApplications?.filter((app: any) => {
+  // Filter loans based on search criteria
+  const filteredLoans = allLoans?.filter((item: any) => {
     const matchesSearch = searchTerm === "" || 
-      app.application_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${app.clients?.first_name} ${app.clients?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.loan_products?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.number && item.number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      `${item.clients?.first_name} ${item.clients?.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.loan_products?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesSearch;
   }) || [];
 
-  // Group applications by status
-  const pendingApprovalLoans = filteredApplications.filter((app: any) => 
-    ['pending', 'under_review'].includes(app.status)
+  // Group loans by status
+  const pendingApprovalLoans = filteredLoans.filter((item: any) => 
+    ['pending', 'under_review'].includes(item.status)
   );
   
-  const pendingDisbursementLoans = filteredApplications.filter((app: any) => 
-    ['approved', 'pending_disbursement'].includes(app.status)
+  const pendingDisbursementLoans = filteredLoans.filter((item: any) => 
+    ['approved', 'pending_disbursement'].includes(item.status)
   );
   
-  const disbursedLoans = filteredApplications.filter((app: any) => 
-    app.status === 'disbursed'
+  const disbursedLoans = filteredLoans.filter((item: any) => 
+    ['disbursed', 'active'].includes(item.status)
   );
 
   const formatCurrency = (amount: number) => {
@@ -64,7 +64,7 @@ export const LoanListTabs = () => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Application #</TableHead>
+          <TableHead>Loan #</TableHead>
           <TableHead>Client</TableHead>
           <TableHead>Product</TableHead>
           <TableHead>Amount</TableHead>
@@ -78,7 +78,12 @@ export const LoanListTabs = () => {
         {loans.map((loan: any) => (
           <TableRow key={loan.id}>
             <TableCell>
-              <div className="font-medium">{loan.application_number}</div>
+              <div className="font-medium">
+                {loan.number}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {loan.type === 'application' ? 'Application' : 'Loan'}
+              </div>
             </TableCell>
             <TableCell>
               <div className="text-sm">
@@ -93,11 +98,11 @@ export const LoanListTabs = () => {
             </TableCell>
             <TableCell>
               <div className="font-medium text-primary">
-                {formatCurrency(loan.requested_amount)}
+                {formatCurrency(loan.amount)}
               </div>
             </TableCell>
             <TableCell>
-              <div className="text-sm">{loan.requested_term} months</div>
+              <div className="text-sm">{loan.term} months</div>
             </TableCell>
             <TableCell>
               <LoanStatusBadge status={loan.status} />
@@ -131,6 +136,18 @@ export const LoanListTabs = () => {
       <p className="text-muted-foreground">{description}</p>
     </div>
   );
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center text-destructive">
+            Error loading loans: {error.message}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
