@@ -29,7 +29,7 @@ const existingFees: Fee[] = [
     isActive: true,
     applicableFor: "all",
     chargeTimeType: "monthly",
-    chargePaymentBy: "automatic"
+    chargePaymentBy: "regular"
   },
   {
     id: "fee_003",
@@ -41,7 +41,7 @@ const existingFees: Fee[] = [
     isActive: true,
     applicableFor: "all",
     chargeTimeType: "late_payment",
-    chargePaymentBy: "system"
+    chargePaymentBy: "regular"
   },
   {
     id: "fee_004",

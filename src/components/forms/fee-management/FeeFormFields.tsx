@@ -194,13 +194,9 @@ export const FeeFormFields = ({ form }: FeeFormFieldsProps) => {
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="bg-background border shadow-md z-50">
                   <SelectItem value="regular">Regular</SelectItem>
                   <SelectItem value="transfer">Transfer</SelectItem>
-                  <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                  <SelectItem value="automatic">Automatic</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

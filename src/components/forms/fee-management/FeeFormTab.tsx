@@ -17,7 +17,7 @@ const feeSchema = z.object({
   }),
   category: z.enum(['loan', 'savings', 'account', 'transaction', 'penalty']),
   chargeTimeType: z.enum(['upfront', 'monthly', 'quarterly', 'annually', 'instalment', 'on_maturity', 'on_disbursement', 'on_transaction', 'on_withdrawal', 'on_deposit', 'late_payment', 'early_settlement']),
-  chargePaymentBy: z.enum(['regular', 'transfer', 'client', 'system', 'automatic', 'manual']),
+  chargePaymentBy: z.enum(['regular', 'transfer']),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   applicableFor: z.enum(['all', 'new_clients', 'existing_clients']),
