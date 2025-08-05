@@ -29,7 +29,10 @@ const clientOnboardingSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters"),
   middle_name: z.string().optional(),
   last_name: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().min(1, "Email is required").email("Invalid email format"),
+  email: z.string().optional().refine((val) => {
+    if (!val || val === '') return true;
+    return z.string().email().safeParse(val).success;
+  }, "Invalid email format"),
   phone: z.string()
     .min(10, "Phone number must be at least 10 digits")
     .regex(/^[\+]?[0-9\s\-\(\)]{10,15}$/, "Invalid phone number format"),
@@ -517,11 +520,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                 {currentStep === steps.length - 1 ? (
                   <Button
                     type="button"
-                    onClick={() => {
-                      console.log('Submit button clicked, form data:', form.getValues());
-                      console.log('Form errors:', form.formState.errors);
-                      form.handleSubmit(onSubmit)();
-                    }}
+                    onClick={form.handleSubmit(onSubmit)}
                     disabled={isSubmitting}
                     className="bg-success hover:bg-success/90 flex items-center gap-2"
                   >
