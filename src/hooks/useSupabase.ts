@@ -252,29 +252,38 @@ export const useClients = () => {
     queryFn: async () => {
       if (!profile?.tenant_id) return [];
       
-      const { data, error } = await supabase
-        .from('clients')
-        .select(`
-          *,
-          loans (
-            id,
-            loan_number,
-            status,
-            outstanding_balance,
-            next_repayment_date
-          ),
-          savings_accounts (
-            id,
-            account_number,
-            account_balance,
-            is_active
-          )
-        `)
-        .eq('tenant_id', profile.tenant_id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Client[];
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select(`
+            *,
+            loans (
+              id,
+              loan_number,
+              status,
+              outstanding_balance,
+              next_repayment_date
+            ),
+            savings_accounts (
+              id,
+              account_number,
+              account_balance,
+              is_active
+            )
+          `)
+          .eq('tenant_id', profile.tenant_id)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Clients query error:', error);
+          throw new Error(`Database error: ${error.message}`);
+        }
+        
+        return data as Client[];
+      } catch (err) {
+        console.error('useClients error:', err);
+        throw err;
+      }
     },
     enabled: !!profile?.tenant_id,
     ...defaultQueryOptions,
