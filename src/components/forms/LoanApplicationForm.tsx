@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -38,17 +38,60 @@ import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { generateSampleLoanApplicationData } from "@/lib/dev-utils";
 import { useGetApprovalWorkflow, useCreateApprovalRequest } from "@/hooks/useApprovalRequests";
 
-const loanApplicationSchema = z.object({
+// Create dynamic schema function to include product validation
+const createLoanApplicationSchema = (selectedProduct?: any) => z.object({
   client_id: z.string().min(1, "Please select a client"),
   loan_product_id: z.string().min(1, "Please select a loan product"),
-  requested_amount: z.number().min(1, "Amount must be greater than 0"),
-  requested_term: z.number().min(1, "Term must be at least 1 month"),
+  requested_amount: z.number()
+    .min(1, "Amount must be greater than 0")
+    .refine((amount) => {
+      if (!selectedProduct) return true;
+      console.log('Validating amount:', amount, 'against product limits:', { 
+        min: selectedProduct.min_principal, 
+        max: selectedProduct.max_principal,
+        product: selectedProduct.name 
+      });
+      if (selectedProduct.min_principal && amount < selectedProduct.min_principal) {
+        return false;
+      }
+      if (selectedProduct.max_principal && amount > selectedProduct.max_principal) {
+        return false;
+      }
+      return true;
+    }, (ctx) => {
+      if (!selectedProduct) return { message: "Please select a loan product first" };
+      const min = selectedProduct.min_principal || 0;
+      const max = selectedProduct.max_principal || Infinity;
+      return { message: `Amount must be between ${min.toLocaleString()} and ${max.toLocaleString()}` };
+    }),
+  requested_term: z.number()
+    .min(1, "Term must be at least 1 month")
+    .refine((term) => {
+      if (!selectedProduct) return true;
+      console.log('Validating term:', term, 'against product limits:', { 
+        min: selectedProduct.min_term, 
+        max: selectedProduct.max_term,
+        product: selectedProduct.name 
+      });
+      if (selectedProduct.min_term && term < selectedProduct.min_term) {
+        return false;
+      }
+      if (selectedProduct.max_term && term > selectedProduct.max_term) {
+        return false;
+      }
+      return true;
+    }, (ctx) => {
+      if (!selectedProduct) return { message: "Please select a loan product first" };
+      const min = selectedProduct.min_term || 1;
+      const max = selectedProduct.max_term || 360;
+      return { message: `Term must be between ${min} and ${max} months` };
+    }),
   purpose: z.string().min(10, "Purpose must be at least 10 characters"),
   collateral_description: z.string().optional(),
   guarantor_ids: z.array(z.string()).optional(),
 });
 
-type LoanApplicationFormData = z.infer<typeof loanApplicationSchema>;
+type LoanApplicationFormData = z.infer<ReturnType<typeof createLoanApplicationSchema>>;
 
 interface LoanApplicationFormProps {
   children: React.ReactNode;
@@ -63,15 +106,21 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
   // Get loan application approval workflow
   const { data: approvalWorkflow } = useGetApprovalWorkflow('loan_applications', 'loan_approval');
 
-  const form = useForm<LoanApplicationFormData>({
-    resolver: zodResolver(loanApplicationSchema),
-    defaultValues: {
-      requested_amount: 0,
-      requested_term: 12,
-      purpose: "",
-      collateral_description: "",
-      guarantor_ids: [],
+  // Fetch loan products
+  const { data: loanProducts } = useQuery({
+    queryKey: ['loan-products', profile?.tenant_id],
+    queryFn: async () => {
+      if (!profile?.tenant_id) return [];
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
     },
+    enabled: !!profile?.tenant_id,
   });
 
   // Fetch clients
@@ -91,27 +140,64 @@ export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
     enabled: !!profile?.tenant_id,
   });
 
-  // Fetch loan products
-  const { data: loanProducts } = useQuery({
-    queryKey: ['loan-products', profile?.tenant_id],
-    queryFn: async () => {
-      if (!profile?.tenant_id) return [];
-      const { data, error } = await supabase
-        .from('loan_products')
-        .select('*')
-        .eq('tenant_id', profile.tenant_id)
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data;
+  // Initialize form with basic schema first
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const selectedProduct = loanProducts?.find(p => p.id === selectedProductId);
+  
+  const form = useForm<LoanApplicationFormData>({
+    resolver: zodResolver(createLoanApplicationSchema(selectedProduct)),
+    defaultValues: {
+      client_id: "",
+      loan_product_id: "",
+      requested_amount: 0,
+      requested_term: 0,
+      purpose: "",
+      collateral_description: "",
+      guarantor_ids: [],
     },
-    enabled: !!profile?.tenant_id,
   });
 
-  const selectedProduct = loanProducts?.find(p => p.id === form.watch('loan_product_id'));
+  // Watch product selection and update schema
+  const watchedProductId = form.watch('loan_product_id');
+  
+  useEffect(() => {
+    if (watchedProductId !== selectedProductId) {
+      setSelectedProductId(watchedProductId);
+      // Reset resolver with new product validation
+      const newSchema = createLoanApplicationSchema(loanProducts?.find(p => p.id === watchedProductId));
+      form.clearErrors();
+      // Re-validate fields that depend on product
+      setTimeout(() => {
+        form.trigger(['requested_amount', 'requested_term']);
+      }, 100);
+    }
+  }, [watchedProductId, selectedProductId, loanProducts, form]);
 
   const onSubmit = async (data: LoanApplicationFormData) => {
     try {
+      // Additional validation before submission
+      if (selectedProduct) {
+        console.log('Final validation before submission:', {
+          amount: data.requested_amount,
+          product: selectedProduct.name,
+          limits: { min: selectedProduct.min_principal, max: selectedProduct.max_principal }
+        });
+        
+        if (selectedProduct.min_principal && data.requested_amount < selectedProduct.min_principal) {
+          form.setError('requested_amount', { 
+            message: `Amount must be at least ${selectedProduct.min_principal.toLocaleString()}` 
+          });
+          return;
+        }
+        
+        if (selectedProduct.max_principal && data.requested_amount > selectedProduct.max_principal) {
+          form.setError('requested_amount', { 
+            message: `Amount cannot exceed ${selectedProduct.max_principal.toLocaleString()}` 
+          });
+          return;
+        }
+      }
+
       // Create the loan application
       const application = await createLoanApplication.mutateAsync({
         client_id: data.client_id,

@@ -505,14 +505,55 @@ export const useProcessLoanApproval = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
-      // Get loan application details
+      // Get loan application details with product information
       const { data: loanApplication, error: fetchError } = await supabase
         .from('loan_applications')
-        .select('*')
+        .select(`
+          *,
+          loan_products (
+            name,
+            min_principal,
+            max_principal,
+            min_term,
+            max_term,
+            default_nominal_interest_rate
+          )
+        `)
         .eq('id', approval.loan_application_id)
         .single();
       
       if (fetchError || !loanApplication) throw new Error('Loan application not found');
+
+      // Validate approval amounts against product limits
+      if (approval.action === 'approve') {
+        const product = loanApplication.loan_products;
+        const approvedAmount = approval.approved_amount || loanApplication.requested_amount;
+        const approvedTerm = approval.approved_term || loanApplication.requested_term;
+
+        console.log('Validating approval against product limits:', {
+          product: product?.name,
+          approvedAmount,
+          limits: { min: product?.min_principal, max: product?.max_principal },
+          approvedTerm,
+          termLimits: { min: product?.min_term, max: product?.max_term }
+        });
+
+        if (product?.min_principal && approvedAmount < product.min_principal) {
+          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) is below product minimum (${product.min_principal.toLocaleString()})`);
+        }
+
+        if (product?.max_principal && approvedAmount > product.max_principal) {
+          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) exceeds product maximum (${product.max_principal.toLocaleString()})`);
+        }
+
+        if (product?.min_term && approvedTerm < product.min_term) {
+          throw new Error(`Approved term (${approvedTerm} months) is below product minimum (${product.min_term} months)`);
+        }
+
+        if (product?.max_term && approvedTerm > product.max_term) {
+          throw new Error(`Approved term (${approvedTerm} months) exceeds product maximum (${product.max_term} months)`);
+        }
+      }
 
       // Create approval record
       const { data: approvalData, error: approvalError } = await supabase
