@@ -17,7 +17,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, DollarSign, Calendar, Percent, FileText, User, Building, Shield, Table } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { CreditCard, DollarSign, Calendar, Percent, FileText, User, Building, Shield, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +30,8 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFundSources } from "@/hooks/useFundSources";
 import { useLoanPurposes } from "@/hooks/useLoanPurposes";
 import { useCollateralTypes } from "@/hooks/useCollateralTypes";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { FormDescription } from "@/components/ui/form";
 import { format } from "date-fns";
 
 const loanApplicationSchema = z.object({
@@ -45,6 +49,9 @@ const loanApplicationSchema = z.object({
   disbursement_date: z.string(),
   product_charges: z.array(z.string()).default([]),
   collateral_ids: z.array(z.string()).default([]),
+  collateral_type: z.string().optional(),
+  collateral_value: z.number().optional(),
+  collateral_description: z.string().optional(),
 });
 
 type LoanApplicationData = z.infer<typeof loanApplicationSchema>;
@@ -63,6 +70,12 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [repaymentSchedule, setRepaymentSchedule] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("details");
+  
+  // Enhanced charges state
+  const [selectedChargeId, setSelectedChargeId] = useState("");
+  const [customChargeAmount, setCustomChargeAmount] = useState("");
+  const [chargeSearchTerm, setChargeSearchTerm] = useState("");
+  const [selectedCharges, setSelectedCharges] = useState<any[]>([]);
 
   const form = useForm<LoanApplicationData>({
     resolver: zodResolver(loanApplicationSchema),
@@ -126,6 +139,9 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
   // Fetch collateral types
   const { data: collateralTypes = [], isLoading: isLoadingCollateral } = useCollateralTypes();
 
+  // Fetch fee structures for charges
+  const { data: feeStructures = [], isLoading: isLoadingCharges } = useFeeStructures();
+
   // Fetch loan officers
   const { data: loanOfficers = [] } = useQuery({
     queryKey: ['loan-officers', profile?.tenant_id],
@@ -178,6 +194,49 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
       currency: currency,
     }).format(amount);
   };
+
+  // Helper functions for charges
+  const filteredCharges = feeStructures.filter(charge =>
+    charge.name.toLowerCase().includes(chargeSearchTerm.toLowerCase())
+  );
+
+  const addSelectedCharge = () => {
+    if (!selectedChargeId) return;
+    
+    const charge = feeStructures.find(c => c.id === selectedChargeId);
+    if (!charge) return;
+
+    const customAmount = customChargeAmount ? parseFloat(customChargeAmount) : charge.amount;
+    const newCharge = {
+      ...charge,
+      amount: customAmount
+    };
+
+    setSelectedCharges([...selectedCharges, newCharge]);
+    setSelectedChargeId("");
+    setCustomChargeAmount("");
+  };
+
+  const removeSelectedCharge = (index: number) => {
+    setSelectedCharges(selectedCharges.filter((_, i) => i !== index));
+  };
+
+  const getTotalCharges = () => {
+    return selectedCharges.reduce((total, charge) => {
+      if (charge.calculation_type === 'flat') {
+        return total + charge.amount;
+      } else {
+        // For percentage charges, calculate based on loan amount
+        const loanAmount = form.watch('requested_amount') || 0;
+        return total + (loanAmount * charge.amount / 100);
+      }
+    }, 0);
+  };
+
+  // Helper for collateral coverage
+  const collateralValue = form.watch('collateral_value') || 0;
+  const loanAmount = form.watch('requested_amount') || 0;
+  const collateralCoverage = loanAmount > 0 ? (collateralValue / loanAmount) * 100 : 0;
 
   const handleProductSelect = (productId: string) => {
     const product = loanProducts.find(p => p.id === productId);
@@ -741,96 +800,259 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
           </TabsContent>
 
           <TabsContent value="charges" className="space-y-6">
-            {/* Product Charges */}
+            {/* Enhanced Product Charges */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Percent className="w-5 h-5" />
                   Product Charges
                 </CardTitle>
+                <FormDescription>
+                  Search and select charges for this loan product
+                </FormDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {productCharges.length === 0 ? (
-                  <p className="text-muted-foreground">No charges available for selected product</p>
-                ) : (
-                  <div className="space-y-2">
-                     {productCharges.map((charge) => (
-                       <FormField
-                         key={charge.id}
-                         control={form.control}
-                         name="product_charges"
-                         render={({ field }) => (
-                           <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                             <FormControl>
-                               <Checkbox
-                                 checked={field.value?.includes(charge.id)}
-                                 onCheckedChange={(checked) => {
-                                   return checked
-                                     ? field.onChange([...field.value, charge.id])
-                                     : field.onChange(field.value?.filter((value) => value !== charge.id));
-                                 }}
-                               />
-                             </FormControl>
-                             <div className="space-y-1 leading-none">
-                               <FormLabel className="font-normal">
-                                 {charge.charge_name} - {formatCurrency(charge.charge_amount)}
-                               </FormLabel>
-                               <p className="text-xs text-muted-foreground">
-                                 {charge.charge_type}
-                               </p>
-                             </div>
-                           </FormItem>
-                         )}
-                       />
-                     ))}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Add Charges */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Available Charges</h4>
+                    
+                    {/* Search Input */}
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Search charges..."
+                        value={chargeSearchTerm}
+                        onChange={(e) => setChargeSearchTerm(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Charge Selection */}
+                    {isLoadingCharges ? (
+                      <p className="text-muted-foreground">Loading charges...</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <FormLabel>Select Charge</FormLabel>
+                        <Select onValueChange={(value) => setSelectedChargeId(value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a charge" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredCharges.map((charge) => (
+                              <SelectItem key={charge.id} value={charge.id}>
+                                <div className="flex justify-between items-center w-full">
+                                  <span>{charge.name}</span>
+                                  <span className="text-sm text-muted-foreground ml-2">
+                                    {charge.calculation_type === 'flat'
+                                      ? formatCurrency(charge.amount) 
+                                      : `${charge.amount}%`}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Custom Amount Input */}
+                    <div className="space-y-2">
+                      <FormLabel>Custom Amount (Optional)</FormLabel>
+                      <Input
+                        type="number"
+                        placeholder="Enter custom amount"
+                        value={customChargeAmount}
+                        onChange={(e) => setCustomChargeAmount(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Add Button */}
+                    <Button 
+                      type="button" 
+                      onClick={addSelectedCharge}
+                      disabled={!selectedChargeId}
+                      className="w-full"
+                    >
+                      Add Charge
+                    </Button>
                   </div>
-                )}
+
+                  {/* Selected Charges */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Selected Charges</h4>
+                    
+                    {selectedCharges.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">No charges selected</p>
+                    ) : (
+                      <div className="space-y-3">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Charge</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedCharges.map((charge, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{charge.name}</TableCell>
+                                <TableCell>
+                                  {charge.calculation_type === 'flat' 
+                                    ? formatCurrency(charge.amount)
+                                    : `${charge.amount}%`}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeSelectedCharge(index)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="font-medium">Total Charges:</span>
+                          <span className="font-bold">{formatCurrency(getTotalCharges())}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Collateral Selection */}
+            {/* Enhanced Collateral */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5" />
-                  Collateral
+                  Collateral Information
                 </CardTitle>
+                <FormDescription>
+                  Enter details about the collateral for this loan
+                </FormDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isLoadingCollateral ? (
-                  <p className="text-muted-foreground">Loading collateral types...</p>
-                ) : collateralTypes.length === 0 ? (
-                  <p className="text-muted-foreground">No collateral types available</p>
-                ) : (
-                  <div className="space-y-2">
-                    {collateralTypes.map((collateral) => (
-                      <FormField
-                        key={collateral.id}
-                        control={form.control}
-                        name="collateral_ids"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Collateral Details */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Collateral Details</h4>
+                    
+                    <FormField
+                      control={form.control}
+                      name="collateral_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Collateral Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(collateral.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, collateral.id])
-                                    : field.onChange(field.value?.filter((value) => value !== collateral.id));
-                                }}
-                              />
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select collateral type" />
+                              </SelectTrigger>
                             </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel className="font-normal">
-                                {collateral.code_value}
-                              </FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
+                            <SelectContent>
+                              {collateralTypes.map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                  {type.code_value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="collateral_value"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Collateral Value</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Enter collateral value"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="collateral_description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Describe the collateral in detail..."
+                              className="resize-none"
+                              rows={4}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                )}
+
+                  {/* Collateral Analysis */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Collateral Analysis</h4>
+                    
+                    <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Loan Amount:</span>
+                        <span className="font-bold">{formatCurrency(form.watch('requested_amount') || 0)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Collateral Value:</span>
+                        <span className="font-bold">{formatCurrency(form.watch('collateral_value') || 0)}</span>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Coverage Ratio:</span>
+                        <span className={`font-bold ${collateralCoverage >= 100 ? 'text-green-600' : 'text-orange-600'}`}>
+                          {collateralCoverage.toFixed(1)}%
+                        </span>
+                      </div>
+                      
+                      <div className="mt-3 p-3 rounded-md bg-background">
+                        <p className="text-sm">
+                          {collateralCoverage >= 150 && (
+                            <span className="text-green-600 font-medium">✓ Excellent coverage - Low risk</span>
+                          )}
+                          {collateralCoverage >= 100 && collateralCoverage < 150 && (
+                            <span className="text-blue-600 font-medium">ℹ Good coverage - Acceptable risk</span>
+                          )}
+                          {collateralCoverage < 100 && (
+                            <span className="text-orange-600 font-medium">⚠ Insufficient coverage - High risk</span>
+                          )}
+                        </p>
+                        
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Recommended minimum coverage: 120%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
