@@ -23,8 +23,8 @@ import {
 import { ClientSelectionStep } from "./wizard-steps/ClientSelectionStep";
 import { LoanProductSelectionStep } from "./wizard-steps/LoanProductSelectionStep";
 import { LoanDetailsStep } from "./wizard-steps/LoanDetailsStep";
-import { ChargesAndFeesStep } from "./wizard-steps/ChargesAndFeesStep";
-import { CollateralDetailsStep } from "./wizard-steps/CollateralDetailsStep";
+import { EnhancedChargesAndFeesStep } from "./wizard-steps/EnhancedChargesAndFeesStep";
+import { EnhancedCollateralDetailsStep } from "./wizard-steps/EnhancedCollateralDetailsStep";
 import { GuarantorInformationStep } from "./wizard-steps/GuarantorInformationStep";
 import { DocumentUploadStep } from "./wizard-steps/DocumentUploadStep";
 import { ReviewAndSubmitStep } from "./wizard-steps/ReviewAndSubmitStep";
@@ -279,9 +279,9 @@ export function LoanCreationWizard({ onApplicationCreated, onCancel }: LoanCreat
       case 2:
         return <LoanDetailsStep form={form} />;
       case 3:
-        return <ChargesAndFeesStep form={form} />;
+        return <EnhancedChargesAndFeesStep form={form} />;
       case 4:
-        return <CollateralDetailsStep form={form} />;
+        return <EnhancedCollateralDetailsStep form={form} />;
       case 5:
         return <GuarantorInformationStep form={form} />;
       case 6:

@@ -1,29 +1,19 @@
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Control } from "react-hook-form";
-
-interface Fund {
-  id: string;
-  fund_name: string;
-  fund_code: string;
-  current_balance: number;
-}
+import { useFunds } from "@/hooks/useFundsManagement";
 
 interface FundSourceSelectorProps {
   control: Control<any>;
-  funds: Fund[];
-  fundsLoading: boolean;
 }
 
-export const FundSourceSelector = ({ 
-  control, 
-  funds, 
-  fundsLoading 
-}: FundSourceSelectorProps) => {
+export const FundSourceSelector = ({ control }: FundSourceSelectorProps) => {
+  const { data: funds = [], isLoading: fundsLoading } = useFunds();
+
   return (
     <FormField
       control={control}
-      name="fund_id"
+      name="fund_source_id"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Fund Source *</FormLabel>

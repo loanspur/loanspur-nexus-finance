@@ -57,11 +57,7 @@ export const LoanApplicationFormFields = ({
         onProductChange={handleProductChange}
       />
 
-      <FundSourceSelector
-        control={control}
-        funds={funds}
-        fundsLoading={fundsLoading}
-      />
+      <FundSourceSelector control={control} />
 
       {selectedProduct && (
         <ProductDetailsDisplay selectedProduct={selectedProduct} />

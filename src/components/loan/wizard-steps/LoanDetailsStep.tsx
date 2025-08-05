@@ -70,6 +70,32 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
     enabled: !!profile?.tenant_id,
   });
 
+  // Get client's default loan officer
+  const { data: clientInfo } = useQuery({
+    queryKey: ['client-info', form.watch('client_id')],
+    queryFn: async () => {
+      const clientId = form.getValues('client_id');
+      if (!clientId) return null;
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .select('loan_officer_id')
+        .eq('id', clientId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!form.watch('client_id'),
+  });
+
+  // Set default loan officer when client changes
+  useEffect(() => {
+    if (clientInfo?.loan_officer_id && !form.getValues('loan_officer_id')) {
+      form.setValue('loan_officer_id', clientInfo.loan_officer_id);
+    }
+  }, [clientInfo, form]);
+
   // Watch form values for calculations
   const requestedAmount = form.watch('requested_amount');
   const requestedTerm = form.watch('requested_term');

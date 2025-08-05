@@ -48,17 +48,30 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
   });
 
   const { data: funds = [], isLoading: isLoadingFunds } = useQuery({
-    queryKey: ['funds', profile?.tenant_id],
+    queryKey: ['fund-sources', profile?.tenant_id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('funds')
-        .select('id, fund_name, current_balance, is_active, tenant_id')
-        .eq('tenant_id', profile?.tenant_id)
-        .eq('is_active', true)
-        .order('fund_name');
+      if (!profile?.tenant_id) return [];
 
-      if (error) throw error;
-      return data;
+      // Fetch asset accounts that can be used as fund sources (bank accounts, cash accounts)
+      const { data: assetAccounts } = await supabase
+        .from('chart_of_accounts')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('account_type', 'asset')
+        .eq('is_active', true)
+        .or('account_name.ilike.%cash%,account_name.ilike.%bank%,account_category.ilike.%cash%,account_category.ilike.%bank%');
+
+      if (assetAccounts) {
+        return assetAccounts.map(account => ({
+          id: account.id,
+          fund_name: `${account.account_code} - ${account.account_name}`,
+          current_balance: account.balance || 0,
+          is_active: account.is_active,
+          tenant_id: account.tenant_id
+        }));
+      }
+
+      return [];
     },
     enabled: !!profile?.tenant_id,
   });
