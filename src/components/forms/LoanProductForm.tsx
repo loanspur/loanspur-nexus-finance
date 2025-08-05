@@ -70,7 +70,18 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       max_nominal_interest_rate: editingProduct.max_nominal_interest_rate?.toString() || "",
       default_nominal_interest_rate: editingProduct.default_nominal_interest_rate?.toString() || "",
       
-      // Use defaults for new fields if not present
+      // Fees & Charges
+      processing_fee_amount: (editingProduct as any).processing_fee_amount?.toString() || "0",
+      processing_fee_percentage: (editingProduct as any).processing_fee_percentage?.toString() || "0",
+      late_payment_penalty_amount: (editingProduct as any).late_payment_penalty_amount?.toString() || "0",
+      late_payment_penalty_percentage: (editingProduct as any).late_payment_penalty_percentage?.toString() || "0",
+      early_repayment_penalty_amount: (editingProduct as any).early_repayment_penalty_amount?.toString() || "0",
+      early_repayment_penalty_percentage: (editingProduct as any).early_repayment_penalty_percentage?.toString() || "0",
+      
+      // Fee Structure Mappings
+      linked_fee_ids: (editingProduct as any).linked_fee_ids || [],
+      
+      // Use defaults for other fields
       fund_id: (editingProduct as any).fund_id || "",
       ...defaultValues,
     } : defaultValues,
@@ -127,7 +138,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         early_repayment_penalty_amount: (editingProduct as any).early_repayment_penalty_amount?.toString() || "0",
         early_repayment_penalty_percentage: (editingProduct as any).early_repayment_penalty_percentage?.toString() || "0",
         
-        // Fee Structure Mappings
+        // Fee Structure Mappings - fix the loading of linked fees
         linked_fee_ids: (editingProduct as any).linked_fee_ids || [],
         
         // Accounting Configuration
@@ -337,7 +348,38 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
     });
   };
 
-  const handleNext = () => {
+  const validateCurrentTab = async () => {
+    const currentTabFields = getTabFields(currentTab);
+    const fieldPromises = currentTabFields.map(fieldName => form.trigger(fieldName));
+    const results = await Promise.all(fieldPromises);
+    return results.every(result => result);
+  };
+
+  const getTabFields = (tab: string): Array<keyof LoanProductFormData> => {
+    switch (tab) {
+      case 'basic':
+        return ['name', 'short_name', 'currency_code', 'repayment_frequency', 'fund_id'];
+      case 'terms':
+        return ['min_principal', 'max_principal', 'min_term', 'max_term'];
+      case 'interest':
+        return ['min_nominal_interest_rate', 'max_nominal_interest_rate'];
+      case 'fees':
+        return ['linked_fee_ids', 'processing_fee_amount', 'processing_fee_percentage'];
+      case 'accounting':
+        return ['accounting_type'];
+      case 'advanced':
+        return [];
+      default:
+        return [];
+    }
+  };
+
+  const handleNext = async () => {
+    const isValid = await validateCurrentTab();
+    if (!isValid) {
+      return; // Don't move to next tab if current tab has validation errors
+    }
+    
     if (currentTabIndex < tabs.length - 1) {
       setCurrentTab(tabs[currentTabIndex + 1].value);
     }
