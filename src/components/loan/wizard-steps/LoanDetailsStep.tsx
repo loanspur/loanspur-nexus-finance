@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { CalendarIcon, Calculator, DollarSign, Info, Target } from "lucide-react";
 
 interface LoanDetailsStepProps {
@@ -77,10 +78,12 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
   const calculationMethod = form.watch('calculation_method');
   const repaymentFrequency = form.watch('repayment_frequency');
 
+  const { currency } = useCurrency();
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
     }).format(amount);
   };
 
@@ -268,8 +271,8 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="flat">Flat Rate</SelectItem>
-                          <SelectItem value="declining_balance">Declining Balance</SelectItem>
+                          <SelectItem value="flat">Flat</SelectItem>
+                          <SelectItem value="declining_balance">Reducing Balance</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

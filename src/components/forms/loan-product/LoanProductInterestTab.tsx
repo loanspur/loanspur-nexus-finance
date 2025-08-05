@@ -82,9 +82,8 @@ export const LoanProductInterestTab = ({ form }: LoanProductInterestTabProps) =>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="declining_balance">Declining Balance</SelectItem>
+                    <SelectItem value="declining_balance">Reducing Balance</SelectItem>
                     <SelectItem value="flat">Flat</SelectItem>
-                    <SelectItem value="compound">Compound</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

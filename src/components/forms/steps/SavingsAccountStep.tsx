@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { PiggyBank, CheckCircle, AlertCircle } from "lucide-react";
 import { useSavingsProducts } from "@/hooks/useSupabase";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface SavingsAccountStepProps {
   form: UseFormReturn<any>;
@@ -25,6 +26,7 @@ export const SavingsAccountStep = ({
 }: SavingsAccountStepProps) => {
   const [createAccount, setCreateAccount] = useState(false);
   const { data: savingsProducts } = useSavingsProducts();
+  const { currency } = useCurrency();
 
   const watchCreateAccount = form.watch("create_savings_account");
 
@@ -101,7 +103,7 @@ export const SavingsAccountStep = ({
                 name="initial_deposit"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Initial Deposit (KES)</FormLabel>
+                    <FormLabel>Initial Deposit ({currency})</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 

@@ -2,6 +2,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   FormControl,
   FormField,
@@ -62,10 +63,12 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
     enabled: !!profile?.tenant_id,
   });
 
+  const { currency } = useCurrency();
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
     }).format(amount);
   };
 

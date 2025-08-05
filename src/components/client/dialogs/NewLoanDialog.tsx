@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
 import { useMifosIntegration } from "@/hooks/useMifosIntegration";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { useFundSources } from "@/hooks/useFundSources";
 import { useLoanPurposes } from "@/hooks/useLoanPurposes";
 import { useCollateralTypes } from "@/hooks/useCollateralTypes";
@@ -37,7 +38,7 @@ const loanApplicationSchema = z.object({
   term_frequency: z.enum(["daily", "weekly", "monthly", "annually"]),
   purpose: z.string().min(1, "Please select a loan purpose"),
   interest_rate: z.number().min(0, "Interest rate must be positive"),
-  interest_calculation_method: z.enum(["flat", "declining_balance", "compound"]),
+  interest_calculation_method: z.enum(["flat", "declining_balance"]),
   loan_officer_id: z.string().optional(),
   linked_savings_account_id: z.string().optional(),
   submit_date: z.string(),
@@ -164,10 +165,12 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     { id: '2', charge_name: 'Insurance Fee', charge_amount: 50, charge_type: 'percentage' },
   ];
 
+  const { currency } = useCurrency();
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
     }).format(amount);
   };
 
@@ -552,11 +555,10 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                               <SelectValue placeholder="Select calculation method" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="flat">Flat Rate</SelectItem>
-                            <SelectItem value="declining_balance">Declining Balance</SelectItem>
-                            <SelectItem value="compound">Compound Interest</SelectItem>
-                          </SelectContent>
+                        <SelectContent>
+                          <SelectItem value="flat">Flat</SelectItem>
+                          <SelectItem value="declining_balance">Reducing Balance</SelectItem>
+                        </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
