@@ -192,7 +192,7 @@ const FundsManagementPage = () => {
               <h2 className="text-xl font-semibold">Fund Sources</h2>
               <p className="text-sm text-muted-foreground">Manage your organization's fund sources and allocations</p>
             </div>
-            <Dialog open={showCreateFund} onOpenChange={handleCloseDialog}>
+            <Dialog open={showCreateFund} onOpenChange={setShowCreateFund}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
