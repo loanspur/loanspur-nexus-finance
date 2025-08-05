@@ -6316,30 +6316,40 @@ export type Database = {
           can_check: boolean | null
           can_make: boolean | null
           created_at: string
+          custom_role_id: string | null
           id: string
           permission_id: string
-          role: string
+          role: string | null
           tenant_id: string
         }
         Insert: {
           can_check?: boolean | null
           can_make?: boolean | null
           created_at?: string
+          custom_role_id?: string | null
           id?: string
           permission_id: string
-          role: string
+          role?: string | null
           tenant_id: string
         }
         Update: {
           can_check?: boolean | null
           can_make?: boolean | null
           created_at?: string
+          custom_role_id?: string | null
           id?: string
           permission_id?: string
-          role?: string
+          role?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "role_permissions_custom_role_id_fkey"
+            columns: ["custom_role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "role_permissions_permission_id_fkey"
             columns: ["permission_id"]
