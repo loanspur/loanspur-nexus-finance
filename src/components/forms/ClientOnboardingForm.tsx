@@ -521,7 +521,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
                     disabled={isSubmitting}
                     className="bg-success hover:bg-success/90 flex items-center gap-2"
                   >
-                    {isSubmitting ? "Submitting..." : "Complete Onboarding"}
+                    {isSubmitting ? "Creating Client..." : "Submit Application"}
                     <CheckCircle className="h-4 w-4" />
                   </Button>
                 ) : (
