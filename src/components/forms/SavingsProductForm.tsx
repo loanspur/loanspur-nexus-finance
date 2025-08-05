@@ -29,6 +29,12 @@ const savingsProductSchema = z.object({
   max_overdraft_amount: z.number().min(0, "Maximum overdraft amount must be positive").optional(),
   is_active: z.boolean().default(true),
   
+  // Interest calculation settings
+  interest_compounding_period: z.string().min(1, "Interest compounding period is required"),
+  interest_posting_period: z.string().min(1, "Interest posting period is required"),
+  days_in_year: z.number().min(360, "Days in year must be 360 or 365").max(365, "Days in year must be 360 or 365"),
+  interest_calculated_using: z.string().min(1, "Interest calculation method is required"),
+  
   // Accounting & General Ledger
   accounting_method: z.string().min(1, "Accounting method is required"),
   savings_reference_account_id: z.string().min(1, "Savings reference account is required"),
@@ -91,6 +97,12 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
       max_overdraft_amount: 0,
       is_active: true,
       
+      // Interest calculation settings
+      interest_compounding_period: "monthly",
+      interest_posting_period: "monthly", 
+      days_in_year: 365,
+      interest_calculated_using: "daily_balance",
+      
       // Accounting & General Ledger
       accounting_method: "accrual_periodic",
       savings_reference_account_id: "",
@@ -137,6 +149,12 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
         withholding_tax_account_id: (editingProduct as any).withholding_tax_account_id || "",
         savings_operation_expense_account_id: (editingProduct as any).savings_operation_expense_account_id || "",
         
+        // Interest calculation settings - use existing or default values
+        interest_compounding_period: (editingProduct as any).interest_compounding_period || "monthly",
+        interest_posting_period: (editingProduct as any).interest_posting_period || "monthly",
+        days_in_year: (editingProduct as any).days_in_year || 365,
+        interest_calculated_using: (editingProduct as any).interest_calculated_using || "daily_balance",
+        
         // Advanced Accounting
         payment_type_mappings: (editingProduct as any).payment_type_mappings || [],
         fee_mappings: (editingProduct as any).fee_mappings || [],
@@ -165,6 +183,12 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
         dormancy_tracking_account_id: "",
         withholding_tax_account_id: "",
         savings_operation_expense_account_id: "",
+        
+        // Interest calculation settings
+        interest_compounding_period: "monthly",
+        interest_posting_period: "monthly",
+        days_in_year: 365,
+        interest_calculated_using: "daily_balance",
         
         // Advanced Accounting
         payment_type_mappings: [],
@@ -381,6 +405,112 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Interest Calculation Settings */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-medium">Interest Calculation Settings</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Configure how interest is calculated and posted for this savings product
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="interest_compounding_period"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Interest Compounding Period</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select compounding period" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-background border shadow-md z-50">
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="semi_annually">Semi-Annually</SelectItem>
+                              <SelectItem value="annually">Annually</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="interest_posting_period"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Interest Posting Period</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select posting period" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-background border shadow-md z-50">
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="semi_annually">Semi-Annually</SelectItem>
+                              <SelectItem value="annually">Annually</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="days_in_year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Days in Year</FormLabel>
+                          <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
+                            <FormControl>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select days in year" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-background border shadow-md z-50">
+                              <SelectItem value="360">360 Days</SelectItem>
+                              <SelectItem value="365">365 Days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="interest_calculated_using"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Interest Calculated Using</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select calculation method" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-background border shadow-md z-50">
+                              <SelectItem value="daily_balance">Daily Balance</SelectItem>
+                              <SelectItem value="average_daily_balance">Average Daily Balance</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
                 {/* Balance Requirements and Limits */}
