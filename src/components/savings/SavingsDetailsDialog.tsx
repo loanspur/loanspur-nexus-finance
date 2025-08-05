@@ -663,6 +663,7 @@ export const SavingsDetailsDialog = ({ savings, clientName, open, onOpenChange }
           savingsAccount={{
             id: savings?.id || "",
             account_balance: savings?.account_balance || 0,
+            savings_product_id: savings?.savings_product_id || "",
             savings_products: savings?.savings_products,
             account_number: savings?.account_number || "",
           }}

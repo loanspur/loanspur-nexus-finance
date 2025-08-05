@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,8 +35,14 @@ import {
 import { DollarSign, ArrowUpRight, ArrowDownRight, ArrowRightLeft, AlertCircle, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { 
+  useSavingsDepositAccounting, 
+  useSavingsWithdrawalAccounting, 
+  useSavingsFeeChargeAccounting 
+} from "@/hooks/useSavingsAccounting";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState as useReactState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const transactionSchema = z.object({
   transactionType: z.enum(["deposit", "withdrawal", "transfer", "fee_charge"]),
@@ -57,6 +63,7 @@ interface SavingsTransactionFormProps {
   savingsAccount: {
     id: string;
     account_balance: number;
+    savings_product_id: string;
     savings_products?: {
       name: string;
     };
@@ -75,6 +82,13 @@ export const SavingsTransactionForm = ({
 }: SavingsTransactionFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { currency, currencySymbol } = useCurrency();
+  
+  // Accounting hooks
+  const depositAccounting = useSavingsDepositAccounting();
+  const withdrawalAccounting = useSavingsWithdrawalAccounting();
+  const feeChargeAccounting = useSavingsFeeChargeAccounting();
   
   // Fetch all fee structures and filter for savings-related charges
   const { data: allFeeStructures } = useFeeStructures();
@@ -104,9 +118,9 @@ export const SavingsTransactionForm = ({
   const watchedCustomChargeAmount = form.watch("customChargeAmount");
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'KES',
+      currency: currency,
     }).format(amount);
   };
 
@@ -307,6 +321,36 @@ export const SavingsTransactionForm = ({
 
       if (updateError) throw updateError;
 
+      // Create accounting entries based on transaction type
+      const accountingData = {
+        savings_account_id: savingsAccount.id,
+        savings_product_id: savingsAccount.savings_product_id,
+        amount: amount,
+        transaction_date: new Date().toISOString().split('T')[0],
+        account_number: savingsAccount.account_number,
+        payment_method: data.method,
+      };
+
+      // Create journal entries for accounting integration
+      try {
+        if (data.transactionType === 'deposit') {
+          await depositAccounting.mutateAsync(accountingData);
+        } else if (data.transactionType === 'withdrawal') {
+          await withdrawalAccounting.mutateAsync(accountingData);
+        } else if (data.transactionType === 'fee_charge') {
+          const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
+          await feeChargeAccounting.mutateAsync({
+            ...accountingData,
+            fee_type: selectedFee?.fee_type || 'general',
+            description: `${selectedFee?.name} - ${selectedFee?.description || 'Account charge'}`,
+          });
+        }
+      } catch (accountingError) {
+        console.warn('Accounting integration failed:', accountingError);
+        // Don't fail the transaction if accounting fails - just log it
+        // The transaction has already been recorded successfully
+      }
+
       toast({
         title: "Transaction Successful",
         description: `${data.transactionType} of ${formatCurrency(amount)} has been processed successfully.`,
@@ -481,12 +525,12 @@ export const SavingsTransactionForm = ({
                           
                           return (
                             <FormItem>
-                              <FormLabel>
-                                Custom Amount (KES) 
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  (Default: {formatCurrency(calculatedAmount)})
-                                </span>
-                              </FormLabel>
+                               <FormLabel>
+                                 Custom Amount ({currency}) 
+                                 <span className="text-xs text-muted-foreground ml-1">
+                                   (Default: {formatCurrency(calculatedAmount)})
+                                 </span>
+                               </FormLabel>
                               {hasLimits && (
                                 <div className="text-xs text-muted-foreground mb-1">
                                   Limits: {selectedFee?.min_amount ? `Min ${formatCurrency(selectedFee.min_amount)}` : 'No minimum'}
@@ -540,7 +584,7 @@ export const SavingsTransactionForm = ({
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Amount (KES)</FormLabel>
+                        <FormLabel>Amount ({currency})</FormLabel>
                         <FormControl>
                           <Input
                             type="number"

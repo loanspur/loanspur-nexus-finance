@@ -6495,51 +6495,123 @@ export type Database = {
       }
       savings_products: {
         Row: {
+          accounting_method: string | null
           created_at: string
           currency_code: string
           description: string | null
+          fee_mappings: Json | null
           id: string
+          income_from_fees_account_id: string | null
+          income_from_penalties_account_id: string | null
+          interest_on_savings_account_id: string | null
           is_active: boolean
+          max_overdraft_amount: number | null
           mifos_product_id: number | null
           min_balance_for_interest_calculation: number | null
           min_required_opening_balance: number | null
           name: string
           nominal_annual_interest_rate: number | null
+          overdraft_portfolio_control_id: string | null
+          payment_type_mappings: Json | null
+          savings_control_account_id: string | null
+          savings_reference_account_id: string | null
           short_name: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          accounting_method?: string | null
           created_at?: string
           currency_code?: string
           description?: string | null
+          fee_mappings?: Json | null
           id?: string
+          income_from_fees_account_id?: string | null
+          income_from_penalties_account_id?: string | null
+          interest_on_savings_account_id?: string | null
           is_active?: boolean
+          max_overdraft_amount?: number | null
           mifos_product_id?: number | null
           min_balance_for_interest_calculation?: number | null
           min_required_opening_balance?: number | null
           name: string
           nominal_annual_interest_rate?: number | null
+          overdraft_portfolio_control_id?: string | null
+          payment_type_mappings?: Json | null
+          savings_control_account_id?: string | null
+          savings_reference_account_id?: string | null
           short_name: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          accounting_method?: string | null
           created_at?: string
           currency_code?: string
           description?: string | null
+          fee_mappings?: Json | null
           id?: string
+          income_from_fees_account_id?: string | null
+          income_from_penalties_account_id?: string | null
+          interest_on_savings_account_id?: string | null
           is_active?: boolean
+          max_overdraft_amount?: number | null
           mifos_product_id?: number | null
           min_balance_for_interest_calculation?: number | null
           min_required_opening_balance?: number | null
           name?: string
           nominal_annual_interest_rate?: number | null
+          overdraft_portfolio_control_id?: string | null
+          payment_type_mappings?: Json | null
+          savings_control_account_id?: string | null
+          savings_reference_account_id?: string | null
           short_name?: string
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "savings_products_income_from_fees_account_id_fkey"
+            columns: ["income_from_fees_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_products_income_from_penalties_account_id_fkey"
+            columns: ["income_from_penalties_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_products_interest_on_savings_account_id_fkey"
+            columns: ["interest_on_savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_products_overdraft_portfolio_control_id_fkey"
+            columns: ["overdraft_portfolio_control_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_products_savings_control_account_id_fkey"
+            columns: ["savings_control_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_products_savings_reference_account_id_fkey"
+            columns: ["savings_reference_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "savings_products_tenant_id_fkey"
             columns: ["tenant_id"]
