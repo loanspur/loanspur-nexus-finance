@@ -4,6 +4,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/hooks/useAuth';
 import AuthPage from '@/pages/AuthPage';
 import TenantLayout from '@/layouts/TenantLayout';
+import SuperAdminLayout from '@/layouts/SuperAdminLayout';
 import ClientLayout from '@/layouts/ClientLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 
@@ -13,8 +14,10 @@ const TenantLandingPage = () => {
   const { user, profile } = useAuth();
 
   if (user && profile) {
-    // Redirect based on user role for regular users
-    if (profile.role === 'client') {
+    // Redirect based on user role
+    if (profile.role === 'super_admin') {
+      return <Navigate to="/super-admin" replace />;
+    } else if (profile.role === 'client') {
       return <Navigate to="/client" replace />;
     } else if (profile.role === 'tenant_admin' || profile.role === 'loan_officer') {
       return <Navigate to="/tenant" replace />;
@@ -100,6 +103,16 @@ export const TenantRouter = () => {
       <Routes>
         <Route path="/" element={<TenantLandingPage />} />
         <Route path="/auth" element={<TenantLandingPage />} />
+        
+        {/* Super admin routes */}
+        <Route 
+          path="/super-admin/*" 
+          element={
+            <ProtectedRoute allowedRoles={['super_admin']}>
+              <SuperAdminLayout />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Tenant admin routes */}
         <Route 
