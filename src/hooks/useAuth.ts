@@ -119,7 +119,8 @@ export const useAuthState = () => {
                 });
                 setState(prev => ({ ...prev, loading: false }));
               } else {
-                setState(prev => ({ ...prev, profile, loading: false }));
+                const adjustedProfile = profile.role === 'super_admin' ? { ...profile, tenant_id: undefined } : profile;
+                setState(prev => ({ ...prev, profile: adjustedProfile as any, loading: false }));
               }
             } catch (error) {
               console.error('Profile fetch error:', error);
@@ -244,9 +245,10 @@ export const useAuthState = () => {
       } else if (!profile) {
         console.warn('No active profile found for user:', state.user.id);
         setState(prev => ({ ...prev, loading: false }));
-      } else {
-        setState(prev => ({ ...prev, profile, loading: false }));
-      }
+        } else {
+          const adjustedProfile = profile.role === 'super_admin' ? { ...profile, tenant_id: undefined } : profile;
+          setState(prev => ({ ...prev, profile: adjustedProfile as any, loading: false }));
+        }
     } catch (error) {
       console.error('Profile fetch error:', error);
       setState(prev => ({ ...prev, loading: false }));

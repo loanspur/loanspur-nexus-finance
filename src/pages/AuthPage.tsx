@@ -80,6 +80,11 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
   // Redirect authenticated users
   useEffect(() => {
     if (user && profile) {
+      // Force super admin to their dashboard regardless of prior route
+      if (profile.role === 'super_admin') {
+        navigate('/super-admin', { replace: true });
+        return;
+      }
       const from = location.state?.from?.pathname || getRoleBasedRoute(profile.role);
       navigate(from, { replace: true });
     }
