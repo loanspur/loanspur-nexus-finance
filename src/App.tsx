@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
-import { TenantProvider, useTenant } from "@/contexts/TenantContext";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { TenantRouter } from "./components/TenantRouter";
 import { MainSiteRouter } from "./components/MainSiteRouter";
 import { DevToolsBar } from "@/components/dev/DevToolsBar";
@@ -25,11 +25,15 @@ const queryClient = new QueryClient({
   },
 });
 
-// Router component that determines which router to use based on tenant context
+// Router component that determines which router to use based on hostname (no context usage)
 const AppRouter = () => {
-  const { isSubdomainTenant } = useTenant();
-  useDataOptimization(); // Add data optimization
-  
+  // Treat any non-root hostname as subdomain (excluding localhost patterns)
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const parts = hostname.split('.');
+  const isLocalhost = hostname.includes('localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+  const isSubdomainTenant = !isLocalhost && parts.length > 2;
+
+  useDataOptimization();
   return isSubdomainTenant ? <TenantRouter /> : <MainSiteRouter />;
 };
 
