@@ -149,9 +149,9 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     <div className="relative min-h-screen">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10" />
 
-      <div className="container mx-auto grid min-h-screen md:grid-cols-2 gap-8 lg:gap-12 items-center px-4">
+      <div className="container mx-auto grid min-h-screen md:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center px-4 lg:px-8">
         {/* Left showcase panel */}
-        <aside className="relative hidden md:flex items-center justify-center p-8 lg:p-12 rounded-3xl ring-1 ring-border/50 overflow-hidden">
+        <aside className="relative hidden md:flex items-center justify-center p-8 lg:p-12 rounded-3xl ring-1 ring-border/50 overflow-hidden bg-card/40 backdrop-blur-md">
           <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-[var(--shadow-glow)]">
             <img
               src={heroImage}
@@ -159,11 +159,11 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
               className="h-full w-full object-cover opacity-70"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/80 to-background/60" />
+            <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/70 to-background/50" />
           </div>
-          <div className="relative z-10 max-w-md space-y-4 text-left">
+          <div className="relative z-10 max-w-lg space-y-5 text-left">
             <p className="text-sm uppercase tracking-wide text-banking-primary/80">LoanSpur CBS</p>
-            <h2 className="text-3xl font-semibold leading-tight">Secure core banking login</h2>
+            <h2 className="text-3xl lg:text-4xl font-semibold leading-tight tracking-tight">Secure core banking login</h2>
             <p className="text-muted-foreground">
               Sign in to manage clients, loans, savings, and reconciliations with enterprise-grade security.
             </p>
@@ -177,7 +177,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
 
         {/* Right auth panel */}
         <main className="flex items-center justify-center p-6 md:p-10">
-          <div className="w-full max-w-xl">
+          <div className="w-full max-w-[640px]">
             {!tenantMode && (
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold text-banking-primary mb-2">LoanSpur CBS</h1>
@@ -185,9 +185,9 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
               </div>
             )}
 
-            <Card className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl shadow-2xl">
+            <Card className="rounded-3xl ring-1 ring-border/50 border border-border/60 bg-card/70 backdrop-blur-xl shadow-[var(--shadow-elegant)]">
               <CardHeader className="space-y-3 pb-4">
-                <div className="text-center">
+                <div className="text-left">
                   <CardTitle className="text-2xl font-bold">
                     {tenantMode ? "Welcome Back" : "Sign In"}
                   </CardTitle>
@@ -210,7 +210,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input 
                                 placeholder="Enter your email" 
-                                className="pl-10 h-10"
+                                className="pl-10 h-11 rounded-xl"
                                 {...field} 
                               />
                             </div>
@@ -231,7 +231,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                               <Input 
                                 type={showSignInPassword ? "text" : "password"} 
                                 placeholder="Enter your password" 
-                                className="pl-10 pr-10 h-10"
+                                className="pl-10 pr-10 h-11 rounded-xl"
                                 {...field} 
                               />
                               <Button
@@ -254,7 +254,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                       )}
                     />
                     
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-end">
                       <Button
                         type="button"
                         variant="link"
@@ -267,7 +267,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                     </div>
                     
                     <Button 
-                      className="w-full h-10 text-base font-medium" 
+                      className="w-full h-11 rounded-xl text-base font-semibold shadow-[var(--shadow-elegant)] hover:shadow-[var(--shadow-glow)] transition-[box-shadow] duration-300" 
                       type="submit" 
                       disabled={signInForm.formState.isSubmitting}
                     >
@@ -290,7 +290,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                 {!tenantMode && (
                   <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full h-10 text-base">
+                      <Button variant="outline" className="w-full h-11 rounded-xl text-base font-semibold">
                         <UserPlus className="h-4 w-4 mr-2" />
                         Create Account
                       </Button>
