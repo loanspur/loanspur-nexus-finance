@@ -168,7 +168,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
               Sign in to manage clients, loans, savings, and reconciliations with enterprise-grade security.
             </p>
             <ul className="grid gap-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-banking-primary" /> Multi-tenant architecture</li>
+              <li className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-banking-primary" /> AI-driven analytics</li>
               <li className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-banking-primary" /> Real-time dashboards</li>
               <li className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-banking-primary" /> Role-based access</li>
             </ul>
@@ -177,7 +177,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
 
         {/* Right auth panel */}
         <main className="flex items-center justify-center p-6 md:p-10">
-          <div className="w-full max-w-lg">
+          <div className="w-full max-w-xl">
             {!tenantMode && (
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold text-banking-primary mb-2">LoanSpur CBS</h1>
