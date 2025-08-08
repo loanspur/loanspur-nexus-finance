@@ -149,10 +149,10 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     <div className="relative min-h-screen">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10" />
 
-      <div className="grid min-h-screen md:grid-cols-2">
+      <div className="container mx-auto grid min-h-screen md:grid-cols-2 gap-8 lg:gap-12 items-center px-4">
         {/* Left showcase panel */}
-        <aside className="relative hidden md:flex items-center justify-center p-8 lg:p-12">
-          <div className="absolute inset-0 overflow-hidden rounded-r-[2rem] shadow-[var(--shadow-glow)]">
+        <aside className="relative hidden md:flex items-center justify-center p-8 lg:p-12 rounded-3xl ring-1 ring-border/50 overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-[var(--shadow-glow)]">
             <img
               src={heroImage}
               alt="Core banking platform illustration"
@@ -177,7 +177,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
 
         {/* Right auth panel */}
         <main className="flex items-center justify-center p-6 md:p-10">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-lg">
             {!tenantMode && (
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold text-banking-primary mb-2">LoanSpur CBS</h1>
@@ -185,7 +185,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
               </div>
             )}
 
-            <Card className="border border-border/60 bg-card/80 backdrop-blur-xl shadow-2xl">
+            <Card className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl shadow-2xl">
               <CardHeader className="space-y-3 pb-4">
                 <div className="text-center">
                   <CardTitle className="text-2xl font-bold">
@@ -210,7 +210,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               <Input 
                                 placeholder="Enter your email" 
-                                className="pl-10 h-11"
+                                className="pl-10 h-10"
                                 {...field} 
                               />
                             </div>
@@ -231,7 +231,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                               <Input 
                                 type={showSignInPassword ? "text" : "password"} 
                                 placeholder="Enter your password" 
-                                className="pl-10 pr-10 h-11"
+                                className="pl-10 pr-10 h-10"
                                 {...field} 
                               />
                               <Button
@@ -267,7 +267,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                     </div>
                     
                     <Button 
-                      className="w-full h-11 text-base font-medium" 
+                      className="w-full h-10 text-base font-medium" 
                       type="submit" 
                       disabled={signInForm.formState.isSubmitting}
                     >
@@ -290,7 +290,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
                 {!tenantMode && (
                   <Dialog open={isSignUpOpen} onOpenChange={setIsSignUpOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full h-11 text-base">
+                      <Button variant="outline" className="w-full h-10 text-base">
                         <UserPlus className="h-4 w-4 mr-2" />
                         Create Account
                       </Button>
