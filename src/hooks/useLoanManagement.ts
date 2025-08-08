@@ -716,6 +716,40 @@ export const useProcessLoanDisbursement = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
+      // Fetch loan application to validate client context
+      const { data: application, error: appFetchError } = await supabase
+        .from('loan_applications')
+        .select('id, client_id')
+        .eq('id', disbursement.loan_application_id)
+        .single();
+
+      if (appFetchError || !application) {
+        console.error('Failed to fetch loan application for disbursement validation:', appFetchError);
+        throw new Error('Loan application not found');
+      }
+
+      // Enforce: disbursement to savings requires a valid client-owned, active savings account selection
+      if (disbursement.disbursement_method === 'transfer_to_savings') {
+        if (!disbursement.savings_account_id) {
+          throw new Error('Please select a savings account to complete disbursement to savings.');
+        }
+        // Validate savings account exists, is active, and belongs to the same client
+        const { data: savingsAcct, error: saErr } = await supabase
+          .from('savings_accounts')
+          .select('id, client_id, is_active')
+          .eq('id', disbursement.savings_account_id)
+          .single();
+        if (saErr || !savingsAcct) {
+          throw new Error('Savings account not found.');
+        }
+        if (savingsAcct.client_id !== application.client_id) {
+          throw new Error('Selected savings account does not belong to the loan\'s client.');
+        }
+        if (!savingsAcct.is_active) {
+          throw new Error('Selected savings account is not active.');
+        }
+      }
+
       console.log('Starting disbursement process for application:', disbursement.loan_application_id);
       console.log('Disbursement data:', disbursement);
       // Check if loan has already been disbursed
