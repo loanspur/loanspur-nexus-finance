@@ -10,6 +10,7 @@ import { TenantRouter } from "./components/TenantRouter";
 import { MainSiteRouter } from "./components/MainSiteRouter";
 import { DevToolsBar } from "@/components/dev/DevToolsBar";
 import { useDataOptimization } from "@/hooks/useOptimizedQueries";
+import { getCurrentSubdomain } from "@/utils/tenant";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,13 +26,10 @@ const queryClient = new QueryClient({
   },
 });
 
-// Router component that determines which router to use based on hostname (no context usage)
+// Router component that determines which router to use using shared util (no context usage)
 const AppRouter = () => {
-  // Treat any non-root hostname as subdomain (excluding localhost patterns)
-  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-  const parts = hostname.split('.');
-  const isLocalhost = hostname.includes('localhost') || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
-  const isSubdomainTenant = !isLocalhost && parts.length > 2;
+  const subdomain = getCurrentSubdomain();
+  const isSubdomainTenant = !!subdomain;
 
   useDataOptimization();
   return isSubdomainTenant ? <TenantRouter /> : <MainSiteRouter />;
