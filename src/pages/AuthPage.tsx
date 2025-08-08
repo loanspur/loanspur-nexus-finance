@@ -149,14 +149,14 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     <div className="relative min-h-screen">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10" />
 
-      <div className="container mx-auto grid min-h-screen md:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-12 items-center px-4 lg:px-8">
+      <div className="w-full grid min-h-screen md:grid-cols-2 gap-8 lg:gap-12 items-center px-4 lg:px-8">
         {/* Left showcase panel */}
         <aside className="relative hidden md:flex items-center justify-center p-8 lg:p-12 rounded-3xl ring-1 ring-border/50 overflow-hidden bg-card/40 backdrop-blur-md">
           <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-[var(--shadow-glow)]">
             <img
               src={heroImage}
               alt="Core banking platform illustration"
-              className="h-full w-full object-cover opacity-70"
+              className="h-full w-full object-cover object-center opacity-70"
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-background/70 to-background/50" />
