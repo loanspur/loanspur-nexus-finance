@@ -54,8 +54,8 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Determine the correct domain for reset link
     const baseUrl = tenantSubdomain 
-      ? `https://${tenantSubdomain}.lovable.app` 
-      : Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovable.app') || 'https://app.lovable.app';
+      ? `https://${tenantSubdomain}.loanspurcbs.com` 
+      : 'https://loanspurcbs.com';
 
     const resetUrl = `${baseUrl}/auth/reset-password?token=${otpCode}&email=${encodeURIComponent(email)}`;
 

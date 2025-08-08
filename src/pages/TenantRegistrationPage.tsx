@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Home, Building2, CheckCircle, Mail, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { getBaseDomain } from '@/utils/tenant';
 
 const tenantRegistrationSchema = z.object({
   // Tenant Details
@@ -220,7 +221,7 @@ const TenantRegistrationPage = () => {
               <p className="text-sm text-muted-foreground mb-2">Your organization details:</p>
               <div className="space-y-1 text-sm">
                 <p><strong>Organization:</strong> {createdTenant?.name}</p>
-                <p><strong>Subdomain:</strong> {createdTenant?.subdomain}.loanspurcbs.com</p>
+                <p><strong>Subdomain:</strong> {createdTenant?.subdomain}.{getBaseDomain()}</p>
                 <p><strong>Trial Period:</strong> 30 days</p>
               </div>
             </div>

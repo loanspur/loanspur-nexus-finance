@@ -18,6 +18,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useTenantRegistration } from "@/hooks/useTenantRegistration";
 import { useEmailOTP } from "@/hooks/useEmailOTP";
 import { Building2, Mail, Shield, CheckCircle } from "lucide-react";
+import { getBaseDomain } from '@/utils/tenant';
 
 const tenantSignupSchema = z.object({
   // Tenant Details
@@ -231,7 +232,7 @@ export const TenantSignupDialog = ({ open, onOpenChange, onSuccess }: TenantSign
               <p className="text-sm text-muted-foreground mb-2">Your organization details:</p>
               <div className="space-y-1 text-sm">
                 <p><strong>Organization:</strong> {createdTenant?.name}</p>
-                <p><strong>Subdomain:</strong> {createdTenant?.subdomain}.loanspurcbs.com</p>
+                <p><strong>Subdomain:</strong> {createdTenant?.subdomain}.{getBaseDomain()}</p>
                 <p><strong>Trial Period:</strong> 30 days</p>
               </div>
             </div>

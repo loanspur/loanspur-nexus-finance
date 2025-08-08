@@ -14,6 +14,7 @@ import { EmailConfigurationDialog } from "@/components/tenant/EmailConfiguration
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getBaseDomain } from "@/utils/tenant";
 
 interface TenantsTableProps {
   onCreateTenant: () => void;
@@ -185,7 +186,7 @@ export const TenantsTable = ({ onCreateTenant }: TenantsTableProps) => {
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">
-                      {tenant.subdomain}.loanspurcbs.com
+                      {tenant.subdomain}.{getBaseDomain()}
                     </span>
                   </TableCell>
                   <TableCell>

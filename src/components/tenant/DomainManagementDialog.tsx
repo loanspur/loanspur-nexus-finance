@@ -29,6 +29,7 @@ import {
   useCheckSSLStatus,
   type DomainVerification,
 } from '@/hooks/useDomainVerification';
+import { getBaseDomain } from '@/utils/tenant';
 
 interface DomainManagementDialogProps {
   open: boolean;
@@ -302,7 +303,7 @@ export const DomainManagementDialog = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium">Wildcard SSL (*.loanspurcbs.com)</h4>
+                      <h4 className="font-medium">Wildcard SSL (*.{getBaseDomain()})</h4>
                       <p className="text-sm text-muted-foreground">
                         Covers all subdomain access to your tenant
                       </p>
