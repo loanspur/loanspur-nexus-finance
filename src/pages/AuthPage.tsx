@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Mail, Lock, UserPlus, Key } from "lucide-react";
 import { ForgotPasswordDialog } from "@/components/auth/ForgotPasswordDialog";
+import heroImage from "@/assets/hero-banking.jpg";
 
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
