@@ -86,7 +86,9 @@ export const LoanDisbursementDialog = ({
         .from('payment_types')
         .select('*')
         .in('id', channelIds);
-      const options = (pts || []).map(pt => ({ id: pt.id, code: pt.code?.toLowerCase?.() || '', name: pt.name }));
+      const options = (pts || [])
+        .filter((pt) => typeof pt.code === 'string' && pt.code.trim().length > 0)
+        .map((pt) => ({ id: pt.id, code: pt.code.toLowerCase(), name: pt.name }));
       setPaymentOptions(options);
     };
     load();
@@ -302,13 +304,13 @@ export const LoanDisbursementDialog = ({
                 {/* Payment Method from Product Mappings */}
                 <div className="space-y-2">
                   <Label>Payment Method</Label>
-                  <Select value={selectedPaymentMapping} onValueChange={setSelectedPaymentMapping}>
+                  <Select value={selectedPaymentMapping} onValueChange={setSelectedPaymentMapping} disabled={paymentOptions.length === 0}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-50 bg-background">
                       {paymentOptions.length === 0 ? (
-                        <SelectItem value="" disabled>No mapped payment methods</SelectItem>
+                        <SelectItem value="no-options" disabled>No mapped payment methods</SelectItem>
                       ) : (
                         paymentOptions.map((opt) => (
                           <SelectItem key={opt.id} value={opt.code}>
@@ -324,13 +326,13 @@ export const LoanDisbursementDialog = ({
                 {disbursementMethod === 'savings' && (
                   <div className="space-y-2">
                     <Label>Savings Account</Label>
-                    <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount}>
+                    <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount} disabled={getClientSavingsAccounts().length === 0}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select savings account" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="z-50 bg-background">
                         {getClientSavingsAccounts().length === 0 ? (
-                          <SelectItem value="" disabled>
+                          <SelectItem value="no-accounts" disabled>
                             No savings accounts found. Client must have a savings account.
                           </SelectItem>
                         ) : (
