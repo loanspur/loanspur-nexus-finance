@@ -48,6 +48,7 @@ export const MainSiteRouter = () => {
       
       {/* Public Routes */}
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/tenant/login" element={<AuthPage tenantMode />} />
         <Route path="/auth/accept-invitation" element={<AcceptInvitationPage />} />
         <Route path="/register" element={<TenantRegistrationPage />} />
         <Route path="/pricing" element={<PricingPage />} />

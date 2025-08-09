@@ -15,7 +15,7 @@ interface SendWelcomeEmailRequest {
   lastName: string;
   tenantName: string;
   subdomain: string;
-  loginUrl: string;
+  loginUrl?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -27,7 +27,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, firstName, lastName, tenantName, subdomain, loginUrl }: SendWelcomeEmailRequest = await req.json();
 
-    if (!email || !firstName || !tenantName || !subdomain || !loginUrl) {
+    if (!email || !firstName || !tenantName || !subdomain) {
       throw new Error("Missing required fields");
     }
 
@@ -41,6 +41,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Initialize Resend
     const resend = new Resend(RESEND_API_KEY);
+
+    // Always link to production domain in emails
+    const resolvedLoginUrl = `https://${subdomain}.loanspurcbs.com`;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -60,14 +63,14 @@ const handler = async (req: Request): Promise<Response> => {
             <h3 style="color: #1e40af; margin-top: 0;">Your Organization Details:</h3>
             <ul style="color: #64748b; line-height: 1.6;">
               <li><strong>Organization:</strong> ${tenantName}</li>
-              <li><strong>Subdomain:</strong> ${subdomain}.loanspur.com</li>
+              <li><strong>Subdomain:</strong> ${subdomain}.loanspurcbs.com</li>
               <li><strong>Admin Email:</strong> ${email}</li>
               <li><strong>Trial Period:</strong> 30 days</li>
             </ul>
           </div>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${loginUrl}" 
+            <a href="${resolvedLoginUrl}" 
                style="background: #1e40af; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
               Access Your Dashboard
             </a>
@@ -87,9 +90,9 @@ const handler = async (req: Request): Promise<Response> => {
           <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
             <h4 style="color: #334155;">Quick Links:</h4>
             <ul style="color: #64748b;">
-              <li><a href="${loginUrl}" style="color: #1e40af;">Dashboard Login</a></li>
-              <li><a href="${loginUrl}/tenant/settings" style="color: #1e40af;">Organization Settings</a></li>
-              <li><a href="${loginUrl}/tenant/users" style="color: #1e40af;">User Management</a></li>
+              <li><a href="${resolvedLoginUrl}" style="color: #1e40af;">Dashboard Login</a></li>
+              <li><a href="${resolvedLoginUrl}/tenant/settings" style="color: #1e40af;">Organization Settings</a></li>
+              <li><a href="${resolvedLoginUrl}/tenant/users" style="color: #1e40af;">User Management</a></li>
               <li><a href="https://docs.loanspur.com" style="color: #1e40af;">Documentation</a></li>
             </ul>
           </div>

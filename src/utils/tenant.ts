@@ -12,16 +12,24 @@ export interface TenantInfo {
 
 /**
  * Extract subdomain from hostname
- * For *.loanspurcbs.com, extracts the subdomain part
+ * Supports *.loanspurcbs.com (production) and *.loanspur.online (development)
  */
+export function getBaseDomain(hostname?: string): string {
+  const h = (hostname || (typeof window !== 'undefined' ? window.location.hostname : '')).split(':')[0];
+  // If we're on the dev domain, return it; otherwise default to production
+  if (h === 'loanspur.online' || h.endsWith('.loanspur.online')) return 'loanspur.online';
+  return 'loanspurcbs.com';
+}
+
 export function getSubdomainFromHostname(hostname: string): string | null {
   // Remove port if present
   const cleanHostname = hostname.split(':')[0];
   
   console.log('Subdomain detection - hostname:', hostname, 'cleanHostname:', cleanHostname);
   
-  // Check if it's the main domain or localhost
+  // Check if it's a main domain or localhost
   if (cleanHostname === 'loanspurcbs.com' || 
+      cleanHostname === 'loanspur.online' ||
       cleanHostname === 'localhost' || 
       cleanHostname.includes('127.0.0.1') ||
       cleanHostname.includes('lovableproject.com')) {
@@ -29,10 +37,15 @@ export function getSubdomainFromHostname(hostname: string): string | null {
     return null;
   }
   
-  // Extract subdomain from *.loanspurcbs.com
+  // Extract subdomain from known base domains
   if (cleanHostname.endsWith('.loanspurcbs.com')) {
     const subdomain = cleanHostname.replace('.loanspurcbs.com', '');
-    console.log('Extracted subdomain:', subdomain);
+    console.log('Extracted subdomain (prod):', subdomain);
+    return subdomain === 'www' ? null : subdomain;
+  }
+  if (cleanHostname.endsWith('.loanspur.online')) {
+    const subdomain = cleanHostname.replace('.loanspur.online', '');
+    console.log('Extracted subdomain (dev):', subdomain);
     return subdomain === 'www' ? null : subdomain;
   }
   
@@ -87,7 +100,8 @@ export async function getTenantBySubdomain(subdomain: string): Promise<TenantInf
 /**
  * Build subdomain URL
  */
-export function buildSubdomainUrl(subdomain: string, path: string = ''): string {
-  const baseUrl = 'https://' + (subdomain ? `${subdomain}.` : '') + 'loanspurcbs.com';
+export function buildSubdomainUrl(subdomain: string, path: string = '', baseDomain?: string): string {
+  const domain = baseDomain || getBaseDomain();
+  const baseUrl = 'https://' + (subdomain ? `${subdomain}.` : '') + domain;
   return baseUrl + (path.startsWith('/') ? path : '/' + path);
 }

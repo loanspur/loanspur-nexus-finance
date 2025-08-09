@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Building, Globe, Clock, Upload, DollarSign, Calendar, Users } from "lucide-react";
+import { getBaseDomain } from '@/utils/tenant';
 
 const companyProfileSchema = z.object({
   name: z.string().min(1, "Organization name is required"),
@@ -322,7 +323,7 @@ export const CompanyProfileSection = () => {
               <div>
                 <h3 className="text-xl font-semibold">{tenant.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {tenant.subdomain}.loanspurcbs.com
+                  {tenant.subdomain}.{getBaseDomain()}
                 </p>
               </div>
               

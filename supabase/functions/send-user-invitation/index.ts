@@ -91,11 +91,11 @@ const handler = async (req: Request): Promise<Response> => {
       // Use custom domain if available
       baseUrl = `https://${tenantData.domain}`;
     } else if (tenantData.subdomain) {
-      // Fall back to lovable subdomain
-      baseUrl = `https://${tenantData.subdomain}.lovable.app`;
+      // Fall back to production subdomain
+      baseUrl = `https://${tenantData.subdomain}.loanspurcbs.com`;
     } else {
-      // Final fallback
-      baseUrl = `https://app.lovable.app`;
+      // Final fallback to production root
+      baseUrl = `https://loanspurcbs.com`;
     }
     
     const invitationUrl = `${baseUrl}/auth/accept-invitation?token=${invitationToken}`;

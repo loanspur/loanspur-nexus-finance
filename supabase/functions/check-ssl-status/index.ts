@@ -51,6 +51,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Check wildcard SSL for subdomain
     if (tenant.subdomain) {
+      // Production domain
       const subdomainUrl = `https://${tenant.subdomain}.loanspurcbs.com`;
       try {
         const response = await fetch(subdomainUrl, { 
@@ -70,7 +71,32 @@ const handler = async (req: Request): Promise<Response> => {
           domain: `${tenant.subdomain}.loanspurcbs.com`,
           type: 'subdomain',
           ssl_active: false,
-          error: error.message,
+          error: (error as Error).message,
+          checked_at: new Date().toISOString()
+        });
+      }
+
+      // Development domain
+      const devSubdomainUrl = `https://${tenant.subdomain}.loanspur.online`;
+      try {
+        const response = await fetch(devSubdomainUrl, { 
+          method: 'HEAD',
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
+        
+        sslResults.push({
+          domain: `${tenant.subdomain}.loanspur.online`,
+          type: 'subdomain',
+          ssl_active: response.ok,
+          status_code: response.status,
+          checked_at: new Date().toISOString()
+        });
+      } catch (error) {
+        sslResults.push({
+          domain: `${tenant.subdomain}.loanspur.online`,
+          type: 'subdomain',
+          ssl_active: false,
+          error: (error as Error).message,
           checked_at: new Date().toISOString()
         });
       }

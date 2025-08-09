@@ -11,6 +11,7 @@ import { Eye, EyeOff, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAssignUserToOffice } from "@/hooks/useUserInvitations";
+import { getBaseDomain } from "@/utils/tenant";
 
 const setPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -149,7 +150,7 @@ export const AcceptInvitationPage = () => {
       
       setTimeout(() => {
         if (tenantSubdomain) {
-          window.location.href = `https://${tenantSubdomain}.lovable.app/auth`;
+          window.location.href = `https://${tenantSubdomain}.${getBaseDomain()}/auth`;;
         } else {
           const currentSubdomain = window.location.hostname.split('.')[0];
           const isSubdomain = window.location.hostname.includes('.') && currentSubdomain !== 'www';
