@@ -12,6 +12,7 @@ export interface LoanDisbursementData {
   principal_amount: number;
   disbursement_date: string;
   loan_number: string;
+  payment_method?: string; // code like 'cash', 'bank_transfer', 'mpesa'
 }
 
 export interface LoanRepaymentData {
@@ -23,7 +24,9 @@ export interface LoanRepaymentData {
   penalty_amount?: number;
   payment_date: string;
   payment_reference?: string;
+  payment_method?: string; // code like 'cash', 'bank_transfer', 'mpesa'
 }
+
 
 export interface LoanChargeData {
   loan_id: string;
@@ -58,12 +61,30 @@ export const useLoanDisbursementAccounting = () => {
 
       if (productError) throw productError;
 
-      if (!product.loan_portfolio_account_id || !product.fund_source_account_id) {
+      if (!product.loan_portfolio_account_id) {
         throw new Error('Loan product accounting accounts not configured');
       }
 
       if (product.accounting_type === 'none') {
         throw new Error('Accounting is disabled for this loan product');
+      }
+
+      // Resolve asset account via advanced mapping (fallback to default fund_source_account_id)
+      let assetAccountId = product.fund_source_account_id as string | null;
+      try {
+        const { resolveFundSourceAccount } = await import('./useFundSourceResolver');
+        const resolved = await resolveFundSourceAccount({
+          productId: data.loan_product_id,
+          productType: 'loan',
+          paymentMethodCode: data.payment_method || null,
+        });
+        if (resolved) assetAccountId = resolved;
+      } catch (e) {
+        console.warn('Fund source resolver failed, using default', e);
+      }
+
+      if (!assetAccountId) {
+        throw new Error('No fund source asset account configured for this payment method');
       }
 
       // Create disbursement journal entry
@@ -80,7 +101,7 @@ export const useLoanDisbursementAccounting = () => {
             credit_amount: 0,
           },
           {
-            account_id: product.fund_source_account_id,
+            account_id: assetAccountId,
             description: `Loan disbursement - ${data.loan_number}`,
             debit_amount: 0,
             credit_amount: data.principal_amount,

@@ -334,9 +334,15 @@ export const SavingsTransactionForm = ({
       // Create journal entries for accounting integration
       try {
         if (data.transactionType === 'deposit') {
-          await depositAccounting.mutateAsync(accountingData);
+          await depositAccounting.mutateAsync({
+            ...accountingData,
+            payment_method: data.method,
+          });
         } else if (data.transactionType === 'withdrawal') {
-          await withdrawalAccounting.mutateAsync(accountingData);
+          await withdrawalAccounting.mutateAsync({
+            ...accountingData,
+            payment_method: data.method,
+          });
         } else if (data.transactionType === 'fee_charge') {
           const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
           await feeChargeAccounting.mutateAsync({

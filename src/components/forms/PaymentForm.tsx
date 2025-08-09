@@ -75,6 +75,7 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
               interest_amount: 0,
               payment_date: transactionDate,
               payment_reference: data.externalTransactionId,
+              payment_method: data.paymentType,
             });
           }
           break;

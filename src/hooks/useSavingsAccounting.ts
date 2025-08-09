@@ -90,12 +90,26 @@ export const useSavingsDepositAccounting = () => {
       }
 
       // Determine the cash/asset account based on payment method
-      let assetAccountId = product.savings_reference_account_id;
-      
-      // Check payment type mappings for specific payment method
-      if (data.payment_method && product.payment_type_mappings) {
+      let assetAccountId = product.savings_reference_account_id as string;
+
+      // Try advanced product mapping first
+      if (data.payment_method) {
+        try {
+          const { resolveFundSourceAccount } = await import('./useFundSourceResolver');
+          const mapped = await resolveFundSourceAccount({
+            productId: data.savings_product_id,
+            productType: 'savings',
+            paymentMethodCode: data.payment_method,
+          });
+          if (mapped) assetAccountId = mapped;
+        } catch (e) {
+          console.warn('Savings deposit resolver failed', e);
+        }
+      }
+
+      // If no mapping found, check legacy JSON mappings
+      if (data.payment_method && product.payment_type_mappings && assetAccountId === product.savings_reference_account_id) {
         const mappings = product.payment_type_mappings as unknown as PaymentTypeMapping[];
-        
         const mapping = mappings.find((m) => m.payment_type === data.payment_method);
         if (mapping?.asset_account_id) {
           assetAccountId = mapping.asset_account_id;
@@ -179,12 +193,26 @@ export const useSavingsWithdrawalAccounting = () => {
       }
 
       // Determine the cash/asset account based on payment method
-      let assetAccountId = product.savings_reference_account_id;
-      
-      // Check payment type mappings for specific payment method
-      if (data.payment_method && product.payment_type_mappings) {
+      let assetAccountId = product.savings_reference_account_id as string;
+
+      // Try advanced product mapping first
+      if (data.payment_method) {
+        try {
+          const { resolveFundSourceAccount } = await import('./useFundSourceResolver');
+          const mapped = await resolveFundSourceAccount({
+            productId: data.savings_product_id,
+            productType: 'savings',
+            paymentMethodCode: data.payment_method,
+          });
+          if (mapped) assetAccountId = mapped;
+        } catch (e) {
+          console.warn('Savings withdrawal resolver failed', e);
+        }
+      }
+
+      // If no mapping found, check legacy JSON mappings
+      if (data.payment_method && product.payment_type_mappings && assetAccountId === product.savings_reference_account_id) {
         const mappings = product.payment_type_mappings as unknown as PaymentTypeMapping[];
-        
         const mapping = mappings.find((m) => m.payment_type === data.payment_method);
         if (mapping?.asset_account_id) {
           assetAccountId = mapping.asset_account_id;

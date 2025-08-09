@@ -11,6 +11,8 @@ import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 import { useToast } from "@/hooks/use-toast";
 import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
 
 interface LoanDisbursementDialogProps {
   open: boolean;
@@ -29,6 +31,7 @@ export const LoanDisbursementDialog = ({
   const { formatAmount } = useCurrency();
   const processDisbursement = useProcessLoanDisbursement();
   const { data: loanProducts = [] } = useLoanProducts();
+  const accountingDisburse = useLoanDisbursementAccounting();
 
   // Create a simple undo approval function for now
   const handleUndoApproval = async () => {
@@ -66,21 +69,27 @@ export const LoanDisbursementDialog = ({
     }
   }, [open]);
 
-  // Get loan product payment mappings
-  const getLoanProduct = () => {
-    return loanProducts.find(p => p.id === loanData?.loan_product_id);
-  };
-
-  const getPaymentMappings = () => {
-    const product = getLoanProduct();
-    // For now return default payment methods until we implement the mappings properly
-    return [
-      { paymentType: 'Bank Transfer', payment_type: 'Bank Transfer' },
-      { paymentType: 'Cash', payment_type: 'Cash' },
-      { paymentType: 'M-Pesa', payment_type: 'M-Pesa' },
-      { paymentType: 'Check', payment_type: 'Check' }
-    ];
-  };
+  // Load payment mappings from product_fund_source_mappings joined with payment_types to get codes
+  const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  useEffect(() => {
+    const load = async () => {
+      if (!loanData?.loan_product_id) return;
+      const { data: mappings } = await supabase
+        .from('product_fund_source_mappings')
+        .select('channel_id, channel_name')
+        .eq('product_id', loanData.loan_product_id)
+        .eq('product_type', 'loan');
+      const channelIds = (mappings || []).map(m => m.channel_id);
+      if (channelIds.length === 0) { setPaymentOptions([]); return; }
+      const { data: pts } = await supabase
+        .from('payment_types')
+        .select('*')
+        .in('id', channelIds);
+      const options = (pts || []).map(pt => ({ id: pt.id, code: pt.code?.toLowerCase?.() || '', name: pt.name }));
+      setPaymentOptions(options);
+    };
+    load();
+  }, [loanData?.loan_product_id]);
 
   // Get client's savings accounts for transfer option
   const getClientSavingsAccounts = () => {
@@ -146,28 +155,37 @@ export const LoanDisbursementDialog = ({
       loan_application_id: loanData.id,
       disbursed_amount: getDisbursementAmount(),
       disbursement_date: new Date().toISOString(),
-      disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : 'bank_transfer',
+      disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
       reference_number: receiptNumber,
       ...(disbursementMethod === 'savings' && { savings_account_id: selectedSavingsAccount })
     };
 
     processDisbursement.mutate(disbursementData, {
-      onSuccess: () => {
+      onSuccess: async (result: any) => {
+        try {
+          // Create accounting entry using selected payment method
+          if (result?.loan) {
+            await accountingDisburse.mutateAsync({
+              loan_id: result.loan.id,
+              client_id: result.loan.client_id,
+              loan_product_id: loanData.loan_product_id,
+              principal_amount: getDisbursementAmount(),
+              disbursement_date: new Date().toISOString().split('T')[0],
+              loan_number: result.loan.loan_number,
+              payment_method: disbursementMethod === 'savings' ? undefined : (selectedPaymentMapping || undefined),
+            });
+          }
+        } catch (e: any) {
+          console.warn('Accounting for disbursement failed:', e);
+        }
         toast({
           title: "Success",
-          description: `Loan ${disbursementMethod === 'savings' ? 'disbursed to savings account' : 'disbursement processed'} successfully`,
+          description: `${disbursementMethod === 'savings' ? 'disbursed to savings account' : 'disbursement processed'} successfully`,
         });
         onOpenChange(false);
         onSuccess?.();
       },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to process disbursement",
-          variant: "destructive"
-        });
-      }
-    });
+
   };
 
   return (
@@ -281,11 +299,15 @@ export const LoanDisbursementDialog = ({
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getPaymentMappings().map((mapping: any, index: number) => (
-                        <SelectItem key={index} value={mapping.paymentType || mapping.payment_type}>
-                          {mapping.paymentType || mapping.payment_type}
-                        </SelectItem>
-                      ))}
+                      {paymentOptions.length === 0 ? (
+                        <SelectItem value="" disabled>No mapped payment methods</SelectItem>
+                      ) : (
+                        paymentOptions.map((opt) => (
+                          <SelectItem key={opt.id} value={opt.code}>
+                            {opt.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
