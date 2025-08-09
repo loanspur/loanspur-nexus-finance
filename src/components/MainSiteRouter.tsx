@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
@@ -10,11 +10,18 @@ import { AcceptInvitationPage } from '@/pages/AcceptInvitationPage';
 import SuperAdminLayout from '@/layouts/SuperAdminLayout';
 import TenantLayout from '@/layouts/TenantLayout';
 import ClientLayout from '@/layouts/ClientLayout';
+import { useAuth } from '@/hooks/useAuth';
+
+export const IndexRedirector = () => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <Index /> : <Navigate to="/auth" replace />;
+};
 
 export const MainSiteRouter = () => {
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<IndexRedirector />} />
       
       {/* Super Admin Routes */}
       <Route 
