@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,17 @@ import { useFunds } from "@/hooks/useFundsManagement";
 import { useMPesaCredentials } from "@/hooks/useIntegrations";
 import { usePaymentTypes } from "@/hooks/usePaymentTypes";
 import { useFundSources } from "@/hooks/useFundSources";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
 
 interface LoanProductAdvancedTabProps {
   form: UseFormReturn<LoanProductFormData>;
   tenantId: string;
+  productId?: string;
+  productType?: 'loan' | 'savings';
+  onRegisterSave?: (fn: (productId: string) => Promise<void>) => void;
 }
 
 interface PaymentChannelMapping {
@@ -30,14 +36,76 @@ interface FeeMapping {
   incomeAccount: string;
 }
 
-export const LoanProductAdvancedTab = ({ form, tenantId }: LoanProductAdvancedTabProps) => {
+export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType = 'loan', onRegisterSave }: LoanProductAdvancedTabProps) => {
   const { data: chartOfAccounts = [] } = useChartOfAccounts();
   const { data: feeStructures = [] } = useFeeStructures();
   const { data: paymentTypes = [], isLoading: paymentTypesLoading } = usePaymentTypes();
   const { data: fundSources = [], isLoading: fundSourcesLoading } = useFundSources();
+  const { profile } = useAuth();
+  const { toast } = useToast();
+  const [existingMappings, setExistingMappings] = useState<Array<{ channel_id: string; account_id: string }>>([]);
 
   const [paymentChannelMappings, setPaymentChannelMappings] = useState<PaymentChannelMapping[]>([]);
   const [feeMappings, setFeeMappings] = useState<FeeMapping[]>([]);
+
+  // Load existing mappings for this product
+  useEffect(() => {
+    const load = async () => {
+      if (!profile?.tenant_id || !productId) return;
+      const { data, error } = await supabase
+        .from('product_fund_source_mappings')
+        .select('channel_id, account_id')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('product_id', productId)
+        .eq('product_type', productType);
+      if (error) {
+        console.error('Failed to load product fund source mappings', error);
+        return;
+      }
+      const rows = (data || []) as Array<{ channel_id: string; account_id: string }>;
+      setExistingMappings(rows);
+      setPaymentChannelMappings(rows.map(r => ({ id: r.channel_id, paymentType: r.channel_id, fundSource: r.account_id })));
+    };
+    load();
+  }, [profile?.tenant_id, productId, productType]);
+
+  // Register save handler so parent can call it on submit
+  useEffect(() => {
+    if (!onRegisterSave || !profile?.tenant_id) return;
+    onRegisterSave(async (pid: string) => {
+      const configured = paymentChannelMappings.filter(m => m.paymentType && m.fundSource);
+      const upsertPayload = configured.map(m => ({
+        tenant_id: profile.tenant_id!,
+        product_id: pid,
+        product_type: productType,
+        channel_id: m.paymentType,
+        channel_name: (paymentTypes.find(pt => pt.id === m.paymentType)?.name) || m.paymentType,
+        account_id: m.fundSource,
+      }));
+
+      const { error: upsertError } = await supabase
+        .from('product_fund_source_mappings')
+        .upsert(upsertPayload, { onConflict: 'tenant_id,product_id,product_type,channel_id' });
+      if (upsertError) throw upsertError;
+
+      const selectedIds = new Set(configured.map(c => c.paymentType));
+      const toDelete = (existingMappings || [])
+        .filter(m => !selectedIds.has(m.channel_id))
+        .map(m => m.channel_id);
+      if (toDelete.length > 0) {
+        const { error: delError } = await supabase
+          .from('product_fund_source_mappings')
+          .delete()
+          .eq('tenant_id', profile.tenant_id!)
+          .eq('product_id', pid)
+          .eq('product_type', productType)
+          .in('channel_id', toDelete);
+        if (delError) throw delError;
+      }
+
+      toast({ title: 'Advanced mappings saved', description: `${configured.length} payment channel(s) linked.` });
+    });
+  }, [onRegisterSave, profile?.tenant_id, paymentChannelMappings, existingMappings, productType, paymentTypes, toast]);
 
   const assetAccounts = chartOfAccounts.filter(account => account.account_type === 'asset');
   const incomeAccounts = chartOfAccounts.filter(account => account.account_type === 'income');

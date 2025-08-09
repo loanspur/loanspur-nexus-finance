@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -28,6 +28,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
   const [currentTab, setCurrentTab] = useState("basic");
   const createLoanProductMutation = useCreateLoanProduct();
   const updateLoanProductMutation = useUpdateLoanProduct();
+  const saveAdvancedRef = useRef<null | ((productId: string) => Promise<void>)>(null);
 
   console.log("=== LOAN PRODUCT FORM RENDER ===");
   console.log("Open:", open);
@@ -206,13 +207,17 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
     try {
       if (editingProduct) {
         console.log("Updating loan product", { id: editingProduct.id });
-        await updateLoanProductMutation.mutateAsync({
+        const updated = await updateLoanProductMutation.mutateAsync({
           id: editingProduct.id,
           ...productData,
         });
+        await saveAdvancedRef.current?.(editingProduct.id);
       } else {
         console.log("Creating new loan product");
-        await createLoanProductMutation.mutateAsync(productData);
+        const created: any = await createLoanProductMutation.mutateAsync(productData);
+        if (created?.id) {
+          await saveAdvancedRef.current?.(created.id);
+        }
       }
       
       form.reset();
@@ -395,7 +400,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-4">
-                <LoanProductAdvancedTab form={form} tenantId={tenantId} />
+                <LoanProductAdvancedTab form={form} tenantId={tenantId} productId={editingProduct?.id} productType="loan" onRegisterSave={(fn) => { saveAdvancedRef.current = fn; }} />
               </TabsContent>
             </Tabs>
 
