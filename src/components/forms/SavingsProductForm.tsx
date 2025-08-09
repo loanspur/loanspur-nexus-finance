@@ -767,6 +767,32 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="income_from_penalties_account_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Income from Penalties Account</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select penalties income account" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {incomeAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.account_code} - {account.account_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Only Income accounts are listed.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
 
