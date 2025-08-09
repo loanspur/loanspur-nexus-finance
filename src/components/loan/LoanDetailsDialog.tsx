@@ -161,6 +161,10 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       case 'closed':
       case 'completed':
         return 'outline';
+      case 'in_arrears':
+        return 'destructive';
+      case 'overpaid':
+        return 'secondary';
       case 'overdue':
         return 'destructive';
       default:
@@ -178,6 +182,10 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       case 'closed':
       case 'completed':
         return <XCircle className="h-3 w-3" />;
+      case 'in_arrears':
+        return <AlertTriangle className="h-3 w-3" />;
+      case 'overpaid':
+        return <DollarSign className="h-3 w-3" />;
       case 'overdue':
         return <AlertTriangle className="h-3 w-3" />;
       default:
@@ -357,9 +365,9 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Status</p>
-                        <Badge variant={getStatusColor(loanDetails.status)} className="mt-1">
-                          {getStatusIcon(loanDetails.status)}
-                          <span className="ml-1">{loanDetails.status}</span>
+                        <Badge variant={getStatusColor(derived.status)} className="mt-1">
+                          {getStatusIcon(derived.status)}
+                          <span className="ml-1">{derived.status.replace('_', ' ').toUpperCase()}</span>
                         </Badge>
                       </div>
                       <CheckCircle className="h-8 w-8 text-primary" />
@@ -367,6 +375,45 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                   </CardContent>
                 </Card>
               </div>
+
+              {derived.status === 'in_arrears' && (
+                <div className="p-4 border rounded-lg bg-destructive/10 border-destructive text-destructive-foreground mb-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="font-medium">In arrears</span>
+                    <span className="text-sm">({derived.daysInArrears} days overdue)</span>
+                  </div>
+                </div>
+              )}
+
+              {derived.status === 'overpaid' && (
+                <div className="p-4 border rounded-lg bg-muted mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      <span className="font-medium">Overpaid</span>
+                      <span className="text-sm">Excess: {formatCurrency(derived.overpaidAmount)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Select onValueChange={(v) => setSelectedSavingsId(v)}>
+                        <SelectTrigger className="w-56">
+                          <SelectValue placeholder="Select savings account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {savingsAccounts.map((sa: any) => (
+                            <SelectItem key={sa.id} value={sa.id}>
+                              {sa.account_number} • Bal: {formatCurrency(sa.account_balance || 0)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" onClick={handleTransferExcess} disabled={!selectedSavingsId}>
+                        Transfer to savings
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Loan Information */}
