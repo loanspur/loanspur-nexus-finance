@@ -84,8 +84,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
   const incomeAccounts = accounts?.filter(acc => acc.account_type === 'income') || [];
   const expenseAccounts = accounts?.filter(acc => acc.account_type === 'expense') || [];
 
+  const [currentTab, setCurrentTab] = useState<'basic' | 'accounting' | 'linked_fees'>('basic');
+
   const form = useForm<SavingsProductFormValues>({
     resolver: zodResolver(savingsProductSchema),
+    mode: 'onChange',
     defaultValues: {
       name: "",
       short_name: "",
@@ -304,10 +307,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic">Basic Information</TabsTrigger>
                 <TabsTrigger value="accounting">Advanced Accounting</TabsTrigger>
+                <TabsTrigger value="linked_fees">Linked Fees</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-6">
@@ -605,6 +609,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     </FormItem>
                   )}
                 />
+              <div className="flex justify-end pt-2">
+                <Button type="button" onClick={() => setCurrentTab('accounting')}>
+                  Next
+                </Button>
+              </div>
               </TabsContent>
 
 
@@ -825,11 +834,15 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                   ))}
                 </div>
 
+                {/* Fee Mappings moved to Linked Fees tab */}
+              </TabsContent>
+
+              <TabsContent value="linked_fees" className="space-y-6">
                 {/* Fee Mappings */}
                 <div className="space-y-4 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-medium">Fee Mappings</h3>
+                      <h3 className="text-lg font-medium">Linked Fees</h3>
                       <p className="text-sm text-muted-foreground">
                         Map savings fees to income accounts
                       </p>
@@ -936,7 +949,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingProduct ? 'Update Product' : 'Create Product'}
               </Button>
