@@ -40,6 +40,7 @@ import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
 // Using enhanced workflow dialog
 import { EnhancedLoanWorkflowDialog } from "@/components/loan/EnhancedLoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
+import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { EditClientForm } from "@/components/forms/EditClientForm";
@@ -125,6 +126,8 @@ const ClientDetailsPageRefactored = () => {
   const [showDisbursementModal, setShowDisbursementModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedLoanForWorkflow, setSelectedLoanForWorkflow] = useState<any>(null);
+  const [showLoanDetailsModal, setShowLoanDetailsModal] = useState(false);
+  const [selectedLoanForDetails, setSelectedLoanForDetails] = useState<any>(null);
 
   useEffect(() => {
     if (clientId) {
@@ -378,7 +381,13 @@ const ClientDetailsPageRefactored = () => {
                     onToggleClosedLoans={() => setShowClosedLoans(!showClosedLoans)}
                     onNewLoan={() => setShowNewLoan(true)}
                     onViewLoanDetails={(loan) => {
-                      setSelectedAccount(loan);
+                      if (loan?.type === 'loan') {
+                        setSelectedLoanForDetails(loan);
+                        setShowLoanDetailsModal(true);
+                      } else {
+                        setSelectedLoanForWorkflow(loan);
+                        setShowLoanWorkflowModal(true);
+                      }
                     }}
                     onProcessDisbursement={(loan) => {
                       setSelectedAccount(loan);
@@ -471,6 +480,17 @@ const ClientDetailsPageRefactored = () => {
           onOpenChange={setShowLoanWorkflowModal}
           loanApplication={selectedLoanForWorkflow}
           onSuccess={fetchClientData}
+        />
+      )}
+      {selectedLoanForDetails && (
+        <LoanDetailsDialog
+          loan={selectedLoanForDetails}
+          clientName={`${client.first_name} ${client.last_name}`}
+          open={showLoanDetailsModal}
+          onOpenChange={(open) => {
+            setShowLoanDetailsModal(open);
+            if (!open) setSelectedLoanForDetails(null);
+          }}
         />
       )}
       {selectedAccount && (
