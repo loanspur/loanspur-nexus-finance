@@ -13,11 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateSavingsProduct, useUpdateSavingsProduct, SavingsProduct } from "@/hooks/useSupabase";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { usePaymentTypes } from "@/hooks/usePaymentTypes";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { Loader2, Plus, X } from "lucide-react";
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { generateSampleSavingsProductData } from "@/lib/dev-utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-
 const savingsProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   short_name: z.string().min(1, "Short name is required"),
@@ -56,7 +56,6 @@ const savingsProductSchema = z.object({
   
   // Advanced Accounting - Fee Mappings
   fee_mappings: z.array(z.object({
-    fee_name: z.string(),
     fee_type: z.string(),
     income_account_id: z.string(),
   })).optional(),
@@ -77,6 +76,10 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
   const updateSavingsProduct = useUpdateSavingsProduct();
   const { data: accounts } = useChartOfAccounts();
   const { data: paymentTypes } = usePaymentTypes();
+  const { data: allFeeStructures } = useFeeStructures();
+  const savingsFees = allFeeStructures?.filter(fee => 
+    fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
+  ) || [];
   const { currency, currencySymbol } = useCurrency();
 
   const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];
@@ -283,7 +286,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
 
   const addFeeMapping = () => {
     const current = form.getValues('fee_mappings') || [];
-    form.setValue('fee_mappings', [...current, { fee_name: '', fee_type: '', income_account_id: '' }]);
+    form.setValue('fee_mappings', [...current, { fee_type: '', income_account_id: '' }]);
   };
 
   const removeFeeMapping = (index: number) => {
@@ -835,6 +838,10 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                 </div>
 
                 {/* Fee Mappings moved to Linked Fees tab */}
+                <div className="flex justify-between pt-2">
+                  <Button type="button" variant="outline" onClick={() => setCurrentTab('basic')}>Back</Button>
+                  <Button type="button" onClick={() => setCurrentTab('linked_fees')}>Next</Button>
+                </div>
               </TabsContent>
 
               <TabsContent value="linked_fees" className="space-y-6">
@@ -854,21 +861,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                   </div>
 
                   {(form.watch('fee_mappings') || []).map((mapping, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
-                      <FormField
-                        control={form.control}
-                        name={`fee_mappings.${index}.fee_name`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Fee Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Monthly Fee" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
                       <FormField
                         control={form.control}
                         name={`fee_mappings.${index}.fee_type`}
@@ -882,15 +875,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="account_opening">Account Opening Fee</SelectItem>
-                                <SelectItem value="monthly_maintenance">Monthly Maintenance Fee</SelectItem>
-                                <SelectItem value="quarterly_maintenance">Quarterly Maintenance Fee</SelectItem>
-                                <SelectItem value="annual_service">Annual Service Fee</SelectItem>
-                                <SelectItem value="withdrawal">Withdrawal Fee</SelectItem>
-                                <SelectItem value="deposit">Deposit Fee</SelectItem>
-                                <SelectItem value="transaction">Transaction Fee</SelectItem>
-                                <SelectItem value="overdraft">Overdraft Fee</SelectItem>
-                                <SelectItem value="closure">Account Closure Fee</SelectItem>
+                                {savingsFees.map((fee) => (
+                                  <SelectItem key={fee.id} value={fee.fee_type}>
+                                    {fee.name} ({fee.fee_type})
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -949,10 +938,12 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editingProduct ? 'Update Product' : 'Create Product'}
-              </Button>
+              {currentTab === 'linked_fees' && (
+                <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editingProduct ? 'Update Product' : 'Create Product'}
+                </Button>
+              )}
             </div>
           </form>
         </Form>
