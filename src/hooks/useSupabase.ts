@@ -607,9 +607,12 @@ export const useCreateSavingsProduct = () => {
       });
     },
     onError: (error: any) => {
+      const message = error?.code === '23505'
+        ? 'A savings product with this short name already exists in your tenant'
+        : (error?.message || 'Failed to create savings product');
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
@@ -640,9 +643,12 @@ export const useUpdateSavingsProduct = () => {
       });
     },
     onError: (error: any) => {
+      const message = error?.code === '23505'
+        ? 'A savings product with this short name already exists in your tenant'
+        : (error?.message || 'Failed to update savings product');
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
