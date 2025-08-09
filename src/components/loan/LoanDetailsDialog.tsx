@@ -39,6 +39,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useLoanSchedules } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
+  try {
+    if (!value) return 'N/A';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return 'N/A';
+    return format(d, fmt);
+  } catch {
+    return 'N/A';
+  }
+};
+
 interface LoanDetailsDialogProps {
   loan: any;
   clientName: string;
@@ -442,13 +453,13 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                       {loanDetails.disbursementDate && (
                         <div>
                           <span className="text-muted-foreground">Disbursement Date</span>
-                          <div className="font-medium">{format(new Date(loanDetails.disbursementDate), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{safeFormatDate(loanDetails.disbursementDate, 'MMM dd, yyyy')}</div>
                         </div>
                       )}
                       {loanDetails.maturityDate && (
                         <div>
                           <span className="text-muted-foreground">Maturity Date</span>
-                          <div className="font-medium">{format(new Date(loanDetails.maturityDate), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{safeFormatDate(loanDetails.maturityDate, 'MMM dd, yyyy')}</div>
                         </div>
                       )}
                       <div>
@@ -492,7 +503,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                       </div>
                       <div>
                         <span className="text-muted-foreground">Next Payment</span>
-                        <div className="font-medium">{format(new Date(loanDetails.nextPayment), 'MMM dd, yyyy')}</div>
+                        <div className="font-medium">{safeFormatDate(loanDetails.nextPayment, 'MMM dd, yyyy')}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -605,7 +616,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                           <div>
                             <div className="font-medium">{payment.type}</div>
                             <div className="text-sm text-muted-foreground">
-                              {format(new Date(payment.date), 'MMM dd, yyyy')}
+                              {safeFormatDate(payment.date, 'MMM dd, yyyy')}
                             </div>
                           </div>
                         </div>
@@ -642,7 +653,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                           <div>
                             <div className="font-medium">{doc.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              {doc.type} • {format(new Date(doc.date), 'MMM dd, yyyy')}
+                              {doc.type} • {safeFormatDate(doc.date, 'MMM dd, yyyy')}
                             </div>
                           </div>
                         </div>
@@ -781,7 +792,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                       <div className="space-y-4">
                         <div>
                           <span className="text-sm text-muted-foreground">Application Date</span>
-                          <div className="font-medium">{format(new Date(loanDetails.approvalStatus?.submittedDate || ''), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{safeFormatDate(loanDetails.approvalStatus?.submittedDate, 'MMM dd, yyyy')}</div>
                         </div>
                         <div>
                           <span className="text-sm text-muted-foreground">Current Stage</span>
@@ -793,7 +804,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                         </div>
                         <div>
                           <span className="text-sm text-muted-foreground">Estimated Approval</span>
-                          <div className="font-medium">{format(new Date(loanDetails.approvalStatus?.estimatedApproval || ''), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{safeFormatDate(loanDetails.approvalStatus?.estimatedApproval, 'MMM dd, yyyy')}</div>
                         </div>
                       </div>
                       <div className="space-y-4">
@@ -834,7 +845,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                       <div className="space-y-4">
                         <div>
                           <span className="text-sm text-muted-foreground">Closure Date</span>
-                          <div className="font-medium">{format(new Date(loanDetails.closureDetails?.closureDate || ''), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{safeFormatDate(loanDetails.closureDetails?.closureDate, 'MMM dd, yyyy')}</div>
                         </div>
                         <div>
                           <span className="text-sm text-muted-foreground">Closure Reason</span>
@@ -911,7 +922,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                         </div>
                         <div>
                           <span className="text-sm text-muted-foreground">Last Contact</span>
-                          <div className="font-medium">{format(new Date(loanDetails.overdueDetails?.lastContactDate || ''), 'MMM dd, yyyy')}</div>
+                          <div className="font-medium">{safeFormatDate(loanDetails.overdueDetails?.lastContactDate, 'MMM dd, yyyy')}</div>
                         </div>
                       </div>
                       <div className="space-y-4">
