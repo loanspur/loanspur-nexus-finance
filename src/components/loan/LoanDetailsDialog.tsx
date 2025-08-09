@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,12 +29,15 @@ import {
   Users,
   ShieldX
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
 import { LoanCalculatorDialog } from "@/components/forms/LoanCalculatorDialog";
 import { TransactionStatement } from "@/components/statements/TransactionStatement";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { useLoanSchedules } from "@/hooks/useLoanManagement";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LoanDetailsDialogProps {
   loan: any;
@@ -47,7 +50,98 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { toast } = useToast();
-  
+
+  // Derived status: in_arrears and overpaid
+  const { data: schedules = [] } = useLoanSchedules(loan?.id);
+
+  const { data: payments = [] } = useQuery({
+    queryKey: ['loan-payments', loan?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_payments')
+        .select('payment_amount, payment_date')
+        .eq('loan_id', loan.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id,
+  });
+
+  const derived = useMemo(() => {
+    const today = new Date();
+    const overdue = (schedules || []).filter((s: any) => new Date(s.due_date) < today && s.payment_status !== 'paid');
+    const earliest = overdue.length ? overdue.reduce((min: any, s: any) => (new Date(s.due_date) < new Date(min.due_date) ? s : min), overdue[0]) : null;
+    const daysInArrears = earliest ? differenceInCalendarDays(today, new Date(earliest.due_date)) : 0;
+
+    const totalDue = (schedules || []).reduce((acc: number, s: any) => acc + (s.total_amount || 0), 0);
+    const totalPaid = (payments as any[]).reduce((acc, p: any) => acc + (p.payment_amount || 0), 0);
+    const overpaidAmount = Math.max(0, totalPaid - totalDue);
+
+    let status: string = loan.status;
+    if (overpaidAmount > 0) status = 'overpaid';
+    else if (overdue.length > 0) status = 'in_arrears';
+
+    return { status, daysInArrears, overpaidAmount, totalPaid, totalDue };
+  }, [schedules, payments, loan.status]);
+
+  // Savings accounts for transfer of overpayment
+  const { data: savingsAccounts = [] } = useQuery({
+    queryKey: ['client-savings-accounts', loan?.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('savings_accounts')
+        .select('id, account_number, account_balance')
+        .eq('client_id', loan.client_id)
+        .eq('is_active', true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.client_id,
+  });
+
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [selectedSavingsId, setSelectedSavingsId] = useState<string | null>(null);
+  const handleTransferExcess = async () => {
+    try {
+      if (!selectedSavingsId || derived.overpaidAmount <= 0) return;
+      // Fetch current balance
+      const { data: acct, error: acctErr } = await supabase
+        .from('savings_accounts')
+        .select('account_balance')
+        .eq('id', selectedSavingsId)
+        .single();
+      if (acctErr) throw acctErr;
+
+      const newBalance = (acct?.account_balance || 0) + derived.overpaidAmount;
+
+      const { error: updErr } = await supabase
+        .from('savings_accounts')
+        .update({ account_balance: newBalance })
+        .eq('id', selectedSavingsId);
+      if (updErr) throw updErr;
+
+      const { error: txErr } = await supabase
+        .from('savings_transactions')
+        .insert({
+          tenant_id: loan.tenant_id,
+          savings_account_id: selectedSavingsId,
+          transaction_type: 'deposit',
+          amount: derived.overpaidAmount,
+          balance_after: newBalance,
+          transaction_date: new Date().toISOString(),
+          description: `Transfer of loan overpayment (${loan.loan_number || loan.id})`,
+          processed_by: loan.loan_officer_id || null,
+        });
+      if (txErr) throw txErr;
+
+      toast({ title: 'Excess transferred', description: 'Overpaid amount transferred to savings.' });
+      setTransferOpen(false);
+      setSelectedSavingsId(null);
+    } catch (e: any) {
+      toast({ title: 'Transfer failed', description: e.message || 'Could not transfer excess.', variant: 'destructive' });
+    }
+  };
+
   if (!loan) return null;
 
   const formatCurrency = (amount: number) => {

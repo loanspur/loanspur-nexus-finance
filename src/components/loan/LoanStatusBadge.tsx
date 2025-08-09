@@ -5,6 +5,7 @@ import {
   XCircle, 
   Banknote, 
   AlertCircle,
+  AlertTriangle,
   Eye,
   CreditCard
 } from "lucide-react";
@@ -51,6 +52,27 @@ export const LoanStatusBadge = ({ status, size = 'default' }: LoanStatusBadgePro
           icon: <Banknote className="h-3 w-3" />,
           text: 'DISBURSED',
           className: 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200'
+        };
+      case 'active':
+        return {
+          variant: 'default' as const,
+          icon: <CheckCircle className="h-3 w-3" />,
+          text: 'ACTIVE',
+          className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+        };
+      case 'in_arrears':
+        return {
+          variant: 'destructive' as const,
+          icon: <AlertTriangle className="h-3 w-3" />,
+          text: 'IN ARREARS',
+          className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
+        };
+      case 'overpaid':
+        return {
+          variant: 'outline' as const,
+          icon: <Banknote className="h-3 w-3" />,
+          text: 'OVERPAID',
+          className: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200'
         };
       case 'rejected':
         return {
