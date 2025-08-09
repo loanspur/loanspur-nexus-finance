@@ -185,7 +185,14 @@ export const LoanDisbursementDialog = ({
         onOpenChange(false);
         onSuccess?.();
       },
-
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to process disbursement",
+          variant: "destructive"
+        });
+      }
+    });
   };
 
   return (
