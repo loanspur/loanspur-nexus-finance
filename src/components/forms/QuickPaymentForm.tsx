@@ -39,6 +39,7 @@ interface QuickPaymentFormProps {
   accountId: string;
   clientName: string;
   maxAmount?: number;
+  paymentTypeOptions?: Array<{ id: string; code: string; name: string }>;
 }
 
 export const QuickPaymentForm = ({ 
@@ -47,7 +48,8 @@ export const QuickPaymentForm = ({
   type, 
   accountId, 
   clientName,
-  maxAmount 
+  maxAmount,
+  paymentTypeOptions
 }: QuickPaymentFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -168,13 +170,23 @@ export const QuickPaymentForm = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="mpesa">M-Pesa</SelectItem>
-                <SelectItem value="cheque">Cheque</SelectItem>
-                <SelectItem value="card">Debit/Credit Card</SelectItem>
-              </SelectContent>
+<SelectContent>
+  {paymentTypeOptions && paymentTypeOptions.length > 0 ? (
+    paymentTypeOptions.map((opt) => (
+      <SelectItem key={opt.id} value={opt.code}>
+        {opt.name}
+      </SelectItem>
+    ))
+  ) : (
+    <>
+      <SelectItem value="cash">Cash</SelectItem>
+      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+      <SelectItem value="mpesa">M-Pesa</SelectItem>
+      <SelectItem value="cheque">Cheque</SelectItem>
+      <SelectItem value="card">Debit/Credit Card</SelectItem>
+    </>
+  )}
+</SelectContent>
             </Select>
             {errors.paymentMethod && (
               <p className="text-sm text-red-500">{errors.paymentMethod.message}</p>
