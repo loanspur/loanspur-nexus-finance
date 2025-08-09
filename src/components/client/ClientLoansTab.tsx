@@ -40,6 +40,16 @@ export const ClientLoansTab = ({
   onLoanWorkflow
 }: ClientLoansTabProps) => {
   const { formatAmount } = useCurrency();
+  const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
+    try {
+      if (!value) return 'N/A';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'N/A';
+      return format(d, fmt);
+    } catch {
+      return 'N/A';
+    }
+  };
   const getVisibleLoansAndApplications = () => {
     const rejectedClosedStatuses = ['rejected', 'closed'];
     
@@ -232,11 +242,12 @@ export const ClientLoansTab = ({
                             {item.type === 'application' ? 'Applied' : 'Created'}
                           </p>
                           <p className="font-medium">
-                            {format(new Date(
+                            {safeFormatDate(
                               item.type === 'application' 
-                                ? item.submitted_at || item.created_at
-                                : item.created_at
-                            ), 'MMM dd, yyyy')}
+                                ? (item.submitted_at || item.created_at)
+                                : item.created_at,
+                              'MMM dd, yyyy'
+                            )}
                           </p>
                         </div>
                         {item.loan_products && (

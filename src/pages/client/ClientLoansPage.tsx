@@ -34,6 +34,17 @@ const ClientLoansPage = () => {
   const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
 
+  const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
+    try {
+      if (!value) return 'N/A';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'N/A';
+      return format(d, fmt);
+    } catch {
+      return 'N/A';
+    }
+  };
+
   // Fetch loan applications for this client
   const { data: loanApplications = [], isLoading } = useQuery({
     queryKey: ['client-loan-applications', profile?.id],
@@ -288,7 +299,7 @@ const ClientLoansPage = () => {
                         </TableCell>
                         <TableCell><LoanStatusBadge status={getDerivedLoanStatus(loan).status} /></TableCell>
                         <TableCell>
-                          {loan.disbursement_date ? format(new Date(loan.disbursement_date), 'MMM dd, yyyy') : 'Pending'}
+                          {loan.disbursement_date ? safeFormatDate(loan.disbursement_date, 'MMM dd, yyyy') : 'Pending'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
@@ -341,7 +352,7 @@ const ClientLoansPage = () => {
                         <TableCell>KES {application.requested_amount?.toLocaleString()}</TableCell>
                         <TableCell className="capitalize">{application.purpose?.replace(/_/g, ' ')}</TableCell>
                         <TableCell><LoanStatusBadge status={getDerivedLoanStatus(application).status} /></TableCell>
-                        <TableCell>{format(new Date(application.created_at), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>{safeFormatDate(application.created_at, 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
                             {getActionButtons(application, 'application')}
@@ -398,7 +409,7 @@ const ClientLoansPage = () => {
                          </TableCell>
                          <TableCell><LoanStatusBadge status={getDerivedLoanStatus(loan).status} /></TableCell>
                          <TableCell>
-                           {loan.updated_at ? format(new Date(loan.updated_at), 'MMM dd, yyyy') : 'N/A'}
+                           {safeFormatDate(loan.updated_at, 'MMM dd, yyyy')}
                          </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
