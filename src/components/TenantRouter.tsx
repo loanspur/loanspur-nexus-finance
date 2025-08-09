@@ -26,29 +26,7 @@ const TenantLandingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-banking-primary/5 via-background to-banking-secondary/5 flex items-center justify-center">
-      <div className="max-w-md w-full mx-4">
-        <div className="text-center mb-8">
-          <div className="mb-4">
-            {currentTenant?.logo_url && (
-              <img 
-                src={currentTenant.logo_url} 
-                alt={`${currentTenant.name} logo`}
-                className="h-16 w-16 mx-auto rounded-lg shadow-sm"
-              />
-            )}
-          </div>
-          <h1 className="text-3xl font-bold text-banking-primary mb-2">
-            {currentTenant?.name}
-          </h1>
-          <p className="text-banking-secondary/80 font-medium">
-            Secure Financial Management Platform
-          </p>
-        </div>
-        
-        <AuthPage tenantMode />
-      </div>
-    </div>
+    <AuthPage tenantMode />
   );
 };
 
