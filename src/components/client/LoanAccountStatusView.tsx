@@ -15,6 +15,8 @@ import {
   DollarSign
 } from "lucide-react";
 import { format } from "date-fns";
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 
 interface LoanAccount {
   id: string;
@@ -100,16 +102,18 @@ export const LoanAccountStatusView = ({
     }
   };
 
-  const filteredAccounts = accounts.filter(account => {
+  const accountsWithDerived = accounts.map((a) => ({ ...a, __derived: getDerivedLoanStatus(a) }));
+
+  const filteredAccounts = accountsWithDerived.filter(account => {
     if (filterStatus === 'all') return true;
-    return account.status.toLowerCase() === filterStatus;
+    return account.__derived.status === filterStatus;
   });
 
   const statusCounts = {
-    active: accounts.filter(a => a.status.toLowerCase() === 'active').length,
-    pending: accounts.filter(a => ['pending', 'pending_approval'].includes(a.status.toLowerCase())).length,
-    overdue: accounts.filter(a => a.status.toLowerCase() === 'overdue').length,
-    closed: accounts.filter(a => ['closed', 'fully_paid', 'rejected'].includes(a.status.toLowerCase())).length,
+    active: accountsWithDerived.filter(a => a.__derived.status === 'active').length,
+    pending: accountsWithDerived.filter(a => ['pending', 'pending_approval', 'under_review'].includes(a.__derived.status)).length,
+    overdue: accountsWithDerived.filter(a => a.__derived.status === 'in_arrears').length,
+    closed: accountsWithDerived.filter(a => ['closed', 'fully_paid', 'rejected', 'withdrawn'].includes(a.__derived.status)).length,
   };
 
   return (
@@ -230,7 +234,7 @@ export const LoanAccountStatusView = ({
                           <h4 className="font-medium">{account.display_name}</h4>
                           <p className="text-sm text-muted-foreground font-mono">{account.identifier}</p>
                         </div>
-                        {getStatusBadge(account.status, account.type)}
+                        <LoanStatusBadge status={getDerivedLoanStatus(account).status} size="sm" />
                       </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

@@ -18,6 +18,7 @@ import { LoanStatusBadge } from "./LoanStatusBadge";
 import { BulkLoanActions } from "./BulkLoanActions";
 import { LoanWorkflowDialog } from "./LoanWorkflowDialog";
 import { format } from "date-fns";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 
 export const LoanListTabs = () => {
   const { data: allLoans, isLoading, error } = useAllLoans();
@@ -35,17 +36,23 @@ export const LoanListTabs = () => {
     return matchesSearch;
   }) || [];
 
-  // Group loans by status
-  const pendingApprovalLoans = filteredLoans.filter((item: any) => 
-    ['pending', 'under_review'].includes(item.status)
+  // Derive statuses consistently
+  const loansWithDerived = filteredLoans.map((item: any) => ({
+    ...item,
+    __derived: getDerivedLoanStatus(item),
+  }));
+
+  // Group loans by derived status
+  const pendingApprovalLoans = loansWithDerived.filter((item: any) => 
+    ['pending', 'under_review'].includes(item.__derived.status)
   );
   
-  const pendingDisbursementLoans = filteredLoans.filter((item: any) => 
-    ['approved', 'pending_disbursement'].includes(item.status)
+  const pendingDisbursementLoans = loansWithDerived.filter((item: any) => 
+    ['approved', 'pending_disbursement'].includes(item.__derived.status)
   );
   
-  const disbursedLoans = filteredLoans.filter((item: any) => 
-    ['disbursed', 'active'].includes(item.status)
+  const disbursedLoans = loansWithDerived.filter((item: any) => 
+    ['active', 'in_arrears', 'overpaid'].includes(item.__derived.status)
   );
 
   const formatCurrency = (amount: number) => {
@@ -105,7 +112,7 @@ export const LoanListTabs = () => {
               <div className="text-sm">{loan.term} months</div>
             </TableCell>
             <TableCell>
-              <LoanStatusBadge status={loan.status} />
+              <LoanStatusBadge status={loan.__derived?.status || loan.status} />
             </TableCell>
             <TableCell>
               <div className="text-sm text-muted-foreground">

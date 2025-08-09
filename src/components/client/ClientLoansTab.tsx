@@ -14,6 +14,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ClientLoansTabProps {
@@ -203,7 +205,7 @@ export const ClientLoansTab = ({
                             }
                           </p>
                         </div>
-                        {getStatusBadge(item.status, item.type)}
+                        <LoanStatusBadge status={getDerivedLoanStatus(item).status} size="sm" />
                       </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

@@ -23,77 +23,77 @@ export const LoanStatusBadge = ({ status, size = 'default' }: LoanStatusBadgePro
           variant: 'secondary' as const,
           icon: <Clock className="h-3 w-3" />,
           text: 'PENDING',
-          className: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200'
+          className: 'bg-warning/10 text-warning border border-warning/20 hover:bg-warning/20'
         };
       case 'under_review':
         return {
           variant: 'outline' as const,
           icon: <Eye className="h-3 w-3" />,
           text: 'UNDER REVIEW',
-          className: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200'
+          className: 'bg-info/10 text-banking-primary border border-banking-primary/20 hover:bg-info/20'
         };
       case 'approved':
         return {
           variant: 'default' as const,
           icon: <CheckCircle className="h-3 w-3" />,
           text: 'APPROVED',
-          className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+          className: 'bg-success/10 text-success border border-success/20 hover:bg-success/20'
         };
       case 'pending_disbursement':
         return {
           variant: 'default' as const,
           icon: <CreditCard className="h-3 w-3" />,
           text: 'PENDING DISBURSEMENT',
-          className: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200'
+          className: 'bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20'
         };
       case 'disbursed':
         return {
           variant: 'default' as const,
           icon: <Banknote className="h-3 w-3" />,
           text: 'DISBURSED',
-          className: 'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200'
+          className: 'bg-banking-primary/10 text-banking-primary border border-banking-primary/20 hover:bg-banking-primary/20'
         };
       case 'active':
         return {
           variant: 'default' as const,
           icon: <CheckCircle className="h-3 w-3" />,
           text: 'ACTIVE',
-          className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200'
+          className: 'bg-success/10 text-success border border-success/20 hover:bg-success/20'
         };
       case 'in_arrears':
         return {
           variant: 'destructive' as const,
           icon: <AlertTriangle className="h-3 w-3" />,
           text: 'IN ARREARS',
-          className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
+          className: 'bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20'
         };
       case 'overpaid':
         return {
           variant: 'outline' as const,
           icon: <Banknote className="h-3 w-3" />,
           text: 'OVERPAID',
-          className: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200'
+          className: 'bg-banking-emerald/10 text-banking-emerald border border-banking-emerald/20 hover:bg-banking-emerald/20'
         };
       case 'rejected':
         return {
           variant: 'destructive' as const,
           icon: <XCircle className="h-3 w-3" />,
           text: 'REJECTED',
-          className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200'
+          className: 'bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20'
         };
       case 'withdrawn':
         return {
           variant: 'secondary' as const,
           icon: <XCircle className="h-3 w-3" />,
           text: 'WITHDRAWN',
-          className: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200'
+          className: 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
         };
       default:
         return {
           variant: 'secondary' as const,
           icon: <AlertCircle className="h-3 w-3" />,
           text: status.toUpperCase(),
-          className: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200'
+          className: 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
         };
     }
   };

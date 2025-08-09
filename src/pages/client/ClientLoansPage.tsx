@@ -21,6 +21,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 
 const ClientLoansPage = () => {
   const { profile } = useAuth();
@@ -265,7 +267,7 @@ const ClientLoansPage = () => {
                             KES {(loan.outstanding_balance || loan.principal_amount)?.toLocaleString()}
                           </span>
                         </TableCell>
-                        <TableCell>{getStatusBadge(loan.status)}</TableCell>
+                        <TableCell><LoanStatusBadge status={getDerivedLoanStatus(loan).status} /></TableCell>
                         <TableCell>
                           {loan.disbursement_date ? format(new Date(loan.disbursement_date), 'MMM dd, yyyy') : 'Pending'}
                         </TableCell>
@@ -319,7 +321,7 @@ const ClientLoansPage = () => {
                         <TableCell>{application.loan_products?.name || 'N/A'}</TableCell>
                         <TableCell>KES {application.requested_amount?.toLocaleString()}</TableCell>
                         <TableCell className="capitalize">{application.purpose?.replace(/_/g, ' ')}</TableCell>
-                        <TableCell>{getStatusBadge(application.status)}</TableCell>
+                        <TableCell><LoanStatusBadge status={getDerivedLoanStatus(application).status} /></TableCell>
                         <TableCell>{format(new Date(application.created_at), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
@@ -375,7 +377,7 @@ const ClientLoansPage = () => {
                              KES {loan.principal_amount?.toLocaleString()}
                            </span>
                          </TableCell>
-                         <TableCell>{getStatusBadge(loan.status)}</TableCell>
+                         <TableCell><LoanStatusBadge status={getDerivedLoanStatus(loan).status} /></TableCell>
                          <TableCell>
                            {loan.updated_at ? format(new Date(loan.updated_at), 'MMM dd, yyyy') : 'N/A'}
                          </TableCell>
