@@ -307,10 +307,11 @@ export const useGetApprovalWorkflow = (tableName: string, actionType: string) =>
         .eq('table_name', tableName)
         .eq('action_type', actionType)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
+      if (error) throw error;
       return data;
+
     },
     enabled: !!profile?.tenant_id && !!tableName && !!actionType,
   });

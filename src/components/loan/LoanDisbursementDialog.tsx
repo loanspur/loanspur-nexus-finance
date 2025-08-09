@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
 
 
 interface LoanDisbursementDialogProps {
