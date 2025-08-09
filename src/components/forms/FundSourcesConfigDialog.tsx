@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { Badge } from "@/components/ui/badge";
 import { Banknote, CreditCard, Smartphone, Building, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PaymentChannel {
   id: string;
@@ -44,9 +46,47 @@ export const FundSourcesConfigDialog = ({
   const [newChannelName, setNewChannelName] = useState("");
   const { data: accounts = [] } = useChartOfAccounts();
   const { toast } = useToast();
-
+  const { profile } = useAuth();
+  const [existingMappings, setExistingMappings] = useState<Array<{ channel_id: string; channel_name: string; account_id: string }>>([]);
   const assetAccounts = accounts.filter(acc => acc.account_type === 'asset' && acc.is_active);
   const liabilityAccounts = accounts.filter(acc => acc.account_type === 'liability' && acc.is_active);
+
+  useEffect(() => {
+    const loadMappings = async () => {
+      if (!open || !profile?.tenant_id || !productId) return;
+      const { data, error } = await supabase
+        .from('product_fund_source_mappings')
+        .select('channel_id, channel_name, account_id')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('product_id', productId)
+        .eq('product_type', productType);
+      if (error) {
+        console.error('Failed to load fund source mappings', error);
+        return;
+      }
+      const mappings = (data || []) as Array<{ channel_id: string; channel_name: string; account_id: string }>;
+      setExistingMappings(mappings);
+
+      const defaultIds = new Set(DEFAULT_PAYMENT_CHANNELS.map(c => c.id));
+      // update defaults
+      setPaymentChannels(prev => prev.map(ch => {
+        const m = mappings.find(mm => mm.channel_id === ch.id);
+        return m ? { ...ch, accountId: m.account_id } : { ...ch, accountId: ch.accountId };
+      }));
+      // build customs from mappings not in defaults
+      const customs = mappings
+        .filter(m => !defaultIds.has(m.channel_id))
+        .map(m => ({
+          id: m.channel_id,
+          name: m.channel_name,
+          type: 'bank' as const,
+          accountId: m.account_id,
+          icon: <Plus className="w-4 h-4" />,
+        }));
+      setCustomChannels(customs);
+    };
+    loadMappings();
+  }, [open, profile?.tenant_id, productId, productType]);
 
   const handleChannelAccountChange = (channelId: string, accountId: string) => {
     setPaymentChannels(prev => 
@@ -84,9 +124,7 @@ export const FundSourcesConfigDialog = ({
     setCustomChannels(prev => prev.filter(channel => channel.id !== channelId));
   };
 
-  const handleSave = () => {
-    // Here you would typically save to a backend
-    // For now, we'll just show a success message
+  const handleSave = async () => {
     const configuredChannels = [...paymentChannels, ...customChannels]
       .filter(channel => channel.accountId);
     
@@ -99,12 +137,47 @@ export const FundSourcesConfigDialog = ({
       return;
     }
 
-    toast({
-      title: "Fund Sources Configured",
-      description: `Successfully configured ${configuredChannels.length} payment channels for ${productName}.`,
-    });
-    
-    onOpenChange(false);
+    try {
+      if (!profile?.tenant_id) throw new Error('Missing tenant context');
+
+      const upsertPayload = configuredChannels.map((channel) => ({
+        tenant_id: profile.tenant_id!,
+        product_id: productId,
+        product_type: productType,
+        channel_id: channel.id,
+        channel_name: channel.name,
+        account_id: channel.accountId!,
+      }));
+
+      const { error: upsertError } = await supabase
+        .from('product_fund_source_mappings')
+        .upsert(upsertPayload, { onConflict: 'tenant_id,product_id,product_type,channel_id' });
+      if (upsertError) throw upsertError;
+
+      const selectedIds = new Set(configuredChannels.map(c => c.id));
+      const toDelete = (existingMappings || [])
+        .filter(m => !selectedIds.has(m.channel_id))
+        .map(m => m.channel_id);
+      if (toDelete.length > 0) {
+        const { error: delError } = await supabase
+          .from('product_fund_source_mappings')
+          .delete()
+          .eq('tenant_id', profile.tenant_id!)
+          .eq('product_id', productId)
+          .eq('product_type', productType)
+          .in('channel_id', toDelete);
+        if (delError) throw delError;
+      }
+
+      toast({
+        title: "Fund Sources Configured",
+        description: `Successfully configured ${configuredChannels.length} payment channels for ${productName}.`,
+      });
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error('Saving fund sources failed', err);
+      toast({ title: 'Error', description: err.message || 'Failed to save fund sources', variant: 'destructive' });
+    }
   };
 
   const allChannels = [...paymentChannels, ...customChannels];

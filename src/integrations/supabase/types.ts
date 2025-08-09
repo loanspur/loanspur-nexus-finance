@@ -5922,6 +5922,50 @@ export type Database = {
           },
         ]
       }
+      product_fund_source_mappings: {
+        Row: {
+          account_id: string
+          channel_id: string
+          channel_name: string
+          created_at: string
+          id: string
+          product_id: string
+          product_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          channel_id: string
+          channel_name: string
+          created_at?: string
+          id?: string
+          product_id: string
+          product_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          channel_id?: string
+          channel_name?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          product_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_account_id"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
