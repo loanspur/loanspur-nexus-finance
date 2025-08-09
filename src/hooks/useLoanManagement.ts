@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useMifosIntegration } from './useMifosIntegration';
 import { defaultQueryOptions } from './useOptimizedQueries';
-
+import { useLoanDisbursementAccounting } from './useLoanAccounting';
 export interface LoanApplication {
   id: string;
   tenant_id: string;
@@ -622,7 +622,11 @@ export const useProcessLoanApproval = () => {
             application_id: approval.loan_application_id, // Link back to application
             loan_number: loanNumber,
             principal_amount: approval.approved_amount || loanApplication.requested_amount,
-            interest_rate: approval.approved_interest_rate || 10,
+            // Normalize interest rate: accept 10 (percent) or 0.10 (fraction)
+            interest_rate: (() => {
+              const r = (approval.approved_interest_rate ?? 10);
+              return r > 1 ? r / 100 : r;
+            })(),
             term_months: approval.approved_term || loanApplication.requested_term,
             outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
             status: 'pending_disbursement',
@@ -699,6 +703,7 @@ export const useProcessLoanDisbursement = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
   const { disburseMifosLoan, isConfigured: isMifosConfigured } = useMifosIntegration();
+  const accountingDisburse = useLoanDisbursementAccounting();
 
   return useMutation({
     mutationFn: async (disbursement: {
@@ -791,7 +796,7 @@ export const useProcessLoanDisbursement = () => {
       let existingLoan: any;
       const { data: loanData, error: loanFetchError } = await supabase
         .from('loans')
-        .select('id, loan_number, status, client_id, mifos_loan_id')
+        .select('id, loan_number, status, client_id, mifos_loan_id, loan_product_id')
         .eq('application_id', disbursement.loan_application_id)
         .single();
       
@@ -819,14 +824,17 @@ export const useProcessLoanDisbursement = () => {
             application_id: disbursement.loan_application_id, // Link to application
             loan_number: loanNumber,
             principal_amount: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            interest_rate: loanApplication.final_approved_interest_rate || 0,
+            interest_rate: (() => {
+              const r = (loanApplication.final_approved_interest_rate ?? 0);
+              return r > 1 ? r / 100 : r;
+            })(),
             term_months: loanApplication.final_approved_term || loanApplication.requested_term,
             disbursement_date: disbursement.disbursement_date,
             outstanding_balance: loanApplication.final_approved_amount || loanApplication.requested_amount,
             status: 'active', // Set directly to active during disbursement
             loan_officer_id: profile.id,
           })
-          .select('id, loan_number, status, client_id, mifos_loan_id')
+          .select('id, loan_number, status, client_id, mifos_loan_id, loan_product_id')
           .single();
           
         if (createError || !newLoan) {
