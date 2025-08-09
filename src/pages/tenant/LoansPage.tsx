@@ -213,10 +213,11 @@ const LoansPage = () => {
                       <Badge 
                         variant={
                           loan.status === 'active' ? 'default' : 
-                          loan.status === 'overdue' ? 'destructive' : 'secondary'
+                          loan.status === 'overdue' ? 'destructive' : 
+                          loan.status === 'disbursed' ? 'default' : 'secondary'
                         }
                       >
-                        {loan.status}
+                        {loan.status === 'disbursed' ? 'active' : loan.status}
                       </Badge>
                     </div>
                     

@@ -83,6 +83,9 @@ export const ClientLoansTab = ({
       switch (statusLower) {
         case 'active':
           return <Badge variant="outline" className="border-green-500 text-green-600">Active</Badge>;
+        case 'disbursed':
+          // Treat disbursed as active for viewing and actions
+          return <Badge variant="outline" className="border-green-500 text-green-600">Active</Badge>;
         case 'overdue':
           return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Overdue</Badge>;
         case 'closed':

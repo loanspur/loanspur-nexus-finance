@@ -82,11 +82,12 @@ const ClientLoansPage = () => {
         return <Badge variant="outline" className="text-blue-600 border-blue-600"><Eye className="w-3 h-3 mr-1" />Under Review</Badge>;
       case 'approved':
         return <Badge variant="default" className="bg-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-      case 'active':
-        return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
-      case 'disbursed':
-        return <Badge variant="default" className="bg-blue-600"><DollarSign className="w-3 h-3 mr-1" />Disbursed</Badge>;
-      case 'pending_disbursement':
+        case 'active':
+          return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
+        case 'disbursed':
+          // Treat disbursed loans as active for display and actions
+          return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
+        case 'pending_disbursement':
         return <Badge variant="outline" className="text-blue-600 border-blue-600"><Clock className="w-3 h-3 mr-1" />Pending Disbursement</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;

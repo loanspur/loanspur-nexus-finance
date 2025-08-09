@@ -23,12 +23,18 @@ import {
   AlertTriangle,
   Download,
   Eye,
-  Calculator
+  Calculator,
+  FileWarning,
+  ClipboardList,
+  Users,
+  ShieldX
 } from "lucide-react";
 import { format } from "date-fns";
 import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
 import { LoanCalculatorDialog } from "@/components/forms/LoanCalculatorDialog";
 import { TransactionStatement } from "@/components/statements/TransactionStatement";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoanDetailsDialogProps {
   loan: any;
@@ -40,6 +46,7 @@ interface LoanDetailsDialogProps {
 export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: LoanDetailsDialogProps) => {
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const { toast } = useToast();
   
   if (!loan) return null;
 
@@ -140,6 +147,32 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     { date: "2023-09-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 100000 },
   ];
 
+  const handleClearLoan = async () => {
+    const { error } = await supabase
+      .from('loans')
+      .update({ status: 'closed', outstanding_balance: 0 })
+      .eq('id', loan.id);
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to clear loan', variant: 'destructive' });
+    } else {
+      toast({ title: 'Loan Cleared', description: 'Loan marked as closed.' });
+      onOpenChange(false);
+    }
+  };
+
+  const handleWriteOffLoan = async () => {
+    const { error } = await supabase
+      .from('loans')
+      .update({ status: 'written_off' })
+      .eq('id', loan.id);
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to write off loan', variant: 'destructive' });
+    } else {
+      toast({ title: 'Loan Written Off', description: 'Loan marked as written off.' });
+      onOpenChange(false);
+    }
+  };
+
   const upcomingPayments = loan.status === 'pending_approval' || loan.status === 'closed' ? [] : [
     { date: "2024-02-15", amount: 12500, type: "Regular Payment", status: "Due" },
     { date: "2024-03-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
@@ -170,9 +203,16 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
           <Tabs defaultValue="overview" className="h-full">
             <TabsList className="w-full justify-start mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="payments" disabled={loan.status === 'pending_approval'}>Payment History</TabsTrigger>
-              <TabsTrigger value="schedule" disabled={loan.status === 'pending_approval' || loan.status === 'closed'}>Schedule</TabsTrigger>
-              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="payments" disabled={loan.status === 'pending_approval'}>Loan Transactions</TabsTrigger>
+              <TabsTrigger value="schedule" disabled={loan.status === 'pending_approval' || loan.status === 'closed'}>Repayment Schedule</TabsTrigger>
+              <TabsTrigger value="charges">Charges Applied</TabsTrigger>
+              <TabsTrigger value="documents">Loan Documents</TabsTrigger>
+              <TabsTrigger value="repay" disabled={loan.status !== 'active'}>Make Repayment</TabsTrigger>
+              <TabsTrigger value="accruals">Accruals</TabsTrigger>
+              <TabsTrigger value="collateral">Collaterals</TabsTrigger>
+              <TabsTrigger value="guarantors">Guarantors</TabsTrigger>
+              <TabsTrigger value="clear" disabled={loan.status !== 'active'}>Clear Loan</TabsTrigger>
+              <TabsTrigger value="writeoff" disabled={loan.status === 'closed'}>Write Off</TabsTrigger>
               {loan.status === 'pending_approval' && <TabsTrigger value="approval">Approval Details</TabsTrigger>}
               {loan.status === 'closed' && <TabsTrigger value="closure">Closure Details</TabsTrigger>}
               {loan.status === 'overdue' && <TabsTrigger value="recovery">Recovery</TabsTrigger>}
@@ -388,7 +428,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
               </div>
             </TabsContent>
 
-            {/* Payment History Tab - Statement Format */}
+            {/* Transactions Tab - Statement Format */}
             <TabsContent value="payments" className="space-y-6">
               <TransactionStatement
                 accountId={loanDetails.id}
@@ -480,6 +520,107 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                       </div>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* New CTA Tabs */}
+            <TabsContent value="repay" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Make Loan Repayment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setPaymentFormOpen(true)} className="bg-gradient-primary">Open Payment Form</Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="charges" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    Charges Applied
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">No charges recorded for this loan yet.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="accruals" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Accruals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">View accruals in Accounting &gt; Accruals. Per-loan accruals can be added in future.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="collateral" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldX className="h-5 w-5" />
+                    Collaterals Attached
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm"><span className="text-muted-foreground">Current:</span> {loanDetails.collateral || 'None recorded'}</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="guarantors" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Guarantors
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm"><span className="text-muted-foreground">Current:</span> {loanDetails.guarantor || 'None recorded'}</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="clear" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Clear Loan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">Mark loan as fully paid and close the account.</p>
+                  <Button onClick={handleClearLoan} variant="outline">Clear Loan</Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="writeoff" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    Write Off Loan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">Write off the remaining balance and mark the loan as written off.</p>
+                  <Button onClick={handleWriteOffLoan} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Write Off</Button>
                 </CardContent>
               </Card>
             </TabsContent>
