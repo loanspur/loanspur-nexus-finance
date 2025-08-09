@@ -70,8 +70,9 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     queryFn: async () => {
       const { data, error } = await supabase
         .from('loan_payments')
-        .select('payment_amount, payment_date')
-        .eq('loan_id', loan.id);
+        .select('*')
+        .eq('loan_id', loan.id)
+        .order('payment_date', { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -204,61 +205,52 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     }
   };
 
-  // Mock data for comprehensive loan details
+  // Compute real loan details from schedules and payments
+  const monthlyPayment = (schedules && schedules.length > 0) ? (schedules[0].total_amount || 0) : 0;
+  const remainingTerm = (schedules || []).filter((s: any) => s.payment_status !== 'paid').length;
+  const totalTerm = (schedules || []).length;
+  const principalPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.principal_amount || 0), 0);
+  const interestPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.interest_amount || 0), 0);
+  const totalPayments = (payments as any[]).length;
+  const missedPayments = (schedules || []).filter((s: any) => s.payment_status === 'unpaid' && new Date(s.due_date) < new Date()).length;
+  const nextSchedule = (schedules || []).find((s: any) => s.payment_status !== 'paid' && new Date(s.due_date) >= new Date());
+  const maturityDate = (schedules && schedules.length > 0) ? schedules[schedules.length - 1].due_date : null;
+  const outstanding = (loan as any).outstanding_balance ?? (schedules || []).reduce((acc: number, s: any) => acc + (s.outstanding_amount || 0), 0) ?? (loan as any).principal_amount ?? 0;
+
   const loanDetails = {
     ...loan,
-    disbursementDate: loan.status === 'pending_approval' ? null : "2023-06-15",
-    maturityDate: loan.status === 'closed' ? "2024-12-15" : "2025-06-15",
-    interestRate: 12.5,
-    paymentFrequency: "Monthly",
-    remainingTerm: loan.status === 'closed' ? 0 : 18,
-    totalTerm: 24,
-    principalPaid: loan.amount - loan.outstanding,
-    interestPaid: 25000,
-    totalPayments: loan.status === 'pending_approval' ? 0 : 15,
-    missedPayments: loan.status === 'pending_approval' ? 0 : 1,
-    latePayments: loan.status === 'pending_approval' ? 0 : 2,
-    collateral: "Vehicle - Toyota Corolla 2020",
-    purpose: "Business expansion",
-    guarantor: "Mary Wanjiku",
-    loanOfficer: "John Kamau",
-    
-    // Status-specific details
-    approvalStatus: loan.status === 'pending_approval' ? {
-      submittedDate: "2024-01-15",
-      reviewStage: "Credit Assessment",
-      approver: "Jane Smith",
-      estimatedApproval: "2024-01-25",
-      requiredDocuments: ["Income verification", "Collateral valuation"],
-      comments: "Pending final credit check and collateral verification"
-    } : null,
-    
-    closureDetails: loan.status === 'closed' ? {
-      closureDate: "2024-12-15",
-      closureReason: "Fully repaid",
-      finalPayment: 12500,
-      totalAmountPaid: 300000,
-      closedBy: "John Kamau",
-      certificateGenerated: true
-    } : null,
-    
-    overdueDetails: loan.status === 'overdue' ? {
-      daysPastDue: 15,
-      overdueAmount: 12500,
-      penaltyCharges: 1250,
-      lastContactDate: "2024-01-20",
-      nextAction: "Field visit scheduled",
-      restructureOption: true
-    } : null
+    type: loan?.loan_products?.name ?? 'Loan',
+    amount: (loan as any).principal_amount ?? (loan as any).amount ?? 0,
+    outstanding,
+    monthlyPayment,
+    remainingTerm,
+    totalTerm,
+    disbursementDate: (loan as any).disbursement_date ?? null,
+    maturityDate,
+    interestRate: (loan as any).interest_rate ?? loan?.loan_products?.default_nominal_interest_rate ?? null,
+    paymentFrequency: 'Monthly',
+    principalPaid,
+    interestPaid,
+    totalPayments,
+    missedPayments,
+    latePayments: 0,
+    nextPayment: nextSchedule?.due_date ?? null,
+    collateral: (loan as any).collateral ?? null,
+    purpose: (loan as any).purpose ?? null,
+    guarantor: (loan as any).guarantor ?? null,
+    loanOfficer: (loan as any).loan_officer_name ?? null,
+    approvalStatus: loan.status === 'pending_approval' ? (loan as any).approvalStatus ?? null : null,
+    closureDetails: loan.status === 'closed' ? (loan as any).closureDetails ?? null : null,
+    overdueDetails: loan.status === 'overdue' ? (loan as any).overdueDetails ?? null : null,
   };
 
-  const paymentHistory = loan.status === 'pending_approval' ? [] : [
-    { date: "2024-01-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 75000 },
-    { date: "2023-12-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 87500 },
-    { date: "2023-11-15", amount: 0, type: "Regular Payment", status: "Missed", balance: 87500 },
-    { date: "2023-10-20", amount: 12500, type: "Regular Payment", status: "Late (5 days)", balance: 87500 },
-    { date: "2023-09-15", amount: 12500, type: "Regular Payment", status: "Paid", balance: 100000 },
-  ];
+  const paymentHistory = (payments as any[]).map((p: any) => ({
+    date: p.payment_date,
+    amount: p.payment_amount || 0,
+    type: 'Payment',
+    status: p.status || 'Paid',
+    balance: 0,
+  }));
 
   const handleClearLoan = async () => {
     const { error } = await supabase
@@ -286,18 +278,17 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     }
   };
 
-  const upcomingPayments = loan.status === 'pending_approval' || loan.status === 'closed' ? [] : [
-    { date: "2024-02-15", amount: 12500, type: "Regular Payment", status: "Due" },
-    { date: "2024-03-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
-    { date: "2024-04-15", amount: 12500, type: "Regular Payment", status: "Scheduled" },
-  ];
+  const upcomingPayments = (schedules || [])
+    .filter((s: any) => s.payment_status !== 'paid' && new Date(s.due_date) >= new Date())
+    .slice(0, 3)
+    .map((s: any) => ({
+      date: s.due_date,
+      amount: s.total_amount || 0,
+      type: 'Scheduled Payment',
+      status: new Date(s.due_date).toDateString() === new Date().toDateString() ? 'Due' : 'Scheduled',
+    }));
 
-  const documents = [
-    { name: "Loan Agreement", type: "Contract", date: "2023-06-15", status: loan.status === 'pending_approval' ? "Pending" : "Signed" },
-    { name: "Collateral Valuation", type: "Valuation", date: "2023-06-10", status: loan.status === 'pending_approval' ? "Under Review" : "Verified" },
-    { name: "Income Verification", type: "Financial", date: "2023-06-08", status: "Verified" },
-    { name: "Insurance Certificate", type: "Insurance", date: "2023-06-12", status: loan.status === 'closed' ? "Expired" : "Active" },
-  ];
+  const documents: any[] = [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -305,10 +296,10 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-orange-600" />
-            Loan Details - {loanDetails.type}
+            Loan Details - {loan?.loan_products?.name || 'Loan'}
           </DialogTitle>
           <DialogDescription>
-            Comprehensive view for {clientName}'s loan account {loanDetails.id}
+            Comprehensive view for {clientName}'s loan {loan?.loan_number || loan?.id}
           </DialogDescription>
         </DialogHeader>
 
@@ -646,31 +637,43 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {documents.map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <div className="font-medium">{doc.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {doc.type} • {safeFormatDate(doc.date, 'MMM dd, yyyy')}
-                            </div>
-                          </div>
+                    {documents.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <div className="text-lg font-medium text-muted-foreground mb-2">
+                          No loan documents found
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={doc.status === 'Signed' || doc.status === 'Verified' || doc.status === 'Active' ? 'default' : 'secondary'}>
-                            {doc.status}
-                          </Badge>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
+                        <div className="text-sm text-muted-foreground">
+                          Documents uploaded for this loan will appear here
                         </div>
                       </div>
-                    ))}
+                    ) : (
+                      documents.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <div className="font-medium">{doc.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {doc.type} • {safeFormatDate(doc.date, 'MMM dd, yyyy')}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={doc.status === 'Signed' || doc.status === 'Verified' || doc.status === 'Active' ? 'default' : 'secondary'}>
+                              {doc.status}
+                            </Badge>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
