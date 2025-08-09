@@ -23,10 +23,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
 import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
+import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 
 const ClientLoansPage = () => {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("created");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
 
   // Fetch loan applications for this client
   const { data: loanApplications = [], isLoading } = useQuery({
@@ -166,7 +172,20 @@ const ClientLoansPage = () => {
 
     // Common actions for all types
     buttons.push(
-      <Button key="view" variant="outline" size="sm">
+      <Button
+        key="view"
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          if (type === 'loan') {
+            setSelectedLoan(loan);
+            setDetailsOpen(true);
+          } else {
+            setSelectedApplication(loan);
+            setWorkflowOpen(true);
+          }
+        }}
+      >
         <Eye className="w-4 h-4 mr-1" />
         View Details
       </Button>
@@ -395,6 +414,29 @@ const ClientLoansPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {selectedLoan && (
+        <LoanDetailsDialog
+          loan={selectedLoan}
+          clientName={`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || 'Client'}
+          open={detailsOpen}
+          onOpenChange={(open) => {
+            setDetailsOpen(open);
+            if (!open) setSelectedLoan(null);
+          }}
+        />
+      )}
+
+      {selectedApplication && (
+        <LoanWorkflowDialog
+          loanApplication={selectedApplication}
+          open={workflowOpen}
+          onOpenChange={(open) => {
+            setWorkflowOpen(open);
+            if (!open) setSelectedApplication(null);
+          }}
+        />
+      )}
     </div>
   );
 };
