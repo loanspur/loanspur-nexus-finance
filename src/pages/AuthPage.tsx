@@ -149,9 +149,9 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
     <div className="relative min-h-screen">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-banking-primary/10 via-background to-banking-secondary/10" />
 
-      <div className="w-full grid min-h-screen md:grid-cols-2 gap-8 lg:gap-12 items-center px-4 lg:px-8">
+      <div className="w-full grid min-h-screen md:grid-cols-2 gap-8 lg:gap-12 items-center px-2 sm:px-4 lg:px-6">
         {/* Left showcase panel */}
-        <aside className="relative hidden md:flex items-center justify-center p-8 lg:p-12 rounded-3xl ring-1 ring-border/50 overflow-hidden bg-card/40 backdrop-blur-md">
+        <aside className="relative hidden md:flex items-center justify-center p-6 lg:p-8 rounded-3xl ring-1 ring-border/50 overflow-hidden bg-card/40 backdrop-blur-md">
           <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-[var(--shadow-glow)]">
             <img
               src={heroImage}
@@ -176,7 +176,7 @@ const AuthPage = ({ tenantMode = false }: AuthPageProps) => {
         </aside>
 
         {/* Right auth panel */}
-        <main className="flex items-center justify-center p-6 md:p-10">
+        <main className="flex items-center justify-center p-4 md:p-8">
           <div className="w-full max-w-[640px]">
             {!tenantMode && (
               <div className="text-center mb-8">
