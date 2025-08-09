@@ -612,7 +612,15 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     </FormItem>
                   )}
                 />
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
                 <Button type="button" onClick={() => setCurrentTab('accounting')}>
                   Next
                 </Button>
@@ -627,6 +635,9 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     <h3 className="text-lg font-medium">Basic Accounting Configuration</h3>
                     <p className="text-sm text-muted-foreground">
                       Configure general ledger accounts and accounting method for this savings product
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Note: Dropdowns filter by account type — Assets, Liabilities, Expenses, or Income as appropriate.
                     </p>
                   </div>
 
@@ -673,6 +684,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Asset accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -698,6 +710,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Liability accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -723,6 +736,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Expense accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -748,6 +762,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Income accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -840,7 +855,17 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                 {/* Fee Mappings moved to Linked Fees tab */}
                 <div className="flex justify-between pt-2">
                   <Button type="button" variant="outline" onClick={() => setCurrentTab('basic')}>Back</Button>
-                  <Button type="button" onClick={() => setCurrentTab('linked_fees')}>Next</Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={() => setCurrentTab('linked_fees')}>Next</Button>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -926,25 +951,26 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     </div>
                   ))}
                 </div>
+                <div className="flex justify-between pt-2">
+                  <Button type="button" variant="outline" onClick={() => setCurrentTab('accounting')}>Back</Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => onOpenChange(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {editingProduct ? 'Update Product' : 'Create Product'}
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              {currentTab === 'linked_fees' && (
-                <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingProduct ? 'Update Product' : 'Create Product'}
-                </Button>
-              )}
-            </div>
           </form>
         </Form>
       </CardContent>
