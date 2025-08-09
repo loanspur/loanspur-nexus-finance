@@ -294,6 +294,12 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
     form.setValue('fee_mappings', current.filter((_, i) => i !== index));
   };
 
+  const goToTab = async (tab: 'basic' | 'accounting' | 'linked_fees') => {
+    // Trigger validation so isValid reflects the latest state across tabs
+    await form.trigger();
+    setCurrentTab(tab);
+  };
+
   return (
     <Card className="w-full max-w-4xl">
       <CardHeader>
@@ -621,7 +627,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                 >
                   Cancel
                 </Button>
-                <Button type="button" onClick={() => setCurrentTab('accounting')}>
+                <Button type="button" onClick={() => goToTab('accounting')}>
                   Next
                 </Button>
               </div>
@@ -890,7 +896,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     >
                       Cancel
                     </Button>
-                    <Button type="button" onClick={() => setCurrentTab('linked_fees')}>Next</Button>
+                    <Button type="button" onClick={() => goToTab('linked_fees')}>Next</Button>
                   </div>
                 </div>
               </TabsContent>
