@@ -26,14 +26,13 @@ export const useFundSources = () => {
 
       if (!profile?.tenant_id) return fundSources;
 
-      // Fetch asset accounts that can be used as fund sources (bank accounts, cash accounts)
+      // Fetch all active asset accounts for this tenant (full list for fund source mapping)
       const { data: assetAccounts } = await supabase
         .from('chart_of_accounts')
         .select('*')
         .eq('tenant_id', profile.tenant_id)
         .eq('account_type', 'asset')
-        .eq('is_active', true)
-        .or('account_name.ilike.%cash%,account_name.ilike.%bank%,account_category.ilike.%cash%,account_category.ilike.%bank%');
+        .eq('is_active', true);
 
       if (assetAccounts) {
         fundSources.push(...assetAccounts.map(account => ({
