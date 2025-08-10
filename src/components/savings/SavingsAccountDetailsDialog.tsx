@@ -185,6 +185,7 @@ export const SavingsAccountDetailsDialog = ({
                   <TabsContent value="deposit" className="space-y-4">
                     <p className="text-sm text-muted-foreground">Post a deposit into this savings account.</p>
                     <Button
+                      variant="success"
                       onClick={() => { setSelectedTransactionType('deposit'); setTransactionFormOpen(true); }}
                       disabled={!account.is_active}
                       className="flex items-center gap-2"
@@ -196,7 +197,7 @@ export const SavingsAccountDetailsDialog = ({
                   <TabsContent value="withdrawal" className="space-y-4">
                     <p className="text-sm text-muted-foreground">Withdraw funds from this savings account.</p>
                     <Button
-                      variant="outline"
+                      variant="success"
                       onClick={() => { setSelectedTransactionType('withdrawal'); setTransactionFormOpen(true); }}
                       disabled={!account.is_active || account.available_balance <= 0}
                       className="flex items-center gap-2"
@@ -208,7 +209,7 @@ export const SavingsAccountDetailsDialog = ({
                   <TabsContent value="transfer" className="space-y-4">
                     <p className="text-sm text-muted-foreground">Transfer to another savings or loan account (same or different client).</p>
                     <Button
-                      variant="outline"
+                      variant="success"
                       onClick={() => { setSelectedTransactionType('transfer'); setTransactionFormOpen(true); }}
                       disabled={!account.is_active || account.available_balance <= 0}
                       className="flex items-center gap-2"
