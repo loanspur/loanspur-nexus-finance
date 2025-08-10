@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './useAuth';
 import { defaultQueryOptions, rareUpdateOptions } from './useOptimizedQueries';
-
+import { useEffect } from 'react';
 // Types
 export interface Tenant {
   id: string;
@@ -661,6 +661,33 @@ export const useUpdateSavingsProduct = () => {
 
 // Savings Account hooks
 export const useSavingsAccounts = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_accounts' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_transactions' },
+        () => {
+          // Transactions can change balances; refresh accounts
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['savings-accounts'],
     queryFn: async () => {

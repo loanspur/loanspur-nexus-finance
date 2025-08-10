@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
+import { useEffect } from 'react';
 export interface SavingsTransaction {
   id: string;
   tenant_id: string;
@@ -35,6 +35,34 @@ export interface InterestPosting {
 
 // Savings Transactions Hook
 export const useSavingsTransactions = (accountId?: string) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!accountId) return;
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_transactions', filter: `savings_account_id=eq.${accountId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['savings-transactions', accountId] });
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'savings_accounts', filter: `id=eq.${accountId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [accountId, queryClient]);
+
   return useQuery({
     queryKey: ['savings-transactions', accountId],
     queryFn: async () => {
@@ -60,6 +88,25 @@ export const useSavingsTransactions = (accountId?: string) => {
 // All Savings Transactions for Tenant
 export const useAllSavingsTransactions = () => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_transactions', filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['all-savings-transactions', profile.tenant_id] });
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['all-savings-transactions', profile?.tenant_id],
