@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PiggyBank, Info, X } from "lucide-react";
+import { PiggyBank, Info, X, Minus, Plus, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSavingsAccount, useSavingsProducts } from "@/hooks/useSupabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -407,8 +407,18 @@ onSuccess?.();
                   </Tooltip>
                 </div>
               </div>
-              <div className="w-36">
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="icon" onClick={() => {
+                  const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
+                  const currVal = parseFloat(current[id] || '0') || 0;
+                  const next = Math.max(0, currVal - 50);
+                  current[id] = next ? String(next) : '';
+                  form.setValue('fee_overrides', current);
+                }} aria-label="Decrease fee">
+                  <Minus className="h-4 w-4" />
+                </Button>
                 <Input
+                  className="w-28"
                   type="number"
                   step="0.01"
                   placeholder="Override"
@@ -419,21 +429,37 @@ onSuccess?.();
                     form.setValue('fee_overrides', current);
                   }}
                 />
+                <Button type="button" variant="outline" size="icon" onClick={() => {
+                  const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
+                  const currVal = parseFloat(current[id] || '0') || 0;
+                  const next = currVal + 50;
+                  current[id] = String(next);
+                  form.setValue('fee_overrides', current);
+                }} aria-label="Increase fee">
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button type="button" variant="outline" size="icon" onClick={() => {
+                  const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
+                  delete current[id];
+                  form.setValue('fee_overrides', current);
+                }} aria-label="Reset fee">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    form.setValue(
+                      'activation_fee_ids',
+                      (watchedFeeIds || []).filter((fId: string) => fId !== id)
+                    );
+                  }}
+                  aria-label="Remove fee"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  form.setValue(
-                    'activation_fee_ids',
-                    (watchedFeeIds || []).filter((fId: string) => fId !== id)
-                  );
-                }}
-                aria-label="Remove fee"
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
           );
         })}
