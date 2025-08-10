@@ -6684,6 +6684,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          method: string | null
           processed_by: string | null
           reference_number: string | null
           savings_account_id: string
@@ -6697,6 +6698,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          method?: string | null
           processed_by?: string | null
           reference_number?: string | null
           savings_account_id: string
@@ -6710,6 +6712,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          method?: string | null
           processed_by?: string | null
           reference_number?: string | null
           savings_account_id?: string
