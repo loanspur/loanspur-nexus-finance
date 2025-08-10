@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { 
   PiggyBank, 
@@ -11,11 +12,14 @@ import {
   Percent, 
   User, 
   CreditCard,
-  TrendingUp,
   Download,
   Plus,
-  Minus
+  Minus,
+  ArrowRightLeft
 } from "lucide-react";
+import { useState } from "react";
+import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
+import { TransactionStatement } from "@/components/statements/TransactionStatement";
 
 interface SavingsAccount {
   id: string;
@@ -25,6 +29,8 @@ interface SavingsAccount {
   interest_earned: number;
   is_active: boolean;
   opened_date: string;
+  activated_date?: string;
+  savings_product_id?: string;
   clients?: {
     first_name: string;
     last_name: string;
@@ -48,6 +54,9 @@ export const SavingsAccountDetailsDialog = ({
   open, 
   onOpenChange 
 }: SavingsAccountDetailsDialogProps) => {
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [selectedTransactionType, setSelectedTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
+
   if (!account) return null;
 
   const handleDeposit = () => {
@@ -156,49 +165,66 @@ export const SavingsAccountDetailsDialog = ({
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Actions & Statement Tabs */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>
-                  Perform common account operations
-                </CardDescription>
+                <CardTitle>Account Actions</CardTitle>
+                <CardDescription>Deposit, withdraw, transfer, or view statements</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button 
-                    onClick={handleDeposit} 
-                    className="flex items-center gap-2"
-                    disabled={!account.is_active}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Deposit
-                  </Button>
-                  <Button 
-                    onClick={handleWithdraw} 
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    disabled={!account.is_active || account.available_balance <= 0}
-                  >
-                    <Minus className="h-4 w-4" />
-                    Withdraw
-                  </Button>
-                  <Button 
-                    onClick={handleStatementDownload} 
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Statement
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    History
-                  </Button>
-                </div>
+                <Tabs defaultValue="deposit" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="deposit">Deposit</TabsTrigger>
+                    <TabsTrigger value="withdrawal">Withdraw</TabsTrigger>
+                    <TabsTrigger value="transfer">Transfer</TabsTrigger>
+                    <TabsTrigger value="statement">Statement</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="deposit" className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Post a deposit into this savings account.</p>
+                    <Button
+                      onClick={() => { setSelectedTransactionType('deposit'); setTransactionFormOpen(true); }}
+                      disabled={!account.is_active}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" /> Start Deposit
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="withdrawal" className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Withdraw funds from this savings account.</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setSelectedTransactionType('withdrawal'); setTransactionFormOpen(true); }}
+                      disabled={!account.is_active || account.available_balance <= 0}
+                      className="flex items-center gap-2"
+                    >
+                      <Minus className="h-4 w-4" /> Start Withdrawal
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="transfer" className="space-y-4">
+                    <p className="text-sm text-muted-foreground">Transfer to another savings or loan account (same or different client).</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setSelectedTransactionType('transfer'); setTransactionFormOpen(true); }}
+                      disabled={!account.is_active || account.available_balance <= 0}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowRightLeft className="h-4 w-4" /> Start Transfer
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="statement" className="space-y-4">
+                    <TransactionStatement
+                      accountId={account.id}
+                      accountType="savings"
+                      accountNumber={account.account_number}
+                      clientName={`${account.clients?.first_name || ''} ${account.clients?.last_name || ''}`.trim()}
+                      accountDetails={{ balance: account.account_balance }}
+                    />
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
@@ -275,6 +301,21 @@ export const SavingsAccountDetailsDialog = ({
             </Card>
           </div>
         </div>
+        {/* Transaction Form Dialog */}
+        <SavingsTransactionForm
+          open={transactionFormOpen}
+          onOpenChange={setTransactionFormOpen}
+          savingsAccount={{
+            id: account.id,
+            account_balance: account.account_balance,
+            savings_product_id: (account as any).savings_product_id as string,
+            savings_products: { name: account.savings_products?.name || '' },
+            account_number: account.account_number,
+            activated_date: (account as any).activated_date,
+          }}
+          transactionType={selectedTransactionType}
+          onSuccess={() => { /* Queries will refresh via hooks */ }}
+        />
       </DialogContent>
     </Dialog>
   );
