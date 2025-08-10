@@ -94,6 +94,7 @@ const form = useForm<AddSavingsAccountData>({
 
 const watchedProductId = form.watch('savings_product_id');
 const watchedFeeIds = form.watch('activation_fee_ids');
+const watchedFeeOverrides = form.watch('fee_overrides');
 
 const selectedProduct = useMemo(() => (
   savingsProducts.find((p: any) => p.id === watchedProductId)
@@ -415,7 +416,7 @@ onSuccess?.();
                     type="number"
                     step="0.01"
                     placeholder="Override"
-                    value={(form.getValues('fee_overrides') as Record<string, string>)[id] || ''}
+                    value={(watchedFeeOverrides as Record<string, string>)?.[id] ?? ''}
                     onChange={(e) => {
                       const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
                       current[id] = e.target.value;
