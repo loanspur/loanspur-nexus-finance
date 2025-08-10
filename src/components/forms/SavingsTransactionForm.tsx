@@ -176,6 +176,22 @@ export const SavingsTransactionForm = ({
   const watchedTransferAccountType = form.watch("transferAccountType");
   const { data: clientLoans = [] } = useClientLoans(watchedTransferClientId);
 
+  const selectedClient = clients.find((c: any) => c.id === watchedTransferClientId);
+  const destinationSavingsAccounts = (selectedClient as any)?.savings_accounts || [];
+  const destinationLoanAccounts = clientLoans || [];
+
+  useEffect(() => {
+    if (
+      watchedTransactionType === 'transfer' &&
+      watchedTransferAccountType &&
+      !form.getValues('transferAccountId')
+    ) {
+      const options = watchedTransferAccountType === 'savings' ? destinationSavingsAccounts : destinationLoanAccounts;
+      if (options && options.length === 1) {
+        form.setValue('transferAccountId', options[0].id);
+      }
+    }
+  }, [watchedTransactionType, watchedTransferAccountType, watchedTransferClientId, destinationSavingsAccounts, destinationLoanAccounts]);
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -286,7 +302,7 @@ export const SavingsTransactionForm = ({
       };
     }
 
-    if (data.transactionType !== 'fee_charge' && !data.method) {
+    if (data.transactionType !== 'fee_charge' && data.transactionType !== 'transfer' && !data.method) {
       return {
         isValid: false,
         message: "Please select a payment method"
@@ -686,7 +702,7 @@ export const SavingsTransactionForm = ({
                 )}
 
                 {/* Payment Method (not applicable for charges) */}
-                {watchedTransactionType !== 'fee_charge' && (
+                {['deposit', 'withdrawal'].includes(watchedTransactionType) && (
                   <FormField
                     control={form.control}
                     name="method"
@@ -812,12 +828,25 @@ export const SavingsTransactionForm = ({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Destination Account</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter destination account number/ID"
-                              {...field}
-                            />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={watchedTransferAccountType === 'loan' ? "Select loan account" : "Select savings account"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {watchedTransferAccountType === 'savings' && destinationSavingsAccounts.map((acc: any) => (
+                                <SelectItem key={acc.id} value={acc.id}>
+                                  {acc.account_number}
+                                </SelectItem>
+                              ))}
+                              {watchedTransferAccountType === 'loan' && (clientLoans || []).map((ln: any) => (
+                                <SelectItem key={ln.id} value={ln.id}>
+                                  {ln.loan_number}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
