@@ -46,6 +46,7 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   
   // Accounting hooks
   const loanRepaymentAccounting = useLoanRepaymentAccounting();
+  const loanChargeAccounting = useLoanChargeAccounting();
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -79,7 +80,17 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
             });
           }
           break;
-          
+        case 'fee_payment':
+          if (data.loanId) {
+            await loanChargeAccounting.mutateAsync({
+              loan_id: data.loanId,
+              charge_type: 'fee',
+              amount: amount,
+              charge_date: transactionDate,
+              description: data.description || 'Loan fee charge',
+            });
+          }
+          break;
         case 'savings_deposit':
         case 'savings_withdrawal':
           // Savings accounting integration will be handled by SavingsTransactionForm

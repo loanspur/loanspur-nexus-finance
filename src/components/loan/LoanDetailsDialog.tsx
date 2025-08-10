@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useLoanSchedules } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSavingsDepositAccounting } from "@/hooks/useSavingsAccounting";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -61,6 +62,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [paymentFormOpen, setPaymentFormOpen] = useState(false);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { toast } = useToast();
+  const depositAccounting = useSavingsDepositAccounting();
 
   // Derived status: in_arrears and overpaid
   const { data: schedules = [] } = useLoanSchedules(loan?.id);
@@ -119,7 +121,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       // Fetch current balance
       const { data: acct, error: acctErr } = await supabase
         .from('savings_accounts')
-        .select('account_balance')
+        .select('account_balance, account_number, savings_product_id')
         .eq('id', selectedSavingsId)
         .single();
       if (acctErr) throw acctErr;

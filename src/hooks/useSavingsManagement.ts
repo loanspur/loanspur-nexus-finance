@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { useSavingsInterestPostingAccounting } from '@/hooks/useSavingsAccounting';
 export interface SavingsTransaction {
   id: string;
   tenant_id: string;
@@ -294,6 +295,7 @@ export const useCalculateInterest = () => {
 export const usePostInterest = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const interestAccounting = useSavingsInterestPostingAccounting();
 
   return useMutation({
     mutationFn: async (postingId: string) => {
@@ -331,6 +333,28 @@ export const usePostInterest = () => {
         .eq('id', postingId);
 
       if (updateError) throw updateError;
+
+      // Create accounting journal entry for interest posting (best-effort)
+      try {
+        const { data: acct, error: acctErr } = await supabase
+          .from('savings_accounts')
+          .select('account_number, savings_product_id')
+          .eq('id', posting.savings_account_id)
+          .single();
+        if (!acctErr && acct) {
+          await interestAccounting.mutateAsync({
+            savings_account_id: posting.savings_account_id,
+            savings_product_id: acct.savings_product_id,
+            amount: posting.interest_amount,
+            transaction_date: posting.posting_date,
+            account_number: acct.account_number,
+            period_start: posting.period_start,
+            period_end: posting.period_end,
+          } as any);
+        }
+      } catch (e) {
+        console.warn('Savings interest accounting failed:', e);
+      }
 
       return transaction;
     },
