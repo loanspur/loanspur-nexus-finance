@@ -376,13 +376,13 @@ export const SavingsTransactionForm = ({
       const transactionData: any = {
         tenant_id: profile.tenant_id,
         savings_account_id: savingsAccount.id,
-        transaction_type: data.transactionType === 'transfer' ? 'withdrawal' : data.transactionType,
+        transaction_type: data.transactionType,
         amount: amount,
         balance_after: newBalance,
         description: data.description || `${data.transactionType === 'transfer' ? 'Transfer out' : data.transactionType + ' transaction'}`,
         reference_number: data.reference,
         processed_by: profile.id,
-        method: data.method,
+        method: data.transactionType === 'transfer' ? 'internal_transfer' : data.method,
         transaction_date: data.transactionDate,
       };
 
@@ -430,12 +430,13 @@ export const SavingsTransactionForm = ({
           .insert({
             tenant_id: profile.tenant_id,
             savings_account_id: destAcc.id,
-            transaction_type: 'deposit',
+            transaction_type: 'transfer',
             amount: amount,
             balance_after: destNewBalance,
             description: `Transfer from ${savingsAccount.account_number}`,
             reference_number: data.reference,
             processed_by: profile.id,
+            method: 'internal_transfer',
             transaction_date: data.transactionDate,
           });
 
@@ -468,7 +469,7 @@ export const SavingsTransactionForm = ({
         amount: amount,
         transaction_date: data.transactionDate,
         account_number: savingsAccount.account_number,
-        payment_method: data.method,
+        payment_method: data.transactionType === 'transfer' ? 'internal_transfer' : data.method,
       };
 
       // Create journal entries for accounting integration
