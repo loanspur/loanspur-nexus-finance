@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCreateSavingsAccount, useSavingsProducts } from "@/hooks/useSupabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
-import { useProcessSavingsTransaction } from "@/hooks/useSavingsManagement";
+import { useSavingsFeeChargeAccounting } from "@/hooks/useSavingsAccounting";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -75,7 +75,7 @@ export const AddSavingsAccountDialog = ({
 const createSavingsAccount = useCreateSavingsAccount();
 const { data: savingsProducts = [], isLoading } = useSavingsProducts();
 const { data: allFeeStructures = [] } = useFeeStructures();
-const processTransaction = useProcessSavingsTransaction();
+const feeChargeAccounting = useSavingsFeeChargeAccounting();
 
 const form = useForm<AddSavingsAccountData>({
   resolver: zodResolver(addSavingsAccountSchema),
@@ -139,6 +139,36 @@ const activationFeeOptions = useMemo(() => (
       if (!effectiveTenantId) {
         throw new Error("No tenant information available");
       }
+// Pre-check: Total activation fees must be covered by product overdraft limit
+const selectedFeesForCheck = activationFeeOptions.filter((f) => data.activation_fee_ids?.includes(f.id));
+const overrideMapForCheck = (data as any).fee_overrides || {};
+const totalActivationFees = (selectedFeesForCheck || []).reduce((sum, fee) => {
+  const calc = calculateFeeAmount({
+    id: fee.id,
+    name: fee.name,
+    calculation_type: fee.calculation_type as any,
+    amount: fee.amount,
+    min_amount: fee.min_amount,
+    max_amount: fee.max_amount,
+    fee_type: fee.fee_type,
+    charge_time_type: fee.charge_time_type,
+  }, baseAmount);
+  const overrideVal = parseFloat(overrideMapForCheck[fee.id] || "");
+  const amountToCharge = isFinite(overrideVal) && overrideVal > 0 ? overrideVal : calc.calculated_amount;
+  return sum + (amountToCharge > 0 ? amountToCharge : 0);
+}, 0);
+
+const overdraftLimit = Number((selectedProduct as any)?.max_overdraft_amount || 0);
+if ((data.activation_fee_ids?.length || 0) > 0 && totalActivationFees > overdraftLimit) {
+  toast({
+    title: "Insufficient overdraft limit",
+    description: `Total activation fees (KES ${totalActivationFees.toLocaleString('en-KE')}) exceed product overdraft limit (KES ${overdraftLimit.toLocaleString('en-KE')}). Reduce fees or increase limit.`,
+    variant: "destructive",
+  });
+  setIsSubmitting(false);
+  return;
+}
+
 const savingsAccountData = {
   client_id: clientId,
   savings_product_id: data.savings_product_id,
@@ -156,12 +186,10 @@ const savingsAccountData = {
 
 const created = await createSavingsAccount.mutateAsync(savingsAccountData);
 
-// Apply selected activation fees immediately
+// Apply selected activation fees immediately using product-level accounting
 if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
   const selectedFees = activationFeeOptions.filter((f) => data.activation_fee_ids?.includes(f.id));
   const overrideMap = (data as any).fee_overrides || {};
-  // Track balance locally to avoid attempting charges that would overdraw the new account
-  let currentBalance = Number((created as any)?.available_balance ?? (created as any)?.account_balance ?? 0);
   for (const fee of selectedFees) {
     const calc = calculateFeeAmount({
       id: fee.id,
@@ -178,30 +206,14 @@ if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
     const amountToCharge = isFinite(overrideVal) && overrideVal > 0 ? overrideVal : calc.calculated_amount;
 
     if (amountToCharge > 0) {
-      if (currentBalance >= amountToCharge) {
-        try {
-          await processTransaction.mutateAsync({
-            savings_account_id: created.id,
-            transaction_type: 'fee_charge',
-            amount: amountToCharge,
-            transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
-            description: `${fee.name} activation fee`,
-            reference_number: `FEE-${fee.id.slice(-6).toUpperCase()}`,
-          });
-          currentBalance -= amountToCharge;
-        } catch (e) {
-          console.warn('Skipping activation fee due to processing error:', e);
-          toast({
-            title: 'Activation fee skipped',
-            description: `Could not charge ${fee.name} at this time. You can try again after funding the account.`,
-          });
-        }
-      } else {
-        toast({
-          title: 'Activation fee pending',
-          description: `Skipped ${fee.name} due to insufficient funds. Deposit funds and charge later.`,
-        });
-      }
+      await feeChargeAccounting.mutateAsync({
+        savings_product_id: data.savings_product_id,
+        savings_account_id: created.id,
+        amount: amountToCharge,
+        transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
+        description: `${fee.name} activation fee`,
+        fee_type: fee.fee_type,
+      } as any);
     }
   }
 }
