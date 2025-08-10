@@ -95,12 +95,15 @@ export const SavingsTransactionForm = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { currency, currencySymbol } = useCurrency();
+  const [displayBalance, setDisplayBalance] = useState<number>(savingsAccount.account_balance);
+  useEffect(() => {
+    setDisplayBalance(savingsAccount.account_balance);
+  }, [savingsAccount.id, savingsAccount.account_balance]);
   
   // Accounting hooks
   const depositAccounting = useSavingsDepositAccounting();
   const withdrawalAccounting = useSavingsWithdrawalAccounting();
   const feeChargeAccounting = useSavingsFeeChargeAccounting();
-
   // Load product-level payment type mappings for this savings product
   const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
   useEffect(() => {
@@ -211,7 +214,7 @@ export const SavingsTransactionForm = ({
     if (selectedFee.calculation_type === 'fixed') {
       return selectedFee.amount;
     } else if (selectedFee.calculation_type === 'percentage') {
-      const baseAmount = savingsAccount.account_balance;
+      const baseAmount = displayBalance;
       let calculatedAmount = (baseAmount * selectedFee.amount) / 100;
       
       // Apply min/max limits
@@ -259,7 +262,7 @@ export const SavingsTransactionForm = ({
     }
 
     if (data.transactionType === "withdrawal" || data.transactionType === "transfer" || data.transactionType === "fee_charge") {
-      const newBalance = savingsAccount.account_balance - amount;
+      const newBalance = displayBalance - amount;
       if (newBalance < minBalance) {
         return {
           isValid: false,
@@ -320,13 +323,13 @@ export const SavingsTransactionForm = ({
       }
 
       const amount = data.transactionType === 'fee_charge' ? getChargeAmount() : parseFloat(data.amount || "0");
-      let newBalance = savingsAccount.account_balance;
+      let newBalance = displayBalance;
       
       // Calculate new balance based on transaction type
       if (data.transactionType === 'deposit') {
-        newBalance = savingsAccount.account_balance + amount;
+        newBalance = displayBalance + amount;
       } else if (data.transactionType === 'withdrawal' || data.transactionType === 'transfer' || data.transactionType === 'fee_charge') {
-        newBalance = savingsAccount.account_balance - amount;
+        newBalance = displayBalance - amount;
       }
 
       // Get current user's tenant_id and profile_id
@@ -392,6 +395,24 @@ export const SavingsTransactionForm = ({
 
       if (updateError) throw updateError;
 
+      // Update local balance immediately for modal and cache
+      setDisplayBalance(newBalance);
+      try {
+        queryClient.setQueryData(['savings-accounts'], (old: any) => {
+          if (!old) return old;
+          if (Array.isArray(old)) {
+            return old.map((a: any) =>
+              a.id === savingsAccount.id
+                ? { ...a, account_balance: newBalance, available_balance: newBalance, updated_at: new Date().toISOString() }
+                : a
+            );
+          }
+          return old;
+        });
+      } catch (e) {
+        console.warn('Failed to update cache', e);
+      }
+
       // Create accounting entries based on transaction type
       const accountingData = {
         savings_account_id: savingsAccount.id,
@@ -434,7 +455,6 @@ export const SavingsTransactionForm = ({
       });
 
       form.reset();
-      onOpenChange(false);
       onSuccess?.();
 
     } catch (error: any) {
@@ -453,13 +473,13 @@ export const SavingsTransactionForm = ({
     const amount = watchedTransactionType === 'fee_charge' ? getChargeAmount() : (parseFloat(watchedAmount || "0") || 0);
     switch (watchedTransactionType) {
       case "deposit":
-        return savingsAccount.account_balance + amount;
+        return displayBalance + amount;
       case "withdrawal":
       case "transfer":
       case "fee_charge":
-        return savingsAccount.account_balance - amount;
+        return displayBalance - amount;
       default:
-        return savingsAccount.account_balance;
+        return displayBalance;
     }
   };
 
@@ -496,7 +516,7 @@ export const SavingsTransactionForm = ({
                   <div>
                     <span className="text-muted-foreground">Current Balance</span>
                     <div className="font-bold text-green-600">
-                      {formatCurrency(savingsAccount.account_balance)}
+                      {formatCurrency(displayBalance)}
                     </div>
                   </div>
                   <div>
@@ -830,7 +850,7 @@ export const SavingsTransactionForm = ({
                   <CardContent className="pt-0 space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Current Balance:</span>
-                      <span className="font-medium">{formatCurrency(savingsAccount.account_balance)}</span>
+                      <span className="font-medium">{formatCurrency(displayBalance)}</span>
                     </div>
                      
                      {((watchedAmount && parseFloat(watchedAmount) > 0) || watchedTransactionType === 'fee_charge') && (

@@ -254,9 +254,6 @@ const ClientSavingsPage = () => {
           onOpenChange={setTransactionFormOpen}
           savingsAccount={savingsAccount}
           transactionType={selectedTransactionType}
-          onSuccess={() => {
-            setTransactionFormOpen(false);
-          }}
         />
       )}
     </div>
