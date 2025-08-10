@@ -49,6 +49,7 @@ import { useClients } from "@/hooks/useSupabase";
 import { useClientLoans } from "@/hooks/useLoanManagement";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSavingsAccount } from "@/hooks/useSavingsAccount";
 
 const transactionSchema = z.object({
   transactionType: z.enum(["deposit", "withdrawal", "transfer", "fee_charge"]),
@@ -95,10 +96,8 @@ export const SavingsTransactionForm = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { currency, currencySymbol } = useCurrency();
-  const [displayBalance, setDisplayBalance] = useState<number>(savingsAccount.account_balance);
-  useEffect(() => {
-    setDisplayBalance(savingsAccount.account_balance);
-  }, [savingsAccount.id, savingsAccount.account_balance]);
+  const { data: liveAccount } = useSavingsAccount(savingsAccount.id);
+  const displayBalance = liveAccount?.account_balance ?? savingsAccount.account_balance;
   
   // Accounting hooks
   const depositAccounting = useSavingsDepositAccounting();
@@ -395,23 +394,12 @@ export const SavingsTransactionForm = ({
 
       if (updateError) throw updateError;
 
-      // Update local balance immediately for modal and cache
-      setDisplayBalance(newBalance);
-      try {
-        queryClient.setQueryData(['savings-accounts'], (old: any) => {
-          if (!old) return old;
-          if (Array.isArray(old)) {
-            return old.map((a: any) =>
-              a.id === savingsAccount.id
-                ? { ...a, account_balance: newBalance, available_balance: newBalance, updated_at: new Date().toISOString() }
-                : a
-            );
-          }
-          return old;
-        });
-      } catch (e) {
-        console.warn('Failed to update cache', e);
-      }
+      // Refresh queries so all open modals update
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['savings-accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['savings-account', savingsAccount.id] }),
+        queryClient.invalidateQueries({ queryKey: ['savings-transactions', savingsAccount.id] }),
+      ]);
 
       // Create accounting entries based on transaction type
       const accountingData = {

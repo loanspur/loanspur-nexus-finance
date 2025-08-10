@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 import { TransactionStatement } from "@/components/statements/TransactionStatement";
+import { useSavingsAccount } from "@/hooks/useSavingsAccount";
 
 interface SavingsAccount {
   id: string;
@@ -58,6 +59,7 @@ export const SavingsAccountDetailsDialog = ({
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [selectedTransactionType, setSelectedTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
   const { currency } = useCurrency();
+  const { data: liveAccount } = useSavingsAccount(account.id);
 
   if (!account) return null;
 
@@ -224,7 +226,7 @@ export const SavingsAccountDetailsDialog = ({
                       accountType="savings"
                       accountNumber={account.account_number}
                       clientName={`${account.clients?.first_name || ''} ${account.clients?.last_name || ''}`.trim()}
-                      accountDetails={{ balance: account.account_balance }}
+                      accountDetails={{ balance: (liveAccount?.account_balance ?? account.account_balance) }}
                     />
                   </TabsContent>
                 </Tabs>
@@ -244,7 +246,7 @@ export const SavingsAccountDetailsDialog = ({
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {currency} {account.account_balance.toLocaleString()}
+                    {currency} {(liveAccount?.account_balance ?? account.account_balance).toLocaleString()}
                   </div>
                   <p className="text-sm text-muted-foreground">Current Balance</p>
                 </div>
@@ -255,13 +257,13 @@ export const SavingsAccountDetailsDialog = ({
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Available:</span>
                     <span className="font-medium">
-                      {currency} {account.available_balance.toLocaleString()}
+                      {currency} {(liveAccount?.available_balance ?? account.available_balance).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Interest Earned:</span>
                     <span className="font-medium text-success">
-                      {currency} {account.interest_earned.toLocaleString()}
+                      {currency} {(liveAccount?.interest_earned ?? account.interest_earned).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -304,20 +306,19 @@ export const SavingsAccountDetailsDialog = ({
             </Card>
           </div>
         </div>
-        {/* Transaction Form Dialog */}
-        <SavingsTransactionForm
-          open={transactionFormOpen}
-          onOpenChange={setTransactionFormOpen}
-          savingsAccount={{
-            id: account.id,
-            account_balance: account.account_balance,
-            savings_product_id: (account as any).savings_product_id as string,
-            savings_products: { name: account.savings_products?.name || '' },
-            account_number: account.account_number,
-          }}
-          transactionType={selectedTransactionType}
-          onSuccess={() => { /* Queries will refresh via hooks */ }}
-        />
+          <SavingsTransactionForm
+            open={transactionFormOpen}
+            onOpenChange={setTransactionFormOpen}
+            savingsAccount={{
+              id: account.id,
+              account_balance: (liveAccount?.account_balance ?? account.account_balance),
+              savings_product_id: (account as any).savings_product_id as string,
+              savings_products: { name: account.savings_products?.name || '' },
+              account_number: account.account_number,
+            }}
+            transactionType={selectedTransactionType}
+            onSuccess={() => { /* Queries will refresh via hooks */ }}
+          />
       </DialogContent>
     </Dialog>
   );
