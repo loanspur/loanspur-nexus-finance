@@ -100,6 +100,31 @@ export const SavingsTransactionForm = ({
   const depositAccounting = useSavingsDepositAccounting();
   const withdrawalAccounting = useSavingsWithdrawalAccounting();
   const feeChargeAccounting = useSavingsFeeChargeAccounting();
+
+  // Load product-level payment type mappings for this savings product
+  const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  useEffect(() => {
+    const load = async () => {
+      const productId = savingsAccount.savings_product_id;
+      if (!productId) { setPaymentOptions([]); return; }
+      const { data: mappings } = await supabase
+        .from('product_fund_source_mappings')
+        .select('channel_id, channel_name')
+        .eq('product_id', productId)
+        .eq('product_type', 'savings');
+      const channelIds = (mappings || []).map(m => m.channel_id);
+      if (channelIds.length === 0) { setPaymentOptions([]); return; }
+      const { data: pts } = await supabase
+        .from('payment_types')
+        .select('*')
+        .in('id', channelIds);
+      const options = (pts || [])
+        .filter((pt: any) => typeof pt.code === 'string' && pt.code.trim().length > 0)
+        .map((pt: any) => ({ id: pt.id, code: pt.code.toLowerCase(), name: pt.name }));
+      setPaymentOptions(options);
+    };
+    load();
+  }, [savingsAccount.savings_product_id]);
   
   // Fetch all fee structures and filter for savings-related charges
   const { data: allFeeStructures } = useFeeStructures();
@@ -650,11 +675,19 @@ export const SavingsTransactionForm = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="mpesa">M-Pesa</SelectItem>
-                            <SelectItem value="cheque">Cheque</SelectItem>
-                            <SelectItem value="card">Card Payment</SelectItem>
+                            {paymentOptions.length > 0 ? (
+                              paymentOptions.map((opt) => (
+                                <SelectItem key={opt.id} value={opt.code}>{opt.name}</SelectItem>
+                              ))
+                            ) : (
+                              <>
+                                <SelectItem value="cash">Cash</SelectItem>
+                                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                                <SelectItem value="mpesa">M-Pesa</SelectItem>
+                                <SelectItem value="cheque">Cheque</SelectItem>
+                                <SelectItem value="card">Card Payment</SelectItem>
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
