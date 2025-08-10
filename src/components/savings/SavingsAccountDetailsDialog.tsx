@@ -18,6 +18,7 @@ import {
   ArrowRightLeft
 } from "lucide-react";
 import { useState } from "react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 import { TransactionStatement } from "@/components/statements/TransactionStatement";
 
@@ -56,6 +57,7 @@ export const SavingsAccountDetailsDialog = ({
 }: SavingsAccountDetailsDialogProps) => {
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [selectedTransactionType, setSelectedTransactionType] = useState<'deposit' | 'withdrawal' | 'transfer' | 'fee_charge'>('deposit');
+  const { currency } = useCurrency();
 
   if (!account) return null;
 
@@ -145,7 +147,7 @@ export const SavingsAccountDetailsDialog = ({
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Currency:</span>
                     <Badge variant="outline">
-                      {account.savings_products?.currency_code || 'USD'}
+                      {currency}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
@@ -241,7 +243,7 @@ export const SavingsAccountDetailsDialog = ({
               <CardContent className="space-y-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">
-                    {account.savings_products?.currency_code || 'USD'} {account.account_balance.toLocaleString()}
+                    {currency} {account.account_balance.toLocaleString()}
                   </div>
                   <p className="text-sm text-muted-foreground">Current Balance</p>
                 </div>
@@ -252,13 +254,13 @@ export const SavingsAccountDetailsDialog = ({
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Available:</span>
                     <span className="font-medium">
-                      {account.savings_products?.currency_code || 'USD'} {account.available_balance.toLocaleString()}
+                      {currency} {account.available_balance.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Interest Earned:</span>
                     <span className="font-medium text-success">
-                      {account.savings_products?.currency_code || 'USD'} {account.interest_earned.toLocaleString()}
+                      {currency} {account.interest_earned.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -293,7 +295,7 @@ export const SavingsAccountDetailsDialog = ({
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Avg Daily Balance:</span>
                     <span>
-                      {account.savings_products?.currency_code || 'USD'} {(account.account_balance * 0.85).toLocaleString()}
+                      {currency} {(account.account_balance * 0.85).toLocaleString()}
                     </span>
                   </div>
                 </div>

@@ -32,6 +32,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format as formatDate } from "date-fns";
 import { DollarSign, ArrowUpRight, ArrowDownRight, ArrowRightLeft, AlertCircle, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
@@ -246,6 +250,17 @@ export const SavingsTransactionForm = ({
       };
     }
 
+    // Prevent future dates
+    if (data.transactionDate) {
+      const selected = new Date(data.transactionDate);
+      const today = new Date();
+      selected.setHours(0,0,0,0);
+      today.setHours(0,0,0,0);
+      if (selected > today) {
+        return { isValid: false, message: "Future dates are not allowed" };
+      }
+    }
+
     return { isValid: true, message: "" };
   };
 
@@ -340,7 +355,7 @@ export const SavingsTransactionForm = ({
         savings_account_id: savingsAccount.id,
         savings_product_id: savingsAccount.savings_product_id,
         amount: amount,
-        transaction_date: new Date().toISOString().split('T')[0],
+        transaction_date: data.transactionDate,
         account_number: savingsAccount.account_number,
         payment_method: data.method,
       };
@@ -648,24 +663,114 @@ export const SavingsTransactionForm = ({
                   />
                 )}
 
-                {/* Transfer To (only for transfers) */}
-                {watchedTransactionType === "transfer" && (
-                  <FormField
-                    control={form.control}
-                    name="transferTo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Transfer To Account</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter destination account number"
-                            {...field}
+                {/* Transaction Date */}
+                <FormField
+                  control={form.control}
+                  name="transactionDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Transaction Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                formatDate(new Date(field.value), "PPP")
+                              ) : (
+                                <span>Select date</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={(date) => field.onChange(date ? date.toISOString().split('T')[0] : "")}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Transfer Details (only for transfers) */}
+                {watchedTransactionType === "transfer" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="transferClientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination Client</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select client" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clients.map((c: any) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {`${c.first_name || ''} ${c.last_name || ''}`.trim() || c.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="transferAccountType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination Account Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select account type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="savings">Savings</SelectItem>
+                              <SelectItem value="loan">Loan</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="transferAccountId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination Account</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter destination account number/ID"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
               </div>
 
