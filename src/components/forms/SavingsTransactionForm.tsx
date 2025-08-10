@@ -45,6 +45,7 @@ import {
   useSavingsWithdrawalAccounting, 
   useSavingsFeeChargeAccounting 
 } from "@/hooks/useSavingsAccounting";
+import { useLoanRepaymentAccounting } from "@/hooks/useLoanAccounting";
 import { useClients } from "@/hooks/useSupabase";
 import { useClientLoans } from "@/hooks/useLoanManagement";
 import { useQueryClient } from "@tanstack/react-query";
@@ -103,6 +104,7 @@ export const SavingsTransactionForm = ({
   const depositAccounting = useSavingsDepositAccounting();
   const withdrawalAccounting = useSavingsWithdrawalAccounting();
   const feeChargeAccounting = useSavingsFeeChargeAccounting();
+  const loanRepaymentAccounting = useLoanRepaymentAccounting();
   // Load product-level payment type mappings for this savings product
   const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
   useEffect(() => {
@@ -452,6 +454,46 @@ export const SavingsTransactionForm = ({
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['savings-account', destAcc.id] }),
           queryClient.invalidateQueries({ queryKey: ['savings-transactions', destAcc.id] }),
+        ]);
+      } else if (data.transactionType === 'transfer' && data.transferAccountType === 'loan' && data.transferAccountId) {
+        const loanId = data.transferAccountId;
+
+        const { error: loanPayErr } = await supabase
+          .from('loan_payments')
+          .insert({
+            tenant_id: profile.tenant_id,
+            loan_id: loanId,
+            payment_amount: amount,
+            principal_amount: amount,
+            interest_amount: 0,
+            fee_amount: 0,
+            payment_date: data.transactionDate,
+            payment_method: 'internal_transfer',
+            reference_number: data.reference,
+            processed_by: profile.id,
+          });
+        if (loanPayErr) throw loanPayErr;
+
+        // Create loan repayment accounting entry (best-effort)
+        try {
+          await loanRepaymentAccounting.mutateAsync({
+            loan_id: loanId,
+            payment_amount: amount,
+            principal_amount: amount,
+            interest_amount: 0,
+            fee_amount: 0,
+            payment_date: data.transactionDate,
+            payment_method: 'internal_transfer',
+            payment_reference: data.reference || undefined,
+          } as any);
+        } catch (e) {
+          console.warn('Loan repayment accounting failed:', e);
+        }
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['loan-payments', loanId] }),
+          queryClient.invalidateQueries({ queryKey: ['loan-schedules', loanId] }),
+          queryClient.invalidateQueries({ queryKey: ['loans'] }),
         ]);
       }
 
