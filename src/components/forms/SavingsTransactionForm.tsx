@@ -107,20 +107,33 @@ export const SavingsTransactionForm = ({
     const load = async () => {
       const productId = savingsAccount.savings_product_id;
       if (!productId) { setPaymentOptions([]); return; }
-      const { data: mappings } = await supabase
-        .from('product_fund_source_mappings')
-        .select('channel_id, channel_name')
-        .eq('product_id', productId)
-        .eq('product_type', 'savings');
-      const channelIds = (mappings || []).map(m => m.channel_id);
-      if (channelIds.length === 0) { setPaymentOptions([]); return; }
+
+      // Fetch allowed payment types from the product's Advanced Accounting mappings
+      const { data: product, error: productError } = await supabase
+        .from('savings_products')
+        .select('payment_type_mappings')
+        .eq('id', productId)
+        .maybeSingle();
+
+      if (productError) { setPaymentOptions([]); return; }
+
+      const mappings = (product?.payment_type_mappings as any[]) || [];
+      const codes = Array.from(new Set(
+        mappings
+          .map((m: any) => (m && typeof m.payment_type === 'string' ? m.payment_type : null))
+          .filter(Boolean)
+      ));
+
+      if (codes.length === 0) { setPaymentOptions([]); return; }
+
+      // Resolve display names from payment_types table by code and only include active ones
       const { data: pts } = await supabase
         .from('payment_types')
-        .select('*')
-        .in('id', channelIds);
-      const options = (pts || [])
-        .filter((pt: any) => typeof pt.code === 'string' && pt.code.trim().length > 0)
-        .map((pt: any) => ({ id: pt.id, code: pt.code.toLowerCase(), name: pt.name }));
+        .select('id, code, name, is_active')
+        .in('code', codes)
+        .eq('is_active', true);
+
+      const options = (pts || []).map((pt: any) => ({ id: pt.id, code: pt.code, name: pt.name }));
       setPaymentOptions(options);
     };
     load();
@@ -677,16 +690,10 @@ export const SavingsTransactionForm = ({
                           <SelectContent>
                             {paymentOptions.length > 0 ? (
                               paymentOptions.map((opt) => (
-                                <SelectItem key={opt.id} value={opt.code}>{opt.name}</SelectItem>
+                                <SelectItem key={opt.id} value={opt.code}>{opt.name || opt.code}</SelectItem>
                               ))
                             ) : (
-                              <>
-                                <SelectItem value="cash">Cash</SelectItem>
-                                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                <SelectItem value="mpesa">M-Pesa</SelectItem>
-                                <SelectItem value="cheque">Cheque</SelectItem>
-                                <SelectItem value="card">Card Payment</SelectItem>
-                              </>
+                              <SelectItem disabled value="no_methods">No payment methods configured</SelectItem>
                             )}
                           </SelectContent>
                         </Select>
