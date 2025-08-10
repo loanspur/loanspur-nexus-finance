@@ -77,6 +77,8 @@ interface Client {
   job_title?: string | null;
   business_type?: string | null;
   tenant_id: string;
+  office_id?: string | null;
+  loan_officer_id?: string | null;
 }
 
 // Helper function to determine which tabs to show based on captured data
@@ -95,8 +97,11 @@ const ClientDetailsPageRefactored = () => {
   const [loans, setLoans] = useState<any[]>([]);
   const [loanApplications, setLoanApplications] = useState<any[]>([]);
   const [savings, setSavings] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState("general");
-  const [loading, setLoading] = useState(true);
+const [activeTab, setActiveTab] = useState("general");
+const [loading, setLoading] = useState(true);
+// Header extras
+const [officeName, setOfficeName] = useState<string | null>(null);
+const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
   
   // Dialog states
   const [showNewLoan, setShowNewLoan] = useState(false);
@@ -140,22 +145,45 @@ const ClientDetailsPageRefactored = () => {
 
     setLoading(true);
     try {
-      // Fetch client details
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', clientId)
-        .maybeSingle();
+    // Fetch client details
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .maybeSingle();
 
-      if (clientError) throw clientError;
-      if (!clientData) {
-        toast({
-          title: "Error",
-          description: "Client not found",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (clientError) throw clientError;
+    if (!clientData) {
+      toast({
+        title: "Error",
+        description: "Client not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Enrich: fetch office and loan officer names for header
+    let officeNameLocal: string | null = null;
+    let loanOfficerNameLocal: string | null = null;
+    if (clientData.office_id) {
+      const { data: office } = await supabase
+        .from('offices')
+        .select('office_name')
+        .eq('id', clientData.office_id)
+        .maybeSingle();
+      officeNameLocal = office?.office_name || null;
+    }
+    if (clientData.loan_officer_id) {
+      const { data: officer } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', clientData.loan_officer_id)
+        .maybeSingle();
+      loanOfficerNameLocal = officer ? `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || null : null;
+    }
+
+    setOfficeName(officeNameLocal);
+    setLoanOfficerName(loanOfficerNameLocal);
 
       // Fetch loans with better error handling
       const { data: loansData, error: loansError } = await supabase
@@ -286,6 +314,8 @@ const ClientDetailsPageRefactored = () => {
             client={client}
             loanBalance={calculateLoanBalances()}
             savingsBalance={calculateSavingsBalance()}
+            officeName={officeName}
+            loanOfficerName={loanOfficerName}
           />
 
           {/* Action Menu Bar */}
