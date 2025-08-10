@@ -311,7 +311,6 @@ export const SavingsAccountDetailsDialog = ({
             savings_product_id: (account as any).savings_product_id as string,
             savings_products: { name: account.savings_products?.name || '' },
             account_number: account.account_number,
-            activated_date: (account as any).activated_date,
           }}
           transactionType={selectedTransactionType}
           onSuccess={() => { /* Queries will refresh via hooks */ }}

@@ -41,8 +41,10 @@ import {
   useSavingsWithdrawalAccounting, 
   useSavingsFeeChargeAccounting 
 } from "@/hooks/useSavingsAccounting";
-import { supabase } from "@/integrations/supabase/client";
+import { useClients } from "@/hooks/useSupabase";
+import { useClientLoans } from "@/hooks/useLoanManagement";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const transactionSchema = z.object({
   transactionType: z.enum(["deposit", "withdrawal", "transfer", "fee_charge"]),
@@ -50,7 +52,10 @@ const transactionSchema = z.object({
   method: z.string().optional(),
   reference: z.string().optional(),
   description: z.string().optional(),
-  transferTo: z.string().optional(),
+  transactionDate: z.string().nonempty("Please select a transaction date"),
+  transferClientId: z.string().optional(),
+  transferAccountType: z.enum(["savings", "loan"]).optional(),
+  transferAccountId: z.string().optional(),
   feeStructureId: z.string().optional(),
   customChargeAmount: z.string().optional(),
 });
@@ -68,6 +73,8 @@ interface SavingsTransactionFormProps {
       name: string;
     };
     account_number: string;
+    client_id?: string;
+    activated_date?: string;
   };
   transactionType?: 'deposit' | 'withdrawal' | 'transfer' | 'fee_charge';
   onSuccess?: () => void;
@@ -95,6 +102,7 @@ export const SavingsTransactionForm = ({
   const feeStructures = allFeeStructures?.filter(fee => 
     fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
   ) || [];
+  const { data: clients = [] } = useClients();
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -104,18 +112,22 @@ export const SavingsTransactionForm = ({
       method: "",
       reference: "",
       description: "",
-      transferTo: "",
+      transactionDate: new Date().toISOString().split('T')[0],
+      transferClientId: savingsAccount.client_id || undefined,
+      transferAccountType: undefined,
+      transferAccountId: undefined,
       feeStructureId: "",
       customChargeAmount: "",
     },
   });
 
-
   const watchedTransactionType = form.watch("transactionType");
   const watchedAmount = form.watch("amount");
   const watchedFeeStructureId = form.watch("feeStructureId");
-
   const watchedCustomChargeAmount = form.watch("customChargeAmount");
+  const watchedTransferClientId = form.watch("transferClientId");
+  const watchedTransferAccountType = form.watch("transferAccountType");
+  const { data: clientLoans = [] } = useClientLoans(watchedTransferClientId);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -211,11 +223,13 @@ export const SavingsTransactionForm = ({
       }
     }
 
-    if (data.transactionType === "transfer" && !data.transferTo) {
-      return {
-        isValid: false,
-        message: "Please specify the account to transfer to"
-      };
+    if (data.transactionType === "transfer") {
+      if (!data.transferClientId || !data.transferAccountType || !data.transferAccountId) {
+        return {
+          isValid: false,
+          message: "Please select client, account type, and destination account for the transfer"
+        };
+      }
     }
 
     if (data.transactionType === "fee_charge" && !data.feeStructureId) {
