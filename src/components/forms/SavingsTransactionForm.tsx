@@ -376,13 +376,14 @@ export const SavingsTransactionForm = ({
       const transactionData: any = {
         tenant_id: profile.tenant_id,
         savings_account_id: savingsAccount.id,
-        transaction_type: data.transactionType,
+        transaction_type: data.transactionType === 'transfer' ? 'withdrawal' : data.transactionType,
         amount: amount,
         balance_after: newBalance,
-        description: data.description || `${data.transactionType} transaction`,
+        description: data.description || `${data.transactionType === 'transfer' ? 'Transfer out' : data.transactionType + ' transaction'}`,
         reference_number: data.reference,
         processed_by: profile.id,
         method: data.method,
+        transaction_date: data.transactionDate,
       };
 
       // Add fee structure reference for charges
@@ -409,6 +410,49 @@ export const SavingsTransactionForm = ({
         .eq('id', savingsAccount.id);
 
       if (updateError) throw updateError;
+
+      // If transfer to another savings account, create destination deposit and update its balance
+      if (data.transactionType === 'transfer' && data.transferAccountType === 'savings' && data.transferAccountId) {
+        const { data: destAcc, error: destFetchError } = await supabase
+          .from('savings_accounts')
+          .select('id, account_balance, account_number')
+          .eq('id', data.transferAccountId)
+          .maybeSingle();
+
+        if (destFetchError || !destAcc) {
+          throw new Error('Destination savings account not found');
+        }
+
+        const destNewBalance = (destAcc.account_balance || 0) + amount;
+
+        const { error: destTxnError } = await supabase
+          .from('savings_transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            savings_account_id: destAcc.id,
+            transaction_type: 'deposit',
+            amount: amount,
+            balance_after: destNewBalance,
+            description: `Transfer from ${savingsAccount.account_number}`,
+            reference_number: data.reference,
+            processed_by: profile.id,
+            transaction_date: data.transactionDate,
+          });
+
+        if (destTxnError) throw destTxnError;
+
+        const { error: destUpdateError } = await supabase
+          .from('savings_accounts')
+          .update({ account_balance: destNewBalance, updated_at: new Date().toISOString() })
+          .eq('id', destAcc.id);
+
+        if (destUpdateError) throw destUpdateError;
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['savings-account', destAcc.id] }),
+          queryClient.invalidateQueries({ queryKey: ['savings-transactions', destAcc.id] }),
+        ]);
+      }
 
       // Refresh queries so all open modals update
       await Promise.all([
