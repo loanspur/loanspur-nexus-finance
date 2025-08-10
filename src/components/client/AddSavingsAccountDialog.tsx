@@ -220,6 +220,7 @@ if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
         description: `${fee.name} activation fee`,
         reference_number: `ACT-${fee.id.slice(-6).toUpperCase()}`,
         processed_by: profile?.id || null,
+        method: fee.name,
       });
 
       // Create accounting entries

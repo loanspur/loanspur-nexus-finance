@@ -393,6 +393,8 @@ export const SavingsTransactionForm = ({
         const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
         if (selectedFee) {
           transactionData.description = `${selectedFee.name} - ${selectedFee.description || 'Account charge'}`;
+          // Record fee name as method for transaction history display
+          transactionData.method = selectedFee.name;
         }
       }
 
