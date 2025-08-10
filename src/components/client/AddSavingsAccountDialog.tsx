@@ -160,6 +160,8 @@ const created = await createSavingsAccount.mutateAsync(savingsAccountData);
 if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
   const selectedFees = activationFeeOptions.filter((f) => data.activation_fee_ids?.includes(f.id));
   const overrideMap = (data as any).fee_overrides || {};
+  // Track balance locally to avoid attempting charges that would overdraw the new account
+  let currentBalance = Number((created as any)?.available_balance ?? (created as any)?.account_balance ?? 0);
   for (const fee of selectedFees) {
     const calc = calculateFeeAmount({
       id: fee.id,
@@ -176,14 +178,30 @@ if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
     const amountToCharge = isFinite(overrideVal) && overrideVal > 0 ? overrideVal : calc.calculated_amount;
 
     if (amountToCharge > 0) {
-      await processTransaction.mutateAsync({
-        savings_account_id: created.id,
-        transaction_type: 'fee_charge',
-        amount: amountToCharge,
-        transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
-        description: `${fee.name} activation fee`,
-        reference_number: `FEE-${fee.id.slice(-6).toUpperCase()}`,
-      });
+      if (currentBalance >= amountToCharge) {
+        try {
+          await processTransaction.mutateAsync({
+            savings_account_id: created.id,
+            transaction_type: 'fee_charge',
+            amount: amountToCharge,
+            transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
+            description: `${fee.name} activation fee`,
+            reference_number: `FEE-${fee.id.slice(-6).toUpperCase()}`,
+          });
+          currentBalance -= amountToCharge;
+        } catch (e) {
+          console.warn('Skipping activation fee due to processing error:', e);
+          toast({
+            title: 'Activation fee skipped',
+            description: `Could not charge ${fee.name} at this time. You can try again after funding the account.`,
+          });
+        }
+      } else {
+        toast({
+          title: 'Activation fee pending',
+          description: `Skipped ${fee.name} due to insufficient funds. Deposit funds and charge later.`,
+        });
+      }
     }
   }
 }
