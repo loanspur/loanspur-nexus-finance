@@ -407,59 +407,36 @@ onSuccess?.();
                   </Tooltip>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" size="icon" onClick={() => {
-                  const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
-                  const currVal = parseFloat(current[id] || '0') || 0;
-                  const next = Math.max(0, currVal - 50);
-                  current[id] = next ? String(next) : '';
-                  form.setValue('fee_overrides', current);
-                }} aria-label="Decrease fee">
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Input
-                  className="w-28"
-                  type="number"
-                  step="0.01"
-                  placeholder="Override"
-                  value={(form.getValues('fee_overrides') as Record<string, string>)[id] || ''}
-                  onChange={(e) => {
-                    const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
-                    current[id] = e.target.value;
-                    form.setValue('fee_overrides', current);
-                  }}
-                />
-                <Button type="button" variant="outline" size="icon" onClick={() => {
-                  const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
-                  const currVal = parseFloat(current[id] || '0') || 0;
-                  const next = currVal + 50;
-                  current[id] = String(next);
-                  form.setValue('fee_overrides', current);
-                }} aria-label="Increase fee">
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <Button type="button" variant="outline" size="icon" onClick={() => {
-                  const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
-                  delete current[id];
-                  form.setValue('fee_overrides', current);
-                }} aria-label="Reset fee">
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    form.setValue(
-                      'activation_fee_ids',
-                      (watchedFeeIds || []).filter((fId: string) => fId !== id)
-                    );
-                  }}
-                  aria-label="Remove fee"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`override-${id}`} className="sr-only">Override amount</Label>
+                  <Input
+                    id={`override-${id}`}
+                    className="w-32"
+                    type="number"
+                    step="0.01"
+                    placeholder="Override"
+                    value={(form.getValues('fee_overrides') as Record<string, string>)[id] || ''}
+                    onChange={(e) => {
+                      const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
+                      current[id] = e.target.value;
+                      form.setValue('fee_overrides', current);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      form.setValue(
+                        'activation_fee_ids',
+                        (watchedFeeIds || []).filter((fId: string) => fId !== id)
+                      );
+                    }}
+                    aria-label="Remove fee"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
             </div>
           );
         })}
