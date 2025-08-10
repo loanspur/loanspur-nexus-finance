@@ -376,7 +376,7 @@ export const SavingsTransactionForm = ({
       const transactionData: any = {
         tenant_id: profile.tenant_id,
         savings_account_id: savingsAccount.id,
-        transaction_type: data.transactionType,
+        transaction_type: data.transactionType === 'transfer' ? 'withdrawal' : data.transactionType,
         amount: amount,
         balance_after: newBalance,
         description: data.description || `${data.transactionType === 'transfer' ? 'Transfer out' : data.transactionType + ' transaction'}`,
@@ -430,7 +430,7 @@ export const SavingsTransactionForm = ({
           .insert({
             tenant_id: profile.tenant_id,
             savings_account_id: destAcc.id,
-            transaction_type: 'transfer',
+            transaction_type: 'deposit',
             amount: amount,
             balance_after: destNewBalance,
             description: `Transfer from ${savingsAccount.account_number}`,
