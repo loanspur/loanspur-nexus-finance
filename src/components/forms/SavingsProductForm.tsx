@@ -832,8 +832,8 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {paymentTypes?.map((type) => (
-                                  <SelectItem key={type.id} value={type.name}>
+                                {paymentTypes?.filter((t) => t.is_active).map((type) => (
+                                  <SelectItem key={type.id} value={type.code}>
                                     {type.name}
                                   </SelectItem>
                                 ))}

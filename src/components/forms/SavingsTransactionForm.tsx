@@ -118,22 +118,25 @@ export const SavingsTransactionForm = ({
       if (productError) { setPaymentOptions([]); return; }
 
       const mappings = (product?.payment_type_mappings as any[]) || [];
-      const codes = Array.from(new Set(
-        mappings
-          .map((m: any) => (m && typeof m.payment_type === 'string' ? m.payment_type : null))
-          .filter(Boolean)
-      ));
+      const rawVals: string[] = mappings
+        .map((m: any) => (m && typeof m.payment_type === 'string' ? m.payment_type : ''))
+        .filter((v: string) => !!v);
 
-      if (codes.length === 0) { setPaymentOptions([]); return; }
+      if (rawVals.length === 0) { setPaymentOptions([]); return; }
 
-      // Resolve display names from payment_types table by code and only include active ones
-      const { data: pts } = await supabase
+      // Load all ACTIVE payment types and filter by codes OR names present in mappings (case-insensitive)
+      const { data: pts, error: ptsErr } = await supabase
         .from('payment_types')
         .select('id, code, name, is_active')
-        .in('code', codes)
         .eq('is_active', true);
 
-      const options = (pts || []).map((pt: any) => ({ id: pt.id, code: pt.code, name: pt.name }));
+      if (ptsErr || !pts) { setPaymentOptions([]); return; }
+
+      const needleSet = new Set(rawVals.map(v => v.toLowerCase()));
+      const options = pts
+        .filter((pt: any) => needleSet.has((pt.code || '').toLowerCase()) || needleSet.has((pt.name || '').toLowerCase()))
+        .map((pt: any) => ({ id: pt.id, code: pt.code, name: pt.name }));
+
       setPaymentOptions(options);
     };
     load();
