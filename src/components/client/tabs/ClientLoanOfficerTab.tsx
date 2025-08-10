@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Users, User, Calendar, Phone, Mail, Building, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useLoanOfficers } from "@/hooks/useLoanOfficers";
 
 interface Client {
   id: string;
@@ -15,6 +15,7 @@ interface Client {
   last_name: string;
   client_number: string;
   loan_officer_id?: string | null;
+  office_id?: string | null;
   created_at: string;
 }
 
@@ -23,36 +24,11 @@ interface ClientLoanOfficerTabProps {
 }
 
 export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
-  const [selectedOfficer, setSelectedOfficer] = useState<string>("");
-  const [updating, setUpdating] = useState(false);
-  const [loanOfficers, setLoanOfficers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+const [selectedOfficer, setSelectedOfficer] = useState<string>("");
+const [updating, setUpdating] = useState(false);
+const { data: loanOfficers = [], isLoading: loading } = useLoanOfficers(client.office_id || undefined);
+const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchLoanOfficers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('role', ['loan_officer', 'tenant_admin'])
-          .eq('is_active', true);
-
-        if (error) {
-          console.error('Error fetching loan officers:', error);
-          return;
-        }
-
-        setLoanOfficers(data || []);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLoanOfficers();
-  }, []);
 
   const currentOfficer = loanOfficers.find(o => o.id === client.loan_officer_id);
 
@@ -136,24 +112,14 @@ export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
                     <span>{currentOfficer.email || 'No email provided'}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{currentOfficer.phone || 'No phone provided'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
                     <Building className="h-4 w-4 text-muted-foreground" />
                     <span>{currentOfficer.office_name || 'No office assigned'}</span>
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <div>
+<div>
                     <Label className="text-sm text-muted-foreground">Role</Label>
-                    <p className="text-lg font-semibold capitalize">{currentOfficer.role?.replace('_', ' ')}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-muted-foreground">Joined</Label>
-                    <p className="text-lg font-semibold">
-                      {format(new Date(currentOfficer.created_at), 'MMM yyyy')}
-                    </p>
+                    <p className="text-lg font-semibold capitalize">{currentOfficer.role_in_office?.replace('_', ' ') || 'loan officer'}</p>
                   </div>
                 </div>
               </div>
@@ -197,7 +163,7 @@ export const ClientLoanOfficerTab = ({ client }: ClientLoanOfficerTabProps) => {
                           <p className="text-sm text-muted-foreground">{officer.email}</p>
                         </div>
                         <div className="text-right text-sm">
-                          <p className="capitalize">{officer.role?.replace('_', ' ')}</p>
+                          <p className="capitalize">{officer.role_in_office?.replace('_', ' ')}</p>
                           <p className="text-muted-foreground">{officer.office_name || 'No office'}</p>
                         </div>
                       </div>

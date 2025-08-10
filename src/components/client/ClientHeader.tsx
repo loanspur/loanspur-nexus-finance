@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Phone, Building, IdCard, CreditCard, PiggyBank, Camera, Upload } from "lucide-react";
+import { Phone, Building, CreditCard, PiggyBank, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -132,12 +132,6 @@ export const ClientHeader = ({
                 <div className="flex items-center gap-2 text-white/90 text-sm">
                   <Building className="h-4 w-4" />
                   <span>{client.occupation}</span>
-                </div>
-              )}
-              {client.national_id && (
-                <div className="flex items-center gap-2 text-white/90 text-sm">
-                  <IdCard className="h-4 w-4" />
-                  <span>{client.national_id}</span>
                 </div>
               )}
               {client.gender && (
