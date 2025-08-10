@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,18 +27,16 @@ import { calculateFeeAmount } from "@/lib/fee-calculation";
 const addSavingsAccountSchema = z
   .object({
     savings_product_id: z.string().min(1, "Please select a savings product"),
-    initial_deposit: z.string().min(1, "Initial deposit is required"),
     account_purpose: z.string().optional(),
     created_date: z.string().min(1, "Created date is required"),
     approved_date: z.string().optional(),
     activated_date: z.string().optional(),
+    interest_calc_method: z.string().default('average_daily_balance'),
+    interest_rate: z.string().optional(),
     activation_fee_ids: z.array(z.string()).default([]),
+    fee_overrides: z.record(z.string(), z.string().optional()).default({}),
   })
   .superRefine((val, ctx) => {
-    const amount = parseFloat(val.initial_deposit || "0");
-    if (!isFinite(amount) || amount <= 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['initial_deposit'], message: 'Enter a positive amount' });
-    }
     const cd = val.created_date ? new Date(val.created_date) : null;
     const ad = val.approved_date ? new Date(val.approved_date) : null;
     const actd = val.activated_date ? new Date(val.activated_date) : null;
@@ -76,9 +74,6 @@ export const AddSavingsAccountDialog = ({
 const createSavingsAccount = useCreateSavingsAccount();
 const { data: savingsProducts = [], isLoading } = useSavingsProducts();
 const { data: allFeeStructures = [] } = useFeeStructures();
-const activationFeeOptions = allFeeStructures.filter(
-  (fee) => fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
-);
 const processTransaction = useProcessSavingsTransaction();
 
 const form = useForm<AddSavingsAccountData>({
@@ -86,18 +81,44 @@ const form = useForm<AddSavingsAccountData>({
   mode: 'onChange',
   defaultValues: {
     savings_product_id: "",
-    initial_deposit: "",
     account_purpose: "",
     created_date: new Date().toISOString().split('T')[0],
     approved_date: "",
     activated_date: "",
+    interest_calc_method: 'average_daily_balance',
+    interest_rate: "",
     activation_fee_ids: [],
+    fee_overrides: {},
   },
 });
 
-const watchedDeposit = form.watch('initial_deposit');
+const watchedProductId = form.watch('savings_product_id');
 const watchedFeeIds = form.watch('activation_fee_ids');
-const baseAmount = parseFloat(watchedDeposit || "0") || 0;
+
+const selectedProduct = useMemo(() => (
+  savingsProducts.find((p: any) => p.id === watchedProductId)
+), [savingsProducts, watchedProductId]);
+
+const baseAmount = useMemo(() => (
+  Number((selectedProduct as any)?.min_required_opening_balance || 0)
+), [selectedProduct]);
+
+// Prefill interest rate from product when product changes
+useEffect(() => {
+  if (selectedProduct) {
+    const rate = (selectedProduct as any)?.nominal_annual_interest_rate;
+    form.setValue('interest_rate', rate != null ? String(rate) : "");
+  }
+}, [selectedProduct]);
+
+// Filter fees to product-mapped only
+const mappedTypes = useMemo(() => (
+  (selectedProduct as any)?.fee_mappings?.map((m: any) => m.fee_type) || []
+), [selectedProduct]);
+
+const activationFeeOptions = useMemo(() => (
+  allFeeStructures.filter((f) => f.is_active && mappedTypes.includes(f.fee_type))
+), [allFeeStructures, mappedTypes]);
 
   const onSubmit = async (data: AddSavingsAccountData) => {
     if (!profile?.tenant_id) {
@@ -114,8 +135,8 @@ const baseAmount = parseFloat(watchedDeposit || "0") || 0;
 const savingsAccountData = {
   client_id: clientId,
   savings_product_id: data.savings_product_id,
-  account_balance: parseFloat(data.initial_deposit),
-  available_balance: parseFloat(data.initial_deposit),
+  account_balance: 0,
+  available_balance: 0,
   interest_earned: 0,
   tenant_id: profile.tenant_id,
   is_active: true,
@@ -130,8 +151,8 @@ const created = await createSavingsAccount.mutateAsync(savingsAccountData);
 
 // Apply selected activation fees immediately
 if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
-  const baseAmount = parseFloat(data.initial_deposit);
   const selectedFees = activationFeeOptions.filter((f) => data.activation_fee_ids?.includes(f.id));
+  const overrideMap = (data as any).fee_overrides || {};
   for (const fee of selectedFees) {
     const calc = calculateFeeAmount({
       id: fee.id,
@@ -144,11 +165,14 @@ if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
       charge_time_type: fee.charge_time_type,
     }, baseAmount);
 
-    if (calc.calculated_amount > 0) {
+    const overrideVal = parseFloat(overrideMap[fee.id] || "");
+    const amountToCharge = isFinite(overrideVal) && overrideVal > 0 ? overrideVal : calc.calculated_amount;
+
+    if (amountToCharge > 0) {
       await processTransaction.mutateAsync({
         savings_account_id: created.id,
         transaction_type: 'fee_charge',
-        amount: calc.calculated_amount,
+        amount: amountToCharge,
         transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
         description: `${fee.name} activation fee`,
         reference_number: `FEE-${fee.id.slice(-6).toUpperCase()}`,
@@ -217,27 +241,45 @@ onSuccess?.();
                 </FormItem>
               )}
             />
+{/* Interest settings */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <FormField
+    control={form.control}
+    name="interest_calc_method"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Interest Calculation</FormLabel>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Select method" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            <SelectItem value="daily_balance">Daily balance</SelectItem>
+            <SelectItem value="average_daily_balance">Average daily balance</SelectItem>
+            <SelectItem value="monthly_min_balance">Monthly minimum balance</SelectItem>
+          </SelectContent>
+        </Select>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
 
-            <FormField
-              control={form.control}
-              name="initial_deposit"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Deposit (KES) *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="e.g. 5000"
-                      min="0"
-                      step="0.01"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+  <FormField
+    control={form.control}
+    name="interest_rate"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Interest Rate (% p.a.)</FormLabel>
+        <FormControl>
+          <Input type="number" step="0.01" placeholder="e.g. 5" {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
             <FormField
               control={form.control}
               name="account_purpose"
@@ -349,6 +391,20 @@ onSuccess?.();
                   </Tooltip>
                 </div>
               </Label>
+              <div className="w-36">
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Override"
+                  disabled={!selected}
+                  value={(form.getValues('fee_overrides') as Record<string,string>)[fee.id] || ''}
+                  onChange={(e) => {
+                    const current = { ...(form.getValues('fee_overrides') as Record<string,string>) };
+                    current[fee.id] = e.target.value;
+                    form.setValue('fee_overrides', current);
+                  }}
+                />
+              </div>
             </div>
           );
         })
