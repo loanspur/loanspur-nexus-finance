@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useSavingsTransactions } from "@/hooks/useSavingsManagement";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, Download, ArrowUpRight, ArrowDownRight, ArrowRightLeft, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClientSavingsPage = () => {
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
@@ -20,6 +21,21 @@ const ClientSavingsPage = () => {
   const savingsAccount = savingsAccounts?.[0];
   
   const { data: transactions, isLoading: transactionsLoading } = useSavingsTransactions(savingsAccount?.id);
+
+  // Load active payment types for display mapping
+  const [paymentTypeMap, setPaymentTypeMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('payment_types')
+        .select('code, name')
+        .eq('is_active', true);
+      const map: Record<string, string> = {};
+      (data || []).forEach((pt: any) => { if (pt.code) map[pt.code] = pt.name || pt.code; });
+      setPaymentTypeMap(map);
+    };
+    load();
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -188,27 +204,32 @@ const ClientSavingsPage = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-6 text-sm">
-                    <div className="text-center">
-                      <div className={`font-medium ${
-                        transaction.transaction_type === 'deposit' || transaction.transaction_type === 'interest_posting'
-                          ? 'text-success'
-                          : 'text-destructive'
-                      }`}>
-                        {transaction.transaction_type === 'deposit' || transaction.transaction_type === 'interest_posting'
-                          ? '+' : '-'
-                        }{formatCurrency(transaction.amount)}
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="text-center">
+                        <div className={`font-medium ${
+                          transaction.transaction_type === 'deposit' || transaction.transaction_type === 'interest_posting'
+                            ? 'text-success'
+                            : 'text-destructive'
+                        }`}>
+                          {transaction.transaction_type === 'deposit' || transaction.transaction_type === 'interest_posting'
+                            ? '+' : '-'
+                          }{formatCurrency(transaction.amount)}
+                        </div>
+                        {transaction.reference_number && (
+                          <div className="text-xs text-muted-foreground">Ref: {transaction.reference_number}</div>
+                        )}
                       </div>
-                      {transaction.reference_number && (
-                        <div className="text-xs text-muted-foreground">Ref: {transaction.reference_number}</div>
-                      )}
+
+                      <div className="text-center hidden sm:block">
+                        <div className="font-medium">{transaction.payment_method ? (paymentTypeMap[transaction.payment_method] || transaction.payment_method) : '—'}</div>
+                        <div className="text-xs text-muted-foreground">Method</div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="font-medium">{formatCurrency(transaction.balance_after)}</div>
+                        <div className="text-xs text-muted-foreground">Balance</div>
+                      </div>
                     </div>
-                    
-                    <div className="text-center">
-                      <div className="font-medium">{formatCurrency(transaction.balance_after)}</div>
-                      <div className="text-xs text-muted-foreground">Balance</div>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>

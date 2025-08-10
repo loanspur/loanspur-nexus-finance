@@ -13,6 +13,7 @@ export interface SavingsTransaction {
   transaction_date: string;
   description?: string;
   reference_number?: string;
+  payment_method?: string;
   processed_by?: string;
   created_at: string;
 }

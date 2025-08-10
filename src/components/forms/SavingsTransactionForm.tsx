@@ -363,7 +363,8 @@ export const SavingsTransactionForm = ({
         balance_after: newBalance,
         description: data.description || `${data.transactionType} transaction`,
         reference_number: data.reference,
-        processed_by: profile.id
+        processed_by: profile.id,
+        payment_method: data.method,
       };
 
       // Add fee structure reference for charges

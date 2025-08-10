@@ -190,6 +190,8 @@ const created = await createSavingsAccount.mutateAsync(savingsAccountData);
 if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
   const selectedFees = activationFeeOptions.filter((f) => data.activation_fee_ids?.includes(f.id));
   const overrideMap = (data as any).fee_overrides || {};
+  const txnDate = (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0];
+  let runningBalance = 0;
   for (const fee of selectedFees) {
     const calc = calculateFeeAmount({
       id: fee.id,
@@ -206,17 +208,39 @@ if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
     const amountToCharge = isFinite(overrideVal) && overrideVal > 0 ? overrideVal : calc.calculated_amount;
 
     if (amountToCharge > 0) {
+      // Create a savings transaction record for the activation fee
+      const newBalance = runningBalance - amountToCharge;
+      await supabase.from('savings_transactions').insert({
+        tenant_id: effectiveTenantId,
+        savings_account_id: created.id,
+        transaction_type: 'fee_charge',
+        amount: amountToCharge,
+        balance_after: newBalance,
+        transaction_date: txnDate,
+        description: `${fee.name} activation fee`,
+        reference_number: `ACT-${fee.id.slice(-6).toUpperCase()}`,
+        processed_by: profile?.id || null,
+      });
+
+      // Create accounting entries
       await feeChargeAccounting.mutateAsync({
         savings_product_id: data.savings_product_id,
         savings_account_id: created.id,
         amount: amountToCharge,
-        transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
+        transaction_date: txnDate,
         description: `${fee.name} activation fee`,
         fee_type: fee.fee_type,
       } as any);
+
+      runningBalance = newBalance;
     }
   }
+  // Update account balance to reflect activation fees
+  await supabase.from('savings_accounts')
+    .update({ account_balance: runningBalance, available_balance: runningBalance, updated_at: new Date().toISOString() })
+    .eq('id', created.id);
 }
+
 
 form.reset();
 onOpenChange(false);
