@@ -88,7 +88,7 @@ export const TransactionStatement = ({
         type: accountType === 'savings' ? item.transaction_type : 'payment',
         amount: parseFloat(item.amount),
         balance: accountType === 'savings' ? parseFloat(item.balance_after) : 0,
-        method: item.payment_method || 'N/A',
+        method: item.method || item.payment_method || 'N/A',
         reference: item.reference_number || `${accountType === 'savings' ? 'TXN' : 'PMT'}-${item.id.slice(-8)}`,
         description: item.description || '',
         status: item.status || 'completed'

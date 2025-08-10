@@ -14,6 +14,7 @@ export interface SavingsTransaction {
   description?: string;
   reference_number?: string;
   payment_method?: string;
+  method?: string;
   processed_by?: string;
   created_at: string;
 }
@@ -46,7 +47,11 @@ export const useSavingsTransactions = (accountId?: string) => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as SavingsTransaction[];
+      const normalized = (data || []).map((row: any) => ({
+        ...row,
+        payment_method: row?.payment_method ?? row?.method ?? undefined,
+      }));
+      return normalized as SavingsTransaction[];
     },
     enabled: !!accountId,
   });
@@ -116,10 +121,16 @@ export const useProcessSavingsTransaction = () => {
       const { data, error } = await supabase
         .from('savings_transactions')
         .insert([{
-          ...transaction,
           tenant_id: profile.tenant_id,
+          savings_account_id: transaction.savings_account_id,
+          transaction_type: transaction.transaction_type,
+          amount: transaction.amount,
           balance_after: newBalance,
+          transaction_date: transaction.transaction_date,
+          description: transaction.description,
+          reference_number: transaction.reference_number,
           processed_by: profile.id,
+          method: (transaction as any).method ?? transaction.payment_method,
         }])
         .select()
         .single();
