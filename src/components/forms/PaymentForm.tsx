@@ -15,7 +15,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/useLoanAccounting";
+import { useLoanRepaymentAccounting, useLoanChargeAccounting, useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
+import { supabase } from "@/integrations/supabase/client";
 
 const paymentSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -47,6 +48,7 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   // Accounting hooks
   const loanRepaymentAccounting = useLoanRepaymentAccounting();
   const loanChargeAccounting = useLoanChargeAccounting();
+  const loanDisbursementAccounting = useLoanDisbursementAccounting();
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -89,6 +91,27 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
               charge_date: transactionDate,
               description: data.description || 'Loan fee charge',
             });
+          }
+          break;
+        case 'loan_disbursement':
+          if (data.loanId) {
+            // Fetch loan to get product and number
+            const { data: loan, error } = await supabase
+              .from('loans')
+              .select('id, client_id, loan_product_id, loan_number')
+              .eq('id', data.loanId)
+              .single();
+            if (!error && loan) {
+              await loanDisbursementAccounting.mutateAsync({
+                loan_id: loan.id,
+                client_id: loan.client_id,
+                loan_product_id: loan.loan_product_id,
+                principal_amount: amount,
+                disbursement_date: transactionDate,
+                loan_number: loan.loan_number,
+                payment_method: data.paymentType,
+              });
+            }
           }
           break;
         case 'savings_deposit':

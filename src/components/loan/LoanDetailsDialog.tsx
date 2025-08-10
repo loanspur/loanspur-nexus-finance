@@ -145,8 +145,23 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
           transaction_date: new Date().toISOString(),
           description: `Transfer of loan overpayment (${loan.loan_number || loan.id})`,
           processed_by: loan.loan_officer_id || null,
+          method: 'internal_transfer',
         });
       if (txErr) throw txErr;
+
+      // Best-effort accounting entry for the deposit to savings
+      try {
+        await depositAccounting.mutateAsync({
+          savings_account_id: selectedSavingsId,
+          savings_product_id: acct.savings_product_id,
+          amount: derived.overpaidAmount,
+          transaction_date: new Date().toISOString().split('T')[0],
+          account_number: acct.account_number,
+          payment_method: 'internal_transfer',
+        } as any);
+      } catch (e) {
+        console.warn('Savings deposit accounting failed:', e);
+      }
 
       toast({ title: 'Excess transferred', description: 'Overpaid amount transferred to savings.' });
       setTransferOpen(false);
