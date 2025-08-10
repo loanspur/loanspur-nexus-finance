@@ -14,15 +14,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PiggyBank } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSavingsAccount, useSavingsProducts } from "@/hooks/useSupabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { useProcessSavingsTransaction } from "@/hooks/useSavingsManagement";
+import { calculateFeeAmount } from "@/lib/fee-calculation";
 
 const addSavingsAccountSchema = z.object({
   savings_product_id: z.string().min(1, "Please select a savings product"),
   initial_deposit: z.string().min(1, "Initial deposit is required"),
   account_purpose: z.string().optional(),
+  created_date: z.string().min(1, "Created date is required"),
+  approved_date: z.string().optional(),
+  activated_date: z.string().optional(),
+  activation_fee_ids: z.array(z.string()).default([]),
 });
 
 type AddSavingsAccountData = z.infer<typeof addSavingsAccountSchema>;
@@ -45,17 +53,26 @@ export const AddSavingsAccountDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
-  const createSavingsAccount = useCreateSavingsAccount();
-  const { data: savingsProducts = [], isLoading } = useSavingsProducts();
+const createSavingsAccount = useCreateSavingsAccount();
+const { data: savingsProducts = [], isLoading } = useSavingsProducts();
+const { data: allFeeStructures = [] } = useFeeStructures();
+const activationFeeOptions = allFeeStructures.filter(
+  (fee) => fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
+);
+const processTransaction = useProcessSavingsTransaction();
 
-  const form = useForm<AddSavingsAccountData>({
-    resolver: zodResolver(addSavingsAccountSchema),
-    defaultValues: {
-      savings_product_id: "",
-      initial_deposit: "",
-      account_purpose: "",
-    },
-  });
+const form = useForm<AddSavingsAccountData>({
+  resolver: zodResolver(addSavingsAccountSchema),
+  defaultValues: {
+    savings_product_id: "",
+    initial_deposit: "",
+    account_purpose: "",
+    created_date: new Date().toISOString().split('T')[0],
+    approved_date: "",
+    activated_date: "",
+    activation_fee_ids: [],
+  },
+});
 
   const onSubmit = async (data: AddSavingsAccountData) => {
     if (!profile?.tenant_id) {
@@ -69,23 +86,55 @@ export const AddSavingsAccountDialog = ({
 
     setIsSubmitting(true);
     try {
-      const savingsAccountData = {
-        client_id: clientId,
-        savings_product_id: data.savings_product_id,
-        account_balance: parseFloat(data.initial_deposit),
-        available_balance: parseFloat(data.initial_deposit),
-        interest_earned: 0,
-        tenant_id: profile.tenant_id,
-        is_active: true,
-        opened_date: new Date().toISOString().split('T')[0],
-        account_number: `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-      };
+const savingsAccountData = {
+  client_id: clientId,
+  savings_product_id: data.savings_product_id,
+  account_balance: parseFloat(data.initial_deposit),
+  available_balance: parseFloat(data.initial_deposit),
+  interest_earned: 0,
+  tenant_id: profile.tenant_id,
+  is_active: true,
+  opened_date: data.created_date,
+  created_date: data.created_date,
+  approved_date: data.approved_date || null,
+  activated_date: data.activated_date || null,
+  account_number: `SAV-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+};
 
-      await createSavingsAccount.mutateAsync(savingsAccountData);
+const created = await createSavingsAccount.mutateAsync(savingsAccountData);
 
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
+// Apply selected activation fees immediately
+if (created?.id && (data.activation_fee_ids?.length || 0) > 0) {
+  const baseAmount = parseFloat(data.initial_deposit);
+  const selectedFees = activationFeeOptions.filter((f) => data.activation_fee_ids?.includes(f.id));
+  for (const fee of selectedFees) {
+    const calc = calculateFeeAmount({
+      id: fee.id,
+      name: fee.name,
+      calculation_type: fee.calculation_type as any,
+      amount: fee.amount,
+      min_amount: fee.min_amount,
+      max_amount: fee.max_amount,
+      fee_type: fee.fee_type,
+      charge_time_type: fee.charge_time_type,
+    }, baseAmount);
+
+    if (calc.calculated_amount > 0) {
+      await processTransaction.mutateAsync({
+        savings_account_id: created.id,
+        transaction_type: 'fee_charge',
+        amount: calc.calculated_amount,
+        transaction_date: (data.activated_date || data.created_date) || new Date().toISOString().split('T')[0],
+        description: `${fee.name} activation fee`,
+        reference_number: `FEE-${fee.id.slice(-6).toUpperCase()}`,
+      });
+    }
+  }
+}
+
+form.reset();
+onOpenChange(false);
+onSuccess?.();
     } catch (error) {
       console.error("Error creating savings account:", error);
       toast({
@@ -181,18 +230,95 @@ export const AddSavingsAccountDialog = ({
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Account"}
-              </Button>
-            </div>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+  <FormField
+    control={form.control}
+    name="created_date"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Created Date *</FormLabel>
+        <FormControl>
+          <Input type="date" {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={form.control}
+    name="approved_date"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Approved Date</FormLabel>
+        <FormControl>
+          <Input type="date" {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+  <FormField
+    control={form.control}
+    name="activated_date"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel>Activated Date</FormLabel>
+        <FormControl>
+          <Input type="date" {...field} />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
+
+<div className="space-y-3 border-t pt-4">
+  <div>
+    <FormLabel>Activation Fees</FormLabel>
+    <p className="text-sm text-muted-foreground">Select fees to charge on activation. Charges will be applied immediately.</p>
+  </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {activationFeeOptions.length === 0 ? (
+      <div className="text-sm text-muted-foreground">No savings fees available.</div>
+    ) : (
+      activationFeeOptions.map((fee) => {
+        const selected = (form.getValues('activation_fee_ids') || []).includes(fee.id);
+        return (
+          <div key={fee.id} className="flex items-center gap-3 p-3 border rounded-lg">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(checked) => {
+                const current = new Set(form.getValues('activation_fee_ids') || []);
+                if (checked) current.add(fee.id); else current.delete(fee.id);
+                form.setValue('activation_fee_ids', Array.from(current));
+              }}
+              id={`fee-${fee.id}`}
+            />
+            <Label htmlFor={`fee-${fee.id}`} className="flex-1">
+              <div className="font-medium">{fee.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `KES ${fee.amount}`}
+              </div>
+            </Label>
+          </div>
+        );
+      })
+    )}
+  </div>
+</div>
+
+<div className="flex justify-end gap-2 pt-4">
+  <Button
+    type="button"
+    variant="outline"
+    onClick={() => onOpenChange(false)}
+  >
+    Cancel
+  </Button>
+  <Button type="submit" disabled={isSubmitting}>
+    {isSubmitting ? "Creating..." : "Create Account"}
+  </Button>
+</div>
           </form>
         </Form>
       </DialogContent>

@@ -179,6 +179,10 @@ export interface SavingsAccount {
   interest_earned: number;
   is_active: boolean;
   opened_date: string;
+  created_date?: string; // added for richer lifecycle tracking
+  approved_date?: string | null; // optional
+  activated_date?: string | null; // optional
+  status?: string; // optional status field
   mifos_account_id?: number | null;
   created_at: string;
   updated_at: string;

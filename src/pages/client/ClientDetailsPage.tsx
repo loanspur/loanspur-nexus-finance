@@ -387,10 +387,6 @@ const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
                     <PiggyBank className="h-4 w-4 mr-2" />
                     Savings ({activeSavings.length})
                   </TabsTrigger>
-                  <TabsTrigger value="offices" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Offices
-                  </TabsTrigger>
                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <StickyNote className="h-4 w-4 mr-2" />
                     Notes
@@ -459,16 +455,6 @@ const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
                 </TabsContent>
                 <TabsContent value="groups" className="mt-0">
                   <ClientGroupsTab client={client} />
-                </TabsContent>
-                <TabsContent value="offices" className="mt-0">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Office Assignment</h3>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Office assignment is now managed during client onboarding and can be updated in the client edit form.
-                    </div>
-                  </div>
                 </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />
