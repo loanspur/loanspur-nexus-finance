@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { useProcessSavingsTransaction } from "@/hooks/useSavingsManagement";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
+import { supabase } from "@/integrations/supabase/client";
 
 const addSavingsAccountSchema = z
   .object({
@@ -122,24 +123,29 @@ const activationFeeOptions = useMemo(() => (
 ), [allFeeStructures, mappedTypes]);
 
   const onSubmit = async (data: AddSavingsAccountData) => {
-    if (!profile?.tenant_id) {
-      toast({
-        title: "Error",
-        description: "No tenant information available",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
+      // Resolve tenant_id: use profile.tenant_id or fallback to client's tenant
+      let effectiveTenantId = profile?.tenant_id as string | undefined;
+      if (!effectiveTenantId) {
+        const { data: clientRow, error: clientErr } = await supabase
+          .from("clients")
+          .select("tenant_id")
+          .eq("id", clientId)
+          .maybeSingle();
+        if (clientErr) throw clientErr;
+        effectiveTenantId = clientRow?.tenant_id as string | undefined;
+      }
+      if (!effectiveTenantId) {
+        throw new Error("No tenant information available");
+      }
 const savingsAccountData = {
   client_id: clientId,
   savings_product_id: data.savings_product_id,
   account_balance: 0,
   available_balance: 0,
   interest_earned: 0,
-  tenant_id: profile.tenant_id,
+  tenant_id: effectiveTenantId,
   is_active: true,
   opened_date: data.created_date,
   created_date: data.created_date,
@@ -189,7 +195,7 @@ onSuccess?.();
       console.error("Error creating savings account:", error);
       toast({
         title: "Error",
-        description: "Failed to create savings account",
+        description: (error as any)?.message || "Failed to create savings account",
         variant: "destructive",
       });
     } finally {
