@@ -6414,45 +6414,57 @@ export type Database = {
         Row: {
           account_balance: number | null
           account_number: string
+          activated_date: string | null
+          approved_date: string | null
           available_balance: number | null
           client_id: string
           created_at: string
+          created_date: string | null
           id: string
           interest_earned: number | null
           is_active: boolean
           mifos_account_id: number | null
           opened_date: string
           savings_product_id: string
+          status: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
           account_balance?: number | null
           account_number: string
+          activated_date?: string | null
+          approved_date?: string | null
           available_balance?: number | null
           client_id: string
           created_at?: string
+          created_date?: string | null
           id?: string
           interest_earned?: number | null
           is_active?: boolean
           mifos_account_id?: number | null
           opened_date?: string
           savings_product_id: string
+          status?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
           account_balance?: number | null
           account_number?: string
+          activated_date?: string | null
+          approved_date?: string | null
           available_balance?: number | null
           client_id?: string
           created_at?: string
+          created_date?: string | null
           id?: string
           interest_earned?: number | null
           is_active?: boolean
           mifos_account_id?: number | null
           opened_date?: string
           savings_product_id?: string
+          status?: string
           tenant_id?: string
           updated_at?: string
         }
