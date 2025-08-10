@@ -19,10 +19,12 @@ import { FinancialActivityMappingsTable } from "@/components/accounting/Financia
 import { ReconciliationManagement } from "@/components/accounting/ReconciliationManagement";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountingMetrics } from "@/hooks/useAccountingMetrics";
 
 const AccountingPage = () => {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("journal-entries");
+  const { data: metrics } = useAccountingMetrics();
 
   if (!profile || profile.role === 'client') {
     return (
@@ -47,7 +49,7 @@ const AccountingPage = () => {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{metrics?.journalEntriesThisMonth ?? 0}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -58,7 +60,7 @@ const AccountingPage = () => {
             <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{metrics?.activeAccounts ?? 0}</div>
             <p className="text-xs text-muted-foreground">Active accounts</p>
           </CardContent>
         </Card>
@@ -70,7 +72,7 @@ const AccountingPage = () => {
             <Settings className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{metrics?.activityMappings ?? 0}</div>
             <p className="text-xs text-muted-foreground">Defined</p>
           </CardContent>
         </Card>

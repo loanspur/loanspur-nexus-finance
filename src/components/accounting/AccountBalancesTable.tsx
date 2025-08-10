@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { CalendarIcon, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useAccountBalances, useCurrentAccountBalances } from "@/hooks/useAccountBalances";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AccountBalancesTable = () => {
   const [filters, setFilters] = useState({
@@ -32,6 +33,60 @@ export const AccountBalancesTable = () => {
 
     return matchesSearch && matchesType;
   }) || [];
+
+  // Fallback: compute balances directly from journal entries if no snapshots exist
+  const [computedBalances, setComputedBalances] = useState<any[]>([]);
+  const [isComputing, setIsComputing] = useState(false);
+
+  useEffect(() => {
+    const compute = async () => {
+      if (!currentAccounts || currentAccounts.length === 0) { setComputedBalances([]); return; }
+      // Filter accounts by search/type
+      const accounts = currentAccounts.filter((acc: any) => {
+        const matchesSearch = (acc.account_name || '').toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+          (acc.account_code || '').toLowerCase().includes(filters.searchTerm.toLowerCase());
+        const matchesType = filters.accountType === 'all' || acc.account_type === filters.accountType;
+        return matchesSearch && matchesType;
+      });
+      if (accounts.length === 0) { setComputedBalances([]); return; }
+      setIsComputing(true);
+      const dateParam = filters.balanceDate || format(new Date(), 'yyyy-MM-dd');
+      const results = await Promise.all(accounts.map(async (acc: any) => {
+        try {
+          const { data } = await supabase.rpc('calculate_account_balance', { p_account_id: acc.id, p_date: dateParam });
+          const closing = (data as any) ?? 0;
+          return {
+            id: `${acc.id}-${dateParam}`,
+            tenant_id: acc.tenant_id,
+            account_id: acc.id,
+            balance_date: dateParam,
+            opening_balance: 0,
+            period_debits: 0,
+            period_credits: 0,
+            closing_balance: Number(closing) || 0,
+            chart_of_accounts: {
+              account_code: acc.account_code,
+              account_name: acc.account_name,
+              account_type: acc.account_type,
+              account_category: acc.account_category,
+            },
+          };
+        } catch {
+          return null;
+        }
+      }));
+      setComputedBalances(results.filter(Boolean));
+      setIsComputing(false);
+    };
+
+    if (filteredBalances.length === 0) {
+      compute();
+    } else {
+      setComputedBalances([]);
+    }
+  }, [filteredBalances.length, currentAccounts, filters.searchTerm, filters.accountType, filters.balanceDate]);
+
+  const dataSource = (filteredBalances.length > 0 ? filteredBalances : computedBalances);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -63,7 +118,7 @@ export const AccountBalancesTable = () => {
       expenses: 0
     };
 
-    filteredBalances.forEach(balance => {
+    dataSource.forEach((balance: any) => {
       const type = balance.chart_of_accounts.account_type;
       switch (type) {
         case 'asset':
@@ -89,7 +144,7 @@ export const AccountBalancesTable = () => {
 
   const totals = getTotalsByType();
 
-  if (balancesLoading || accountsLoading) {
+  if (balancesLoading || accountsLoading || isComputing) {
     return <div>Loading account balances...</div>;
   }
 
@@ -215,13 +270,13 @@ export const AccountBalancesTable = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredBalances.length === 0 && !filters.balanceDate && (
+                {dataSource.length === 0 && !filters.balanceDate && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {currentAccounts && currentAccounts.length > 0 ? (
                         <div>
                           <p>No account balances recorded yet.</p>
-                          <p className="text-sm mt-2">Account balances will be automatically created when journal entries are posted.</p>
+                          <p className="text-sm mt-2">We are computing live balances from journal entries.</p>
                         </div>
                       ) : (
                         "No accounts found. Create accounts in the Chart of Accounts tab first."
@@ -229,24 +284,24 @@ export const AccountBalancesTable = () => {
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredBalances.length === 0 && filters.balanceDate && (
+                {dataSource.length === 0 && filters.balanceDate && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No account balances found for the selected date.
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredBalances.map((balance) => (
+                {dataSource.map((balance: any) => (
                   <TableRow key={balance.id}>
                     <TableCell className="font-medium">{balance.chart_of_accounts.account_code}</TableCell>
                     <TableCell>{balance.chart_of_accounts.account_name}</TableCell>
                     <TableCell>{getAccountTypeBadge(balance.chart_of_accounts.account_type)}</TableCell>
                     <TableCell className="capitalize">
-                      {balance.chart_of_accounts.account_category.replace('_', ' ')}
+                      {balance.chart_of_accounts.account_category?.replace('_', ' ')}
                     </TableCell>
-                    <TableCell className="text-right">{formatAmount(balance.opening_balance)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(balance.period_debits)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(balance.period_credits)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(balance.opening_balance || 0)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(balance.period_debits || 0)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(balance.period_credits || 0)}</TableCell>
                     <TableCell className="text-right font-semibold">
                       {formatAmount(balance.closing_balance)}
                     </TableCell>
