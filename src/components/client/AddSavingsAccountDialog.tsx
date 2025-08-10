@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PiggyBank } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PiggyBank, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSavingsAccount, useSavingsProducts } from "@/hooks/useSupabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,15 +24,34 @@ import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { useProcessSavingsTransaction } from "@/hooks/useSavingsManagement";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
 
-const addSavingsAccountSchema = z.object({
-  savings_product_id: z.string().min(1, "Please select a savings product"),
-  initial_deposit: z.string().min(1, "Initial deposit is required"),
-  account_purpose: z.string().optional(),
-  created_date: z.string().min(1, "Created date is required"),
-  approved_date: z.string().optional(),
-  activated_date: z.string().optional(),
-  activation_fee_ids: z.array(z.string()).default([]),
-});
+const addSavingsAccountSchema = z
+  .object({
+    savings_product_id: z.string().min(1, "Please select a savings product"),
+    initial_deposit: z.string().min(1, "Initial deposit is required"),
+    account_purpose: z.string().optional(),
+    created_date: z.string().min(1, "Created date is required"),
+    approved_date: z.string().optional(),
+    activated_date: z.string().optional(),
+    activation_fee_ids: z.array(z.string()).default([]),
+  })
+  .superRefine((val, ctx) => {
+    const amount = parseFloat(val.initial_deposit || "0");
+    if (!isFinite(amount) || amount <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['initial_deposit'], message: 'Enter a positive amount' });
+    }
+    const cd = val.created_date ? new Date(val.created_date) : null;
+    const ad = val.approved_date ? new Date(val.approved_date) : null;
+    const actd = val.activated_date ? new Date(val.activated_date) : null;
+    if (ad && cd && ad < cd) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['approved_date'], message: 'Approved date must be on/after created date' });
+    }
+    if (actd && cd && actd < cd) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['activated_date'], message: 'Activated date must be on/after created date' });
+    }
+    if (actd && ad && actd < ad) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['activated_date'], message: 'Activated date must be on/after approved date' });
+    }
+  });
 
 type AddSavingsAccountData = z.infer<typeof addSavingsAccountSchema>;
 
@@ -63,6 +83,7 @@ const processTransaction = useProcessSavingsTransaction();
 
 const form = useForm<AddSavingsAccountData>({
   resolver: zodResolver(addSavingsAccountSchema),
+  mode: 'onChange',
   defaultValues: {
     savings_product_id: "",
     initial_deposit: "",
@@ -73,6 +94,10 @@ const form = useForm<AddSavingsAccountData>({
     activation_fee_ids: [],
   },
 });
+
+const watchedDeposit = form.watch('initial_deposit');
+const watchedFeeIds = form.watch('activation_fee_ids');
+const baseAmount = parseFloat(watchedDeposit || "0") || 0;
 
   const onSubmit = async (data: AddSavingsAccountData) => {
     if (!profile?.tenant_id) {
@@ -274,37 +299,62 @@ onSuccess?.();
 
 <div className="space-y-3 border-t pt-4">
   <div>
-    <FormLabel>Activation Fees</FormLabel>
-    <p className="text-sm text-muted-foreground">Select fees to charge on activation. Charges will be applied immediately.</p>
+    <FormLabel>Fees to charge on activation</FormLabel>
+    <p className="text-sm text-muted-foreground">These fees will post immediately after account creation.</p>
   </div>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-    {activationFeeOptions.length === 0 ? (
-      <div className="text-sm text-muted-foreground">No savings fees available.</div>
-    ) : (
-      activationFeeOptions.map((fee) => {
-        const selected = (form.getValues('activation_fee_ids') || []).includes(fee.id);
-        return (
-          <div key={fee.id} className="flex items-center gap-3 p-3 border rounded-lg">
-            <Checkbox
-              checked={selected}
-              onCheckedChange={(checked) => {
-                const current = new Set(form.getValues('activation_fee_ids') || []);
-                if (checked) current.add(fee.id); else current.delete(fee.id);
-                form.setValue('activation_fee_ids', Array.from(current));
-              }}
-              id={`fee-${fee.id}`}
-            />
-            <Label htmlFor={`fee-${fee.id}`} className="flex-1">
-              <div className="font-medium">{fee.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `KES ${fee.amount}`}
-              </div>
-            </Label>
-          </div>
-        );
-      })
-    )}
-  </div>
+  <TooltipProvider>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {activationFeeOptions.length === 0 ? (
+        <div className="text-sm text-muted-foreground">No savings fees available.</div>
+      ) : (
+        activationFeeOptions.map((fee) => {
+          const selected = (form.getValues('activation_fee_ids') || []).includes(fee.id);
+          const calc = calculateFeeAmount({
+            id: fee.id,
+            name: fee.name,
+            calculation_type: fee.calculation_type as any,
+            amount: fee.amount,
+            min_amount: fee.min_amount,
+            max_amount: fee.max_amount,
+            fee_type: fee.fee_type,
+            charge_time_type: fee.charge_time_type,
+          }, baseAmount);
+          const applied = calc.applied_limit ? (calc.applied_limit === 'minimum' ? 'Min applied' : 'Max applied') : null;
+          const amountStr = `KES ${calc.calculated_amount.toLocaleString('en-KE')}`;
+          const detailText = fee.calculation_type === 'percentage'
+            ? `${fee.amount}% of KES ${baseAmount.toLocaleString('en-KE')}${applied ? ` • ${applied}` : ''}`
+            : `${amountStr}${applied ? ` • ${applied}` : ''}`;
+          return (
+            <div key={fee.id} className="flex items-center gap-3 p-3 border rounded-lg">
+              <Checkbox
+                checked={selected}
+                onCheckedChange={(checked) => {
+                  const current = new Set(form.getValues('activation_fee_ids') || []);
+                  if (checked) current.add(fee.id); else current.delete(fee.id);
+                  form.setValue('activation_fee_ids', Array.from(current));
+                }}
+                id={`fee-${fee.id}`}
+              />
+              <Label htmlFor={`fee-${fee.id}`} className="flex-1">
+                <div className="font-medium">{fee.name}</div>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  {amountStr}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{detailText}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </Label>
+            </div>
+          );
+        })
+      )}
+    </div>
+  </TooltipProvider>
 </div>
 
 <div className="flex justify-end gap-2 pt-4">
@@ -315,8 +365,8 @@ onSuccess?.();
   >
     Cancel
   </Button>
-  <Button type="submit" disabled={isSubmitting}>
-    {isSubmitting ? "Creating..." : "Create Account"}
+  <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+    {isSubmitting ? "Creating..." : ((watchedFeeIds?.length || 0) > 0 ? "Create & Apply Fees" : "Create Account")}
   </Button>
 </div>
           </form>
