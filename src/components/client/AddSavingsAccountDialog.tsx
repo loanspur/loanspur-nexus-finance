@@ -14,9 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PiggyBank, Info } from "lucide-react";
+import { PiggyBank, Info, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateSavingsAccount, useSavingsProducts } from "@/hooks/useSupabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -342,15 +342,40 @@ onSuccess?.();
 <div className="space-y-3 border-t pt-4">
   <div>
     <FormLabel>Fees to charge on activation</FormLabel>
-    <p className="text-sm text-muted-foreground">These fees will post immediately after account creation.</p>
+    <p className="text-sm text-muted-foreground">Pick a fee, then optionally override the amount.</p>
   </div>
+
+  <div className="flex items-center gap-3">
+    <Select onValueChange={(id) => {
+      if (!(watchedFeeIds || []).includes(id)) {
+        form.setValue('activation_fee_ids', [ ...(watchedFeeIds || []), id ]);
+      }
+    }}>
+      <FormControl>
+        <SelectTrigger className="w-full md:w-80">
+          <SelectValue placeholder={activationFeeOptions.length ? "Add fee..." : "No product fees available"} />
+        </SelectTrigger>
+      </FormControl>
+      <SelectContent>
+        {activationFeeOptions
+          .filter((f) => !(watchedFeeIds || []).includes(f.id))
+          .map((fee) => (
+            <SelectItem key={fee.id} value={fee.id}>
+              {fee.name}
+            </SelectItem>
+          ))}
+      </SelectContent>
+    </Select>
+  </div>
+
   <TooltipProvider>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {activationFeeOptions.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No savings fees available.</div>
-      ) : (
-        activationFeeOptions.map((fee) => {
-          const selected = (form.getValues('activation_fee_ids') || []).includes(fee.id);
+    {(!watchedFeeIds || watchedFeeIds.length === 0) ? (
+      <div className="text-sm text-muted-foreground">No fees selected.</div>
+    ) : (
+      <div className="space-y-2">
+        {(watchedFeeIds || []).map((id) => {
+          const fee = activationFeeOptions.find((f) => f.id === id);
+          if (!fee) return null;
           const calc = calculateFeeAmount({
             id: fee.id,
             name: fee.name,
@@ -367,17 +392,8 @@ onSuccess?.();
             ? `${fee.amount}% of KES ${baseAmount.toLocaleString('en-KE')}${applied ? ` • ${applied}` : ''}`
             : `${amountStr}${applied ? ` • ${applied}` : ''}`;
           return (
-            <div key={fee.id} className="flex items-center gap-3 p-3 border rounded-lg">
-              <Checkbox
-                checked={selected}
-                onCheckedChange={(checked) => {
-                  const current = new Set(form.getValues('activation_fee_ids') || []);
-                  if (checked) current.add(fee.id); else current.delete(fee.id);
-                  form.setValue('activation_fee_ids', Array.from(current));
-                }}
-                id={`fee-${fee.id}`}
-              />
-              <Label htmlFor={`fee-${fee.id}`} className="flex-1">
+            <div key={id} className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="flex-1">
                 <div className="font-medium">{fee.name}</div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   {amountStr}
@@ -390,26 +406,39 @@ onSuccess?.();
                     </TooltipContent>
                   </Tooltip>
                 </div>
-              </Label>
+              </div>
               <div className="w-36">
                 <Input
                   type="number"
                   step="0.01"
                   placeholder="Override"
-                  disabled={!selected}
-                  value={(form.getValues('fee_overrides') as Record<string,string>)[fee.id] || ''}
+                  value={(form.getValues('fee_overrides') as Record<string, string>)[id] || ''}
                   onChange={(e) => {
-                    const current = { ...(form.getValues('fee_overrides') as Record<string,string>) };
-                    current[fee.id] = e.target.value;
+                    const current = { ...(form.getValues('fee_overrides') as Record<string, string>) };
+                    current[id] = e.target.value;
                     form.setValue('fee_overrides', current);
                   }}
                 />
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  form.setValue(
+                    'activation_fee_ids',
+                    (watchedFeeIds || []).filter((fId: string) => fId !== id)
+                  );
+                }}
+                aria-label="Remove fee"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           );
-        })
-      )}
-    </div>
+        })}
+      </div>
+    )}
   </TooltipProvider>
 </div>
 
