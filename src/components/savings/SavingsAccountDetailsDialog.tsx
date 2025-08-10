@@ -199,6 +199,7 @@ export const SavingsAccountDetailsDialog = ({
                     <Button
                       variant="success"
                       onClick={() => { setSelectedTransactionType('withdrawal'); setTransactionFormOpen(true); }}
+                      disabled={!account.is_active}
                       className="flex items-center gap-2"
                     >
                       <Minus className="h-4 w-4" /> Start Withdrawal
@@ -210,7 +211,7 @@ export const SavingsAccountDetailsDialog = ({
                     <Button
                       variant="success"
                       onClick={() => { setSelectedTransactionType('transfer'); setTransactionFormOpen(true); }}
-                      
+                      disabled={!account.is_active}
                       className="flex items-center gap-2"
                     >
                       <ArrowRightLeft className="h-4 w-4" /> Start Transfer
