@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, DollarSign, Percent } from "lucide-react";
 import { useFeeStructures, useCreateFeeStructure, useUpdateFeeStructure, useDeleteFeeStructure, FeeStructure } from "@/hooks/useFeeManagement";
+import { useSystemCodeValues } from "@/hooks/useSystemCodeValues";
 
 const feeSchema = z.object({
   name: z.string().min(1, "Fee name is required"),
@@ -56,6 +57,70 @@ export const FeeStructureManagement = () => {
   });
 
   const watchCalculationType = form.watch("calculation_type");
+
+  // Load dynamic options from system codes (with safe fallbacks)
+  const { data: feeTypeCodesA = [] } = useSystemCodeValues('FEE_TYPE');
+  const { data: feeTypeCodesB = [] } = useSystemCodeValues('FEE_CATEGORY');
+  const { data: loanChargeTimes = [] } = useSystemCodeValues('LOAN_CHARGE_TIME');
+  const { data: savingsChargeTimes = [] } = useSystemCodeValues('SAVINGS_CHARGE_TIME');
+  const { data: genericChargeTimes = [] } = useSystemCodeValues('CHARGE_TIME_TYPE');
+  const { data: chargePaymentByCodes = [] } = useSystemCodeValues('CHARGE_PAYMENT_BY');
+
+  const toOptions = (arr: any[]) => (arr || []).map((v: any) => ({
+    value: String(v.code_value ?? v.name ?? '').toLowerCase(),
+    label: String(v.name ?? v.code_value ?? ''),
+  }));
+
+  const feeTypeOptions = useMemo(() => {
+    const merged = [...(feeTypeCodesA as any[]), ...(feeTypeCodesB as any[])];
+    const normalized = toOptions(merged);
+    const filtered = normalized.filter(o => o.value === 'loan' || o.value === 'savings');
+    return filtered.length ? filtered : [
+      { value: 'loan', label: 'Loan' },
+      { value: 'savings', label: 'Savings' },
+    ];
+  }, [feeTypeCodesA, feeTypeCodesB]);
+
+  const chargeTimeOptionsByType = useMemo(() => {
+    const ensureCustom = (opts: { value: string; label: string }[]) =>
+      opts.some(o => o.value === 'custom_date') ? opts : [...opts, { value: 'custom_date', label: 'Custom Date' }];
+
+    const loanOptsBase = (loanChargeTimes as any[]).length ? toOptions(loanChargeTimes as any[]) : toOptions(genericChargeTimes as any[]);
+    const savingsOptsBase = (savingsChargeTimes as any[]).length ? toOptions(savingsChargeTimes as any[]) : toOptions(genericChargeTimes as any[]);
+
+    const loanOpts = loanOptsBase.length ? loanOptsBase : [
+      { value: 'upfront', label: 'Application Fee' },
+      { value: 'on_disbursement', label: 'On Disbursement' },
+      { value: 'monthly', label: 'Monthly Service' },
+      { value: 'on_maturity', label: 'On Maturity' },
+      { value: 'late_payment', label: 'Late Payment' },
+      { value: 'early_settlement', label: 'Early Settlement' },
+    ];
+
+    const savingsOpts = savingsOptsBase.length ? savingsOptsBase : [
+      { value: 'upfront', label: 'Account Opening' },
+      { value: 'monthly', label: 'Monthly Maintenance' },
+      { value: 'quarterly', label: 'Quarterly' },
+      { value: 'annually', label: 'Annual Service' },
+      { value: 'on_transaction', label: 'Per Transaction' },
+      { value: 'on_withdrawal', label: 'On Withdrawal' },
+      { value: 'on_deposit', label: 'On Deposit' },
+    ];
+
+    return {
+      loan: ensureCustom(loanOpts),
+      savings: ensureCustom(savingsOpts),
+    };
+  }, [loanChargeTimes, savingsChargeTimes, genericChargeTimes]);
+
+  const chargePaymentByOptions = useMemo(() => {
+    const all = toOptions(chargePaymentByCodes as any[]);
+    const filtered = all.filter(o => o.value === 'regular' || o.value === 'transfer');
+    return filtered.length ? filtered : [
+      { value: 'regular', label: 'Regular' },
+      { value: 'transfer', label: 'Transfer' },
+    ];
+  }, [chargePaymentByCodes]);
 
   const onSubmit = async (data: FeeFormData) => {
     const feeData = {
@@ -296,9 +361,10 @@ export const FeeStructureManagement = () => {
                             <SelectValue placeholder="Select fee type" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="loan">Loan</SelectItem>
-                          <SelectItem value="savings">Savings</SelectItem>
+                        <SelectContent className="bg-background border shadow-md z-50">
+                          {feeTypeOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -389,35 +455,9 @@ export const FeeStructureManagement = () => {
                   render={({ field }) => {
                     const feeType = form.watch("fee_type");
                     const getChargeTimeOptions = () => {
-                      if (feeType === "savings") {
-                        return [
-                          { value: "upfront", label: "Account Opening" },
-                          { value: "monthly", label: "Monthly Maintenance" },
-                          { value: "quarterly", label: "Quarterly" },
-                          { value: "annually", label: "Annual Service" },
-                          { value: "on_transaction", label: "Per Transaction" },
-                          { value: "on_withdrawal", label: "On Withdrawal" },
-                          { value: "on_deposit", label: "On Deposit" },
-                          { value: "custom_date", label: "Custom Date" },
-                        ];
-                      } else if (feeType === "loan") {
-                        return [
-                          { value: "upfront", label: "Application Fee" },
-                          { value: "on_disbursement", label: "On Disbursement" },
-                          { value: "monthly", label: "Monthly Service" },
-                          { value: "on_maturity", label: "On Maturity" },
-                          { value: "late_payment", label: "Late Payment" },
-                          { value: "early_settlement", label: "Early Settlement" },
-                          { value: "custom_date", label: "Custom Date" },
-                        ];
-                      } else {
-                        return [
-                          { value: "upfront", label: "Upfront" },
-                          { value: "monthly", label: "Monthly" },
-                          { value: "annually", label: "Annually" },
-                          { value: "on_transaction", label: "Per Transaction" },
-                        ];
-                      }
+                      return feeType === "loan"
+                        ? chargeTimeOptionsByType.loan
+                        : chargeTimeOptionsByType.savings;
                     };
 
                     return (
@@ -429,7 +469,7 @@ export const FeeStructureManagement = () => {
                               <SelectValue placeholder="Select charge time" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="bg-background border shadow-md z-50">
                             {getChargeTimeOptions().map((option) => (
                               <SelectItem key={option.value} value={option.value}>
                                 {option.label}
@@ -455,9 +495,10 @@ export const FeeStructureManagement = () => {
                             <SelectValue placeholder="Select payment method" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="regular">Regular</SelectItem>
-                          <SelectItem value="transfer">Transfer</SelectItem>
+                        <SelectContent className="bg-background border shadow-md z-50">
+                          {chargePaymentByOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
