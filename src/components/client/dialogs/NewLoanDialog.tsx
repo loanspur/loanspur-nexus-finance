@@ -27,12 +27,12 @@ import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
 import { useMifosIntegration } from "@/hooks/useMifosIntegration";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useFundSources } from "@/hooks/useFundSources";
+import { useFunds } from "@/hooks/useFundsManagement";
 import { useLoanPurposes } from "@/hooks/useLoanPurposes";
 import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { FormDescription } from "@/components/ui/form";
-import { format } from "date-fns";
+import { format, addDays, addWeeks, addMonths } from "date-fns";
 import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -132,8 +132,8 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     enabled: !!clientId && open,
   });
 
-  // Fetch fund sources
-  const { data: fundSources = [], isLoading: isLoadingFunds } = useFundSources();
+  // Fetch funds for funding
+  const { data: funds = [], isLoading: isLoadingFunds } = useFunds();
 
   // Fetch loan purposes
   const { data: loanPurposes = [], isLoading: isLoadingPurposes } = useLoanPurposes();
@@ -182,11 +182,6 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     enabled: !!clientId,
   });
 
-  // Fetch product charges (mock data since table doesn't exist)
-  const productCharges = [
-    { id: '1', charge_name: 'Processing Fee', charge_amount: 100, charge_type: 'flat' },
-    { id: '2', charge_name: 'Insurance Fee', charge_amount: 50, charge_type: 'percentage' },
-  ];
 
   const { currency } = useCurrency();
   
@@ -197,8 +192,10 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     }).format(amount);
   };
 
-  // Helper functions for charges
+  // Filter charges to those linked to the selected loan product and of type 'loan'
   const filteredCharges = feeStructures.filter(charge =>
+    (!selectedProduct?.linked_fee_ids || selectedProduct.linked_fee_ids.includes(charge.id)) &&
+    charge.fee_type === 'loan' &&
     charge.name.toLowerCase().includes(chargeSearchTerm.toLowerCase())
   );
 
@@ -288,9 +285,21 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
     const periodsPerYear = frequency === 'daily' ? 365 : frequency === 'weekly' ? 52 : frequency === 'monthly' ? 12 : 1;
     const periodicRate = rate / periodsPerYear;
     const totalPayments = term;
+
+    // Base date for repayments and charges total
+    const baseDate = formData.disbursement_date ? new Date(formData.disbursement_date) : new Date();
+    const totalCharges = getTotalCharges();
     
-    let schedule = [];
+    let schedule: any[] = [];
     let balance = principal;
+
+    const getRepaymentDate = (i: number) => {
+      if (frequency === 'daily') return addDays(baseDate, i);
+      if (frequency === 'weekly') return addWeeks(baseDate, i);
+      if (frequency === 'monthly') return addMonths(baseDate, i);
+      if (frequency === 'annually') return addMonths(baseDate, i * 12);
+      return addMonths(baseDate, i);
+    };
     
     if (formData.interest_calculation_method === 'declining_balance') {
       const monthlyPayment = (principal * periodicRate * Math.pow(1 + periodicRate, totalPayments)) / 
@@ -299,14 +308,17 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
       for (let i = 1; i <= totalPayments; i++) {
         const interestPayment = balance * periodicRate;
         const principalPayment = monthlyPayment - interestPayment;
+        const repaymentDate = getRepaymentDate(i);
         balance -= principalPayment;
         
         schedule.push({
           period: i,
+          repayment_date: repaymentDate,
           beginning_balance: balance + principalPayment,
           payment: monthlyPayment,
           principal: principalPayment,
           interest: interestPayment,
+          charges: i === 1 ? totalCharges : 0,
           ending_balance: Math.max(0, balance),
         });
       }
@@ -319,12 +331,15 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
       
       for (let i = 1; i <= totalPayments; i++) {
         balance -= monthlyPrincipal;
+        const repaymentDate = getRepaymentDate(i);
         schedule.push({
           period: i,
+          repayment_date: repaymentDate,
           beginning_balance: balance + monthlyPrincipal,
           payment: monthlyPayment,
           principal: monthlyPrincipal,
           interest: monthlyInterest,
+          charges: i === 1 ? totalCharges : 0,
           ending_balance: Math.max(0, balance),
         });
       }
@@ -739,22 +754,27 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                     name="fund_source_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Fund Source *</FormLabel>
+                        <FormLabel>Fund Type *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select fund source" />
+                              <SelectValue placeholder="Select fund type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {isLoadingFunds ? (
-                              <SelectItem value="loading" disabled>Loading fund sources...</SelectItem>
-                            ) : fundSources.length === 0 ? (
-                              <SelectItem value="no-funds" disabled>No fund sources available</SelectItem>
+                              <SelectItem value="loading" disabled>Loading funds...</SelectItem>
+                            ) : funds.length === 0 ? (
+                              <SelectItem value="no-funds" disabled>No funds available</SelectItem>
                             ) : (
-                              fundSources.map((fund) => (
+                              funds.map((fund) => (
                                 <SelectItem key={fund.id} value={fund.id}>
-                                  {fund.name} ({fund.type})
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{fund.fund_name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      Available: {formatCurrency(fund.current_balance || 0)}
+                                    </span>
+                                  </div>
                                 </SelectItem>
                               ))
                             )}
@@ -838,7 +858,7 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Add Charges */}
                   <div className="space-y-4">
-                    <h4 className="font-medium">Available Charges</h4>
+                    
                     
                     {/* Search Input */}
                     <div className="space-y-2">
@@ -1150,34 +1170,42 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                       <thead>
                         <tr className="bg-muted">
                           <th className="border border-border p-2 text-left">Period</th>
+                          <th className="border border-border p-2 text-left">Repayment Date</th>
                           <th className="border border-border p-2 text-right">Beginning Balance</th>
                           <th className="border border-border p-2 text-right">Payment</th>
                           <th className="border border-border p-2 text-right">Principal</th>
                           <th className="border border-border p-2 text-right">Interest</th>
+                          <th className="border border-border p-2 text-right">Charges</th>
                           <th className="border border-border p-2 text-right">Ending Balance</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {repaymentSchedule.slice(0, 10).map((payment) => (
-                          <tr key={payment.period} className="hover:bg-muted/50">
-                            <td className="border border-border p-2">{payment.period}</td>
-                            <td className="border border-border p-2 text-right">
-                              {formatCurrency(payment.beginning_balance)}
-                            </td>
-                            <td className="border border-border p-2 text-right">
-                              {formatCurrency(payment.payment)}
-                            </td>
-                            <td className="border border-border p-2 text-right">
-                              {formatCurrency(payment.principal)}
-                            </td>
-                            <td className="border border-border p-2 text-right">
-                              {formatCurrency(payment.interest)}
-                            </td>
-                            <td className="border border-border p-2 text-right">
-                              {formatCurrency(payment.ending_balance)}
-                            </td>
-                          </tr>
-                        ))}
+                          {repaymentSchedule.slice(0, 10).map((payment) => (
+                            <tr key={payment.period} className="hover:bg-muted/50">
+                              <td className="border border-border p-2">{payment.period}</td>
+                              <td className="border border-border p-2">
+                                {payment.repayment_date ? format(new Date(payment.repayment_date), "PPP") : "-"}
+                              </td>
+                              <td className="border border-border p-2 text-right">
+                                {formatCurrency(payment.beginning_balance)}
+                              </td>
+                              <td className="border border-border p-2 text-right">
+                                {formatCurrency(payment.payment)}
+                              </td>
+                              <td className="border border-border p-2 text-right">
+                                {formatCurrency(payment.principal)}
+                              </td>
+                              <td className="border border-border p-2 text-right">
+                                {formatCurrency(payment.interest)}
+                              </td>
+                              <td className="border border-border p-2 text-right">
+                                {formatCurrency(payment.charges || 0)}
+                              </td>
+                              <td className="border border-border p-2 text-right">
+                                {formatCurrency(payment.ending_balance)}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                     {repaymentSchedule.length > 10 && (
