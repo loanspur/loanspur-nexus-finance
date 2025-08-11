@@ -111,6 +111,49 @@ export const EnhancedLoanWorkflowDialog = ({
     },
   });
 
+  // Fetch related client and product if not embedded
+  const { data: fallbackClient } = useQuery({
+    queryKey: ['loan-client', loanApplication.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('first_name,last_name,client_number,phone,email')
+        .eq('id', loanApplication.client_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    },
+    enabled: !loanApplication.clients && !!loanApplication.client_id && open,
+  });
+
+  const { data: fallbackProduct } = useQuery({
+    queryKey: ['loan-product', loanApplication.loan_product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('name,short_name,currency_code,default_nominal_interest_rate,repayment_frequency')
+        .eq('id', loanApplication.loan_product_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    },
+    enabled: !loanApplication.loan_products && !!loanApplication.loan_product_id && open,
+  });
+
+  const displayClient = loanApplication.clients || fallbackClient || {};
+  const displayProduct = loanApplication.loan_products || fallbackProduct || ({} as any);
+
+  const frequency = (loanApplication.term_frequency || displayProduct?.repayment_frequency || 'monthly') as string;
+  const termUnit = ((): string => {
+    const f = (frequency || '').toLowerCase();
+    if (f === 'daily') return 'days';
+    if (f === 'weekly') return 'weeks';
+    if (f === 'annually') return 'years';
+    return 'months';
+  })();
+
+  const displayInterestRate = loanApplication.interest_rate ?? loanApplication.requested_interest_rate ?? displayProduct?.default_nominal_interest_rate;
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -219,7 +262,7 @@ export const EnhancedLoanWorkflowDialog = ({
             Enhanced Loan Workflow
           </DialogTitle>
           <DialogDescription>
-            {loanApplication.application_number} - {loanApplication.clients?.first_name} {loanApplication.clients?.last_name}
+            {loanApplication.application_number} - {displayClient?.first_name} {displayClient?.last_name}
           </DialogDescription>
         </DialogHeader>
 
@@ -253,19 +296,19 @@ export const EnhancedLoanWorkflowDialog = ({
                       <h4 className="font-medium text-sm text-muted-foreground mb-2">Client Information</h4>
                       <div className="space-y-1">
                         <div className="font-medium">
-                          {loanApplication.clients?.first_name} {loanApplication.clients?.last_name}
+                          {displayClient?.first_name} {displayClient?.last_name}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Client: {loanApplication.clients?.client_number}
+                          Client: {displayClient?.client_number}
                         </div>
-                        {loanApplication.clients?.phone && (
+                        {displayClient?.phone && (
                           <div className="text-xs text-muted-foreground">
-                            Phone: {loanApplication.clients?.phone}
+                            Phone: {displayClient?.phone}
                           </div>
                         )}
-                        {loanApplication.clients?.email && (
+                        {displayClient?.email && (
                           <div className="text-xs text-muted-foreground">
-                            Email: {loanApplication.clients?.email}
+                            Email: {displayClient?.email}
                           </div>
                         )}
                       </div>
@@ -275,14 +318,14 @@ export const EnhancedLoanWorkflowDialog = ({
                     <div>
                       <h4 className="font-medium text-sm text-muted-foreground mb-2">Loan Product</h4>
                       <div className="space-y-1">
-                        <div className="font-medium">{loanApplication.loan_products?.name}</div>
-                        {loanApplication.loan_products?.short_name && (
+                        <div className="font-medium">{displayProduct?.name}</div>
+                        {displayProduct?.short_name && (
                           <div className="text-xs text-muted-foreground">
-                            Code: {loanApplication.loan_products?.short_name}
+                            Code: {displayProduct?.short_name}
                           </div>
                         )}
                         <div className="text-xs text-muted-foreground">
-                          Currency: {loanApplication.loan_products?.currency_code || 'KES'}
+                          Currency: {displayProduct?.currency_code || 'KES'}
                         </div>
                       </div>
                     </div>
@@ -301,12 +344,12 @@ export const EnhancedLoanWorkflowDialog = ({
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Requested Term</span>
-                      <div className="font-medium text-lg">{loanApplication.requested_term} months</div>
+                      <div className="font-medium text-lg">{loanApplication.requested_term} {termUnit}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Interest Rate</span>
                       <div className="font-medium text-lg">
-                        {loanApplication.requested_interest_rate || loanApplication.loan_products?.default_nominal_interest_rate || 'TBD'}%
+                        {displayInterestRate ?? 'TBD'}%
                       </div>
                     </div>
                   </div>
@@ -346,7 +389,7 @@ export const EnhancedLoanWorkflowDialog = ({
                       </div>
                       <div>
                         <span className="text-muted-foreground text-sm">Approved Term</span>
-                        <div className="font-medium text-lg">{loanApplication.final_approved_term} months</div>
+                        <div className="font-medium text-lg">{loanApplication.final_approved_term} {termUnit}</div>
                       </div>
                       {loanApplication.final_approved_interest_rate && (
                         <div>

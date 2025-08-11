@@ -402,7 +402,27 @@ const { formatAmount: formatCurrency } = useCurrency();
       });
 
       // Let parent open workflow/details
-      onApplicationCreated?.(localApplication);
+      const augmentedApplication = {
+        ...localApplication,
+        clients: client ? {
+          first_name: client.first_name,
+          last_name: client.last_name,
+          client_number: client.client_number,
+          phone: client.phone,
+          email: client.email,
+        } : undefined,
+        loan_products: selectedProduct ? {
+          name: selectedProduct.name,
+          short_name: selectedProduct.short_name,
+          currency_code: selectedProduct.currency_code,
+          default_nominal_interest_rate: selectedProduct.default_nominal_interest_rate,
+          repayment_frequency: selectedProduct.repayment_frequency,
+        } : undefined,
+        requested_interest_rate: data.interest_rate,
+        interest_rate: data.interest_rate,
+        term_frequency: data.term_frequency,
+      };
+      onApplicationCreated?.(augmentedApplication);
 
       form.reset();
       onOpenChange(false);
