@@ -73,6 +73,7 @@ export async function getTenantBySubdomain(subdomain: string): Promise<TenantInf
       .select('id, name, slug, subdomain, domain, logo_url, status')
       .eq('subdomain', subdomain)
       .eq('status', 'active')
+      .limit(1)
       .maybeSingle();
 
     console.log('🔍 Database query result:', { data, error });
