@@ -19,7 +19,7 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
   // Since useUserAccessibleOffices already filters out head offices and inactive offices,
   // we can use the offices directly
   const activeOffices = offices;
-  const loanOfficers = officeStaff.filter(staff => 
+  const loanOfficers = (selectedOfficeId ? officeStaff : []).filter(staff => 
     staff.role_in_office === 'loan_officer' && staff.is_active
   );
 
@@ -188,7 +188,7 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
                 <SelectContent>
                   {loanOfficers.map((staff) => (
                     <SelectItem key={staff.staff_id} value={staff.staff_id}>
-                      {staff.staff.first_name} {staff.staff.last_name}
+                      {`${staff.staff?.first_name ?? ''} ${staff.staff?.last_name ?? ''}`.trim() || staff.staff?.email || 'Unnamed staff'}
                     </SelectItem>
                   ))}
                 </SelectContent>
