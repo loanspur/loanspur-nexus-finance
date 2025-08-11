@@ -7541,6 +7541,7 @@ export type Database = {
           country: string | null
           created_at: string
           currency_code: string | null
+          currency_decimal_places: number
           custom_domain_verified: boolean | null
           dns_settings: Json | null
           domain: string | null
@@ -7583,6 +7584,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency_code?: string | null
+          currency_decimal_places?: number
           custom_domain_verified?: boolean | null
           dns_settings?: Json | null
           domain?: string | null
@@ -7625,6 +7627,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency_code?: string | null
+          currency_decimal_places?: number
           custom_domain_verified?: boolean | null
           dns_settings?: Json | null
           domain?: string | null

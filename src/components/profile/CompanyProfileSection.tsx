@@ -25,6 +25,7 @@ const companyProfileSchema = z.object({
   country: z.string().optional(),
   timezone: z.string().min(1, "Timezone is required"),
   currency_code: z.string().min(1, "Currency is required"),
+  currency_decimal_places: z.coerce.number().int().min(0).max(6).default(2),
   city: z.string().optional(),
   state_province: z.string().optional(),
   postal_code: z.string().optional(),
@@ -101,39 +102,41 @@ export const CompanyProfileSection = () => {
     enabled: !!profile?.tenant_id,
   });
 
-  const form = useForm<CompanyProfileForm>({
-    resolver: zodResolver(companyProfileSchema),
-    defaultValues: {
-      name: "",
-      contact_person_name: "",
-      contact_person_email: "",
-      contact_person_phone: "",
-      country: "",
-      timezone: "UTC",
-      currency_code: "USD",
-      city: "",
-      state_province: "",
-      postal_code: "",
-    },
-  });
+const form = useForm<CompanyProfileForm>({
+  resolver: zodResolver(companyProfileSchema),
+  defaultValues: {
+    name: "",
+    contact_person_name: "",
+    contact_person_email: "",
+    contact_person_phone: "",
+    country: "",
+    timezone: "UTC",
+    currency_code: "USD",
+    currency_decimal_places: 2,
+    city: "",
+    state_province: "",
+    postal_code: "",
+  },
+});
 
-  // Update form when tenant data loads
-  useEffect(() => {
-    if (tenant) {
-      form.reset({
-        name: tenant.name || "",
-        contact_person_name: tenant.contact_person_name || "",
-        contact_person_email: tenant.contact_person_email || "",
-        contact_person_phone: tenant.contact_person_phone || "",
-        country: tenant.country || "",
-        timezone: tenant.timezone || "UTC",
-        currency_code: tenant.currency_code || "USD",
-        city: tenant.city || "",
-        state_province: tenant.state_province || "",
-        postal_code: tenant.postal_code || "",
-      });
-    }
-  }, [tenant, form]);
+// Update form when tenant data loads
+useEffect(() => {
+  if (tenant) {
+    form.reset({
+      name: tenant.name || "",
+      contact_person_name: tenant.contact_person_name || "",
+      contact_person_email: tenant.contact_person_email || "",
+      contact_person_phone: tenant.contact_person_phone || "",
+      country: tenant.country || "",
+      timezone: tenant.timezone || "UTC",
+      currency_code: tenant.currency_code || "USD",
+      currency_decimal_places: tenant.currency_decimal_places ?? 2,
+      city: tenant.city || "",
+      state_province: tenant.state_province || "",
+      postal_code: tenant.postal_code || "",
+    });
+  }
+}, [tenant, form]);
 
   const onSubmit = async (data: CompanyProfileForm) => {
     if (!profile?.tenant_id) return;
@@ -150,6 +153,7 @@ export const CompanyProfileSection = () => {
           country: data.country || null,
           timezone: data.timezone,
           currency_code: data.currency_code,
+          currency_decimal_places: data.currency_decimal_places,
           city: data.city || null,
           state_province: data.state_province || null,
           postal_code: data.postal_code || null,
@@ -502,33 +506,61 @@ export const CompanyProfileSection = () => {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="currency_code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        Default Currency
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select currency" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {currencies.map((currency) => (
-                            <SelectItem key={currency.code} value={currency.code}>
-                              {currency.code} - {currency.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <FormField
+    control={form.control}
+    name="currency_code"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4" />
+          Default Currency
+        </FormLabel>
+        <Select onValueChange={field.onChange} value={field.value}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Select currency" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            {currencies.map((currency) => (
+              <SelectItem key={currency.code} value={currency.code}>
+                {currency.code} - {currency.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+
+  <FormField
+    control={form.control}
+    name="currency_decimal_places"
+    render={({ field }) => (
+      <FormItem>
+        <FormLabel className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4" />
+          Decimal Places
+        </FormLabel>
+        <Select onValueChange={(val) => field.onChange(val)} value={String(field.value ?? 2)}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Select decimal places" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            {[0,1,2,3,4,5,6].map((d) => (
+              <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <FormMessage />
+      </FormItem>
+    )}
+  />
+</div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
