@@ -6445,6 +6445,8 @@ export type Database = {
           approved_date: string | null
           available_balance: number | null
           client_id: string
+          close_reason: string | null
+          closed_date: string | null
           created_at: string
           created_date: string | null
           id: string
@@ -6464,6 +6466,8 @@ export type Database = {
           approved_date?: string | null
           available_balance?: number | null
           client_id: string
+          close_reason?: string | null
+          closed_date?: string | null
           created_at?: string
           created_date?: string | null
           id?: string
@@ -6483,6 +6487,8 @@ export type Database = {
           approved_date?: string | null
           available_balance?: number | null
           client_id?: string
+          close_reason?: string | null
+          closed_date?: string | null
           created_at?: string
           created_date?: string | null
           id?: string
