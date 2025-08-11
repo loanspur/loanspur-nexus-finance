@@ -1523,6 +1523,38 @@ const getStatusColor = (status: string) => {
                   </PopoverContent>
                 </Popover>
               </div>
+              <div className="space-y-2">
+                <Label>Early settlement fee (optional)</Label>
+                <Select value={earlyFeeId} onValueChange={setEarlyFeeId}>
+                  <SelectTrigger><SelectValue placeholder="Select fee" /></SelectTrigger>
+                  <SelectContent className="z-50">
+                    {productFees && productFees.filter((f: any) => f.charge_time_type === 'early_settlement').length > 0 ? (
+                      productFees
+                        .filter((f: any) => f.charge_time_type === 'early_settlement')
+                        .map((fee: any) => (
+                          <SelectItem key={fee.id} value={fee.id}>{fee.name}</SelectItem>
+                        ))
+                    ) : (
+                      <SelectItem value="none" disabled>No early settlement fees</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="rounded-md border p-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Base amount</span>
+                  <span className="font-medium">{formatCurrency(Number(earlyAmount || outstanding))}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm text-muted-foreground">Early fee</span>
+                  <span className="font-medium">{formatCurrency(Number(earlyFeeAmount || 0))}</span>
+                </div>
+                <Separator className="my-2" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">Total to pay</span>
+                  <span className="text-base font-bold">{formatCurrency(Number(earlyAmount || outstanding) + Number(earlyFeeAmount || 0))}</span>
+                </div>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEarlyRepayOpen(false)}>Cancel</Button>
                 <Button onClick={submitEarlyRepayment}>Settle & Close</Button>
@@ -1539,6 +1571,10 @@ const getStatusColor = (status: string) => {
               <DialogDescription>Type WRITE-OFF to confirm. This will create write-off journal entries and mark the loan written off.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div className="space-y-1">
+                <Label>Outstanding balance to write off</Label>
+                <div className="text-lg font-semibold">{formatCurrency(outstanding)}</div>
+              </div>
               <div className="space-y-2">
                 <Label>Write-off date</Label>
                 <Popover>
