@@ -91,104 +91,18 @@ export const TransactionStatement = ({
 
       if (error) throw error;
 
-      const toNumber = (v: any) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : 0;
-      };
+      const transformedTransactions: Transaction[] = (data || []).map((item: any) => ({
+        date: accountType === 'savings' ? item.transaction_date : item.payment_date,
+        type: accountType === 'savings' ? item.transaction_type : 'payment',
+        amount: parseFloat(item.amount),
+        balance: accountType === 'savings' ? parseFloat(item.balance_after) : 0,
+        method: item.method || item.payment_method || 'N/A',
+        reference: item.reference_number || `${accountType === 'savings' ? 'TXN' : 'PMT'}-${String(item.id).slice(-8)}`,
+        description: item.description || '',
+        status: item.status || 'completed'
+      }));
 
-      let finalTransactions: Transaction[] = [];
-
-      if (accountType === 'savings') {
-        const savingsTx: Transaction[] = (data || []).map((item: any) => ({
-          date: item.transaction_date,
-          type: item.transaction_type || 'transaction',
-          amount: toNumber(item.amount ?? item.transaction_amount),
-          balance: toNumber(item.balance_after ?? item.running_balance),
-          method: item.method || 'N/A',
-          reference: item.reference_number || `TXN-${String(item.id).slice(-8)}`,
-          description: item.description || '',
-          status: item.status || 'completed',
-        }));
-        finalTransactions = savingsTx;
-      } else {
-        // Build loan statement: include disbursement and split repayments
-        const payments = (data || []) as any[];
-
-        // Fetch loan for initial disbursement details
-        const { data: loanRow } = await supabase
-          .from('loans')
-          .select('principal_amount, disbursement_date, loan_number')
-          .eq('id', accountId)
-          .maybeSingle();
-
-        const fromDate = period?.from ? new Date(period.from) : null;
-        const toDate = period?.to ? new Date(period.to) : null;
-
-        const entries: Transaction[] = [];
-
-        // Disbursement entry
-        const disbAmount = toNumber(loanRow?.principal_amount);
-        const disbDate = loanRow?.disbursement_date;
-        if (disbAmount > 0 && disbDate) {
-          const d = new Date(disbDate);
-          const inRange = (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
-          if (inRange) {
-            entries.push({
-              date: disbDate,
-              type: 'disbursement',
-              amount: disbAmount,
-              balance: 0, // computed later
-              method: 'disbursement',
-              reference: `DISB-${(loanRow?.loan_number || String(accountId)).toString().slice(-8)}`,
-              description: 'Loan disbursement',
-              status: 'completed',
-            });
-          }
-        }
-
-        // Split repayments into components
-        for (const item of payments) {
-          const baseRef = `PMT-${String(item.id).slice(-8)}`;
-          const method = item.payment_method || item.method || 'N/A';
-          const date = item.payment_date;
-          const parts: Array<{ key: string; label: string; amount: number }> = [
-            { key: 'principal_amount', label: 'principal', amount: toNumber(item.principal_amount) },
-            { key: 'interest_amount', label: 'interest', amount: toNumber(item.interest_amount) },
-            { key: 'fee_amount', label: 'fee', amount: toNumber(item.fee_amount) },
-            { key: 'penalty_amount', label: 'penalty', amount: toNumber(item.penalty_amount) },
-          ];
-          for (const p of parts) {
-            if (p.amount > 0) {
-              entries.push({
-                date,
-                type: p.label,
-                amount: p.amount,
-                balance: 0, // computed later
-                method,
-                reference: `${baseRef}-${p.label.substring(0,3).toUpperCase()}`,
-                description: item.description || '',
-                status: item.status || 'completed',
-              });
-            }
-          }
-        }
-
-        // Sort by date desc then by type to keep stable order
-        entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        // Compute running balance from current outstanding going back in time
-        const currentOutstanding = toNumber(accountDetails?.balance);
-        let cumulative = 0; // moving from newest to oldest
-        finalTransactions = entries.map((t) => {
-          const bal = currentOutstanding + cumulative;
-          // When going back in time: repayments add back, disbursement subtracts
-          const deltaBackward = t.type === 'disbursement' ? -toNumber(t.amount) : +toNumber(t.amount);
-          cumulative += deltaBackward;
-          return { ...t, balance: bal };
-        });
-      }
-
-      setTransactions(finalTransactions);
+      setTransactions(transformedTransactions);
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -206,26 +120,6 @@ export const TransactionStatement = ({
       fetchTransactions();
     }
   }, [accountId, accountType, period.from, period.to]);
-
-  // Realtime updates: refresh on new transactions
-  useEffect(() => {
-    if (!accountId) return;
-    const table = accountType === 'savings' ? 'savings_transactions' : 'loan_payments';
-    const filter = accountType === 'savings' 
-      ? `savings_account_id=eq.${accountId}` 
-      : `loan_id=eq.${accountId}`;
-
-    const channel = supabase
-      .channel(`tx-statement-${accountType}-${accountId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table, filter }, () => {
-        fetchTransactions();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [accountId, accountType]);
 
   const handleRefresh = () => {
     fetchTransactions();
@@ -283,15 +177,11 @@ export const TransactionStatement = ({
     switch (type?.toLowerCase()) {
       case "deposit":
         return "text-green-600";
-      case "disbursement":
-        return "text-blue-600";
       case "withdrawal":
         return "text-red-600";
       case "transfer":
         return "text-blue-600";
       case "payment":
-      case "principal":
-      case "interest":
         return "text-orange-600";
       case "fee":
       case "fees":
@@ -319,13 +209,11 @@ export const TransactionStatement = ({
   }
 
   const totalDebits = transactions
-    .filter(t => [
-      "withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty", "principal", "interest"
-    ].includes(t.type.toLowerCase()))
+    .filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase()))
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalCredits = transactions
-    .filter(t => ["deposit", "disbursement"].includes(t.type.toLowerCase()))
+    .filter(t => ["deposit"].includes(t.type.toLowerCase()))
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalTransactions = transactions.length;
@@ -407,7 +295,7 @@ export const TransactionStatement = ({
                   +{formatCurrency(totalCredits)}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {transactions.filter(t => ["deposit", "disbursement"].includes(t.type.toLowerCase())).length} transactions
+                  {transactions.filter(t => ["deposit"].includes(t.type.toLowerCase())).length} transactions
                 </div>
               </div>
               <div className="space-y-2">
@@ -416,7 +304,7 @@ export const TransactionStatement = ({
                   -{formatCurrency(totalDebits)}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {transactions.filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty", "principal", "interest"].includes(t.type.toLowerCase())).length} transactions
+                  {transactions.filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase())).length} transactions
                 </div>
               </div>
               <div className="space-y-2">
@@ -488,9 +376,7 @@ export const TransactionStatement = ({
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       <span className={getTransactionTypeColor(transaction.type)}>
-                        {[
-                          "withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty", "principal", "interest"
-                        ].includes(transaction.type.toLowerCase()) ? '-' : '+'}
+                        {["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
                         {formatCurrency(transaction.amount)}
                       </span>
                     </TableCell>
