@@ -99,6 +99,43 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     return { status, daysInArrears, overpaidAmount, totalPaid, totalDue };
   }, [schedules, payments, loan.status]);
 
+  // Timely Repayment Percentage (TRP) based on cumulative payments vs. schedule up to each due date
+  const loanTRP = useMemo(() => {
+    try {
+      const today = new Date();
+      const dueSchedules = (schedules || [])
+        .filter((s: any) => s?.due_date && new Date(s.due_date) <= today)
+        .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      if (dueSchedules.length === 0) return 100;
+
+      const orderedPayments = ((payments as any[]) || [])
+        .filter((p: any) => p?.payment_date)
+        .sort((a: any, b: any) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
+        .map((p: any) => ({ date: new Date(p.payment_date), amount: Number(p.payment_amount || 0) }));
+
+      let payIdx = 0;
+      let cumulativePaid = 0;
+      const advanceTo = (upTo: Date) => {
+        while (payIdx < orderedPayments.length && orderedPayments[payIdx].date <= upTo) {
+          cumulativePaid += orderedPayments[payIdx].amount;
+          payIdx++;
+        }
+        return cumulativePaid;
+      };
+
+      let timely = 0;
+      let requiredCumulative = 0;
+      for (const s of dueSchedules) {
+        requiredCumulative += Number(s.total_amount || 0);
+        const paidByDue = advanceTo(new Date(s.due_date));
+        if (paidByDue + 0.0001 >= requiredCumulative) timely++;
+      }
+      return Math.round((timely / dueSchedules.length) * 100);
+    } catch {
+      return null;
+    }
+  }, [schedules, payments]);
+
   // Savings accounts for transfer of overpayment
   const { data: savingsAccounts = [] } = useQuery({
     queryKey: ['client-savings-accounts', loan?.client_id],
@@ -338,7 +375,7 @@ const getStatusColor = (status: string) => {
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
               {/* Loan Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
@@ -386,6 +423,18 @@ const getStatusColor = (status: string) => {
                         </Badge>
                       </div>
                       <CheckCircle className="h-8 w-8 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">TRP (Timely Repayment)</p>
+                        <p className="text-2xl font-bold">{loanTRP !== null ? `${loanTRP}%` : 'N/A'}</p>
+                      </div>
+                      <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
                   </CardContent>
                 </Card>
