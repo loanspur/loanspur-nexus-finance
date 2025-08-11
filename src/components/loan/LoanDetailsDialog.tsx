@@ -231,6 +231,22 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     enabled: !!loan?.id,
   });
 
+  // Realtime: refresh schedules and payments when loan_payments change
+  useEffect(() => {
+    if (!loan?.id) return;
+    const channel = supabase
+      .channel(`loan-payments-${loan.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_payments', filter: `loan_id=eq.${loan.id}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['loan-payments', loan.id] });
+        queryClient.invalidateQueries({ queryKey: ['loan-schedules', loan.id] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loan?.id, queryClient]);
+
   const derived = useMemo(() => {
     const today = new Date();
     const overdue = (schedules || []).filter((s: any) => new Date(s.due_date) < today && s.payment_status !== 'paid');

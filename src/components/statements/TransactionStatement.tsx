@@ -91,18 +91,44 @@ export const TransactionStatement = ({
 
       if (error) throw error;
 
-      const transformedTransactions: Transaction[] = (data || []).map((item: any) => ({
-        date: accountType === 'savings' ? item.transaction_date : item.payment_date,
-        type: accountType === 'savings' ? item.transaction_type : 'payment',
-        amount: parseFloat(item.amount),
-        balance: accountType === 'savings' ? parseFloat(item.balance_after) : 0,
-        method: item.method || item.payment_method || 'N/A',
-        reference: item.reference_number || `${accountType === 'savings' ? 'TXN' : 'PMT'}-${String(item.id).slice(-8)}`,
-        description: item.description || '',
-        status: item.status || 'completed'
-      }));
+      const toNumber = (v: any) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0;
+      };
 
-      setTransactions(transformedTransactions);
+      // Normalize rows from different sources
+      const baseTransactions: Transaction[] = (data || []).map((item: any) => {
+        const isSavings = accountType === 'savings';
+        const amount = isSavings
+          ? toNumber(item.amount ?? item.transaction_amount)
+          : toNumber(item.payment_amount ?? item.amount);
+        return {
+          date: isSavings ? item.transaction_date : item.payment_date,
+          type: isSavings ? (item.transaction_type || 'transaction') : 'payment',
+          amount,
+          // For savings we prefer the persisted running balance; for loans we'll compute below
+          balance: isSavings ? toNumber(item.balance_after ?? item.running_balance) : 0,
+          method: item.method || item.payment_method || 'N/A',
+          reference: item.reference_number || `${isSavings ? 'TXN' : 'PMT'}-${String(item.id).slice(-8)}`,
+          description: item.description || '',
+          status: item.status || 'completed'
+        } as Transaction;
+      });
+
+      let finalTransactions: Transaction[] = baseTransactions;
+
+      // Compute running balance for loans based on current outstanding passed via accountDetails.balance
+      if (accountType === 'loan') {
+        const currentOutstanding = toNumber(accountDetails?.balance);
+        let cumulative = 0; // cumulative sum of more recent payments
+        finalTransactions = baseTransactions.map((t) => {
+          const bal = currentOutstanding + cumulative;
+          cumulative += toNumber(t.amount);
+          return { ...t, balance: bal };
+        });
+      }
+
+      setTransactions(finalTransactions);
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -120,6 +146,26 @@ export const TransactionStatement = ({
       fetchTransactions();
     }
   }, [accountId, accountType, period.from, period.to]);
+
+  // Realtime updates: refresh on new transactions
+  useEffect(() => {
+    if (!accountId) return;
+    const table = accountType === 'savings' ? 'savings_transactions' : 'loan_payments';
+    const filter = accountType === 'savings' 
+      ? `savings_account_id=eq.${accountId}` 
+      : `loan_id=eq.${accountId}`;
+
+    const channel = supabase
+      .channel(`tx-statement-${accountType}-${accountId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table, filter }, () => {
+        fetchTransactions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [accountId, accountType]);
 
   const handleRefresh = () => {
     fetchTransactions();
