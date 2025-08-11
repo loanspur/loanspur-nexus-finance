@@ -6,7 +6,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
   Plus, 
-  Eye, 
   CreditCard, 
   DollarSign, 
   CheckCircle,
@@ -153,17 +152,6 @@ export const ClientLoansTab = ({
       }
     }
 
-    // Show view button for both loans and applications
-    actions.push(
-      <Button 
-        key="view"
-        size="sm" 
-        variant="outline"
-        onClick={() => onViewLoanDetails(item)}
-      >
-        <Eye className="h-4 w-4" />
-      </Button>
-    );
 
     return actions;
   };
