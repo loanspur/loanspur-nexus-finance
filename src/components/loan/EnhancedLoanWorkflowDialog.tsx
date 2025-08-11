@@ -26,6 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateFeeAmount, formatFeeDisplay } from "@/lib/fee-calculation";
 
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes', 'undo_approval']),
@@ -543,7 +544,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                                   name="approved_term"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Approved Term (months)</FormLabel>
+                                      <FormLabel>Approved Term ({termUnit})</FormLabel>
                                       <FormControl>
                                         <Input type="number" {...field} />
                                       </FormControl>
