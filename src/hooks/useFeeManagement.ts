@@ -89,7 +89,7 @@ export const useCreateFeeStructure = () => {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create fee structure. Please try again.",
+        description: `Failed to create fee structure: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
       console.error('Error creating fee structure:', error);
