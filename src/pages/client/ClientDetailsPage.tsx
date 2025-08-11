@@ -359,6 +359,25 @@ const { formatAmount: formatCurrency } = useCurrency();
     return !closedStatuses.includes(account.status?.toLowerCase());
   });
 
+  // Unified loans count (dedupe applications vs. approved/pending_disbursement loans)
+  const rejectedClosedStatuses = ['rejected', 'closed'];
+  const visibleLoans = showClosedLoans
+    ? loans.filter(l => rejectedClosedStatuses.includes(l.status?.toLowerCase()))
+    : loans.filter(l => !rejectedClosedStatuses.includes(l.status?.toLowerCase()));
+  const visibleApplications = showClosedLoans
+    ? loanApplications.filter(a => rejectedClosedStatuses.includes(a.status?.toLowerCase()))
+    : loanApplications.filter(a => !rejectedClosedStatuses.includes(a.status?.toLowerCase()));
+  const applicationIds = new Set(visibleApplications.map(a => a.id));
+  const dedupedLoans = visibleLoans.filter((loan) => {
+    const status = (loan.status || '').toLowerCase();
+    if (['approved', 'pending_disbursement'].includes(status) && loan.application_id && applicationIds.has(loan.application_id)) {
+      return false;
+    }
+    return true;
+  });
+  const loansDisplayCount = visibleApplications.length + dedupedLoans.length;
+
+
   if (loading) {
     return (
       <div className="p-6">
@@ -459,7 +478,7 @@ const { formatAmount: formatCurrency } = useCurrency();
                   </TabsTrigger>
                   <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Loans ({loans.length + loanApplications.length})
+                    Loans ({loansDisplayCount})
                   </TabsTrigger>
                   <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <PiggyBank className="h-4 w-4 mr-2" />

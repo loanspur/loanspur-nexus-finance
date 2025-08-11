@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -249,6 +249,14 @@ const onApprovalSubmit = async (data: ApprovalData) => {
   const canUndoApproval = loanApplication.status === 'pending_disbursement' || loanApplication.status === 'approved';
   const isCompleted = loanApplication.status === 'disbursed';
 
+  const activeStage = (canApprove || canUndoApproval) ? 'approve' : (canDisburse ? 'disburse' : 'details');
+
+  useEffect(() => {
+    if (open) {
+      setCurrentTab(activeStage);
+    }
+  }, [open, activeStage, loanApplication.status]);
+
   const currentAction = approvalForm.watch('action');
 
   return (
@@ -264,16 +272,21 @@ const onApprovalSubmit = async (data: ApprovalData) => {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="details">Application Details</TabsTrigger>
-            <TabsTrigger value="approve" disabled={!canApprove && !canUndoApproval && !isCompleted}>
-              {canApprove ? 'Approval' : canUndoApproval ? 'Approved' : 'Approved'}
-            </TabsTrigger>
-            <TabsTrigger value="disburse" disabled={!canDisburse && !isCompleted}>
-              {canDisburse ? 'Disbursement' : 'Disbursed'}
-            </TabsTrigger>
-          </TabsList>
+          <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+            <TabsList className="w-full flex gap-2">
+              <TabsTrigger value="details">Application Details</TabsTrigger>
+              {(canApprove || canUndoApproval || isCompleted) && (
+                <TabsTrigger value="approve" disabled={!canApprove && !canUndoApproval && !isCompleted}>
+                  {canApprove ? 'Approval' : canUndoApproval ? 'Approved' : 'Approved'}
+                </TabsTrigger>
+              )}
+              {(canDisburse || isCompleted) && (
+                <TabsTrigger value="disburse" disabled={!canDisburse && !isCompleted}>
+                  {canDisburse ? 'Disbursement' : 'Disbursed'}
+                </TabsTrigger>
+              )}
+            </TabsList>
+
 
           <TabsContent value="details" className="space-y-4">
             <Card>
