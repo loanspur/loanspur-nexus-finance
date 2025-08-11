@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLoanSchedules, useProcessLoanPayment } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 import { useSavingsDepositAccounting } from "@/hooks/useSavingsAccounting";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -792,20 +793,30 @@ const getStatusColor = (status: string) => {
                   </CardContent>
                 </Card>
 
-                {/* Process Payment */}
+                {/* Process Transaction */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Process Payment</CardTitle>
-                    <CardDescription>Record a payment for this loan</CardDescription>
+                    <CardTitle>Process Transaction</CardTitle>
+                    <CardDescription>Select an action to process on this loan</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button 
-                      variant="default" 
-                      className="w-full justify-between"
-                      onClick={() => setPaymentFormOpen(true)}
-                    >
-                      Process Payment
-                    </Button>
+                  <CardContent>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button className="w-full justify-between">
+                          Process Transaction
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="z-50 bg-background">
+                        <DropdownMenuLabel>Process</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setRepayOpen(true)}>Repayment</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEarlyRepayOpen(true)}>Early repayment</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setChargeOpen(true)}>Add fee</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setWriteOffOpen(true)}>Write off</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTransferOpen(true)} disabled={derived.overpaidAmount <= 0}>Transfer overpaid</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRecoveryOpen(true)}>Recovery</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </CardContent>
                 </Card>
               </div>
