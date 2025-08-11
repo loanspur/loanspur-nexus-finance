@@ -38,8 +38,18 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useLoanSchedules } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useSavingsDepositAccounting } from "@/hooks/useSavingsAccounting";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
+import { useProcessLoanPayment } from "@/hooks/useLoanManagement";
+import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/useLoanAccounting";
+import { useCreateJournalEntry } from "@/hooks/useAccounting";
+import { useQueryClient } from "@tanstack/react-query";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -64,6 +74,14 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { toast } = useToast();
   const depositAccounting = useSavingsDepositAccounting();
+  const queryClient = useQueryClient();
+
+  // Process Transaction modals
+  const [repayOpen, setRepayOpen] = useState(false);
+  const [earlyRepayOpen, setEarlyRepayOpen] = useState(false);
+  const [writeOffOpen, setWriteOffOpen] = useState(false);
+  const [chargeOpen, setChargeOpen] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
 
   // Derived status: in_arrears and overpaid
   const { data: schedules = [] } = useLoanSchedules(loan?.id);
@@ -590,14 +608,44 @@ const getStatusColor = (status: string) => {
                   <CardHeader>
                     <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="default" className="w-full justify-between">
+                          Process Transaction
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="z-50">
+                        <DropdownMenuLabel>Choose action</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setRepayOpen(true)}>
+                          Make repayment
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEarlyRepayOpen(true)}>
+                          Early repayment
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setChargeOpen(true)}>
+                          Add loan charge/fee
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTransferOpen(true)} disabled={derived.overpaidAmount <= 0}>
+                          Transfer overpaid loan
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setWriteOffOpen(true)} disabled={loan.status === 'closed'}>
+                          Write off
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRecoveryOpen(true)} disabled={loan.status !== 'written_off'}>
+                          Recovery (written-off only)
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button 
                       variant="outline" 
                       className="w-full justify-start"
                       onClick={() => setPaymentFormOpen(true)}
                     >
                       <DollarSign className="h-4 w-4 mr-2" />
-                      Record Payment
+                      Record Payment (simple)
                     </Button>
                     <Button 
                       variant="outline" 
