@@ -733,12 +733,12 @@ const getStatusColor = (status: string) => {
               <TabsTrigger value="schedule" disabled={loan.status === 'pending_approval' || loan.status === 'closed'}>Repayment Schedule</TabsTrigger>
               <TabsTrigger value="charges">Charges Applied</TabsTrigger>
               <TabsTrigger value="documents">Loan Documents</TabsTrigger>
-              <TabsTrigger value="repay" disabled={loan.status !== 'active'}>Make Repayment</TabsTrigger>
-              <TabsTrigger value="accruals">Accruals</TabsTrigger>
+              
+              
               <TabsTrigger value="collateral">Collaterals</TabsTrigger>
               <TabsTrigger value="guarantors">Guarantors</TabsTrigger>
-              <TabsTrigger value="clear" disabled={loan.status !== 'active'}>Clear Loan</TabsTrigger>
-              <TabsTrigger value="writeoff" disabled={loan.status === 'closed'}>Write Off</TabsTrigger>
+              
+              
               {loan.status === 'pending_approval' && <TabsTrigger value="approval">Approval Details</TabsTrigger>}
               {loan.status === 'closed' && <TabsTrigger value="closure">Closure Details</TabsTrigger>}
               {loan.status === 'overdue' && <TabsTrigger value="recovery">Recovery</TabsTrigger>}
@@ -1126,20 +1126,6 @@ const getStatusColor = (status: string) => {
               </Card>
             </TabsContent>
 
-            {/* New CTA Tabs */}
-            <TabsContent value="repay" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Make Loan Repayment
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={() => setPaymentFormOpen(true)} className="bg-gradient-primary">Open Payment Form</Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             <TabsContent value="charges" className="space-y-6">
               <Card>
@@ -1155,19 +1141,6 @@ const getStatusColor = (status: string) => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="accruals" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Accruals
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">View accruals in Accounting &gt; Accruals. Per-loan accruals can be added in future.</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             <TabsContent value="collateral" className="space-y-6">
               <Card>
@@ -1197,35 +1170,7 @@ const getStatusColor = (status: string) => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="clear" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    Clear Loan
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">Mark loan as fully paid and close the account.</p>
-                  <Button onClick={handleClearLoan} variant="outline">Clear Loan</Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="writeoff" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    Write Off Loan
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">Write off the remaining balance and mark the loan as written off.</p>
-                  <Button onClick={handleWriteOffLoan} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Write Off</Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
             {/* Approval Details Tab */}
             {loan.status === 'pending_approval' && (
