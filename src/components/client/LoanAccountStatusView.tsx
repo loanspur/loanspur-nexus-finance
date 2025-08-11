@@ -17,6 +17,7 @@ import {
 import { format } from "date-fns";
 import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
 import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface LoanAccount {
   id: string;
@@ -55,13 +56,7 @@ export const LoanAccountStatusView = ({
 }: LoanAccountStatusViewProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   const getStatusBadge = (status: string, type: 'loan' | 'application') => {
     const statusLower = status.toLowerCase();

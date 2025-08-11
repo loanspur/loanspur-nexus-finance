@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Edit, Building, Calendar, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Client {
   id: string;
@@ -18,15 +19,9 @@ interface ClientEmploymentTabProps {
   client: Client;
   onEdit?: () => void;
 }
-
 export const ClientEmploymentTab = ({ client, onEdit }: ClientEmploymentTabProps) => {
-  const formatCurrency = (amount: number | null) => {
-    if (!amount) return "KES 0";
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
+  const { formatAmount } = useCurrency();
+  const formatCurrency = (amount: number | null) => formatAmount(amount ?? 0);
 
   return (
     <div className="space-y-6">

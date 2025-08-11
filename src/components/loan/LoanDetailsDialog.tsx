@@ -39,6 +39,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLoanSchedules } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSavingsDepositAccounting } from "@/hooks/useSavingsAccounting";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -171,35 +172,30 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     }
   };
 
-  if (!loan) return null;
+if (!loan) return null;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'default';
-      case 'pending_approval':
-      case 'pending_disbursement':
-        return 'secondary';
-      case 'closed':
-      case 'completed':
-        return 'outline';
-      case 'in_arrears':
-        return 'destructive';
-      case 'overpaid':
-        return 'secondary';
-      case 'overdue':
-        return 'destructive';
-      default:
-        return 'secondary';
-    }
-  };
+const getStatusColor = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'active':
+      return 'default';
+    case 'pending_approval':
+    case 'pending_disbursement':
+      return 'secondary';
+    case 'closed':
+    case 'completed':
+      return 'outline';
+    case 'in_arrears':
+      return 'destructive';
+    case 'overpaid':
+      return 'secondary';
+    case 'overdue':
+      return 'destructive';
+    default:
+      return 'secondary';
+  }
+};
 
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {

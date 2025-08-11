@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const calculatorSchema = z.object({
   principal: z.number().min(1, "Principal amount must be greater than 0"),
@@ -101,12 +102,7 @@ export const LoanCalculatorDialog = ({
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
