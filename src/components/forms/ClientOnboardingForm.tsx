@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, User, FileText, Building, CreditCard, Users,
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateClient } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
 // Step Components
 import { KYCInformationStep } from "./steps/KYCInformationStep";
@@ -154,7 +155,7 @@ const steps = [
 export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFormProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedDocuments, setUploadedDocuments] = useState<string[]>([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState<any[]>([]);
   const { toast } = useToast();
   const { profile } = useAuth();
   const createClientMutation = useCreateClient();
@@ -324,6 +325,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         email: data.email || null,
         phone: data.phone,
         date_of_birth: data.date_of_birth,
+        account_opening_date: data.account_opening_date,
         place_of_birth: data.place_of_birth || null,
         nationality: data.nationality || null,
         gender: data.gender || null,
@@ -368,17 +370,38 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       const result = await createClientMutation.mutateAsync(clientData);
       console.log('Client created successfully:', result);
 
+      // If documents were uploaded during onboarding, persist them now
+      try {
+        if (uploadedDocuments.length && (result as any)?.id) {
+          const docsToInsert = uploadedDocuments.map((doc: any) => ({
+            tenant_id: profile?.tenant_id,
+            client_id: (result as any).id,
+            document_name: doc.fileName,
+            document_type: doc.type,
+            description: null,
+            file_url: doc.storagePath,
+            file_size: doc.size,
+            mime_type: doc.mime,
+            is_verified: false,
+            is_required: false,
+            uploaded_by: (profile as any)?.id || null,
+          }));
+          const { error: docError } = await supabase.from('client_documents').insert(docsToInsert);
+          if (docError) {
+            console.error('Failed to save documents:', docError);
+            toast({ title: 'Documents not saved', description: 'Client was created, but documents failed to save.', variant: 'destructive' });
+          }
+        }
+      } catch (docEx) {
+        console.error('Error inserting documents:', docEx);
+      }
+
       // Show success message
       toast({
         title: "Client Created Successfully",
         description: `Client ${data.first_name} ${data.last_name} has been created and is pending approval. The client will need to be approved and then activated before they can access services.`,
         variant: "default",
       });
-
-      // TODO: Handle additional features if needed
-      // - Save additional next of kin contacts (beyond the first one)
-      // - Create savings account if requested
-      // - Upload documents to storage and link to client
 
       form.reset();
       setCurrentStep(0);

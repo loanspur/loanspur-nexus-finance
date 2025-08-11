@@ -6,13 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, FileText, CheckCircle, X, Eye, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentUploadStepProps {
   form: UseFormReturn<any>;
   nextStep: () => void;
   prevStep: () => void;
-  uploadedDocuments: string[];
-  setUploadedDocuments: (docs: string[]) => void;
+  uploadedDocuments: any[];
+  setUploadedDocuments: (docs: any[]) => void;
 }
 
 interface UploadedDocument {
@@ -21,6 +22,9 @@ interface UploadedDocument {
   fileName: string;
   uploadedAt: Date;
   previewUrl: string;
+  storagePath: string;
+  size?: number;
+  mime?: string;
 }
 
 const documentTypes = [
@@ -57,61 +61,63 @@ export const DocumentUploadStep = ({
     }
 
     setUploading(docType);
-    
     try {
-      // Simulate file upload
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const storagePath = `onboarding/${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('client-documents')
+        .upload(storagePath, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+
       const previewUrl = URL.createObjectURL(file);
-      
       const newDoc: UploadedDocument = {
         id: Date.now().toString(),
         type: docType,
         fileName: file.name,
         uploadedAt: new Date(),
         previewUrl,
+        storagePath: uploadData?.path || storagePath,
+        size: file.size,
+        mime: file.type,
       };
 
       const newUploadedDocs = [...uploadedDocs, newDoc];
       setUploadedDocs(newUploadedDocs);
-      
-      // Update the parent component's state for backward compatibility
-      const docIds = newUploadedDocs.map(doc => doc.id);
-      setUploadedDocuments(docIds);
-      
-      // Reset selection
+      setUploadedDocuments(newUploadedDocs as any);
+
       setSelectedDocType("");
-      
       toast({
         title: "Success",
         description: `${documentTypes.find(dt => dt.value === docType)?.label} uploaded successfully`,
       });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload document",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to upload document", variant: "destructive" });
     } finally {
       setUploading(null);
     }
   };
 
-  const removeDocument = (docId: string) => {
+  const removeDocument = async (docId: string) => {
     const doc = uploadedDocs.find(d => d.id === docId);
-    if (doc?.previewUrl) {
+    if (!doc) return;
+
+    try {
+      if (doc.storagePath) {
+        await supabase.storage.from('client-documents').remove([doc.storagePath]);
+      }
+    } catch (e) {
+      // Non-blocking: proceed even if storage removal fails
+      console.warn('Storage removal failed', e);
+    }
+
+    if (doc.previewUrl) {
       URL.revokeObjectURL(doc.previewUrl);
     }
-    const newUploadedDocs = uploadedDocs.filter(doc => doc.id !== docId);
+
+    const newUploadedDocs = uploadedDocs.filter(d => d.id !== docId);
     setUploadedDocs(newUploadedDocs);
-    
-    // Update the parent component's state for backward compatibility
-    const docIds = newUploadedDocs.map(doc => doc.id);
-    setUploadedDocuments(docIds);
-    
-    toast({
-      title: "Document Removed",
-      description: "Document has been removed successfully",
-    });
+    setUploadedDocuments(newUploadedDocs as any);
+
+    toast({ title: "Document Removed", description: "Document has been removed successfully" });
   };
 
   const getDocumentTypeLabel = (value: string) => {
