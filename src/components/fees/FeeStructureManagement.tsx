@@ -299,8 +299,6 @@ export const FeeStructureManagement = () => {
                         <SelectContent>
                           <SelectItem value="loan">Loan</SelectItem>
                           <SelectItem value="savings">Savings</SelectItem>
-                          <SelectItem value="account">Account</SelectItem>
-                          <SelectItem value="transaction">Transaction</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -400,6 +398,7 @@ export const FeeStructureManagement = () => {
                           { value: "on_transaction", label: "Per Transaction" },
                           { value: "on_withdrawal", label: "On Withdrawal" },
                           { value: "on_deposit", label: "On Deposit" },
+                          { value: "custom_date", label: "Custom Date" },
                         ];
                       } else if (feeType === "loan") {
                         return [
@@ -409,6 +408,7 @@ export const FeeStructureManagement = () => {
                           { value: "on_maturity", label: "On Maturity" },
                           { value: "late_payment", label: "Late Payment" },
                           { value: "early_settlement", label: "Early Settlement" },
+                          { value: "custom_date", label: "Custom Date" },
                         ];
                       } else {
                         return [
@@ -458,10 +458,6 @@ export const FeeStructureManagement = () => {
                         <SelectContent>
                           <SelectItem value="regular">Regular</SelectItem>
                           <SelectItem value="transfer">Transfer</SelectItem>
-                          <SelectItem value="client">Client</SelectItem>
-                          <SelectItem value="system">System</SelectItem>
-                          <SelectItem value="automatic">Automatic</SelectItem>
-                          <SelectItem value="manual">Manual</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
