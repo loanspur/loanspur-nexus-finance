@@ -175,7 +175,7 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
                   <div>
                     <p className="text-sm text-blue-600">Term Range</p>
                     <p className="font-medium text-blue-800">
-                      {selectedProduct.min_term} - {selectedProduct.max_term} months
+                      {selectedProduct.min_term} - {selectedProduct.max_term} {selectedProduct.repayment_frequency?.toLowerCase() === 'daily' ? 'days' : selectedProduct.repayment_frequency?.toLowerCase() === 'weekly' ? 'weeks' : 'months'}
                     </p>
                   </div>
                 </div>
@@ -219,7 +219,7 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
                   <h4 className="font-medium text-blue-800 mb-2">Default Values</h4>
                   <div className="space-y-1 text-sm text-blue-600">
                     <p>Default Principal: {formatCurrency(selectedProduct.default_principal || 0)}</p>
-                    <p>Default Term: {selectedProduct.default_term || 0} months</p>
+                    <p>Default Term: {selectedProduct.default_term || 0} {selectedProduct.repayment_frequency?.toLowerCase() === 'daily' ? 'days' : selectedProduct.repayment_frequency?.toLowerCase() === 'weekly' ? 'weeks' : 'months'}</p>
                     <p>Default Interest Rate: {selectedProduct.default_nominal_interest_rate || 0}%</p>
                     <p>Calculation Method: {selectedProduct.interest_calculation_method || 'Not specified'}</p>
                   </div>

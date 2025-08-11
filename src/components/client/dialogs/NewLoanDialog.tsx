@@ -512,7 +512,7 @@ const { formatAmount: formatCurrency } = useCurrency();
                         <div>
                           <p className="text-blue-600">Term Range</p>
                           <p className="font-medium text-blue-800">
-                            {selectedProduct.min_term} - {selectedProduct.max_term} months
+                            {selectedProduct.min_term} - {selectedProduct.max_term} {selectedProduct.repayment_frequency?.toLowerCase() === 'daily' ? 'days' : selectedProduct.repayment_frequency?.toLowerCase() === 'weekly' ? 'weeks' : 'months'}
                           </p>
                         </div>
                       </div>
