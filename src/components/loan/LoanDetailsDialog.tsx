@@ -51,6 +51,7 @@ import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
 import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/useLoanAccounting";
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { calculateFeeAmount } from "@/lib/fee-calculation";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -113,6 +114,104 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const chargeAccounting = useLoanChargeAccounting();
   const createJournal = useCreateJournalEntry();
   const { data: feeStructures = [] } = useFeeStructures();
+
+  // Loan product config and allowed payment types
+  const { data: productConfig } = useQuery({
+    queryKey: ['loan-product-config', loan?.loan_product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('id, repayment_strategy, fee_mappings')
+        .eq('id', loan.loan_product_id)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!loan?.loan_product_id,
+  });
+
+  const { data: productPaymentTypes = [] } = useQuery({
+    queryKey: ['loan-product-payment-types', loan?.loan_product_id],
+    queryFn: async () => {
+      const { data: maps, error: mapErr } = await supabase
+        .from('product_fund_source_mappings')
+        .select('channel_id, channel_name')
+        .eq('product_id', loan.loan_product_id)
+        .eq('product_type', 'loan');
+      if (mapErr) throw mapErr;
+      const ids = (maps || []).map((m: any) => m.channel_id).filter(Boolean);
+      if (ids.length === 0) {
+        // Fallback to channel_name with inferred codes
+        return (maps || []).map((m: any, idx: number) => ({
+          id: m.channel_id || `channel_${idx}`,
+          code: (m.channel_name || '').toLowerCase().replace(/\s+/g, '_'),
+          name: m.channel_name || 'Payment Channel',
+        }));
+      }
+      const { data: pts, error: ptErr } = await supabase
+        .from('payment_types')
+        .select('id, code, name')
+        .in('id', ids);
+      if (ptErr) throw ptErr;
+      return (pts || []).map((p: any) => ({ id: p.id, code: p.code, name: p.name }));
+    },
+    enabled: !!loan?.loan_product_id,
+  });
+
+  // Default payment methods from product mapping
+  useEffect(() => {
+    if (!productPaymentTypes || productPaymentTypes.length === 0) return;
+    const codes = productPaymentTypes.map((p: any) => p.code);
+    if (!codes.includes(repayMethod)) setRepayMethod(productPaymentTypes[0].code);
+    if (!codes.includes(earlyMethod)) setEarlyMethod(productPaymentTypes[0].code);
+    if (!codes.includes(recoveryMethod)) setRecoveryMethod(productPaymentTypes[0].code);
+  }, [productPaymentTypes]);
+
+  // Product-linked fees
+  const feeMappings = (productConfig as any)?.fee_mappings as any[] | undefined;
+  const productFees = useMemo(() => {
+    const base = (feeStructures || []).filter((f: any) => f.fee_type === 'loan' && f.is_active);
+    if (!feeMappings || feeMappings.length === 0) return base;
+    const allowedIds = feeMappings.map((m: any) => m.fee_id).filter(Boolean);
+    return base.filter((f: any) => allowedIds.includes(f.id));
+  }, [feeMappings, feeStructures]);
+
+  const [earlyFeeId, setEarlyFeeId] = useState<string>('');
+  const earlyFeeAmount = useMemo(() => {
+    const fee: any = productFees.find((f: any) => f.id === earlyFeeId);
+    if (!fee) return 0;
+    const baseOutstanding = Number((loan as any)?.outstanding_balance ?? 0);
+    const calc = calculateFeeAmount({
+      id: fee.id,
+      name: fee.name,
+      calculation_type: fee.calculation_type,
+      amount: Number(fee.amount || 0),
+      min_amount: fee.min_amount,
+      max_amount: fee.max_amount,
+      fee_type: fee.fee_type,
+      charge_time_type: fee.charge_time_type,
+    } as any, baseOutstanding);
+    return Number(calc.calculated_amount || 0);
+  }, [earlyFeeId, productFees, loan]);
+
+  // Auto-calc default fee amount in Add Fee dialog
+  useEffect(() => {
+    if (!feeId) return;
+    const fee: any = productFees.find((f: any) => f.id === feeId);
+    if (!fee) return;
+    const baseOutstanding = Number((loan as any)?.outstanding_balance ?? 0);
+    const calc = calculateFeeAmount({
+      id: fee.id,
+      name: fee.name,
+      calculation_type: fee.calculation_type,
+      amount: Number(fee.amount || 0),
+      min_amount: fee.min_amount,
+      max_amount: fee.max_amount,
+      fee_type: fee.fee_type,
+      charge_time_type: fee.charge_time_type,
+    } as any, baseOutstanding);
+    setFeeAmount(Number(calc.calculated_amount || 0));
+  }, [feeId, loan, productFees]);
 
   // Derived status: in_arrears and overpaid
   const { data: schedules = [] } = useLoanSchedules(loan?.id);
