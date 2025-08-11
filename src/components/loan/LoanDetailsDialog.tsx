@@ -30,7 +30,7 @@ import {
   ShieldX
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
-import { QuickPaymentForm } from "@/components/forms/QuickPaymentForm";
+import { PaymentForm } from "@/components/forms/PaymentForm";
 import { LoanCalculatorDialog } from "@/components/forms/LoanCalculatorDialog";
 import { TransactionStatement } from "@/components/statements/TransactionStatement";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLoanSchedules, useProcessLoanPayment } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 import { useSavingsDepositAccounting } from "@/hooks/useSavingsAccounting";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Input } from "@/components/ui/input";
@@ -792,78 +792,19 @@ const getStatusColor = (status: string) => {
                   </CardContent>
                 </Card>
 
-                {/* Quick Actions */}
+                {/* Process Payment */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
+                    <CardTitle>Process Payment</CardTitle>
+                    <CardDescription>Record a payment for this loan</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="default" className="w-full justify-between">
-                          Process Transaction
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="z-50">
-                        <DropdownMenuLabel>Choose action</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setRepayOpen(true)}>
-                          Make repayment
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setEarlyAmount(loanDetails.outstanding || 0); setEarlyRepayOpen(true); }}>
-                          Early repayment
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setChargeOpen(true)}>
-                          Add loan charge/fee
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTransferOpen(true)} disabled={derived.overpaidAmount <= 0}>
-                          Transfer overpaid loan
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setWriteOffOpen(true)} disabled={loan.status === 'closed'}>
-                          Write off
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setRecoveryOpen(true)} disabled={loan.status !== 'written_off'}>
-                          Recovery (written-off only)
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
                     <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
+                      variant="default" 
+                      className="w-full justify-between"
                       onClick={() => setPaymentFormOpen(true)}
                     >
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Record Payment (simple)
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => setCalculatorOpen(true)}
-                    >
-                      <Calculator className="h-4 w-4 mr-2" />
-                      Calculate Payment
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => {
-                        import('@/lib/statement-generator').then(({ generateLoanStatement }) => {
-                          generateLoanStatement({
-                            loan,
-                            clientName,
-                            paymentHistory,
-                            loanDetails
-                          });
-                        });
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Statement
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Generate Report
+                      Process Payment
                     </Button>
                   </CardContent>
                 </Card>
@@ -1265,13 +1206,9 @@ const getStatusColor = (status: string) => {
         </div>
 
         {/* Payment Form Dialog */}
-        <QuickPaymentForm
+        <PaymentForm
           open={paymentFormOpen}
           onOpenChange={setPaymentFormOpen}
-          type="loan_payment"
-          accountId={loanDetails.id}
-          clientName={clientName}
-          maxAmount={loanDetails.outstanding}
         />
 
         {/* Repayment Dialog */}
