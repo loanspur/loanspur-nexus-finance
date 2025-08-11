@@ -548,6 +548,12 @@ const { formatAmount: formatCurrency } = useCurrency();
         open={showNewLoan}
         onOpenChange={setShowNewLoan}
         clientId={client.id}
+        onApplicationCreated={(application) => {
+          setShowNewLoan(false);
+          setSelectedLoanForWorkflow(application);
+          setShowLoanWorkflowModal(true);
+          fetchClientData();
+        }}
       />
       <NewSavingsDialog
         open={showNewSavings}

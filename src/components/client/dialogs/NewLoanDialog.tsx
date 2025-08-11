@@ -38,7 +38,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const loanApplicationSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
-  fund_source_id: z.string().min(1, "Please select a fund source"),
+  fund_source_id: z.string().optional(),
   requested_amount: z.number().min(1, "Amount must be greater than 0"),
   requested_term: z.number().min(1, "Term must be at least 1"),
   term_frequency: z.enum(["daily", "weekly", "monthly", "annually"]),
@@ -62,9 +62,10 @@ interface NewLoanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clientId: string;
+  onApplicationCreated?: (application: any) => void;
 }
 
-export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogProps) => {
+export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreated }: NewLoanDialogProps) => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const createLoanApplication = useCreateLoanApplication();
@@ -400,6 +401,9 @@ const { formatAmount: formatCurrency } = useCurrency();
         description: "Loan application created successfully",
       });
 
+      // Let parent open workflow/details
+      onApplicationCreated?.(localApplication);
+
       form.reset();
       onOpenChange(false);
     } catch (error: any) {
@@ -410,6 +414,16 @@ const { formatAmount: formatCurrency } = useCurrency();
         variant: "destructive",
       });
     }
+  };
+
+  const onInvalid = (errors: Record<string, any>) => {
+    const detailsFields = ['loan_product_id','requested_amount','requested_term','term_frequency','purpose','interest_rate','interest_calculation_method','submit_date','disbursement_date'];
+    const fundingFields = ['fund_source_id','loan_officer_id','linked_savings_account_id'];
+    const keys = Object.keys(errors || {});
+    if (keys.some(k => detailsFields.includes(k))) setActiveTab('details');
+    else if (keys.some(k => fundingFields.includes(k))) setActiveTab('funding');
+    else setActiveTab('details');
+    toast({ title: 'Missing information', description: 'Please complete required fields before creating the loan application.', variant: 'destructive' });
   };
 
   return (
@@ -426,7 +440,7 @@ const { formatAmount: formatCurrency } = useCurrency();
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="details">Loan Details</TabsTrigger>
