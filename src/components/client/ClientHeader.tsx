@@ -28,6 +28,7 @@ interface ClientHeaderProps {
   savingsBalance: number;
   officeName?: string | null;
   loanOfficerName?: string | null;
+  trp?: number | null;
 }
 
 export const ClientHeader = ({ 

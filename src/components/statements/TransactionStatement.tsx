@@ -46,10 +46,17 @@ export const TransactionStatement = ({
   accountNumber,
   clientName,
   accountDetails,
-  statementPeriod
+  statementPeriod,
+  showSummary = true,
 }: TransactionStatementProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [period, setPeriod] = useState<{ from: string; to: string }>(() => (
+    statementPeriod || {
+      from: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+      to: format(new Date(), 'yyyy-MM-dd'),
+    }
+  ));
   const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
@@ -62,37 +69,35 @@ export const TransactionStatement = ({
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
-      let query;
-      
-      if (accountType === 'savings') {
-        query = supabase
-          .from('savings_transactions')
-          .select('*')
-          .eq('savings_account_id', accountId)
-          .order('transaction_date', { ascending: false })
-          .order('created_at', { ascending: false });
-      } else {
-        // For loans, we'll fetch loan payments
-        query = supabase
-          .from('loan_payments')
-          .select('*')
-          .eq('loan_id', accountId)
-          .order('payment_date', { ascending: false })
-          .order('created_at', { ascending: false });
-      }
+      const dateField = accountType === 'savings' ? 'transaction_date' : 'payment_date';
+      let query = accountType === 'savings'
+        ? supabase
+            .from('savings_transactions')
+            .select('*')
+            .eq('savings_account_id', accountId)
+        : supabase
+            .from('loan_payments')
+            .select('*')
+            .eq('loan_id', accountId);
+
+      if (period?.from) query = query.gte(dateField, period.from);
+      if (period?.to) query = query.lte(dateField, period.to);
+
+      query = query
+        .order(dateField, { ascending: false })
+        .order('created_at', { ascending: false });
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      // Transform the data to match our Transaction interface
       const transformedTransactions: Transaction[] = (data || []).map((item: any) => ({
         date: accountType === 'savings' ? item.transaction_date : item.payment_date,
         type: accountType === 'savings' ? item.transaction_type : 'payment',
         amount: parseFloat(item.amount),
         balance: accountType === 'savings' ? parseFloat(item.balance_after) : 0,
         method: item.method || item.payment_method || 'N/A',
-        reference: item.reference_number || `${accountType === 'savings' ? 'TXN' : 'PMT'}-${item.id.slice(-8)}`,
+        reference: item.reference_number || `${accountType === 'savings' ? 'TXN' : 'PMT'}-${String(item.id).slice(-8)}`,
         description: item.description || '',
         status: item.status || 'completed'
       }));
@@ -114,17 +119,41 @@ export const TransactionStatement = ({
     if (accountId) {
       fetchTransactions();
     }
-  }, [accountId, accountType]);
+  }, [accountId, accountType, period.from, period.to]);
 
   const handleRefresh = () => {
     fetchTransactions();
   };
 
-  const defaultStatementPeriod = statementPeriod || {
-    from: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 30 days ago
-    to: format(new Date(), 'yyyy-MM-dd') // today
-  };
+  const handleDownload = () => {
+    const doc = new jsPDF();
+    const title = `${accountType === 'savings' ? 'SAVINGS' : 'LOAN'} STATEMENT`;
+    doc.setFontSize(18);
+    doc.text(title, 105, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Account: ${accountNumber}`, 20, 30);
+    doc.text(`Client: ${clientName}`, 20, 36);
+    doc.text(`Period: ${formatDate(period.from)} - ${formatDate(period.to)}`, 20, 42);
 
+    const rows = transactions.map((t) => [
+      formatDate(t.date),
+      t.type,
+      t.method || '-',
+      formatCurrency(t.amount),
+      formatCurrency(t.balance),
+      t.reference,
+    ]);
+
+    (doc as any).autoTable({
+      startY: 50,
+      head: [['Date', 'Type', 'Method', 'Amount', 'Balance', 'Reference']],
+      body: rows,
+      theme: 'grid',
+      styles: { fontSize: 9 },
+    });
+
+    doc.save(`${accountType}-statement-${accountNumber}-${period.from}-to-${period.to}.pdf`);
+  };
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "MMM dd, yyyy");
   };
@@ -201,15 +230,28 @@ export const TransactionStatement = ({
                 {accountType === 'savings' ? 'Savings' : 'Loan'} Account Statement
               </CardTitle>
               <CardDescription>
-                Account: {accountNumber} | Period: {formatDate(defaultStatementPeriod.from)} - {formatDate(defaultStatementPeriod.to)}
+                Account: {accountNumber} | Period: {formatDate(period.from)} - {formatDate(period.to)}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={period.from}
+                onChange={(e) => setPeriod((p) => ({ ...p, from: e.target.value }))}
+                className="h-9 rounded-md border px-2 text-sm bg-background"
+              />
+              <span className="text-muted-foreground text-sm">to</span>
+              <input
+                type="date"
+                value={period.to}
+                onChange={(e) => setPeriod((p) => ({ ...p, to: e.target.value }))}
+                className="h-9 rounded-md border px-2 text-sm bg-background"
+              />
               <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
+                Apply
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
@@ -229,7 +271,7 @@ export const TransactionStatement = ({
             </div>
             <div>
               <span className="text-muted-foreground">Statement Period</span>
-              <div className="font-medium">{formatDate(defaultStatementPeriod.from)} - {formatDate(defaultStatementPeriod.to)}</div>
+              <div className="font-medium">{formatDate(period.from)} - {formatDate(period.to)}</div>
             </div>
             <div>
               <span className="text-muted-foreground">Total Transactions</span>
@@ -240,42 +282,44 @@ export const TransactionStatement = ({
       </Card>
 
       {/* Transaction Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-6 text-center">
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">Total Credits</div>
-              <div className="text-2xl font-bold text-green-600">
-                +{formatCurrency(totalCredits)}
+      {showSummary && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Transaction Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-6 text-center">
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Total Credits</div>
+                <div className="text-2xl font-bold text-green-600">
+                  +{formatCurrency(totalCredits)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {transactions.filter(t => ["deposit"].includes(t.type.toLowerCase())).length} transactions
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                {transactions.filter(t => ["deposit"].includes(t.type.toLowerCase())).length} transactions
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Total Debits</div>
+                <div className="text-2xl font-bold text-red-600">
+                  -{formatCurrency(totalDebits)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {transactions.filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase())).length} transactions
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-muted-foreground">Net Movement</div>
+                <div className={`text-2xl font-bold ${(totalCredits - totalDebits) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(totalCredits - totalDebits) >= 0 ? '+' : ''}{formatCurrency(totalCredits - totalDebits)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  This period
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">Total Debits</div>
-              <div className="text-2xl font-bold text-red-600">
-                -{formatCurrency(totalDebits)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {transactions.filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase())).length} transactions
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground">Net Movement</div>
-              <div className={`text-2xl font-bold ${(totalCredits - totalDebits) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {(totalCredits - totalDebits) >= 0 ? '+' : ''}{formatCurrency(totalCredits - totalDebits)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                This period
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Transaction Details */}
       <Card>

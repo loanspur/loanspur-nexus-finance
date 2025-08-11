@@ -646,6 +646,7 @@ const getStatusColor = (status: string) => {
                   openingDate: loanDetails.disbursementDate || undefined,
                   accountOfficer: loanDetails.loanOfficer
                 }}
+                showSummary={false}
               />
             </TabsContent>
 

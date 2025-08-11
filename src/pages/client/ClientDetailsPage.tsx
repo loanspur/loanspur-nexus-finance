@@ -98,11 +98,12 @@ const ClientDetailsPageRefactored = () => {
   const [loans, setLoans] = useState<any[]>([]);
   const [loanApplications, setLoanApplications] = useState<any[]>([]);
   const [savings, setSavings] = useState<any[]>([]);
-const [activeTab, setActiveTab] = useState("general");
-const [loading, setLoading] = useState(true);
-// Header extras
-const [officeName, setOfficeName] = useState<string | null>(null);
-const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("general");
+  const [loading, setLoading] = useState(true);
+  // Header extras
+  const [officeName, setOfficeName] = useState<string | null>(null);
+  const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
+  const [clientTRP, setClientTRP] = useState<number | null>(null);
   
   // Dialog states
   const [showNewLoan, setShowNewLoan] = useState(false);
