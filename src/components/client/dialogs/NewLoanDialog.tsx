@@ -183,14 +183,7 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
   });
 
 
-  const { currency } = useCurrency();
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   // Filter charges to those linked to the selected loan product and of type 'loan'
   const filteredCharges = feeStructures.filter(charge =>

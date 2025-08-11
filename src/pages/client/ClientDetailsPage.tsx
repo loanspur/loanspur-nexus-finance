@@ -38,6 +38,7 @@ import { ClientNotesTab } from "@/components/client/tabs/ClientNotesTab";
 import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
 import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
 // Using enhanced workflow dialog
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { EnhancedLoanWorkflowDialog } from "@/components/loan/EnhancedLoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
 import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
@@ -256,13 +257,7 @@ const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   const calculateSavingsBalance = () => {
     return savings.reduce((sum, account) => sum + (account.account_balance || 0), 0);
