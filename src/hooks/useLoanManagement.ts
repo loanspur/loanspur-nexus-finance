@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useMifosIntegration } from './useMifosIntegration';
 import { defaultQueryOptions } from './useOptimizedQueries';
-import { useLoanDisbursementAccounting } from './useLoanAccounting';
+import { useLoanDisbursementAccounting, useLoanChargeAccounting } from './useLoanAccounting';
 import { calculateFeeAmount } from '@/lib/fee-calculation';
 export interface LoanApplication {
   id: string;
@@ -719,16 +719,90 @@ export const useProcessLoanDisbursement = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
-      // Fetch loan application to validate client context
+      // Fetch loan application to validate client context and collect fee config
       const { data: application, error: appFetchError } = await supabase
         .from('loan_applications')
-        .select('id, client_id')
+        .select('id, client_id, loan_product_id, selected_charges, linked_savings_account_id, final_approved_amount, requested_amount')
         .eq('id', disbursement.loan_application_id)
         .single();
 
       if (appFetchError || !application) {
         console.error('Failed to fetch loan application for disbursement validation:', appFetchError);
         throw new Error('Loan application not found');
+      }
+
+      // Pre-compute disbursement-time fees that must be collected via account transfer
+      let totalTransferFees = 0;
+      let feeNamesForTransfer: string[] = [];
+      let savingsAccountIdForFees: string | undefined =
+        disbursement.disbursement_method === 'transfer_to_savings'
+          ? disbursement.savings_account_id
+          : (application as any).linked_savings_account_id || undefined;
+
+      const selectedCharges = ((application as any).selected_charges || []) as any[];
+      const disbCharges = selectedCharges.filter((c: any) => {
+        const t = (c.collected_on || c.charge_time_type || '').toLowerCase();
+        return ['on_disbursement', 'disbursement', 'upfront'].includes(t);
+      });
+      const transferCharges = disbCharges.filter((c: any) => {
+        const payBy = (c.due_date || c.charge_payment_by || '').toLowerCase();
+        return payBy.includes('transfer');
+      });
+
+      if (transferCharges.length > 0) {
+        const feeIds = transferCharges.map((c: any) => c.id).filter(Boolean);
+        let feeStructs: any[] = [];
+        if (feeIds.length > 0) {
+          const { data: fsData, error: fsErr } = await supabase
+            .from('fee_structures')
+            .select('*')
+            .in('id', feeIds);
+          if (fsErr) console.warn('Could not fetch fee structures for selected charges', fsErr);
+          feeStructs = fsData || [];
+        }
+        const baseAmount = Number(disbursement.disbursed_amount || (application as any).final_approved_amount || (application as any).requested_amount || 0);
+        for (const c of transferCharges) {
+          const fs = feeStructs.find(f => f.id === c.id);
+          let calcAmount = 0;
+          if (fs) {
+            const calc = calculateFeeAmount({
+              id: fs.id,
+              name: fs.name,
+              calculation_type: (fs.calculation_type === 'percentage' ? 'percentage' : (fs.calculation_type === 'flat' ? 'flat' : 'fixed')),
+              amount: Number(fs.amount),
+              min_amount: fs.min_amount ?? null,
+              max_amount: fs.max_amount ?? null,
+              fee_type: fs.fee_type,
+              charge_time_type: fs.charge_time_type,
+            } as any, baseAmount);
+            // If fixed/flat and user provided override amount, use override within min/max
+            if (fs.calculation_type !== 'percentage' && typeof c.amount === 'number') {
+              const overrideCalc = calculateFeeAmount({
+                id: fs.id,
+                name: fs.name,
+                calculation_type: (fs.calculation_type === 'flat' ? 'flat' : 'fixed'),
+                amount: Number(c.amount),
+                min_amount: fs.min_amount ?? null,
+                max_amount: fs.max_amount ?? null,
+                fee_type: fs.fee_type,
+                charge_time_type: fs.charge_time_type,
+              } as any, baseAmount);
+              calcAmount = overrideCalc.calculated_amount;
+            } else {
+              calcAmount = calc.calculated_amount;
+            }
+            feeNamesForTransfer.push(fs.name);
+          } else {
+            calcAmount = Number(c.amount || 0);
+            if (c.name) feeNamesForTransfer.push(c.name);
+          }
+          totalTransferFees += calcAmount;
+        }
+      }
+
+      // Enforce proper savings account selection when fees require account transfer
+      if (totalTransferFees > 0 && !savingsAccountIdForFees) {
+        throw new Error('This loan has fees to be collected via account transfer at disbursement. Please link a savings account or choose the "Disburse to savings" method.');
       }
 
       // Enforce: disbursement to savings requires a valid client-owned, active savings account selection
@@ -750,6 +824,25 @@ export const useProcessLoanDisbursement = () => {
         }
         if (!savingsAcct.is_active) {
           throw new Error('Selected savings account is not active.');
+        }
+      } else if (totalTransferFees > 0 && savingsAccountIdForFees) {
+        // For non-savings disbursement, ensure linked savings has enough balance now
+        const { data: sa, error: saErr } = await supabase
+          .from('savings_accounts')
+          .select('id, client_id, is_active, account_balance')
+          .eq('id', savingsAccountIdForFees)
+          .single();
+        if (saErr || !sa) {
+          throw new Error('Linked savings account not found.');
+        }
+        if (sa.client_id !== application.client_id) {
+          throw new Error('Linked savings account does not belong to the loan\'s client.');
+        }
+        if (!sa.is_active) {
+          throw new Error('Linked savings account is not active.');
+        }
+        if (Number(sa.account_balance || 0) < totalTransferFees) {
+          throw new Error(`Insufficient savings balance (KES ${(sa.account_balance || 0).toLocaleString()}) to cover disbursement-time fees (KES ${totalTransferFees.toLocaleString()}). Link a different account, top up, or use "Disburse to savings".`);
         }
       }
 
