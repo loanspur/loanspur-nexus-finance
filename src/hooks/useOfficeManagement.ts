@@ -45,7 +45,7 @@ export interface OfficeStaff {
     first_name?: string;
     last_name?: string;
     email?: string;
-  };
+  } | null;
   office: {
     office_name: string;
   };
@@ -168,8 +168,22 @@ export const useUserAccessibleOffices = () => {
           const { data: allOffices, error: allOfficesError } = await supabase
             .from('offices')
             .select(`
-              *,
-              branch_manager:profiles!offices_branch_manager_id_fkey(first_name, last_name, email)
+              id,
+              tenant_id,
+              office_name,
+              office_code,
+              office_type,
+              address,
+              phone,
+              email,
+              branch_manager_id,
+              is_active,
+              opening_date,
+              closing_date,
+              office_hours,
+              parent_office_id,
+              created_at,
+              updated_at
             `)
             .eq('tenant_id', profile.tenant_id)
             .eq('is_active', true)
@@ -182,7 +196,11 @@ export const useUserAccessibleOffices = () => {
           }
 
           console.log('useUserAccessibleOffices: Admin fallback found offices:', allOffices);
-          return allOffices || [];
+          // Return offices without trying to fetch branch manager details to avoid null reference errors
+          return (allOffices || []).map(office => ({
+            ...office,
+            branch_manager: null // Explicitly set to null to avoid undefined errors
+          }));
         }
         
         console.log('useUserAccessibleOffices: No offices accessible and user is not admin');
@@ -193,8 +211,22 @@ export const useUserAccessibleOffices = () => {
       const { data: offices, error: detailsError } = await supabase
         .from('offices')
         .select(`
-          *,
-          branch_manager:profiles!offices_branch_manager_id_fkey(first_name, last_name, email)
+          id,
+          tenant_id,
+          office_name,
+          office_code,
+          office_type,
+          address,
+          phone,
+          email,
+          branch_manager_id,
+          is_active,
+          opening_date,
+          closing_date,
+          office_hours,
+          parent_office_id,
+          created_at,
+          updated_at
         `)
         .in('id', accessibleOfficeIds.map((item: any) => item.office_id))
         .eq('is_active', true)
@@ -207,7 +239,11 @@ export const useUserAccessibleOffices = () => {
       }
 
       console.log('useUserAccessibleOffices: Final offices result:', offices);
-      return offices || [];
+      // Return offices without trying to fetch branch manager details to avoid null reference errors
+      return (offices || []).map(office => ({
+        ...office,
+        branch_manager: null // Explicitly set to null to avoid undefined errors
+      }));
     },
     enabled: !!profile?.id,
   });
@@ -238,7 +274,9 @@ export const useOfficeStaff = (officeId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Filter out any entries where staff is null to prevent rendering errors
+      return (data || []).filter(item => item.staff !== null);
     },
     enabled: !!profile?.tenant_id,
   });

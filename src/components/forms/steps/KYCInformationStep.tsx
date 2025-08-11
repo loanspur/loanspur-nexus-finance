@@ -1,3 +1,4 @@
+
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
@@ -20,7 +21,10 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
   // we can use the offices directly
   const activeOffices = offices;
   const loanOfficers = (selectedOfficeId ? officeStaff : []).filter(staff => 
-    staff.role_in_office === 'loan_officer' && staff.is_active
+    staff && 
+    staff.staff && 
+    staff.role_in_office === 'loan_officer' && 
+    staff.is_active
   );
 
   return (
