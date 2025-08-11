@@ -4022,6 +4022,7 @@ export type Database = {
           fund_id: string | null
           id: string
           is_joint_application: boolean | null
+          linked_savings_account_id: string | null
           loan_product_id: string
           purpose: string | null
           repayment_schedule: Json | null
@@ -4031,6 +4032,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           risk_assessment: Json | null
+          selected_charges: Json
           status: string
           submitted_at: string
           tenant_id: string
@@ -4055,6 +4057,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           is_joint_application?: boolean | null
+          linked_savings_account_id?: string | null
           loan_product_id: string
           purpose?: string | null
           repayment_schedule?: Json | null
@@ -4064,6 +4067,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           risk_assessment?: Json | null
+          selected_charges?: Json
           status?: string
           submitted_at?: string
           tenant_id: string
@@ -4088,6 +4092,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           is_joint_application?: boolean | null
+          linked_savings_account_id?: string | null
           loan_product_id?: string
           purpose?: string | null
           repayment_schedule?: Json | null
@@ -4097,6 +4102,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           risk_assessment?: Json | null
+          selected_charges?: Json
           status?: string
           submitted_at?: string
           tenant_id?: string
@@ -4122,6 +4128,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_linked_savings_account_id_fkey"
+            columns: ["linked_savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
             referencedColumns: ["id"]
           },
           {

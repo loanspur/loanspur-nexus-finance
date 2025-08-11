@@ -18,9 +18,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, XCircle, Clock, CreditCard, Banknote, AlertTriangle, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval, useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useProcessLoanApproval, useProcessLoanDisbursement, useUpdateLoanApplicationDetails } from "@/hooks/useLoanManagement";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,6 +90,31 @@ export const EnhancedLoanWorkflowDialog = ({
     },
     enabled: !!loanApplication.client_id && open,
   });
+
+  // Fetch available loan-related charges/fees
+  const { data: availableCharges = [] } = useQuery({
+    queryKey: ['available-loan-charges', (profile?.tenant_id || ''), loanApplication.loan_product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fee_structures')
+        .select('id, name, calculation_type, amount, min_amount, max_amount, fee_type, charge_time_type')
+        .eq('tenant_id', profile!.tenant_id)
+        .eq('is_active', true);
+      if (error) throw error;
+      // Prefer fees that are for loans
+      return (data || []).filter((f: any) => (f.fee_type || '').toLowerCase().includes('loan'));
+    },
+    enabled: !!profile?.tenant_id && open,
+  });
+
+  // Local edit state
+  const [editTerm, setEditTerm] = useState<number | undefined>(loanApplication.requested_term);
+  const [editSavingsId, setEditSavingsId] = useState<string | undefined>(loanApplication.linked_savings_account_id || undefined);
+  const [editCharges, setEditCharges] = useState<any[]>(loanApplication.selected_charges || []);
+  const [selectedChargeId, setSelectedChargeId] = useState<string>('');
+  const [customChargeAmount, setCustomChargeAmount] = useState<string>('');
+
+  const updateLoan = useUpdateLoanApplicationDetails();
 
   const approvalForm = useForm<ApprovalData>({
     resolver: zodResolver(approvalSchema),

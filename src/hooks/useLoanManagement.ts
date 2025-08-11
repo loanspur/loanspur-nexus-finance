@@ -723,7 +723,7 @@ export const useProcessLoanDisbursement = () => {
       // Fetch loan application to validate client context and gather product info
       const { data: application, error: appFetchError } = await supabase
         .from('loan_applications')
-        .select('id, client_id, loan_product_id, final_approved_amount, requested_amount')
+        .select('id, client_id, loan_product_id, final_approved_amount, requested_amount, linked_savings_account_id, selected_charges')
         .eq('id', disbursement.loan_application_id)
         .single();
 
@@ -803,17 +803,37 @@ export const useProcessLoanDisbursement = () => {
           if (sa.client_id !== application.client_id) throw new Error('Selected savings account does not belong to the loan\'s client.');
           if (!sa.is_active) throw new Error('Selected savings account is not active.');
         } else {
-          // Use the client\'s first active savings account
-          const { data: sa, error: saErr } = await supabase
-            .from('savings_accounts')
-            .select('id, client_id, is_active, account_balance')
-            .eq('client_id', application.client_id)
-            .eq('is_active', true)
-            .order('opened_date', { ascending: true })
-            .maybeSingle();
-          if (saErr || !sa) {
-            throw new Error('No active savings account found for this client. Link a savings account or use "Disburse to savings".');
+          // Prefer linked savings account if set on application; otherwise use client's first active
+          const preferredId = (application as any).linked_savings_account_id as string | null;
+          let sa: any = null;
+
+          if (preferredId) {
+            const { data, error } = await supabase
+              .from('savings_accounts')
+              .select('id, client_id, is_active, account_balance')
+              .eq('id', preferredId)
+              .single();
+            if (!error) sa = data;
           }
+
+          if (!sa) {
+            const { data, error } = await supabase
+              .from('savings_accounts')
+              .select('id, client_id, is_active, account_balance')
+              .eq('client_id', application.client_id)
+              .eq('is_active', true)
+              .order('opened_date', { ascending: true })
+              .maybeSingle();
+            if (error || !data) {
+              throw new Error('No active savings account found for this client. Link a savings account or use "Disburse to savings".');
+            }
+            sa = data;
+          }
+
+          if (sa.client_id !== application.client_id || !sa.is_active) {
+            throw new Error('Linked savings account is invalid for this client.');
+          }
+
           savingsAccountIdForFees = sa.id;
           if (Number(sa.account_balance || 0) < totalTransferFees) {
             throw new Error(`Insufficient savings balance (KES ${(sa.account_balance || 0).toLocaleString()}) to cover disbursement-time fees (KES ${totalTransferFees.toLocaleString()}). Link a different account, top up, or use "Disburse to savings".`);
@@ -1118,6 +1138,48 @@ export const useProcessLoanDisbursement = () => {
         variant: "destructive",
       });
     },
+  });
+};
+
+// Update Loan Application details (term, linked savings, selected charges)
+export const useUpdateLoanApplicationDetails = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      loan_application_id: string;
+      requested_term?: number;
+      linked_savings_account_id?: string | null;
+      selected_charges?: any[];
+    }) => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      const updates: Record<string, any> = {};
+      if (typeof payload.requested_term === 'number') updates.requested_term = payload.requested_term;
+      if (payload.linked_savings_account_id !== undefined) updates.linked_savings_account_id = payload.linked_savings_account_id || null;
+      if (payload.selected_charges !== undefined) updates.selected_charges = payload.selected_charges;
+
+      if (Object.keys(updates).length === 0) return true;
+
+      const { error } = await supabase
+        .from('loan_applications')
+        .update(updates)
+        .eq('id', payload.loan_application_id);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['all-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans-dialog'] });
+      toast({ title: 'Success', description: 'Loan details updated.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to update loan details', variant: 'destructive' });
+    }
   });
 };
 
