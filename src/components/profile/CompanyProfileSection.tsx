@@ -153,7 +153,7 @@ useEffect(() => {
           country: data.country || null,
           timezone: data.timezone,
           currency_code: data.currency_code,
-          currency_decimal_places: data.currency_decimal_places,
+          currency_decimal_places: Number(data.currency_decimal_places),
           city: data.city || null,
           state_province: data.state_province || null,
           postal_code: data.postal_code || null,
@@ -162,8 +162,11 @@ useEffect(() => {
 
       if (error) throw error;
 
-      // Invalidate and refetch tenant data
-      await queryClient.invalidateQueries({ queryKey: ['tenant', profile.tenant_id] });
+      // Invalidate and refetch tenant data and currency context
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tenant', profile.tenant_id] }),
+        queryClient.invalidateQueries({ queryKey: ['tenant-currency', profile.tenant_id] }),
+      ]);
 
       toast({
         title: "Company Profile Updated",
@@ -544,7 +547,7 @@ useEffect(() => {
           <DollarSign className="h-4 w-4" />
           Decimal Places
         </FormLabel>
-        <Select onValueChange={(val) => field.onChange(val)} value={String(field.value ?? 2)}>
+        <Select onValueChange={(val) => field.onChange(Number(val))} value={String(field.value ?? 2)}>
           <FormControl>
             <SelectTrigger>
               <SelectValue placeholder="Select decimal places" />
