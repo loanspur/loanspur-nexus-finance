@@ -29,20 +29,20 @@ export const ClientsTable = ({ onCreateClient }: ClientsTableProps) => {
   const [isLoanApplicationDialogOpen, setIsLoanApplicationDialogOpen] = useState(false);
   const [selectedClientForLoan, setSelectedClientForLoan] = useState<string>("");
 
-  // Filter and limit clients
-  const filteredClients = clients?.filter((client: any) => {
+  // Filter and limit clients safely (guard against null entries)
+  const safeClients = (clients || []).filter((c: any) => c && typeof c === 'object');
+  const filteredClients = safeClients.filter((client: any) => {
     const searchLower = searchTerm.toLowerCase();
+    const fullName = `${client.first_name || ''} ${client.last_name || ''}`.toLowerCase();
     return (
-      client.first_name?.toLowerCase().includes(searchLower) ||
-      client.last_name?.toLowerCase().includes(searchLower) ||
-      client.client_number?.toLowerCase().includes(searchLower) ||
-      client.phone?.toLowerCase().includes(searchLower) ||
-      client.email?.toLowerCase().includes(searchLower)
+      fullName.includes(searchLower) ||
+      (client.client_number || '').toLowerCase().includes(searchLower) ||
+      (client.phone || '').toLowerCase().includes(searchLower) ||
+      (client.email || '').toLowerCase().includes(searchLower)
     );
   });
 
-  const displayedClients = filteredClients?.slice(0, parseInt(itemsPerPage)) || [];
-
+  const displayedClients = filteredClients.slice(0, parseInt(itemsPerPage));
   const handleViewClient = (client: any) => {
     setSelectedClient(client);
     setIsDetailsDialogOpen(true);
