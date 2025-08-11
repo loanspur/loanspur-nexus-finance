@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { 
@@ -64,6 +64,7 @@ export const SavingsAccountDetailsDialog = ({
   const { currency } = useCurrency();
   const { data: liveAccount } = useSavingsAccount(account.id);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [closeReason, setCloseReason] = useState("");
   const [closeDate, setCloseDate] = useState<string>(() => format(new Date(), 'yyyy-MM-dd'));
@@ -108,6 +109,13 @@ export const SavingsAccountDetailsDialog = ({
         .update({ status: 'closed', is_active: false, closed_date: closeDate, close_reason: closeReason.trim() })
         .eq('id', account.id);
       if (error) throw error;
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['savings-accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['savings-account', account.id] }),
+        queryClient.invalidateQueries({ queryKey: ['savings-transactions', account.id] }),
+      ]);
+
       toast({ title: 'Savings Account Closed', description: `Account ${account.account_number} has been closed.` });
       onOpenChange(false);
     } catch (err: any) {
