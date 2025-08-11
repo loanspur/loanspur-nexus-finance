@@ -68,10 +68,20 @@ export const ClientLoansTab = ({
 
   const { loans: visibleLoans, applications: visibleApplications } = getVisibleLoansAndApplications();
   
+  // Deduplicate: if an approved/pending_disbursement loan exists for an application, show only the application row
+  const applicationIds = new Set(visibleApplications.map((a) => a.id));
+  const dedupedLoans = visibleLoans.filter((loan) => {
+    const status = (loan.status || '').toLowerCase();
+    if (['approved', 'pending_disbursement'].includes(status) && loan.application_id && applicationIds.has(loan.application_id)) {
+      return false; // hide duplicate loan record to keep one source of truth
+    }
+    return true;
+  });
+  
   // Combine loans and applications for single row display
   const allVisibleItems = [
     ...visibleApplications.map(app => ({ ...app, type: 'application' })),
-    ...visibleLoans.map(loan => ({ ...loan, type: 'loan' }))
+    ...dedupedLoans.map(loan => ({ ...loan, type: 'loan' }))
   ];
 
   const getStatusBadge = (status: string, type: 'loan' | 'application') => {
