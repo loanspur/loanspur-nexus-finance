@@ -5,6 +5,7 @@ import { useToast } from './use-toast';
 import { useMifosIntegration } from './useMifosIntegration';
 import { defaultQueryOptions } from './useOptimizedQueries';
 import { useLoanDisbursementAccounting } from './useLoanAccounting';
+import { calculateFeeAmount } from '@/lib/fee-calculation';
 export interface LoanApplication {
   id: string;
   tenant_id: string;
