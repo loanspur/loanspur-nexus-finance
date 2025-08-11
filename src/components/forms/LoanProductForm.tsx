@@ -130,6 +130,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         pre_closure_interest_calculation_rule: (editingProduct as any).pre_closure_interest_calculation_rule || "till_pre_close_date",
         advance_payments_adjustment_type: (editingProduct as any).advance_payments_adjustment_type || "reduce_emi",
         reschedule_strategy: (editingProduct as any).reschedule_strategy || "reduce_emi",
+        repayment_strategy: (editingProduct as any).repayment_strategy || 'penalties_fees_interest_principal',
         
         // Fees & Charges
         processing_fee_amount: (editingProduct as any).processing_fee_amount?.toString() || "0",
@@ -198,6 +199,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       
       // Required fields
       repayment_frequency: data.repayment_frequency,
+      repayment_strategy: data.repayment_strategy,
       // Preserve current flags if editing, else default to active
       is_active: editingProduct ? editingProduct.is_active : true,
       mifos_product_id: editingProduct ? (editingProduct.mifos_product_id ?? null) : null,

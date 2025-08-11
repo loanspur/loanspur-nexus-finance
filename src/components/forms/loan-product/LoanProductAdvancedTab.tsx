@@ -181,6 +181,39 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
 
   return (
     <div className="space-y-6">
+      {/* Repayment Strategy */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Repayment Strategy</CardTitle>
+          <CardDescription className="text-muted-foreground">Order used to allocate repayments</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormField
+            control={form.control}
+            name="repayment_strategy"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Repayment allocation order</FormLabel>
+                <FormControl>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select strategy" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[60] bg-background">
+                      <SelectItem value="penalties_fees_interest_principal">Penalties → Fees → Interest → Principal (default)</SelectItem>
+                      <SelectItem value="interest_principal_penalties_fees">Interest → Principal → Penalties → Fees</SelectItem>
+                      <SelectItem value="interest_penalties_fees_principal">Interest → Penalties → Fees → Principal</SelectItem>
+                      <SelectItem value="principal_interest_fees_penalties">Principal → Interest → Fees → Penalties</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </CardContent>
+      </Card>
+
       {/* Advanced Accounting Rule Section */}
       <Card>
         <CardHeader>

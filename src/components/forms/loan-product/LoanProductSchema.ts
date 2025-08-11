@@ -36,10 +36,18 @@ export const loanProductSchema = z.object({
   arrears_tolerance_days: z.string().default("0"),
   moratorium_period: z.string().default("0"),
   
-  // Prepayment & Reschedule Settings
-  pre_closure_interest_calculation_rule: z.string().default("till_pre_close_date"),
-  advance_payments_adjustment_type: z.string().default("reduce_emi"),
-  reschedule_strategy: z.string().default("reduce_emi"),
+// Prepayment & Reschedule Settings
+pre_closure_interest_calculation_rule: z.string().default("till_pre_close_date"),
+advance_payments_adjustment_type: z.string().default("reduce_emi"),
+reschedule_strategy: z.string().default("reduce_emi"),
+
+// Repayment allocation strategy (Mifos X)
+repayment_strategy: z.enum([
+  'penalties_fees_interest_principal',
+  'interest_principal_penalties_fees',
+  'interest_penalties_fees_principal',
+  'principal_interest_fees_penalties',
+]).default('penalties_fees_interest_principal'),
   
   // Fees & Charges
   processing_fee_amount: z.string().default("0"),
@@ -167,10 +175,13 @@ export const defaultValues: LoanProductFormData = {
   arrears_tolerance_days: "0",
   moratorium_period: "0",
   
-  // Prepayment & Reschedule Settings
-  pre_closure_interest_calculation_rule: "till_pre_close_date",
-  advance_payments_adjustment_type: "reduce_emi",
-  reschedule_strategy: "reduce_emi",
+// Prepayment & Reschedule Settings
+pre_closure_interest_calculation_rule: "till_pre_close_date",
+advance_payments_adjustment_type: "reduce_emi",
+reschedule_strategy: "reduce_emi",
+
+// Repayment allocation strategy (Mifos X)
+repayment_strategy: 'penalties_fees_interest_principal',
   
   // Fees & Charges
   processing_fee_amount: "0",

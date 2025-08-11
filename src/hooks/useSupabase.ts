@@ -109,6 +109,7 @@ export interface LoanProduct {
   max_term: number;
   default_term?: number | null;
   repayment_frequency: string;
+  repayment_strategy?: string;
   is_active: boolean;
   mifos_product_id?: number | null;
   created_at: string;
