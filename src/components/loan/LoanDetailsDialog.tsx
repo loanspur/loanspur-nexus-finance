@@ -35,8 +35,8 @@ import { LoanCalculatorDialog } from "@/components/forms/LoanCalculatorDialog";
 import { TransactionStatement } from "@/components/statements/TransactionStatement";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import { useLoanSchedules } from "@/hooks/useLoanManagement";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLoanSchedules, useProcessLoanPayment } from "@/hooks/useLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useSavingsDepositAccounting } from "@/hooks/useSavingsAccounting";
@@ -46,10 +46,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as DatePickerCalendar } from "@/components/ui/calendar";
-import { useProcessLoanPayment } from "@/hooks/useLoanManagement";
 import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/useLoanAccounting";
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
-import { useQueryClient } from "@tanstack/react-query";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -82,6 +81,36 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
   const [recoveryOpen, setRecoveryOpen] = useState(false);
+
+  // Form fields
+  const [repayAmount, setRepayAmount] = useState<number>(0);
+  const [repayMethod, setRepayMethod] = useState<string>('cash');
+  const [repayDate, setRepayDate] = useState<Date | undefined>(new Date());
+  const [repayRef, setRepayRef] = useState<string>('');
+
+  const [earlyAmount, setEarlyAmount] = useState<number>(0);
+  const [earlyDate, setEarlyDate] = useState<Date | undefined>(new Date());
+  const [earlyMethod, setEarlyMethod] = useState<string>('cash');
+
+  const [writeOffReason, setWriteOffReason] = useState<string>('');
+  const [writeOffConfirm, setWriteOffConfirm] = useState<string>('');
+  const [writeOffDate, setWriteOffDate] = useState<Date | undefined>(new Date());
+
+  const [feeId, setFeeId] = useState<string>('');
+  const [feeAmount, setFeeAmount] = useState<number>(0);
+  const [feeDate, setFeeDate] = useState<Date | undefined>(new Date());
+  const [feeDesc, setFeeDesc] = useState<string>('');
+
+  const [recoveryAmount, setRecoveryAmount] = useState<number>(0);
+  const [recoveryDate, setRecoveryDate] = useState<Date | undefined>(new Date());
+  const [recoveryMethod, setRecoveryMethod] = useState<string>('cash');
+
+  // Hooks
+  const processPayment = useProcessLoanPayment();
+  const repayAccounting = useLoanRepaymentAccounting();
+  const chargeAccounting = useLoanChargeAccounting();
+  const createJournal = useCreateJournalEntry();
+  const { data: feeStructures = [] } = useFeeStructures();
 
   // Derived status: in_arrears and overpaid
   const { data: schedules = [] } = useLoanSchedules(loan?.id);
@@ -356,6 +385,166 @@ const getStatusColor = (status: string) => {
       status: new Date(s.due_date).toDateString() === new Date().toDateString() ? 'Due' : 'Scheduled',
     }));
 
+  // Transaction helpers and handlers
+  const toISO = (d?: Date) => (d ? format(d, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+
+  const processAndUpdateLoan = async (amount: number, dateISO: string, method: string, ref?: string) => {
+    // Accounting entry
+    await repayAccounting.mutateAsync({
+      loan_id: loan.id,
+      payment_amount: amount,
+      principal_amount: amount,
+      interest_amount: 0,
+      payment_date: dateISO,
+      payment_reference: ref,
+      payment_method: method,
+    } as any);
+
+    // Payment record (best-effort)
+    try {
+      await processPayment.mutateAsync({
+        loan_id: loan.id,
+        payment_amount: amount,
+        principal_amount: amount,
+        interest_amount: 0,
+        fee_amount: 0,
+        payment_date: dateISO,
+        payment_method: method,
+        reference_number: ref,
+      } as any);
+    } catch (e) {
+      console.warn('Payment recording skipped:', e);
+    }
+
+    // Update loan outstanding/status
+    const currentOutstanding = Number((loan as any).outstanding_balance ?? outstanding);
+    const newOutstanding = currentOutstanding - amount;
+    const patch: any = { outstanding_balance: Math.max(0, newOutstanding) };
+    if (newOutstanding < -0.0001) patch.status = 'overpaid';
+    else if (newOutstanding <= 0.0001) patch.status = 'closed';
+
+    const { error: upErr } = await supabase.from('loans').update(patch).eq('id', loan.id);
+    if (upErr) throw upErr;
+
+    await queryClient.invalidateQueries({ queryKey: ['loans'] });
+    await queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+    await queryClient.invalidateQueries({ queryKey: ['loan-schedules', loan.id] });
+  };
+
+  const submitRepayment = async () => {
+    try {
+      await processAndUpdateLoan(Number(repayAmount), toISO(repayDate), repayMethod, repayRef);
+      toast({ title: 'Repayment recorded' });
+      setRepayOpen(false);
+      setRepayAmount(0);
+      setRepayRef('');
+    } catch (e: any) {
+      toast({ title: 'Repayment failed', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const submitEarlyRepayment = async () => {
+    try {
+      await processAndUpdateLoan(Number(earlyAmount || outstanding), toISO(earlyDate), earlyMethod, 'EARLY-SETTLEMENT');
+      toast({ title: 'Loan closed', description: 'Early repayment processed.' });
+      setEarlyRepayOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Early repayment failed', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const submitWriteOff = async () => {
+    try {
+      const amount = Number(outstanding);
+      const dateISO = toISO(writeOffDate);
+      const { data: prod, error: perr } = await supabase
+        .from('loan_products')
+        .select('loan_portfolio_account_id, writeoff_expense_account_id, principal_payment_account_id')
+        .eq('id', loan.loan_product_id)
+        .single();
+      if (perr) throw perr;
+      if (!prod?.writeoff_expense_account_id || !prod?.loan_portfolio_account_id) {
+        throw new Error('Write-off accounts not configured');
+      }
+
+      await createJournal.mutateAsync({
+        transaction_date: dateISO,
+        description: `Loan write-off - ${loan.loan_number || loan.id}${writeOffReason ? ` (${writeOffReason})` : ''}`,
+        reference_type: 'loan_writeoff',
+        reference_id: loan.id,
+        lines: [
+          { account_id: prod.writeoff_expense_account_id, description: 'Write-off expense', debit_amount: amount, credit_amount: 0 },
+          { account_id: prod.loan_portfolio_account_id, description: 'Write-off loan portfolio', debit_amount: 0, credit_amount: amount },
+        ],
+      } as any);
+
+      const { error: upErr } = await supabase
+        .from('loans')
+        .update({ status: 'written_off', outstanding_balance: 0 })
+        .eq('id', loan.id);
+      if (upErr) throw upErr;
+
+      toast({ title: 'Loan written off' });
+      setWriteOffOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Write-off failed', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const submitCharge = async () => {
+    try {
+      await chargeAccounting.mutateAsync({
+        loan_id: loan.id,
+        charge_type: 'fee',
+        amount: Number(feeAmount),
+        charge_date: toISO(feeDate),
+        description: feeDesc || 'Loan fee charge',
+        fee_structure_id: feeId || undefined,
+      } as any);
+
+      const currentOutstanding = Number((loan as any).outstanding_balance ?? outstanding);
+      const { error: upErr } = await supabase
+        .from('loans')
+        .update({ outstanding_balance: currentOutstanding + Number(feeAmount) })
+        .eq('id', loan.id);
+      if (upErr) throw upErr;
+
+      toast({ title: 'Fee added' });
+      setChargeOpen(false);
+      setFeeId(''); setFeeAmount(0); setFeeDesc('');
+    } catch (e: any) {
+      toast({ title: 'Charge failed', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const submitRecovery = async () => {
+    try {
+      const { data: prod, error: perr } = await supabase
+        .from('loan_products')
+        .select('writeoff_expense_account_id, principal_payment_account_id')
+        .eq('id', loan.loan_product_id)
+        .single();
+      if (perr) throw perr;
+      if (!prod?.writeoff_expense_account_id || !prod?.principal_payment_account_id) {
+        throw new Error('Recovery accounts not configured');
+      }
+      await createJournal.mutateAsync({
+        transaction_date: toISO(recoveryDate),
+        description: `Write-off recovery - ${loan.loan_number || loan.id}`,
+        reference_type: 'loan_recovery',
+        reference_id: loan.id,
+        lines: [
+          { account_id: prod.principal_payment_account_id, description: 'Recovery receipt', debit_amount: Number(recoveryAmount), credit_amount: 0 },
+          { account_id: prod.writeoff_expense_account_id, description: 'Reverse write-off expense', debit_amount: 0, credit_amount: Number(recoveryAmount) },
+        ],
+      } as any);
+      toast({ title: 'Recovery recorded' });
+      setRecoveryOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Recovery failed', description: e.message, variant: 'destructive' });
+    }
+  };
+
   const documents: any[] = [];
 
   return (
@@ -621,7 +810,7 @@ const getStatusColor = (status: string) => {
                         <DropdownMenuItem onClick={() => setRepayOpen(true)}>
                           Make repayment
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEarlyRepayOpen(true)}>
+                        <DropdownMenuItem onClick={() => { setEarlyAmount(loanDetails.outstanding || 0); setEarlyRepayOpen(true); }}>
                           Early repayment
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setChargeOpen(true)}>
@@ -1085,16 +1274,264 @@ const getStatusColor = (status: string) => {
           maxAmount={loanDetails.outstanding}
         />
 
-        {/* Loan Calculator Dialog */}
-        <LoanCalculatorDialog
-          open={calculatorOpen}
-          onOpenChange={setCalculatorOpen}
-          loanData={{
-            amount: loanDetails.amount,
-            interestRate: loanDetails.interestRate,
-            termMonths: loanDetails.totalTerm,
-          }}
-        />
+        {/* Repayment Dialog */}
+        <Dialog open={repayOpen} onOpenChange={setRepayOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Make Repayment</DialogTitle>
+              <DialogDescription>Record a repayment for this loan.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input type="number" value={repayAmount} onChange={(e) => setRepayAmount(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select value={repayMethod} onValueChange={setRepayMethod}>
+                  <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="mpesa">M-Pesa</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {repayDate ? format(repayDate, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePickerCalendar mode="single" selected={repayDate} onSelect={setRepayDate} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Reference (optional)</Label>
+                <Input value={repayRef} onChange={(e) => setRepayRef(e.target.value)} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setRepayOpen(false)}>Cancel</Button>
+                <Button onClick={submitRepayment}>Submit</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Early Repayment Dialog */}
+        <Dialog open={earlyRepayOpen} onOpenChange={setEarlyRepayOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Early Repayment</DialogTitle>
+              <DialogDescription>Settle the outstanding balance and close the loan.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label>Outstanding</Label>
+                <div className="text-lg font-semibold">{formatCurrency(outstanding)}</div>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input type="number" value={earlyAmount || outstanding} onChange={(e) => setEarlyAmount(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select value={earlyMethod} onValueChange={setEarlyMethod}>
+                  <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="mpesa">M-Pesa</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {earlyDate ? format(earlyDate, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePickerCalendar mode="single" selected={earlyDate} onSelect={setEarlyDate} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEarlyRepayOpen(false)}>Cancel</Button>
+                <Button onClick={submitEarlyRepayment}>Settle & Close</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Write-Off Dialog */}
+        <Dialog open={writeOffOpen} onOpenChange={setWriteOffOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-destructive">Write Off Loan</DialogTitle>
+              <DialogDescription>Type WRITE-OFF to confirm. This will create write-off journal entries and mark the loan written off.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Write-off date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {writeOffDate ? format(writeOffDate, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePickerCalendar mode="single" selected={writeOffDate} onSelect={setWriteOffDate} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Reason</Label>
+                <Textarea value={writeOffReason} onChange={(e) => setWriteOffReason(e.target.value)} rows={3} />
+              </div>
+              <div className="space-y-2">
+                <Label>Type WRITE-OFF to confirm</Label>
+                <Input value={writeOffConfirm} onChange={(e) => setWriteOffConfirm(e.target.value)} placeholder="WRITE-OFF" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setWriteOffOpen(false)}>Cancel</Button>
+                <Button onClick={submitWriteOff} disabled={writeOffConfirm !== 'WRITE-OFF'} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Confirm Write-Off</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Charge/Fee Dialog */}
+        <Dialog open={chargeOpen} onOpenChange={setChargeOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Add Loan Charge / Fee</DialogTitle>
+              <DialogDescription>Pick a product-linked fee and amount.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Loan Fee</Label>
+                <Select value={feeId} onValueChange={setFeeId}>
+                  <SelectTrigger><SelectValue placeholder="Select fee" /></SelectTrigger>
+                  <SelectContent>
+                    {feeStructures.length === 0 ? (
+                      <SelectItem value="none" disabled>No fees configured</SelectItem>
+                    ) : (
+                      feeStructures.filter((f: any) => f.fee_type === 'loan' && f.is_active).map((fee: any) => (
+                        <SelectItem key={fee.id} value={fee.id}>{fee.name}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input type="number" value={feeAmount} onChange={(e) => setFeeAmount(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {feeDate ? format(feeDate, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePickerCalendar mode="single" selected={feeDate} onSelect={setFeeDate} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Description (optional)</Label>
+                <Input value={feeDesc} onChange={(e) => setFeeDesc(e.target.value)} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setChargeOpen(false)}>Cancel</Button>
+                <Button onClick={submitCharge}>Add Charge</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Transfer Overpaid Dialog */}
+        <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Transfer Overpaid Amount</DialogTitle>
+              <DialogDescription>Select a savings account to transfer {formatCurrency(derived.overpaidAmount)}.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Target Savings Account</Label>
+                <Select value={selectedSavingsId ?? ''} onValueChange={setSelectedSavingsId as any}>
+                  <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                  <SelectContent>
+                    {savingsAccounts.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.account_number} · Bal {formatCurrency(a.account_balance)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setTransferOpen(false)}>Cancel</Button>
+                <Button onClick={handleTransferExcess} disabled={!selectedSavingsId || derived.overpaidAmount <= 0}>Transfer</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Recovery Dialog (written-off) */}
+        <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Record Recovery</DialogTitle>
+              <DialogDescription>Record cash recovered from a written-off loan.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input type="number" value={recoveryAmount} onChange={(e) => setRecoveryAmount(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Method</Label>
+                <Select value={recoveryMethod} onValueChange={setRecoveryMethod}>
+                  <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="mpesa">M-Pesa</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {recoveryDate ? format(recoveryDate, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePickerCalendar mode="single" selected={recoveryDate} onSelect={setRecoveryDate} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setRecoveryOpen(false)}>Cancel</Button>
+                <Button onClick={submitRecovery}>Record Recovery</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
