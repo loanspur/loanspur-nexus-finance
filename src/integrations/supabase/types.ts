@@ -4557,6 +4557,7 @@ export type Database = {
           processing_fee_percentage: number | null
           provision_account_id: string | null
           repayment_frequency: string
+          repayment_strategy: string
           require_bank_statements: boolean | null
           require_business_plan: boolean | null
           require_collateral: boolean | null
@@ -4631,6 +4632,7 @@ export type Database = {
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
           repayment_frequency?: string
+          repayment_strategy?: string
           require_bank_statements?: boolean | null
           require_business_plan?: boolean | null
           require_collateral?: boolean | null
@@ -4705,6 +4707,7 @@ export type Database = {
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
           repayment_frequency?: string
+          repayment_strategy?: string
           require_bank_statements?: boolean | null
           require_business_plan?: boolean | null
           require_collateral?: boolean | null
