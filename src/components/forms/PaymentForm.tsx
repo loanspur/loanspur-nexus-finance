@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useLoanRepaymentAccounting, useLoanChargeAccounting, useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
 import { supabase } from "@/integrations/supabase/client";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 
 const paymentSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -31,6 +32,7 @@ const paymentSchema = z.object({
   externalTransactionId: z.string().optional(),
   mpesaReceiptNumber: z.string().optional(),
   transactionDate: z.date().optional(),
+  loanFeeId: z.string().optional(),
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -50,6 +52,11 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   const loanChargeAccounting = useLoanChargeAccounting();
   const loanDisbursementAccounting = useLoanDisbursementAccounting();
 
+  // Fee structures for loan fee mapping
+  const { data: feeStructures = [] } = useFeeStructures();
+  const loanFeeStructures = feeStructures.filter((fee) => fee.fee_type === 'loan' && fee.is_active);
+
+
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
@@ -58,6 +65,7 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
       transactionType: "loan_repayment",
       description: "",
       transactionDate: new Date(),
+      loanFeeId: "",
     },
   });
 
@@ -90,6 +98,7 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
               amount: amount,
               charge_date: transactionDate,
               description: data.description || 'Loan fee charge',
+              fee_structure_id: data.loanFeeId,
             });
           }
           break;
@@ -271,6 +280,37 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
                 )}
               />
             </div>
+
+            {form.watch("transactionType") === "fee_payment" && (
+              <FormField
+                control={form.control}
+                name="loanFeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Loan Fee</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select loan fee" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {loanFeeStructures.length === 0 ? (
+                          <SelectItem value="no-fees" disabled>No loan fees configured</SelectItem>
+                        ) : (
+                          loanFeeStructures.map((fee) => (
+                            <SelectItem key={fee.id} value={fee.id}>
+                              {fee.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {form.watch("paymentType") === "mpesa" && (
               <FormField

@@ -4493,6 +4493,7 @@ export type Database = {
           early_repayment_penalty_amount: number | null
           early_repayment_penalty_percentage: number | null
           fee_income_account_id: string | null
+          fee_mappings: Json | null
           fee_payment_account_id: string | null
           fee_receivable_account_id: string | null
           fund_id: string | null
@@ -4566,6 +4567,7 @@ export type Database = {
           early_repayment_penalty_amount?: number | null
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
+          fee_mappings?: Json | null
           fee_payment_account_id?: string | null
           fee_receivable_account_id?: string | null
           fund_id?: string | null
@@ -4639,6 +4641,7 @@ export type Database = {
           early_repayment_penalty_amount?: number | null
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
+          fee_mappings?: Json | null
           fee_payment_account_id?: string | null
           fee_receivable_account_id?: string | null
           fund_id?: string | null

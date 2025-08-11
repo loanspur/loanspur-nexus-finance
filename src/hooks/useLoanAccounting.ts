@@ -34,6 +34,7 @@ export interface LoanChargeData {
   amount: number;
   charge_date: string;
   description: string;
+  fee_structure_id?: string; // optional: specific fee mapping
 }
 
 // Hook for loan disbursement accounting
@@ -311,7 +312,8 @@ export const useLoanChargeAccounting = () => {
             interest_income_account_id,
             fee_income_account_id,
             penalty_income_account_id,
-            accounting_type
+            accounting_type,
+            fee_mappings
           )
         `)
         .eq('id', data.loan_id)
@@ -342,6 +344,15 @@ export const useLoanChargeAccounting = () => {
           break;
         default:
           throw new Error('Invalid charge type');
+      }
+
+      // Override income account if a specific fee mapping exists
+      const feeMaps = (product as any).fee_mappings as any[] | undefined;
+      if (data.charge_type === 'fee' && data.fee_structure_id && Array.isArray(feeMaps)) {
+        const mm = feeMaps.find((m: any) => m.fee_id === data.fee_structure_id || m.feeType === data.fee_structure_id);
+        if (mm?.income_account_id) {
+          incomeAccountId = mm.income_account_id;
+        }
       }
 
       if (!receivableAccountId || !incomeAccountId) {

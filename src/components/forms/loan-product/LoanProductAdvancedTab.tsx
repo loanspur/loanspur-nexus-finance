@@ -65,6 +65,21 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
       const rows = (data || []) as Array<{ channel_id: string; account_id: string }>;
       setExistingMappings(rows);
       setPaymentChannelMappings(rows.map(r => ({ id: r.channel_id, paymentType: r.channel_id, fundSource: r.account_id })));
+
+      // Load fee mappings for loan products
+      if (productType === 'loan') {
+        const { data: lp, error: lpErr } = await supabase
+          .from('loan_products')
+          .select('fee_mappings')
+          .eq('id', productId)
+          .maybeSingle();
+        if (!lpErr && lp?.fee_mappings) {
+          const fm = (lp.fee_mappings as any[]) || [];
+          setFeeMappings(
+            fm.map((m: any) => ({ id: m.fee_id || m.feeType, feeType: m.fee_id || m.feeType, incomeAccount: m.income_account_id || m.incomeAccount }))
+          );
+        }
+      }
     };
     load();
   }, [profile?.tenant_id, productId, productType]);
@@ -73,6 +88,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
   useEffect(() => {
     if (!onRegisterSave || !profile?.tenant_id) return;
     onRegisterSave(async (pid: string) => {
+      // 1) Save payment channel -> fund source mappings
       const configured = paymentChannelMappings.filter(m => m.paymentType && m.fundSource);
       const upsertPayload = configured.map(m => ({
         tenant_id: profile.tenant_id!,
@@ -103,9 +119,24 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
         if (delError) throw delError;
       }
 
-      toast({ title: 'Advanced mappings saved', description: `${configured.length} payment channel(s) linked.` });
+      // 2) Save fee -> income account mappings for loan products
+      if (productType === 'loan') {
+        const configuredFees = feeMappings.filter(m => m.feeType && m.incomeAccount);
+        const feePayload = configuredFees.map(m => ({
+          fee_id: m.feeType,
+          fee_type: feeStructures.find(f => f.id === m.feeType)?.fee_type || 'loan',
+          income_account_id: m.incomeAccount,
+        }));
+        const { error: lpErr } = await supabase
+          .from('loan_products' as any)
+          .update({ fee_mappings: feePayload } as any)
+          .eq('id', pid);
+        if (lpErr) throw lpErr;
+      }
+
+      toast({ title: 'Advanced mappings saved', description: `${configured.length} payment channel(s) and ${feeMappings.length} fee mapping(s) saved.` });
     });
-  }, [onRegisterSave, profile?.tenant_id, paymentChannelMappings, existingMappings, productType, paymentTypes, toast]);
+  }, [onRegisterSave, profile?.tenant_id, paymentChannelMappings, existingMappings, productType, paymentTypes, feeMappings, feeStructures, toast]);
 
   const assetAccounts = chartOfAccounts.filter(account => account.account_type === 'asset');
   const incomeAccounts = chartOfAccounts.filter(account => account.account_type === 'income');
@@ -258,7 +289,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
                       </SelectTrigger>
                       <SelectContent>
                         {feeStructures.map((fee) => (
-                          <SelectItem key={fee.id} value={fee.name}>
+                          <SelectItem key={fee.id} value={fee.id}>
                             {fee.name}
                           </SelectItem>
                         ))}
@@ -275,7 +306,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
                       </SelectTrigger>
                       <SelectContent>
                         {incomeAccounts.map((account) => (
-                          <SelectItem key={account.id} value={account.account_name}>
+                          <SelectItem key={account.id} value={account.id}>
                             {account.account_code} - {account.account_name}
                           </SelectItem>
                         ))}
