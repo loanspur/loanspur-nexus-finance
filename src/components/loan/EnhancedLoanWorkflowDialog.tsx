@@ -28,7 +28,6 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes', 'undo_approval']),
-  comments: z.string().optional(),
   approved_amount: z.string().optional(),
   approved_term: z.string().optional(),
   approved_interest_rate: z.string().optional(),
@@ -185,25 +184,24 @@ export const EnhancedLoanWorkflowDialog = ({
     }
   };
 
-  const onApprovalSubmit = async (data: ApprovalData) => {
-    try {
-      await processApproval.mutateAsync({
-        loan_application_id: loanApplication.id,
-        action: data.action,
-        comments: data.comments,
-        approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
-        approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
-        approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
-        approval_date: data.approval_date,
-        conditions: data.conditions,
-      });
-      
-      onOpenChange(false);
-      onSuccess?.();
-    } catch (error) {
-      console.error('Error processing approval:', error);
-    }
-  };
+const onApprovalSubmit = async (data: ApprovalData) => {
+  try {
+    await processApproval.mutateAsync({
+      loan_application_id: loanApplication.id,
+      action: data.action,
+      approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
+      approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
+      approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
+      approval_date: data.approval_date,
+      conditions: data.conditions,
+    });
+    
+    onOpenChange(false);
+    onSuccess?.();
+  } catch (error) {
+    console.error('Error processing approval:', error);
+  }
+};
 
   const onDisbursementSubmit = async (data: DisbursementData) => {
     try {
@@ -421,12 +419,17 @@ export const EnhancedLoanWorkflowDialog = ({
               <Form {...approvalForm}>
                 <form onSubmit={approvalForm.handleSubmit(onApprovalSubmit)} className="space-y-4">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Loan Approval Management</CardTitle>
-                      <CardDescription>
-                        Approve, reject, or manage the loan application
-                      </CardDescription>
-                    </CardHeader>
+<CardHeader>
+  <CardTitle>Loan Approval Management</CardTitle>
+  <CardDescription>
+    Approve, reject, or manage the loan application
+  </CardDescription>
+  {profile && (
+    <div className="text-xs text-muted-foreground mt-1">
+      Action by: {profile.first_name} {profile.last_name} ({profile.email})
+    </div>
+  )}
+</CardHeader>
                     <CardContent className="space-y-4">
                       <FormField
                         control={approvalForm.control}
@@ -546,22 +549,6 @@ export const EnhancedLoanWorkflowDialog = ({
                         </>
                       )}
 
-                      <FormField
-                        control={approvalForm.control}
-                        name="comments"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Comments</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Add comments about your decision..."
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
 
                       <div className="flex justify-end gap-3 pt-4">
                         <Button 
