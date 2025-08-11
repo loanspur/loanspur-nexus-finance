@@ -74,7 +74,7 @@ export const useCreateFeeStructure = () => {
           tenant_id: profile.tenant_id,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return result;
@@ -108,7 +108,7 @@ export const useUpdateFeeStructure = () => {
         .update(data)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return result;
