@@ -994,6 +994,72 @@ export const useProcessLoanDisbursement = () => {
       
       if (disbursementError) throw disbursementError;
 
+      // Collect disbursement-time fees via account transfer from savings (if any)
+      if (totalTransferFees > 0) {
+        const targetSavingsId = disbursement.disbursement_method === 'transfer_to_savings'
+          ? disbursement.savings_account_id
+          : savingsAccountIdForFees;
+
+        if (!targetSavingsId) {
+          throw new Error('A savings account is required to collect disbursement-time fees.');
+        }
+
+        // Fetch latest balance (after deposit if we disbursed to savings)
+        const { data: saNow, error: saNowErr } = await supabase
+          .from('savings_accounts')
+          .select('id, account_balance')
+          .eq('id', targetSavingsId)
+          .single();
+        if (saNowErr || !saNow) throw new Error('Failed to read savings account balance.');
+
+        const balanceAfterFees = Number(saNow.account_balance || 0) - totalTransferFees;
+        if (balanceAfterFees < 0) {
+          throw new Error('Savings balance is insufficient to collect fees at disbursement.');
+        }
+
+        // Update balance
+        const { error: saUpdErr } = await supabase
+          .from('savings_accounts')
+          .update({ account_balance: balanceAfterFees, available_balance: balanceAfterFees })
+          .eq('id', targetSavingsId);
+        if (saUpdErr) throw saUpdErr;
+
+        // Record savings fee transaction (single aggregated entry)
+        const feeDesc = `Loan fees on disbursement - ${existingLoan.loan_number || existingLoan.id}` + (feeNamesForTransfer.length ? ` [${feeNamesForTransfer.join(', ')}]` : '');
+        const { error: savTxnErr } = await supabase
+          .from('savings_transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            savings_account_id: targetSavingsId,
+            transaction_type: 'fee_charge',
+            amount: totalTransferFees,
+            balance_after: balanceAfterFees,
+            transaction_date: disbursement.disbursement_date,
+            description: feeDesc,
+            processed_by: profile.id,
+          });
+        if (savTxnErr) throw savTxnErr;
+
+        // Record unified transaction log linking loan and savings
+        const feeTxId = `TRX-FEE-${Date.now()}`;
+        const { error: txErr } = await supabase
+          .from('transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            client_id: application.client_id,
+            loan_id: existingLoan.id,
+            savings_account_id: targetSavingsId,
+            amount: totalTransferFees,
+            transaction_type: 'fee_payment',
+            payment_type: 'bank_transfer',
+            transaction_date: new Date(disbursement.disbursement_date).toISOString(),
+            transaction_id: feeTxId,
+            description: feeDesc,
+            processed_by: profile.id,
+          });
+        if (txErr) throw txErr;
+      }
+
       // If Mifos is configured and loan has Mifos ID, disburse in Mifos X first
       if (false && isMifosConfigured && existingLoan.mifos_loan_id) {
         console.log('Disbursing loan in Mifos X with ID:', existingLoan.mifos_loan_id);
