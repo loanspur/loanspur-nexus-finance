@@ -169,12 +169,15 @@ export const EnhancedLoanWorkflowDialog = ({
   const displayClient = loanApplication.clients || fallbackClient || {};
   const displayProduct = loanApplication.loan_products || fallbackProduct || ({} as any);
 
-  const frequency = (loanApplication.term_frequency || displayProduct?.repayment_frequency || 'monthly') as string;
+  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || displayProduct?.repayment_frequency || 'monthly') as string;
   const termUnit = ((): string => {
-    const f = (frequency || '').toLowerCase();
-    if (f === 'daily') return 'days';
-    if (f === 'weekly') return 'weeks';
-    if (f === 'annually') return 'years';
+    const f = (frequency || '').toString().toLowerCase().replace(/[-_]/g, '');
+    if (f.includes('day')) return 'days'; // day, days, daily
+    if (f.includes('week')) return 'weeks'; // week, weekly, biweekly -> still show weeks
+    if (f.includes('fortnight')) return 'fortnights';
+    if (f.includes('month')) return 'months';
+    if (f.includes('quarter')) return 'quarters';
+    if (f.includes('year') || f.includes('annual')) return 'years';
     return 'months';
   })();
 
