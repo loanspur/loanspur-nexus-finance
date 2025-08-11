@@ -48,30 +48,19 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
   });
 
   const { data: funds = [], isLoading: isLoadingFunds } = useQuery({
-    queryKey: ['fund-sources', profile?.tenant_id],
+    queryKey: ['funds', profile?.tenant_id],
     queryFn: async () => {
       if (!profile?.tenant_id) return [];
 
-      // Fetch asset accounts that can be used as fund sources (bank accounts, cash accounts)
-      const { data: assetAccounts } = await supabase
-        .from('chart_of_accounts')
+      const { data, error } = await supabase
+        .from('funds')
         .select('*')
         .eq('tenant_id', profile.tenant_id)
-        .eq('account_type', 'asset')
         .eq('is_active', true)
-        .or('account_name.ilike.%cash%,account_name.ilike.%bank%,account_category.ilike.%cash%,account_category.ilike.%bank%');
+        .order('created_at', { ascending: false });
 
-      if (assetAccounts) {
-        return assetAccounts.map(account => ({
-          id: account.id,
-          fund_name: `${account.account_code} - ${account.account_name}`,
-          current_balance: account.balance || 0,
-          is_active: account.is_active,
-          tenant_id: account.tenant_id
-        }));
-      }
-
-      return [];
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!profile?.tenant_id,
   });
@@ -246,11 +235,11 @@ export function LoanProductSelectionStep({ form }: LoanProductSelectionStepProps
           name="fund_source_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Fund Source *</FormLabel>
+              <FormLabel>Fund Type *</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select fund source" />
+                    <SelectValue placeholder="Select fund type" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>

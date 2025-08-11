@@ -24,7 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, addDays, addWeeks, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { CalendarIcon, Calculator, DollarSign, Info, Target } from "lucide-react";
@@ -103,6 +103,8 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
   const interestRate = form.watch('interest_rate');
   const calculationMethod = form.watch('calculation_method');
   const repaymentFrequency = form.watch('repayment_frequency');
+  const firstRepaymentDate = form.watch('first_repayment_date');
+  const selectedCharges = form.watch('selected_charges') || [];
 
   const { currency } = useCurrency();
   
@@ -149,9 +151,15 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
   const generateRepaymentSchedule = () => {
     if (!requestedAmount || !numberOfInstallments || !interestRate) return [];
     
-    const schedule = [];
+    const schedule: any[] = [];
     const monthlyPayment = calculateMonthlyPayment();
     let outstandingPrincipal = requestedAmount;
+
+    // Determine starting date
+    const startDate = firstRepaymentDate ? new Date(firstRepaymentDate) : new Date();
+
+    // Total selected charges (applied at first installment by default)
+    const totalSelectedCharges = (selectedCharges || []).reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
     
     for (let i = 1; i <= numberOfInstallments; i++) {
       let interestPayment = 0;
@@ -166,11 +174,25 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
       }
       
       outstandingPrincipal -= principalPayment;
-      
+
+      // Compute repayment date based on frequency
+      let date: Date = new Date(startDate);
+      if (repaymentFrequency === 'daily') {
+        date = addDays(startDate, i - 1);
+      } else if (repaymentFrequency === 'weekly') {
+        date = addWeeks(startDate, i - 1);
+      } else if (repaymentFrequency === 'monthly') {
+        date = addMonths(startDate, i - 1);
+      } else if (repaymentFrequency === 'quarterly') {
+        date = addMonths(startDate, (i - 1) * 3);
+      }
+
       schedule.push({
         installment: i,
-        principalPayment: principalPayment,
-        interestPayment: interestPayment,
+        principalPayment,
+        interestPayment,
+        chargesPayment: i === 1 ? totalSelectedCharges : 0,
+        repaymentDate: date,
         totalPayment: monthlyPayment,
         outstandingPrincipal: Math.max(0, outstandingPrincipal),
       });
@@ -184,7 +206,7 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
       const schedule = generateRepaymentSchedule();
       setRepaymentSchedule(schedule);
     }
-  }, [requestedAmount, numberOfInstallments, interestRate, calculationMethod]);
+  }, [requestedAmount, numberOfInstallments, interestRate, calculationMethod, repaymentFrequency, firstRepaymentDate, selectedCharges]);
 
   return (
     <div className="space-y-6">
@@ -491,8 +513,10 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
                       <thead>
                         <tr className="border-b">
                           <th className="text-left p-2">#</th>
+                          <th className="text-left p-2">Repayment Date</th>
                           <th className="text-left p-2">Principal</th>
                           <th className="text-left p-2">Interest</th>
+                          <th className="text-left p-2">Charges</th>
                           <th className="text-left p-2">Total</th>
                           <th className="text-left p-2">Balance</th>
                         </tr>
@@ -501,8 +525,10 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
                         {repaymentSchedule.slice(0, 5).map((payment, index) => (
                           <tr key={index} className="border-b">
                             <td className="p-2">{payment.installment}</td>
+                            <td className="p-2">{format(payment.repaymentDate, 'PPP')}</td>
                             <td className="p-2">{formatCurrency(payment.principalPayment)}</td>
                             <td className="p-2">{formatCurrency(payment.interestPayment)}</td>
+                            <td className="p-2">{formatCurrency(payment.chargesPayment || 0)}</td>
                             <td className="p-2">{formatCurrency(payment.totalPayment)}</td>
                             <td className="p-2">{formatCurrency(payment.outstandingPrincipal)}</td>
                           </tr>
