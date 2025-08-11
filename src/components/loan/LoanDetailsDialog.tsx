@@ -19,11 +19,16 @@ import { EarlySettlementDialog } from "./EarlySettlementDialog";
 
 interface LoanDetailsDialogProps {
   loan: any;
-  isOpen: boolean;
-  onClose: () => void;
+  // Original props
+  isOpen?: boolean;
+  onClose?: () => void;
+  // Backward-compat props used elsewhere
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  clientName?: string;
 }
 
-export const LoanDetailsDialog = ({ loan, isOpen, onClose }: LoanDetailsDialogProps) => {
+export const LoanDetailsDialog = ({ loan, isOpen, onClose, open, onOpenChange, clientName }: LoanDetailsDialogProps) => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [loanData, setLoanData] = useState<any>(null);
@@ -31,6 +36,11 @@ export const LoanDetailsDialog = ({ loan, isOpen, onClose }: LoanDetailsDialogPr
   const [activeTab, setActiveTab] = useState("details");
   const [showEarlySettlement, setShowEarlySettlement] = useState(false);
 
+  const dialogOpen = (typeof open === 'boolean' ? open : (typeof isOpen === 'boolean' ? isOpen : false));
+  const handleOpenChange = (val: boolean) => {
+    if (onOpenChange) onOpenChange(val);
+    else if (!val) onClose?.();
+  };
   useEffect(() => {
     if (loan?.id) {
       fetchLoanData();
@@ -162,7 +172,7 @@ export const LoanDetailsDialog = ({ loan, isOpen, onClose }: LoanDetailsDialogPr
 
   if (isLoading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Loading Loan Details...</DialogTitle>
@@ -174,7 +184,7 @@ export const LoanDetailsDialog = ({ loan, isOpen, onClose }: LoanDetailsDialogPr
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Loan Details</DialogTitle>
@@ -194,7 +204,7 @@ export const LoanDetailsDialog = ({ loan, isOpen, onClose }: LoanDetailsDialogPr
         </Tabs>
         
         <div className="flex flex-wrap gap-2 mt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Close
           </Button>
           

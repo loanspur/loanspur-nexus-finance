@@ -79,7 +79,29 @@ export const EarlySettlementDialog = ({ isOpen, onClose, loanData, onSettlement 
 
         if (feesError) throw feesError;
 
-        setAvailableFees(fees || []);
+        // Normalize API data to FeeStructure shape/types
+        const normalizeCalculationType = (t: string): FeeStructure['calculation_type'] => {
+          if (t === 'percentage') return 'percentage';
+          if (t === 'fixed') return 'fixed';
+          if (t === 'flat') return 'flat';
+          return 'flat';
+        };
+
+        const normalizedFees: FeeStructure[] = (fees || []).map((f: any) => ({
+          id: f.id,
+          name: f.name,
+          description: f.description,
+          fee_type: f.fee_type,
+          calculation_type: normalizeCalculationType(f.calculation_type),
+          amount: Number(f.amount) || 0,
+          min_amount: f.min_amount ?? null,
+          max_amount: f.max_amount ?? null,
+          is_active: Boolean(f.is_active),
+          // Ensure required fields on FeeStructure exist
+          charge_time_type: (f.charge_time_type as any) ?? ("time_of_event" as any),
+        }));
+
+        setAvailableFees(normalizedFees);
       } else {
         setAvailableFees([]);
       }
