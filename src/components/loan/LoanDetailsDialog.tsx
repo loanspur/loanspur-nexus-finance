@@ -934,31 +934,9 @@ const getStatusColor = (status: string) => {
                   </CardContent>
                 </Card>
 
-                {/* Collateral & Guarantor */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Security & Guarantor</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <span className="text-sm text-muted-foreground">Collateral</span>
-                      <div className="font-medium">{loanDetails.collateral}</div>
-                    </div>
-                    <Separator />
-                    <div>
-                      <span className="text-sm text-muted-foreground">Guarantor</span>
-                      <div className="font-medium">{loanDetails.guarantor}</div>
-                    </div>
-                    <Separator />
-                    <div>
-                      <span className="text-sm text-muted-foreground">Loan Officer</span>
-                      <div className="font-medium">{loanDetails.loanOfficer}</div>
-                    </div>
-                  </CardContent>
-                </Card>
 
                 {/* Process Transaction */}
-                <Card>
+                <Card className="lg:col-span-2">
                   <CardHeader>
                     <CardTitle>Process Transactions</CardTitle>
                     <CardDescription>Choose an action below. Each tab opens a focused modal.</CardDescription>
