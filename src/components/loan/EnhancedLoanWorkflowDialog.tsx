@@ -302,6 +302,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
             <TabsList className="w-full flex gap-2">
               <TabsTrigger value="details">Application Details</TabsTrigger>
+              <TabsTrigger value="edit" disabled={isCompleted}>Edit Details</TabsTrigger>
               {(canApprove || canUndoApproval || isCompleted) && (
                 <TabsTrigger value="approve" disabled={!canApprove && !canUndoApproval && !isCompleted}>
                   {canApprove ? 'Approval' : canUndoApproval ? 'Approved' : 'Approved'}
@@ -438,6 +439,147 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="edit" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit Loan Details</CardTitle>
+                <CardDescription>Update term, link savings, and manage fees</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <FormLabel>Loan Term ({termUnit})</FormLabel>
+                    <Input
+                      type="number"
+                      value={editTerm ?? ''}
+                      onChange={(e) => setEditTerm(e.target.value ? parseInt(e.target.value) : undefined)}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <FormLabel>Linked Savings Account</FormLabel>
+                    <Select value={editSavingsId} onValueChange={setEditSavingsId}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select savings account (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {savingsAccounts.map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.account_number} - {s.savings_products?.name} (Bal: {formatAmount(s.account_balance || 0)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Add Fee/Charge</FormLabel>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Select value={selectedChargeId} onValueChange={setSelectedChargeId}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a fee" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableCharges.map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name} ({c.calculation_type === 'percentage' ? `${c.amount}%` : `KES ${Number(c.amount).toLocaleString()}`})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      placeholder="Custom amount (optional)"
+                      value={customChargeAmount}
+                      onChange={(e) => setCustomChargeAmount(e.target.value)}
+                      type="number"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        const sel = availableCharges.find((a: any) => a.id === selectedChargeId);
+                        if (!sel) return;
+                        const amt = customChargeAmount ? Number(customChargeAmount) : Number(sel.amount);
+                        const newItem = { ...sel, amount: amt };
+                        setEditCharges((prev) => {
+                          if (prev.some((p: any) => p.id === newItem.id)) return prev;
+                          return [...prev, newItem];
+                        });
+                        setSelectedChargeId('');
+                        setCustomChargeAmount('');
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {editCharges.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground">Selected Charges</h4>
+                    <div className="space-y-2">
+                      {editCharges.map((c: any) => {
+                        const calc = calculateFeeAmount(
+                          {
+                            id: c.id,
+                            name: c.name,
+                            calculation_type: c.calculation_type,
+                            amount: Number(c.amount),
+                            min_amount: c.min_amount ?? null,
+                            max_amount: c.max_amount ?? null,
+                            fee_type: c.fee_type,
+                            charge_time_type: c.charge_time_type,
+                          } as any,
+                          Number(loanApplication.final_approved_amount ?? loanApplication.requested_amount ?? 0)
+                        );
+                        return (
+                          <div key={c.id} className="flex items-center justify-between rounded border p-2">
+                            <div>
+                              <div className="text-sm font-medium">{c.name}</div>
+                              <div className="text-xs text-muted-foreground">{formatFeeDisplay(calc)}</div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => setEditCharges((prev) => prev.filter((x: any) => x.id !== c.id))}>Remove</Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setEditTerm(loanApplication.requested_term);
+                      setEditSavingsId(loanApplication.linked_savings_account_id || undefined);
+                      setEditCharges(loanApplication.selected_charges || []);
+                    }}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={async () => {
+                      await updateLoan.mutateAsync({
+                        loan_application_id: loanApplication.id,
+                        requested_term: typeof editTerm === 'number' ? editTerm : undefined,
+                        linked_savings_account_id: editSavingsId || null,
+                        selected_charges: editCharges,
+                      });
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
