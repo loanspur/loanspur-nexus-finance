@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CreditCard, Search, AlertCircle } from "lucide-react";
+import { Plus, Trash2, CreditCard, AlertCircle } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -178,13 +178,7 @@ export function EnhancedChargesAndFeesStep({ form }: EnhancedChargesAndFeesStepP
           <CardContent className="space-y-4">
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search charges..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+              
             </div>
 
             {/* Charge Selection */}

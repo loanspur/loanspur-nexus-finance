@@ -860,15 +860,6 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId }: NewLoanDialogPro
                   <div className="space-y-4">
                     
                     
-                    {/* Search Input */}
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Search charges..."
-                        value={chargeSearchTerm}
-                        onChange={(e) => setChargeSearchTerm(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
 
                     {/* Charge Selection */}
                     {isLoadingCharges ? (
