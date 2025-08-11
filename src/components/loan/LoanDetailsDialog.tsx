@@ -84,6 +84,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [writeOffOpen, setWriteOffOpen] = useState(false);
   const [chargeOpen, setChargeOpen] = useState(false);
   const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [processTab, setProcessTab] = useState<string>('repayment');
 
   // Form fields
   const [repayAmount, setRepayAmount] = useState<number>(0);
@@ -487,15 +488,63 @@ const getStatusColor = (status: string) => {
     }));
 
   // Transaction helpers and handlers
+  // Compute remaining components from unpaid schedules
+  const componentTotals = useMemo(() => {
+    const unpaid = (schedules || []).filter((s: any) => s.payment_status !== 'paid');
+    const remainingPrincipal = unpaid.reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0), 0);
+    const remainingInterest = unpaid.reduce((sum: number, s: any) => sum + Number(s.interest_amount || 0), 0);
+    const remainingFees = unpaid.reduce((sum: number, s: any) => sum + Number(s.fee_amount || 0), 0);
+    return { remainingPrincipal, remainingInterest, remainingFees };
+  }, [schedules]);
+
   const toISO = (d?: Date) => (d ? format(d, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
 
+  const allocateByStrategy = (amount: number) => {
+    let remaining = Number(amount || 0);
+    let principal = 0, interest = 0, fee = 0, penalty = 0;
+
+    const orderMap: Record<string, Array<'penalty' | 'fee' | 'interest' | 'principal'>> = {
+      penalties_fees_interest_principal: ['penalty', 'fee', 'interest', 'principal'],
+      interest_principal_penalties_fees: ['interest', 'principal', 'penalty', 'fee'],
+      interest_penalties_fees_principal: ['interest', 'penalty', 'fee', 'principal'],
+      principal_interest_fees_penalties: ['principal', 'interest', 'fee', 'penalty'],
+    };
+    const order = orderMap[(productConfig as any)?.repayment_strategy] || ['interest', 'fee', 'principal', 'penalty'];
+
+    const caps: Record<'principal' | 'interest' | 'fee' | 'penalty', number> = {
+      principal: componentTotals.remainingPrincipal,
+      interest: componentTotals.remainingInterest,
+      fee: componentTotals.remainingFees,
+      penalty: 0,
+    };
+
+    for (const key of order) {
+      const take = Math.min(remaining, caps[key]);
+      if (key === 'principal') principal += take;
+      if (key === 'interest') interest += take;
+      if (key === 'fee') fee += take;
+      if (key === 'penalty') penalty += take;
+      remaining -= take;
+      if (remaining <= 0) break;
+    }
+
+    // Any leftover goes to principal
+    if (remaining > 0) principal += remaining;
+
+    return { principal, interest, fee, penalty };
+  };
+
   const processAndUpdateLoan = async (amount: number, dateISO: string, method: string, ref?: string) => {
+    const breakdown = allocateByStrategy(amount);
+
     // Accounting entry
     await repayAccounting.mutateAsync({
       loan_id: loan.id,
       payment_amount: amount,
-      principal_amount: amount,
-      interest_amount: 0,
+      principal_amount: breakdown.principal,
+      interest_amount: breakdown.interest,
+      fee_amount: breakdown.fee,
+      penalty_amount: breakdown.penalty,
       payment_date: dateISO,
       payment_reference: ref,
       payment_method: method,
@@ -506,10 +555,9 @@ const getStatusColor = (status: string) => {
       await processPayment.mutateAsync({
         loan_id: loan.id,
         payment_amount: amount,
-        principal_amount: amount,
-        interest_amount: 0,
-        fee_amount: 0,
-        payment_date: dateISO,
+        principal_amount: breakdown.principal,
+        interest_amount: breakdown.interest,
+        fee_amount: breakdown.fee,
         payment_method: method,
         reference_number: ref,
       } as any);
@@ -546,7 +594,23 @@ const getStatusColor = (status: string) => {
 
   const submitEarlyRepayment = async () => {
     try {
-      await processAndUpdateLoan(Number(earlyAmount || outstanding), toISO(earlyDate), earlyMethod, 'EARLY-SETTLEMENT');
+      let payoff = Number(earlyAmount || outstanding);
+      const dateISO = toISO(earlyDate);
+
+      // If an early payoff fee is selected, charge it (income journals) and include in payoff
+      if (earlyFeeId && earlyFeeAmount > 0) {
+        await chargeAccounting.mutateAsync({
+          loan_id: loan.id,
+          charge_type: 'fee',
+          amount: Number(earlyFeeAmount),
+          charge_date: dateISO,
+          description: 'Early repayment fee',
+          fee_structure_id: earlyFeeId,
+        } as any);
+        payoff += Number(earlyFeeAmount);
+      }
+
+      await processAndUpdateLoan(payoff, dateISO, earlyMethod, 'EARLY-SETTLEMENT');
       toast({ title: 'Loan closed', description: 'Early repayment processed.' });
       setEarlyRepayOpen(false);
     } catch (e: any) {
@@ -896,27 +960,80 @@ const getStatusColor = (status: string) => {
                 {/* Process Transaction */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Process Transaction</CardTitle>
-                    <CardDescription>Select an action to process on this loan</CardDescription>
+                    <CardTitle>Process Transactions</CardTitle>
+                    <CardDescription>Choose an action below. Each tab opens a focused modal.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button className="w-full justify-between">
-                          Process Transaction
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="z-50 bg-background">
-                        <DropdownMenuLabel>Process</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setRepayOpen(true)}>Repayment</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEarlyRepayOpen(true)}>Early repayment</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setChargeOpen(true)}>Add fee</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setWriteOffOpen(true)}>Write off</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setTransferOpen(true)} disabled={derived.overpaidAmount <= 0}>Transfer overpaid</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setRecoveryOpen(true)}>Recovery</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Tabs value={processTab} onValueChange={setProcessTab} className="w-full">
+                      <TabsList className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+                        <TabsTrigger value="repayment">Repayment</TabsTrigger>
+                        <TabsTrigger value="early">Early Repayment</TabsTrigger>
+                        <TabsTrigger value="fee">Add Fee</TabsTrigger>
+                        <TabsTrigger value="writeoff">Write Off</TabsTrigger>
+                        <TabsTrigger value="transfer" disabled={derived.overpaidAmount <= 0}>Transfer Overpaid</TabsTrigger>
+                        <TabsTrigger value="recovery" disabled={loan.status !== 'written_off'}>Recovery</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="repayment">
+                        <div className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <div className="font-medium">Standard Repayment</div>
+                            <div className="text-sm text-muted-foreground">Allocate per product repayment strategy</div>
+                          </div>
+                          <Button onClick={() => setRepayOpen(true)}>Open</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="early">
+                        <div className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <div className="font-medium">Early Payoff</div>
+                            <div className="text-sm text-muted-foreground">Select early fee and close loan</div>
+                          </div>
+                          <Button onClick={() => setEarlyRepayOpen(true)}>Open</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="fee">
+                        <div className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <div className="font-medium">Add Loan Fee</div>
+                            <div className="text-sm text-muted-foreground">Charge product-linked fees</div>
+                          </div>
+                          <Button onClick={() => setChargeOpen(true)}>Open</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="writeoff">
+                        <div className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <div className="font-medium">Write Off</div>
+                            <div className="text-sm text-muted-foreground">Write off outstanding balance</div>
+                          </div>
+                          <Button onClick={() => setWriteOffOpen(true)} variant="destructive">Open</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="transfer">
+                        <div className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <div className="font-medium">Transfer Overpaid</div>
+                            <div className="text-sm text-muted-foreground">Excess: {formatCurrency(derived.overpaidAmount)}</div>
+                          </div>
+                          <Button onClick={() => setTransferOpen(true)} disabled={derived.overpaidAmount <= 0}>Open</Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="recovery">
+                        <div className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <div className="font-medium">Recover Written-off</div>
+                            <div className="text-sm text-muted-foreground">Record cash recovered post write-off</div>
+                          </div>
+                          <Button onClick={() => setRecoveryOpen(true)} disabled={loan.status !== 'written_off'}>Open</Button>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </CardContent>
                 </Card>
               </div>
@@ -1338,11 +1455,19 @@ const getStatusColor = (status: string) => {
                 <Label>Payment Method</Label>
                 <Select value={repayMethod} onValueChange={setRepayMethod}>
                   <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="mpesa">M-Pesa</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
+                  <SelectContent className="z-50">
+                    {productPaymentTypes.length > 0 ? (
+                      productPaymentTypes.map((pt: any) => (
+                        <SelectItem key={pt.code} value={pt.code}>{pt.name || pt.code}</SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="mpesa">M-Pesa</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1391,11 +1516,19 @@ const getStatusColor = (status: string) => {
                 <Label>Payment Method</Label>
                 <Select value={earlyMethod} onValueChange={setEarlyMethod}>
                   <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="mpesa">M-Pesa</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
+                  <SelectContent className="z-50">
+                    {productPaymentTypes.length > 0 ? (
+                      productPaymentTypes.map((pt: any) => (
+                        <SelectItem key={pt.code} value={pt.code}>{pt.name || pt.code}</SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="mpesa">M-Pesa</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -1552,11 +1685,19 @@ const getStatusColor = (status: string) => {
                 <Label>Method</Label>
                 <Select value={recoveryMethod} onValueChange={setRecoveryMethod}>
                   <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="mpesa">M-Pesa</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
+                  <SelectContent className="z-50">
+                    {productPaymentTypes.length > 0 ? (
+                      productPaymentTypes.map((pt: any) => (
+                        <SelectItem key={pt.code} value={pt.code}>{pt.name || pt.code}</SelectItem>
+                      ))
+                    ) : (
+                      <>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="mpesa">M-Pesa</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
