@@ -19,84 +19,121 @@ import { BankingInformationStep } from "./steps/BankingInformationStep";
 import { EmploymentBusinessStep } from "./steps/EmploymentBusinessStep";
 import { NextOfKinStep } from "./steps/NextOfKinStep";
 import { DocumentUploadStep } from "./steps/DocumentUploadStep";
-import { SavingsAccountStep } from "./steps/SavingsAccountStep";
+
 import { ReviewStep } from "./steps/ReviewStep";
 
 // Enhanced validation schema
-const clientOnboardingSchema = z.object({
-  // KYC Information (client_number will be auto-generated)
-  client_number: z.string().optional(),
-  first_name: z.string().min(2, "First name must be at least 2 characters"),
-  middle_name: z.string().optional(),
-  last_name: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().optional().refine((val) => {
-    if (!val || val === '') return true;
-    return z.string().email().safeParse(val).success;
-  }, "Invalid email format"),
-  phone: z.string()
-    .min(10, "Phone number must be at least 10 digits")
-    .regex(/^[\+]?[0-9\s\-\(\)]{10,15}$/, "Invalid phone number format"),
-  date_of_birth: z.string().min(1, "Date of birth is required"),
-  place_of_birth: z.string().optional(),
-  nationality: z.string().optional(),
-  gender: z.string().optional(),
-  address: z.string().optional(),
-  
-  // National ID (moved to KYC section and made required)
-  national_id: z.string().min(1, "National ID is required").regex(/^[0-9]{8}$/, "National ID must be 8 digits"),
-  account_opening_date: z.string().min(1, "Account opening date is required"),
-  passport_number: z.string().optional().refine((val) => {
-    if (!val) return true;
-    return /^[A-Z0-9]{6,12}$/.test(val);
-  }, "Invalid passport number format"),
-  driving_license_number: z.string().optional(),
-  
-  // Office and Loan Officer Assignment
-  office_id: z.string().min(1, "Office selection is required"),
-  loan_officer_id: z.string().optional(),
-  
-  // Banking Information
-  bank_name: z.string().optional(),
-  bank_account_number: z.string().optional().refine((val) => {
-    if (!val) return true;
-    return /^[0-9]{10,16}$/.test(val);
-  }, "Bank account number must be 10-16 digits"),
-  bank_branch: z.string().optional(),
-  
-  // Employment/Business Information
-  income_source_type: z.enum(["employment", "business"]).optional(),
-  
-  // Employment fields
-  occupation: z.string().optional(),
-  employer_name: z.string().optional(),
-  employer_address: z.string().optional(),
-  job_title: z.string().optional(),
-  employment_start_date: z.string().optional(),
-  monthly_income: z.string().optional(),
-  
-  // Business fields
-  business_name: z.string().optional(),
-  business_type: z.string().optional(),
-  business_registration_number: z.string().optional(),
-  business_address: z.string().optional(),
-  
-  // Next of Kin Information (array support) - All fields optional
-  next_of_kin: z.array(z.object({
-    name: z.string().optional(),
-    relationship: z.string().optional(),
-    phone: z.string().optional(),
-    email: z.union([
-      z.string().email("Invalid email format"),
-      z.literal("")
-    ]).optional(),
+const clientOnboardingSchema = z
+  .object({
+    // KYC Information (client_number will be auto-generated)
+    client_number: z.string().optional(),
+    first_name: z.string().min(2, "First name must be at least 2 characters"),
+    middle_name: z.string().optional(),
+    last_name: z.string().min(2, "Last name must be at least 2 characters"),
+    email: z.string().optional().refine((val) => {
+      if (!val || val === '') return true;
+      return z.string().email().safeParse(val).success;
+    }, "Invalid email format"),
+    phone: z
+      .string()
+      .min(10, "Phone number must be at least 10 digits")
+      .regex(/^[\+]?[^A-Za-z]{10,15}$/, "Invalid phone number format"),
+    date_of_birth: z.string().min(1, "Date of birth is required"),
+    place_of_birth: z.string().optional(),
+    nationality: z.string().optional(),
+    gender: z.string().optional(),
     address: z.string().optional(),
-  })).default([]),
-  
-  // Savings Account
-  create_savings_account: z.boolean().default(false),
-  savings_product_id: z.string().optional(),
-  initial_deposit: z.string().optional(),
-});
+
+    // National ID (moved to KYC section and made required)
+    national_id: z
+      .string()
+      .min(1, "National ID is required")
+      .regex(/^[0-9]{8}$/, "National ID must be 8 digits"),
+    account_opening_date: z.string().min(1, "Account opening date is required"),
+    office_opening_date: z.string().optional(),
+    passport_number: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val) return true;
+        return /^[A-Z0-9]{6,12}$/.test(val);
+      }, "Invalid passport number format"),
+    driving_license_number: z.string().optional(),
+
+    // Office and Loan Officer Assignment
+    office_id: z.string().min(1, "Office selection is required"),
+    loan_officer_id: z.string().optional(),
+
+    // Banking Information
+    bank_name: z.string().optional(),
+    bank_account_number: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val) return true;
+        return /^[0-9]{10,16}$/.test(val);
+      }, "Bank account number must be 10-16 digits"),
+    bank_branch: z.string().optional(),
+
+    // Employment/Business Information
+    income_source_type: z.enum(["employment", "business"]).optional(),
+
+    // Employment fields
+    occupation: z.string().optional(),
+    employer_name: z.string().optional(),
+    employer_address: z.string().optional(),
+    job_title: z.string().optional(),
+    employment_start_date: z.string().optional(),
+    monthly_income: z.string().optional(),
+
+    // Business fields
+    business_name: z.string().optional(),
+    business_type: z.string().optional(),
+    business_registration_number: z.string().optional(),
+    business_address: z.string().optional(),
+
+    // Next of Kin Information (array support) - All fields optional
+    next_of_kin: z
+      .array(
+        z.object({
+          name: z.string().optional(),
+          relationship: z.string().optional(),
+          phone: z.string().optional(),
+          email: z.union([z.string().email("Invalid email format"), z.literal("")]).optional(),
+          address: z.string().optional(),
+        })
+      )
+      .default([]),
+    // Savings account step removed from onboarding
+  })
+  .superRefine((data, ctx) => {
+    // Opening date must not be in the future
+    if (data.account_opening_date) {
+      const openDate = new Date(data.account_opening_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (openDate > today) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["account_opening_date"],
+          message: "Opening date cannot be in the future",
+        });
+      }
+
+      // Must be on or after office opening date when available
+      if (data.office_opening_date) {
+        const officeDate = new Date(data.office_opening_date);
+        officeDate.setHours(0, 0, 0, 0);
+        if (openDate < officeDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["account_opening_date"],
+            message: "Opening date must be on or after the office opening date",
+          });
+        }
+      }
+    }
+  });
 
 type ClientOnboardingData = z.infer<typeof clientOnboardingSchema>;
 
@@ -111,7 +148,6 @@ const steps = [
   { id: 'employment_business', title: 'Income Source', icon: Building, description: 'Income details' },
   { id: 'next_of_kin', title: 'Next of Kin', icon: Users, description: 'Emergency contact' },
   { id: 'documents', title: 'Document Upload', icon: Upload, description: 'Upload documents' },
-  { id: 'savings', title: 'Savings Account', icon: CheckCircle, description: 'Account setup' },
   { id: 'review', title: 'Review', icon: Eye, description: 'Review details' },
 ];
 
@@ -165,9 +201,9 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       business_registration_number: "",
       business_address: "",
       next_of_kin: [],
-      create_savings_account: false,
-      savings_product_id: "",
-      initial_deposit: "",
+      office_opening_date: "",
+      
+      
     },
   });
 
@@ -391,14 +427,6 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
             {...commonProps} 
             uploadedDocuments={uploadedDocuments}
             setUploadedDocuments={setUploadedDocuments}
-          />
-        );
-      case 'savings':
-        return (
-          <SavingsAccountStep 
-            {...commonProps} 
-            onSubmit={form.handleSubmit(onSubmit)}
-            isSubmitting={isSubmitting}
           />
         );
       case 'review':

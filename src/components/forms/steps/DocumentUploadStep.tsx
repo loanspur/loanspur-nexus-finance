@@ -20,6 +20,7 @@ interface UploadedDocument {
   type: string;
   fileName: string;
   uploadedAt: Date;
+  previewUrl: string;
 }
 
 const documentTypes = [
@@ -60,12 +61,14 @@ export const DocumentUploadStep = ({
     try {
       // Simulate file upload
       await new Promise(resolve => setTimeout(resolve, 2000));
+      const previewUrl = URL.createObjectURL(file);
       
       const newDoc: UploadedDocument = {
         id: Date.now().toString(),
         type: docType,
         fileName: file.name,
-        uploadedAt: new Date()
+        uploadedAt: new Date(),
+        previewUrl,
       };
 
       const newUploadedDocs = [...uploadedDocs, newDoc];
@@ -94,6 +97,10 @@ export const DocumentUploadStep = ({
   };
 
   const removeDocument = (docId: string) => {
+    const doc = uploadedDocs.find(d => d.id === docId);
+    if (doc?.previewUrl) {
+      URL.revokeObjectURL(doc.previewUrl);
+    }
     const newUploadedDocs = uploadedDocs.filter(doc => doc.id !== docId);
     setUploadedDocs(newUploadedDocs);
     
@@ -218,7 +225,7 @@ export const DocumentUploadStep = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => window.open(doc.previewUrl, '_blank') }>
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </Button>

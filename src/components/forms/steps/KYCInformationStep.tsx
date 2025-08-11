@@ -1,4 +1,4 @@
-
+import { useEffect } from "react";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
@@ -26,6 +26,26 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
     staff.role_in_office === 'loan_officer' && 
     staff.is_active
   );
+
+  // Selected office and opening date constraints
+  const selectedOffice = activeOffices.find((o: any) => o.id === selectedOfficeId);
+  const officeOpeningDateRaw = selectedOffice?.opening_date as string | undefined;
+  const officeOpeningDateStr = officeOpeningDateRaw
+    ? new Date(new Date(officeOpeningDateRaw).getTime() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 10)
+    : undefined;
+  const todayStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+
+  useEffect(() => {
+    if (officeOpeningDateStr) {
+      form.setValue('office_opening_date', officeOpeningDateStr);
+    } else {
+      form.setValue('office_opening_date', '');
+    }
+  }, [officeOpeningDateStr, form]);
 
   return (
     <div className="space-y-4">
@@ -138,12 +158,24 @@ export const KYCInformationStep = ({ form }: KYCInformationStepProps) => {
           maxLength={8}
         />
         
-        <ValidationFormField
-          form={form}
+        <FormField
+          control={form.control}
           name="account_opening_date"
-          label="Account Opening Date"
-          type="date"
-          required
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Account Opening Date</FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  placeholder="Select date"
+                  max={todayStr}
+                  {...(officeOpeningDateStr ? { min: officeOpeningDateStr } : {})}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
       </div>
 
