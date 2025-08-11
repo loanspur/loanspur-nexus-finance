@@ -314,7 +314,7 @@ export const useSavingsFeeChargeAccounting = () => {
       await createJournalEntry.mutateAsync({
         transaction_date: data.transaction_date,
         description: data.description,
-        reference_type: 'savings_fee_charge',
+        reference_type: 'fee_collection',
         reference_id: data.savings_account_id,
         lines: [
           {

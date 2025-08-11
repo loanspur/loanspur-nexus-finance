@@ -154,6 +154,7 @@ export const useLoanRepaymentAccounting = () => {
             interest_payment_account_id,
             fee_payment_account_id,
             penalty_payment_account_id,
+            fund_source_account_id,
             accounting_type
           )
         `)
@@ -176,12 +177,13 @@ export const useLoanRepaymentAccounting = () => {
 
       // Principal repayment
       if (data.principal_amount > 0) {
-        if (!product.principal_payment_account_id || !product.loan_portfolio_account_id) {
-          throw new Error('Principal payment accounts not configured');
+        const principalPaymentAccountId = product.principal_payment_account_id || product.fund_source_account_id;
+        if (!principalPaymentAccountId || !product.loan_portfolio_account_id) {
+          throw new Error('Principal payment account not configured');
         }
 
         lines.push({
-          account_id: product.principal_payment_account_id,
+          account_id: principalPaymentAccountId,
           description: `Principal repayment - ${loan.loan_number}`,
           debit_amount: data.principal_amount,
           credit_amount: 0,
@@ -266,7 +268,7 @@ export const useLoanRepaymentAccounting = () => {
       await createJournalEntry.mutateAsync({
         transaction_date: data.payment_date,
         description: `Loan repayment - ${loan.loan_number}`,
-        reference_type: 'loan_repayment',
+        reference_type: 'loan_payment',
         reference_id: data.loan_id,
         lines,
       });
@@ -363,7 +365,7 @@ export const useLoanChargeAccounting = () => {
       await createJournalEntry.mutateAsync({
         transaction_date: data.charge_date,
         description: data.description,
-        reference_type: 'loan_charge',
+        reference_type: 'fee_collection',
         reference_id: data.loan_id,
         lines: [
           {
