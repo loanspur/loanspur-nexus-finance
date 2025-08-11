@@ -1121,6 +1121,27 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_client_documents_client_id"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_documents_uploaded_by"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_documents_verified_by"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_identifiers: {
@@ -1259,6 +1280,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          account_opening_date: string | null
           activated_by: string | null
           activation_date: string | null
           address: Json | null
@@ -1310,6 +1332,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_opening_date?: string | null
           activated_by?: string | null
           activation_date?: string | null
           address?: Json | null
@@ -1361,6 +1384,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_opening_date?: string | null
           activated_by?: string | null
           activation_date?: string | null
           address?: Json | null
