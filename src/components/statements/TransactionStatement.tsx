@@ -151,6 +151,13 @@ export const TransactionStatement = ({
         return "text-blue-600";
       case "payment":
         return "text-orange-600";
+      case "fee":
+      case "fees":
+      case "charge":
+      case "fee_charge":
+      case "account_charge":
+      case "penalty":
+        return "text-red-600";
       default:
         return "text-muted-foreground";
     }
@@ -170,7 +177,7 @@ export const TransactionStatement = ({
   }
 
   const totalDebits = transactions
-    .filter(t => ["withdrawal", "payment", "transfer"].includes(t.type.toLowerCase()))
+    .filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase()))
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalCredits = transactions
@@ -251,7 +258,7 @@ export const TransactionStatement = ({
                 -{formatCurrency(totalDebits)}
               </div>
               <div className="text-xs text-muted-foreground">
-                {transactions.filter(t => ["withdrawal", "payment", "transfer"].includes(t.type.toLowerCase())).length} transactions
+                {transactions.filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase())).length} transactions
               </div>
             </div>
             <div className="space-y-2">
@@ -322,7 +329,7 @@ export const TransactionStatement = ({
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       <span className={getTransactionTypeColor(transaction.type)}>
-                        {["withdrawal", "payment", "transfer"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
+                        {["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
                         {formatCurrency(transaction.amount)}
                       </span>
                     </TableCell>

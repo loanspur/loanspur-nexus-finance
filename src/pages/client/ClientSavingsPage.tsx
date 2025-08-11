@@ -59,6 +59,10 @@ const ClientSavingsPage = () => {
         return <ArrowRightLeft className="h-4 w-4 text-primary" />;
       case "interest_posting":
         return <Calendar className="h-4 w-4 text-warning" />;
+      case "fee_charge":
+      case "charge":
+      case "fee":
+        return <ArrowUpRight className="h-4 w-4 text-destructive" />;
       default:
         return <ArrowDownRight className="h-4 w-4" />;
     }
