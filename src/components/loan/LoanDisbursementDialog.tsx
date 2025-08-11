@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Receipt, ArrowLeft, Banknote, PiggyBank, Undo2 } from "lucide-react";
-import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useProcessLoanDisbursement, useUndoLoanDisbursement } from "@/hooks/useLoanManagement";
 import { useToast } from "@/hooks/use-toast";
 import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -31,13 +31,13 @@ export const LoanDisbursementDialog = ({
   const { toast } = useToast();
   const { formatAmount } = useCurrency();
   const processDisbursement = useProcessLoanDisbursement();
+  const undoDisbursement = useUndoLoanDisbursement();
   const { data: loanProducts = [] } = useLoanProducts();
   const accountingDisburse = useLoanDisbursementAccounting();
 
-  // Create a simple undo approval function for now
+  // Undo disbursement -> back to approval stage
   const handleUndoApproval = async () => {
-    // This would call the actual undo approval API
-    throw new Error("Undo approval functionality needs to be implemented");
+    await undoDisbursement.mutateAsync({ loan_application_id: loanData.id });
   };
 
   // Early return if no loan data
@@ -119,14 +119,14 @@ export const LoanDisbursementDialog = ({
         await handleUndoApproval();
         toast({
           title: "Success",
-          description: "Loan approval has been undone successfully",
+          description: "Disbursement has been undone and application returned to approval",
         });
         onOpenChange(false);
         onSuccess?.();
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error.message || "Failed to undo approval",
+          description: error.message || "Failed to undo disbursement",
           variant: "destructive"
         });
       }
@@ -274,7 +274,7 @@ export const LoanDisbursementDialog = ({
                   className="flex flex-col items-center gap-2 h-auto py-4"
                 >
                   <Undo2 className="h-5 w-5" />
-                  <span className="text-sm">Undo Approval</span>
+                  <span className="text-sm">Undo Disbursement</span>
                 </Button>
               </div>
             </CardContent>
@@ -370,7 +370,7 @@ export const LoanDisbursementDialog = ({
               ) : disbursementMethod === 'undo' ? (
                 <>
                   <Undo2 className="h-4 w-4 mr-2" />
-                  Undo Approval
+                  Undo Disbursement
                 </>
               ) : (
                 <>

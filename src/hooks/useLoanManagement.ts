@@ -986,6 +986,64 @@ export const useProcessLoanDisbursement = () => {
   });
 };
 
+// Undo Loan Disbursement - return application to approval stage
+export const useUndoLoanDisbursement = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ loan_application_id }: { loan_application_id: string }) => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      // Find most recent disbursement for this application
+      const { data: disb, error: disbErr } = await supabase
+        .from('loan_disbursements')
+        .select('id, loan_id')
+        .eq('loan_application_id', loan_application_id)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      if (disbErr) throw disbErr;
+
+      // If a loan exists, remove schedules then the loan
+      let loanId = disb?.loan_id as string | undefined;
+      if (!loanId) {
+        const { data: loan } = await supabase
+          .from('loans')
+          .select('id')
+          .eq('application_id', loan_application_id)
+          .maybeSingle();
+        loanId = loan?.id;
+      }
+      if (loanId) {
+        await supabase.from('loan_schedules').delete().eq('loan_id', loanId);
+        await supabase.from('loans').delete().eq('id', loanId);
+      }
+
+      // Remove disbursement record(s)
+      await supabase.from('loan_disbursements').delete().eq('loan_application_id', loan_application_id);
+
+      // Send application back to approval stage
+      const { error: appErr } = await supabase
+        .from('loan_applications')
+        .update({ status: 'pending' })
+        .eq('id', loan_application_id);
+      if (appErr) throw appErr;
+
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-disbursements'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      toast({ title: 'Success', description: 'Disbursement undone. Application returned to approval.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to undo disbursement', variant: 'destructive' });
+    },
+  });
+};
+
 // Client Loans Hook - for fetching loans for a specific client
 export const useClientLoans = (clientId?: string) => {
   const { profile } = useAuth();
