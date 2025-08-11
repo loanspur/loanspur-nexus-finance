@@ -36,7 +36,8 @@ export const ClientHeader = ({
   loanBalance, 
   savingsBalance,
   officeName,
-  loanOfficerName
+  loanOfficerName,
+  trp
 }: ClientHeaderProps) => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
@@ -161,6 +162,11 @@ export const ClientHeader = ({
             <Badge className="bg-green-500/20 text-white border-green-300/30">
               Verified KYC
             </Badge>
+            {typeof trp === 'number' && (
+              <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                TRP: {trp}%
+              </Badge>
+            )}
           </div>
         </div>
 

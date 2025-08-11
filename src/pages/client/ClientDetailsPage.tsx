@@ -245,6 +245,87 @@ const ClientDetailsPageRefactored = () => {
       setLoans(loansData || []);
       setSavings(savingsData || []);
       setLoanApplications(applicationsData || []);
+
+      // Compute average TRP across all client loans
+      let trpValue: number | null = null;
+      try {
+        if (loansData && loansData.length > 0) {
+          const loanIds = loansData.map((l: any) => l.id);
+          const { data: sch, error: schErr } = await supabase
+            .from('loan_schedules')
+            .select('loan_id, due_date, total_amount, payment_status')
+            .in('loan_id', loanIds);
+          const { data: pays, error: payErr } = await supabase
+            .from('loan_payments')
+            .select('loan_id, payment_date, payment_amount')
+            .in('loan_id', loanIds);
+          if (schErr) throw schErr;
+          if (payErr) throw payErr;
+
+          const schedulesByLoan = new Map<string, any[]>();
+          (sch || []).forEach((s: any) => {
+            const arr = schedulesByLoan.get(s.loan_id) || [];
+            arr.push(s);
+            schedulesByLoan.set(s.loan_id, arr);
+          });
+          const paymentsByLoan = new Map<string, any[]>();
+          (pays || []).forEach((p: any) => {
+            const arr = paymentsByLoan.get(p.loan_id) || [];
+            arr.push(p);
+            paymentsByLoan.set(p.loan_id, arr);
+          });
+
+          const calcTrp = (schedules: any[], payments: any[]) => {
+            try {
+              const today = new Date();
+              const dueSchedules = (schedules || [])
+                .filter((s: any) => s?.due_date && new Date(s.due_date) <= today)
+                .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+              if (dueSchedules.length === 0) return 100;
+
+              const orderedPayments = (payments || [])
+                .filter((p: any) => p?.payment_date)
+                .sort((a: any, b: any) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
+                .map((p: any) => ({ date: new Date(p.payment_date), amount: Number(p.payment_amount || 0) }));
+
+              let payIdx = 0;
+              let cumulativePaid = 0;
+              const advanceTo = (upTo: Date) => {
+                while (payIdx < orderedPayments.length && orderedPayments[payIdx].date <= upTo) {
+                  cumulativePaid += orderedPayments[payIdx].amount;
+                  payIdx++;
+                }
+                return cumulativePaid;
+              };
+
+              let timely = 0;
+              let requiredCumulative = 0;
+              for (const s of dueSchedules) {
+                requiredCumulative += Number(s.total_amount || 0);
+                const paidByDue = advanceTo(new Date(s.due_date));
+                if (paidByDue + 0.0001 >= requiredCumulative) timely++;
+              }
+              return Math.round((timely / dueSchedules.length) * 100);
+            } catch {
+              return null;
+            }
+          };
+
+          const trps: number[] = [];
+          for (const l of loansData) {
+            const s = schedulesByLoan.get(l.id) || [];
+            const p = paymentsByLoan.get(l.id) || [];
+            const t = calcTrp(s, p);
+            if (t !== null && !isNaN(t)) trps.push(t);
+          }
+          if (trps.length > 0) {
+            trpValue = Math.round(trps.reduce((a, b) => a + b, 0) / trps.length);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to compute client TRP', e);
+      }
+      setClientTRP(trpValue);
       
     } catch (error) {
       console.error('Error fetching client data:', error);
@@ -312,6 +393,7 @@ const { formatAmount: formatCurrency } = useCurrency();
             savingsBalance={calculateSavingsBalance()}
             officeName={officeName}
             loanOfficerName={loanOfficerName}
+            trp={clientTRP ?? undefined}
           />
 
           {/* Action Menu Bar */}
