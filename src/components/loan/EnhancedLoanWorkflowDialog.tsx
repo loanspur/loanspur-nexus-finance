@@ -280,7 +280,9 @@ const onApprovalSubmit = async (data: ApprovalData) => {
   const canUndoApproval = loanApplication.status === 'pending_disbursement' || loanApplication.status === 'approved';
   const isCompleted = loanApplication.status === 'disbursed';
 
-  const activeStage = (canApprove || canUndoApproval) ? 'approve' : (canDisburse ? 'disburse' : 'details');
+   const activeStage = (loanApplication.status === 'pending' || loanApplication.status === 'under_review')
+     ? 'details'
+     : (canUndoApproval ? 'approve' : (canDisburse ? 'disburse' : 'details'));
 
   useEffect(() => {
     if (open) {
@@ -306,7 +308,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
             <TabsList className="w-full flex gap-2">
               <TabsTrigger value="details">Application Details</TabsTrigger>
-              <TabsTrigger value="edit" disabled={isCompleted}>Edit Details</TabsTrigger>
+              <TabsTrigger value="edit" disabled={isCompleted}>Update/Modify</TabsTrigger>
               {(canApprove || canUndoApproval || isCompleted) && (
                 <TabsTrigger value="approve" disabled={!canApprove && !canUndoApproval && !isCompleted}>
                   {canApprove ? 'Approval' : canUndoApproval ? 'Approved' : 'Approved'}
@@ -332,6 +334,31 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {(canApprove || canUndoApproval) && (
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentTab('edit')}
+                      disabled={isCompleted}
+                    >
+                      Update/Modify
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => { setCurrentTab('approve'); approvalForm.setValue('action', 'approve'); }}
+                      disabled={!canApprove && !canUndoApproval}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => { setCurrentTab('approve'); approvalForm.setValue('action', 'reject'); }}
+                      disabled={!canApprove}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                )}
                 {/* Client & Product Information */}
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-4">
