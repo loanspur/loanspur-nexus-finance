@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -63,9 +63,10 @@ interface NewLoanDialogProps {
   onOpenChange: (open: boolean) => void;
   clientId: string;
   onApplicationCreated?: (application: any) => void;
+  initialData?: Partial<LoanApplicationData> & { loan_product_id?: string };
 }
 
-export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreated }: NewLoanDialogProps) => {
+export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreated, initialData }: NewLoanDialogProps) => {
   const { profile } = useAuth();
   const { toast } = useToast();
   const createLoanApplication = useCreateLoanApplication();
@@ -116,6 +117,40 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreat
     },
     enabled: !!profile?.tenant_id && open,
   });
+
+  // If initialData is provided, set defaults when dialog opens or products load
+  useEffect(() => {
+    if (!open) return;
+    if (initialData) {
+      const merged = {
+        loan_product_id: initialData.loan_product_id || "",
+        fund_source_id: initialData.fund_source_id || "",
+        requested_amount: initialData.requested_amount ?? 0,
+        requested_term: initialData.requested_term ?? 12,
+        term_frequency: (initialData.term_frequency as any) || "monthly",
+        purpose: initialData.purpose || "",
+        interest_rate: initialData.interest_rate ?? 0,
+        interest_calculation_method: "declining_balance" as const,
+        loan_officer_id: initialData.loan_officer_id || "unassigned",
+        linked_savings_account_id: initialData.linked_savings_account_id || "none",
+        submit_date: format(new Date(), 'yyyy-MM-dd'),
+        disbursement_date: format(new Date(), 'yyyy-MM-dd'),
+        product_charges: [],
+        collateral_ids: [],
+      } as LoanApplicationData;
+      form.reset(merged);
+    }
+  }, [open, initialData]);
+
+  // After products load, set selectedProduct if initial loan_product_id provided
+  useEffect(() => {
+    if (!open) return;
+    const id = form.getValues('loan_product_id');
+    if (id) {
+      const prod = loanProducts.find(p => p.id === id);
+      if (prod) setSelectedProduct(prod);
+    }
+  }, [open, loanProducts]);
 
   // Fetch client details
   const { data: client } = useQuery({
@@ -452,10 +487,10 @@ const { formatAmount: formatCurrency } = useCurrency();
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            New Loan Application
+            {initialData ? 'Modify Loan Application' : 'New Loan Application'}
           </DialogTitle>
           <DialogDescription>
-            Create a new loan application for {client?.first_name} {client?.last_name}
+            {client ? `Create or modify loan application for ${client.first_name} ${client.last_name}` : 'Create a new loan application'}
           </DialogDescription>
         </DialogHeader>
         

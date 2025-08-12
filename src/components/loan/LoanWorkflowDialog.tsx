@@ -301,7 +301,7 @@ export const LoanWorkflowDialog = ({
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Requested Term</span>
-                      <div className="font-medium text-lg">{loanApplication.requested_term} {termUnit}</div>
+                      <div className="font-medium text-lg">{loanApplication.requested_term}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Interest Rate</span>
@@ -332,7 +332,7 @@ export const LoanWorkflowDialog = ({
                       {loanApplication.loan_products.default_term && (
                         <div>
                           <span className="text-muted-foreground">Default Term</span>
-                          <div className="font-medium">{loanApplication.loan_products.default_term} {productTermUnit}</div>
+                          <div className="font-medium">{loanApplication.loan_products.default_term}</div>
                         </div>
                       )}
                     </div>
@@ -362,30 +362,6 @@ export const LoanWorkflowDialog = ({
                   </div>
                 )}
 
-                {/* Approved Details (if exists) */}
-                {loanApplication.final_approved_amount && (
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Approved Terms</h4>
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-green-50 rounded-lg">
-                      <div>
-                        <span className="text-muted-foreground text-sm">Approved Amount</span>
-                        <div className="font-medium text-lg text-green-600">
-                          {formatCurrency(loanApplication.final_approved_amount)}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Approved Term</span>
-                        <div className="font-medium text-lg">{loanApplication.final_approved_term} {termUnit}</div>
-                      </div>
-                      {loanApplication.final_approved_interest_rate && (
-                        <div>
-                          <span className="text-muted-foreground text-sm">Approved Rate</span>
-                          <div className="font-medium text-lg">{loanApplication.final_approved_interest_rate}%</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>

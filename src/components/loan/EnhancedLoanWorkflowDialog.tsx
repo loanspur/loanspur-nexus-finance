@@ -403,7 +403,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Requested Term</span>
-                      <div className="font-medium text-lg">{loanApplication.requested_term} {termUnit}</div>
+                      <div className="font-medium text-lg">{loanApplication.requested_term}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Interest Rate</span>
@@ -414,51 +414,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                   </div>
                 </div>
 
-                {/* Approval/Processing History */}
-                {(loanApplication.reviewed_by || loanApplication.approved_by) && (
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Processing History</h4>
-                    <div className="space-y-2 text-sm">
-                      {loanApplication.reviewed_by && (
-                        <div className="flex justify-between">
-                          <span>Reviewed by:</span>
-                          <span className="font-medium">{loanApplication.reviewed_by_name || 'Staff Member'}</span>
-                        </div>
-                      )}
-                      {loanApplication.reviewed_at && (
-                        <div className="flex justify-between">
-                          <span>Reviewed on:</span>
-                          <span className="font-medium">{format(new Date(loanApplication.reviewed_at), 'MMM dd, yyyy HH:mm')}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                {/* Approved Details (if exists) */}
-                {loanApplication.final_approved_amount && (
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Approved Terms</h4>
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-green-50 rounded-lg">
-                      <div>
-                        <span className="text-muted-foreground text-sm">Approved Amount</span>
-                        <div className="font-medium text-lg text-green-600">
-                          {formatAmount(loanApplication.final_approved_amount)}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Approved Term</span>
-                        <div className="font-medium text-lg">{loanApplication.final_approved_term} {termUnit}</div>
-                      </div>
-                      {loanApplication.final_approved_interest_rate && (
-                        <div>
-                          <span className="text-muted-foreground text-sm">Approved Rate</span>
-                          <div className="font-medium text-lg">{loanApplication.final_approved_interest_rate}%</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1004,6 +960,15 @@ const onApprovalSubmit = async (data: ApprovalData) => {
           open={modifyOpen}
           onOpenChange={setModifyOpen}
           clientId={loanApplication.client_id}
+          initialData={{
+            loan_product_id: loanApplication.loan_product_id,
+            requested_amount: loanApplication.requested_amount,
+            requested_term: loanApplication.requested_term,
+            term_frequency: (loanApplication.term_frequency as any) || (loanApplication.loan_products?.repayment_frequency as any) || 'monthly',
+            purpose: loanApplication.purpose || '',
+            interest_rate: (loanApplication.requested_interest_rate ?? loanApplication.interest_rate ?? loanApplication.loan_products?.default_nominal_interest_rate ?? 0) as number,
+            linked_savings_account_id: loanApplication.linked_savings_account_id || undefined,
+          }}
           onApplicationCreated={() => {
             setModifyOpen(false);
           }}
