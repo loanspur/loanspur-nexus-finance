@@ -170,6 +170,7 @@ export const LoanDisbursementDialog = ({
       });
       return;
     }
+    const todayStr = new Date().toISOString().slice(0, 10);
     const disbursementDateIso = new Date(disbursementDate + 'T00:00:00').toISOString();
 
     const creationMin = getLoanCreationDate();
@@ -186,6 +187,14 @@ export const LoanDisbursementDialog = ({
       toast({
         title: "Invalid date",
         description: `Disbursement date must be on or after loan approval date (${approvalMin})`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (new Date(disbursementDate) > new Date(todayStr)) {
+      toast({
+        title: "Invalid date",
+        description: "Disbursement date cannot be in the future",
         variant: "destructive",
       });
       return;
@@ -298,6 +307,7 @@ export const LoanDisbursementDialog = ({
                     type="date"
                     value={disbursementDate}
                     min={getMinDisbursementDate()}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setDisbursementDate(e.target.value)}
                   />
                 </div>
