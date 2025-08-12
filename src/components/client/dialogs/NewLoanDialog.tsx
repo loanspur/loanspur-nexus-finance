@@ -522,7 +522,7 @@ const { formatAmount: formatCurrency } = useCurrency();
                 <TabsTrigger value="schedule">Schedule Preview</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="space-y-6">
+              <TabsContent value="details" forceMount className="space-y-6">
                 {/* Loan Product Selection */}
                 <Card>
                   <CardHeader>
@@ -818,7 +818,7 @@ const { formatAmount: formatCurrency } = useCurrency();
             </Card>
           </TabsContent>
 
-          <TabsContent value="funding" className="space-y-6">
+          <TabsContent value="funding" forceMount className="space-y-6">
             {/* Fund Source and Officer */}
             <Card>
               <CardHeader>
@@ -922,7 +922,7 @@ const { formatAmount: formatCurrency } = useCurrency();
             </Card>
           </TabsContent>
 
-          <TabsContent value="charges" className="space-y-6">
+          <TabsContent value="charges" forceMount className="space-y-6">
             {/* Enhanced Product Charges */}
             <Card>
               <CardHeader>
@@ -1218,7 +1218,7 @@ const { formatAmount: formatCurrency } = useCurrency();
             </Card>
           </TabsContent>
 
-          <TabsContent value="schedule" className="space-y-6">
+          <TabsContent value="schedule" forceMount className="space-y-6">
             {/* Repayment Schedule Preview */}
             <Card>
               <CardHeader>

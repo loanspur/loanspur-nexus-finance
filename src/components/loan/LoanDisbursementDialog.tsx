@@ -13,6 +13,7 @@ import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
+import { useQuery } from "@tanstack/react-query";
 
 
 interface LoanDisbursementDialogProps {
@@ -105,12 +106,21 @@ export const LoanDisbursementDialog = ({
     load();
   }, [loanData?.loan_product_id]);
 
-  // Get client's savings accounts for transfer option
-  const getClientSavingsAccounts = () => {
-    // This would need to be implemented to fetch client's savings accounts
-    // For now returning empty array
-    return [];
-  };
+// Fetch client's savings accounts
+const { data: savingsAccounts = [], isLoading: isLoadingSavings } = useQuery({
+  queryKey: ['client-savings-accounts', loanData.client_id],
+  queryFn: async () => {
+    if (!loanData?.client_id) return [];
+    const { data, error } = await supabase
+      .from('savings_accounts')
+      .select('id, account_number, account_balance, savings_products(name)')
+      .eq('client_id', loanData.client_id)
+      .eq('is_active', true);
+    if (error) throw error;
+    return data || [];
+  },
+  enabled: !!loanData?.client_id && open,
+});
 
   const getDisbursementAmount = () => {
     return loanData.final_approved_amount || loanData.requested_amount || loanData.principal_amount || 0;
@@ -130,14 +140,14 @@ export const LoanDisbursementDialog = ({
     return c || undefined;
   };
 
-  const isFormValid = () => {
-    if (disbursementMethod === 'undo') return true;
-    if (disbursementMethod === 'savings') {
-      // For transfers to savings, no receipt required; just need linked savings and date
-      return Boolean(loanData?.linked_savings_account_id && disbursementDate);
-    }
-    return Boolean(receiptNumber && selectedPaymentMapping && disbursementDate);
-  };
+const isFormValid = () => {
+  if (disbursementMethod === 'undo') return true;
+  if (disbursementMethod === 'savings') {
+    const targetSavingsId = loanData?.linked_savings_account_id || selectedSavingsAccount;
+    return Boolean(targetSavingsId && disbursementDate);
+  }
+  return Boolean(receiptNumber && selectedPaymentMapping && disbursementDate);
+};
   const handleSubmit = async () => {
     if (disbursementMethod === 'undo') {
       try {
@@ -169,11 +179,12 @@ export const LoanDisbursementDialog = ({
       return;
     }
 
-    // If disbursing to savings, ensure loan is linked to a savings account
-    if (disbursementMethod === 'savings' && !loanData?.linked_savings_account_id) {
+    // If disbursing to savings, ensure a savings account is available (linked or selected)
+    const targetSavingsIdPre = loanData?.linked_savings_account_id || selectedSavingsAccount;
+    if (disbursementMethod === 'savings' && !targetSavingsIdPre) {
       toast({
-        title: "Missing linked savings",
-        description: "This loan is not linked to a savings account. Link one on the loan form to disburse to savings.",
+        title: "Missing savings account",
+        description: "Select a savings account or link one to disburse to savings.",
         variant: "destructive"
       });
       return;
@@ -199,14 +210,15 @@ export const LoanDisbursementDialog = ({
       return;
     }
 
-    const disbursementData: any = {
-      loan_application_id: loanData.id,
-      disbursed_amount: getDisbursementAmount(),
-      disbursement_date: disbursementDateIso,
-      disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
-      ...(disbursementMethod === 'direct' ? { reference_number: receiptNumber } : {}),
-      ...(disbursementMethod === 'savings' && { savings_account_id: loanData.linked_savings_account_id })
-    };
+const targetSavingsId = loanData?.linked_savings_account_id || selectedSavingsAccount;
+const disbursementData: any = {
+  loan_application_id: loanData.id,
+  disbursed_amount: getDisbursementAmount(),
+  disbursement_date: disbursementDateIso,
+  disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
+  ...(disbursementMethod === 'direct' ? { reference_number: receiptNumber } : {}),
+  ...(disbursementMethod === 'savings' && targetSavingsId ? { savings_account_id: targetSavingsId } : {})
+};
 
     processDisbursement.mutate(disbursementData, {
       onSuccess: async (result: any) => {
