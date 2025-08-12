@@ -108,11 +108,10 @@ export const LoanDisbursementDialog = ({
   const isFormValid = () => {
     if (disbursementMethod === 'undo') return true;
     if (disbursementMethod === 'savings') {
-      return receiptNumber && selectedPaymentMapping && selectedSavingsAccount;
+      return Boolean(receiptNumber && loanData?.linked_savings_account_id);
     }
-    return receiptNumber && selectedPaymentMapping;
+    return Boolean(receiptNumber && selectedPaymentMapping);
   };
-
   const handleSubmit = async () => {
     if (disbursementMethod === 'undo') {
       try {
@@ -136,31 +135,30 @@ export const LoanDisbursementDialog = ({
     if (!isFormValid()) {
       toast({
         title: "Validation Error",
-        description: disbursementMethod === 'savings' 
-          ? "Please fill in all required fields and select a savings account"
+        description: disbursementMethod === 'savings'
+          ? "Loan must have a linked savings account to disburse to savings"
           : "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
-    // Check if disbursing to savings but no savings account selected
-    if (disbursementMethod === 'savings' && !selectedSavingsAccount) {
+    // If disbursing to savings, ensure loan is linked to a savings account
+    if (disbursementMethod === 'savings' && !loanData?.linked_savings_account_id) {
       toast({
-        title: "Validation Error",
-        description: "Please select a savings account for disbursement",
+        title: "Missing linked savings",
+        description: "This loan is not linked to a savings account. Link one on the loan form to disburse to savings.",
         variant: "destructive"
       });
       return;
     }
-
     const disbursementData: any = {
       loan_application_id: loanData.id,
       disbursed_amount: getDisbursementAmount(),
       disbursement_date: new Date().toISOString(),
       disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
       reference_number: receiptNumber,
-      ...(disbursementMethod === 'savings' && { savings_account_id: selectedSavingsAccount })
+      ...(disbursementMethod === 'savings' && { savings_account_id: loanData.linked_savings_account_id })
     };
 
     processDisbursement.mutate(disbursementData, {
@@ -212,39 +210,6 @@ export const LoanDisbursementDialog = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Loan Summary Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Disbursement Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">Client</Label>
-                  <div className="font-medium">
-                    {loanData.clients?.first_name || loanData.client?.first_name || 'N/A'} {loanData.clients?.last_name || loanData.client?.last_name || ''}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Loan Product</Label>
-                  <div className="font-medium">{loanData.loan_products?.name}</div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Disbursement Amount</Label>
-                  <div className="font-bold text-green-600 text-lg">
-                    {formatAmount(getDisbursementAmount())}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                    Ready for Disbursement
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Disbursement Options */}
           <Card>
             <CardHeader>
@@ -301,44 +266,21 @@ export const LoanDisbursementDialog = ({
                   />
                 </div>
 
-                {/* Payment Method from Product Mappings */}
-                <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <Select value={selectedPaymentMapping} onValueChange={setSelectedPaymentMapping} disabled={paymentOptions.length === 0}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-background">
-                      {paymentOptions.length === 0 ? (
-                        <SelectItem value="no-options" disabled>No mapped payment methods</SelectItem>
-                      ) : (
-                        paymentOptions.map((opt) => (
-                          <SelectItem key={opt.id} value={opt.code}>
-                            {opt.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Savings Account Selection - Only show if disbursing to savings */}
-                {disbursementMethod === 'savings' && (
+                {/* Payment Method from Product Mappings (Direct disbursement only) */}
+                {disbursementMethod === 'direct' && (
                   <div className="space-y-2">
-                    <Label>Savings Account</Label>
-                    <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount} disabled={getClientSavingsAccounts().length === 0}>
+                    <Label>Payment Method</Label>
+                    <Select value={selectedPaymentMapping} onValueChange={setSelectedPaymentMapping} disabled={paymentOptions.length === 0}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select savings account" />
+                        <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent className="z-50 bg-background">
-                        {getClientSavingsAccounts().length === 0 ? (
-                          <SelectItem value="no-accounts" disabled>
-                            No savings accounts found. Client must have a savings account.
-                          </SelectItem>
+                        {paymentOptions.length === 0 ? (
+                          <SelectItem value="no-options" disabled>No mapped payment methods</SelectItem>
                         ) : (
-                          getClientSavingsAccounts().map((account: any) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.account_number} - {account.account_name}
+                          paymentOptions.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.code}>
+                              {opt.name}
                             </SelectItem>
                           ))
                         )}
