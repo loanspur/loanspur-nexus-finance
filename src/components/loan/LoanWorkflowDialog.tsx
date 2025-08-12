@@ -118,6 +118,21 @@ export const LoanWorkflowDialog = ({
     },
   });
 
+  const getTermUnit = (frequency?: string) => {
+    const f = (frequency || '').toLowerCase();
+    if (f.includes('day')) return 'days';
+    if (f.includes('week')) return 'weeks';
+    if (f.includes('month')) return 'months';
+    if (f.includes('year') || f.includes('ann')) return 'years';
+    return 'months';
+  };
+
+  const productFrequency = loanApplication.loan_products?.repayment_frequency;
+  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || productFrequency || 'monthly') as string;
+  const termUnit = getTermUnit(frequency);
+  const productTermUnit = getTermUnit(productFrequency);
+
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -292,7 +307,7 @@ export const LoanWorkflowDialog = ({
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Requested Term</span>
-                      <div className="font-medium text-lg">{loanApplication.requested_term} months</div>
+                      <div className="font-medium text-lg">{loanApplication.requested_term} {termUnit}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Interest Rate</span>
@@ -323,7 +338,7 @@ export const LoanWorkflowDialog = ({
                       {loanApplication.loan_products.default_term && (
                         <div>
                           <span className="text-muted-foreground">Default Term</span>
-                          <div className="font-medium">{loanApplication.loan_products.default_term} months</div>
+                          <div className="font-medium">{loanApplication.loan_products.default_term} {productTermUnit}</div>
                         </div>
                       )}
                     </div>
@@ -366,7 +381,7 @@ export const LoanWorkflowDialog = ({
                       </div>
                       <div>
                         <span className="text-muted-foreground text-sm">Approved Term</span>
-                        <div className="font-medium text-lg">{loanApplication.final_approved_term} months</div>
+                        <div className="font-medium text-lg">{loanApplication.final_approved_term} {termUnit}</div>
                       </div>
                       {loanApplication.final_approved_interest_rate && (
                         <div>
@@ -471,7 +486,7 @@ export const LoanWorkflowDialog = ({
                               name="approved_term"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Approved Term (months)</FormLabel>
+                                  <FormLabel>Approved Term ({termUnit})</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"

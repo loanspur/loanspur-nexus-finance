@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateFeeAmount, formatFeeDisplay } from "@/lib/fee-calculation";
-
+import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes', 'undo_approval']),
   approved_amount: z.string().optional(),
@@ -65,6 +65,7 @@ export const EnhancedLoanWorkflowDialog = ({
   onSuccess
 }: EnhancedLoanWorkflowDialogProps) => {
   const [currentTab, setCurrentTab] = useState("details");
+  const [modifyOpen, setModifyOpen] = useState(false);
   const { toast } = useToast();
   const { profile } = useAuth();
   const { formatAmount } = useCurrency();
@@ -338,7 +339,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                   <div className="flex items-center justify-end gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => setCurrentTab('edit')}
+                      onClick={() => setModifyOpen(true)}
                       disabled={isCompleted}
                     >
                       Update/Modify
@@ -1010,6 +1011,15 @@ const onApprovalSubmit = async (data: ApprovalData) => {
             )}
           </TabsContent>
         </Tabs>
+
+        <NewLoanDialog
+          open={modifyOpen}
+          onOpenChange={setModifyOpen}
+          clientId={loanApplication.client_id}
+          onApplicationCreated={() => {
+            setModifyOpen(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
