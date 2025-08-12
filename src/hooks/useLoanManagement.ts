@@ -878,15 +878,17 @@ export const useProcessLoanDisbursement = () => {
         }
       }
 
-      // Get approved loan record created during approval
+      // Get approved loan record created during approval (prefer latest if multiple)
       let existingLoan: any;
       const { data: loanData, error: loanFetchError } = await supabase
         .from('loans')
         .select('id, loan_number, status, client_id, mifos_loan_id, loan_product_id')
         .eq('application_id', disbursement.loan_application_id)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       
-      if (loanFetchError) {
+      if (!loanData) {
         // If no pending loan found, we need to create one from the approved application
         console.log('No existing loan found, fetching approved loan application');
         const { data: loanApplication, error: appError } = await supabase
@@ -944,6 +946,27 @@ export const useProcessLoanDisbursement = () => {
           throw statusUpdateError;
         }
         existingLoan = loanData;
+      }
+
+      // After we have the loan, recalculate outstanding as principal + interest + unpaid fees (+ penalties if modeled)
+      try {
+        const { data: scheds } = await supabase
+          .from('loan_schedules')
+          .select('principal_amount, interest_amount, fee_amount, payment_status')
+          .eq('loan_id', existingLoan.id);
+        let outstandingTotal = Number(
+          (application as any).final_approved_amount || (application as any).requested_amount || disbursement.disbursed_amount || 0
+        );
+        if (Array.isArray(scheds) && scheds.length > 0) {
+          const unpaid = scheds.filter((s: any) => (s.payment_status || '').toLowerCase() !== 'paid');
+          outstandingTotal = unpaid.reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0) + Number(s.interest_amount || 0) + Number(s.fee_amount || 0), 0);
+        }
+        await supabase
+          .from('loans')
+          .update({ outstanding_balance: outstandingTotal })
+          .eq('id', existingLoan.id);
+      } catch (e) {
+        console.warn('Could not recalculate outstanding at disbursement time:', e);
       }
 
       // If disbursing to savings account, transfer the funds
