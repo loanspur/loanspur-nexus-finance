@@ -6,9 +6,6 @@ import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Clock, CreditCard, Banknote } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanApproval, useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 
@@ -127,8 +124,8 @@ export const LoanWorkflowDialog = ({
     return 'months';
   };
 
-  const productFrequency = loanApplication.loan_products?.repayment_frequency;
-  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || productFrequency || 'monthly') as string;
+  const productFrequency = (loanApplication.loan_products as any)?.repayment_frequency as string | undefined;
+  const frequency = ((loanApplication as any)?.term_frequency || (loanApplication as any)?.repayment_frequency || productFrequency || 'monthly') as string;
   const termUnit = getTermUnit(frequency);
   const productTermUnit = getTermUnit(productFrequency);
 
@@ -219,15 +216,6 @@ export const LoanWorkflowDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-600" />
-            Loan Application Workflow
-          </DialogTitle>
-          <DialogDescription>
-            {loanApplication.application_number} - {loanApplication.clients?.first_name} {loanApplication.clients?.last_name}
-          </DialogDescription>
-        </DialogHeader>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
