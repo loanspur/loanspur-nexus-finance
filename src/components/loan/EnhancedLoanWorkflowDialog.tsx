@@ -297,7 +297,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
             <TabsList className="w-full flex gap-2">
               <TabsTrigger value="details">Application Details</TabsTrigger>
-              <TabsTrigger value="edit" disabled={isCompleted}>Update/Modify</TabsTrigger>
+              
               {(canApprove || canUndoApproval || isCompleted) && (
                 <TabsTrigger value="approve" disabled={!canApprove && !canUndoApproval && !isCompleted}>
                   {canApprove ? 'Approval' : canUndoApproval ? 'Approved' : 'Approved'}
