@@ -55,6 +55,10 @@ interface LoanWorkflowDialogProps {
     final_approved_amount?: number;
     final_approved_term?: number;
     final_approved_interest_rate?: number;
+    // Optional frequency fields present on some records
+    term_frequency?: string;
+    repayment_frequency?: string;
+    // Related client and product info
     clients?: {
       first_name: string;
       last_name: string;
@@ -72,6 +76,8 @@ interface LoanWorkflowDialogProps {
       default_term?: number;
       min_term?: number;
       max_term?: number;
+      // Include optional repayment frequency from product
+      repayment_frequency?: string;
     };
   };
   open: boolean;
@@ -124,8 +130,8 @@ export const LoanWorkflowDialog = ({
     return 'months';
   };
 
-  const productFrequency = (loanApplication.loan_products as any)?.repayment_frequency as string | undefined;
-  const frequency = ((loanApplication as any)?.term_frequency || (loanApplication as any)?.repayment_frequency || productFrequency || 'monthly') as string;
+  const productFrequency = loanApplication.loan_products?.repayment_frequency;
+  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || productFrequency || 'monthly') as string;
   const termUnit = getTermUnit(frequency);
   const productTermUnit = getTermUnit(productFrequency);
 

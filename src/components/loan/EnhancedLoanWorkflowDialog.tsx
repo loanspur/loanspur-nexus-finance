@@ -6,9 +6,6 @@ import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle, XCircle, Clock, CreditCard, Banknote, AlertTriangle, Undo2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Banknote, AlertTriangle, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanApproval, useProcessLoanDisbursement, useUpdateLoanApplicationDetails } from "@/hooks/useLoanManagement";
 import { useQuery } from "@tanstack/react-query";
@@ -296,15 +293,6 @@ const onApprovalSubmit = async (data: ApprovalData) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-600" />
-            Enhanced Loan Workflow
-          </DialogTitle>
-          <DialogDescription>
-            {loanApplication.application_number} - {displayClient?.first_name} {displayClient?.last_name}
-          </DialogDescription>
-        </DialogHeader>
 
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
             <TabsList className="w-full flex gap-2">
