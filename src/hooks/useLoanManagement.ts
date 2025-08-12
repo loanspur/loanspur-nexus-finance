@@ -889,48 +889,9 @@ export const useProcessLoanDisbursement = () => {
         .maybeSingle();
       
       if (!loanData) {
-        // If no pending loan found, we need to create one from the approved application
-        console.log('No existing loan found, fetching approved loan application');
-        const { data: loanApplication, error: appError } = await supabase
-          .from('loan_applications')
-          .select('*')
-          .eq('id', disbursement.loan_application_id)
-          .in('status', ['pending_disbursement', 'approved']) // Accept both statuses
-          .single();
-          
-        if (appError || !loanApplication) throw new Error('Approved loan application not found');
-        
-        // Create loan record for disbursement
-        const loanNumber = `LN-${Date.now()}`;
-        console.log('Creating loan record and setting status to active for application ID:', disbursement.loan_application_id);
-        const { data: newLoan, error: createError } = await supabase
-          .from('loans')
-          .insert({
-            tenant_id: profile.tenant_id,
-            client_id: loanApplication.client_id,
-            loan_product_id: loanApplication.loan_product_id,
-            application_id: disbursement.loan_application_id, // Link to application
-            loan_number: loanNumber,
-            principal_amount: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            interest_rate: (() => {
-              const r = (loanApplication.final_approved_interest_rate ?? 0);
-              return r > 1 ? r / 100 : r;
-            })(),
-            term_months: loanApplication.final_approved_term || loanApplication.requested_term,
-            disbursement_date: disbursement.disbursement_date,
-            outstanding_balance: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            status: 'active', // Set directly to active during disbursement
-            loan_officer_id: profile.id,
-          })
-          .select('id, loan_number, status, client_id, mifos_loan_id, loan_product_id')
-          .single();
-          
-        if (createError || !newLoan) {
-          console.error('Error creating loan:', createError);
-          throw createError;
-        }
-        console.log('Loan created successfully with active status:', newLoan);
-        existingLoan = newLoan;
+        // Enforce one-loan-per-application: do not create loans during disbursement
+        // Require the loan to be created at approval stage
+        throw new Error('No approved loan found for this application. Please approve the application before disbursement.');
       } else {
         // Update existing loan to active status
         const { error: statusUpdateError } = await supabase
