@@ -1122,19 +1122,19 @@ export const useProcessLoanDisbursement = () => {
         }
       }
 
-      // Keep the application as 'approved' after successful disbursement
-      const { error: applicationUpdateError } = await supabase
-        .from('loan_applications')
-        .update({
-          status: 'approved'
-        })
-        .eq('id', disbursement.loan_application_id);
-
-      if (applicationUpdateError) {
-        console.error('Error updating loan application to approved status:', applicationUpdateError);
-        throw applicationUpdateError;
-      }
-      console.log('Disbursement completed successfully, loan is active and application remains approved');
+      // Mark application as disbursed after successful loan activation
+       const { error: applicationUpdateError } = await supabase
+         .from('loan_applications')
+         .update({
+           status: 'disbursed'
+         })
+         .eq('id', disbursement.loan_application_id);
+ 
+       if (applicationUpdateError) {
+         console.error('Error updating loan application to disbursed status:', applicationUpdateError);
+         throw applicationUpdateError;
+       }
+       console.log('Disbursement completed successfully, loan is active and application marked disbursed');
 
       return { loan: existingLoan, disbursement: disbursementData };
     },

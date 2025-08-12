@@ -63,8 +63,8 @@ interface NewLoanDialogProps {
   onOpenChange: (open: boolean) => void;
   clientId: string;
   onApplicationCreated?: (application: any) => void;
-  initialData?: Partial<LoanApplicationData> & { loan_product_id?: string };
-}
+   initialData?: Partial<LoanApplicationData> & { loan_product_id?: string; selected_charges?: any[] };
+ }
 
 export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreated, initialData }: NewLoanDialogProps) => {
   const { profile } = useAuth();
@@ -118,29 +118,47 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreat
     enabled: !!profile?.tenant_id && open,
   });
 
-  // If initialData is provided, set defaults when dialog opens or products load
-  useEffect(() => {
-    if (!open) return;
-    if (initialData) {
-      const merged = {
-        loan_product_id: initialData.loan_product_id || "",
-        fund_source_id: initialData.fund_source_id || "",
-        requested_amount: initialData.requested_amount ?? 0,
-        requested_term: initialData.requested_term ?? 12,
-        term_frequency: (initialData.term_frequency as any) || "monthly",
-        purpose: initialData.purpose || "",
-        interest_rate: initialData.interest_rate ?? 0,
-        interest_calculation_method: "declining_balance" as const,
-        loan_officer_id: initialData.loan_officer_id || "unassigned",
-        linked_savings_account_id: initialData.linked_savings_account_id || "none",
-        submit_date: format(new Date(), 'yyyy-MM-dd'),
-        disbursement_date: format(new Date(), 'yyyy-MM-dd'),
-        product_charges: [],
-        collateral_ids: [],
-      } as LoanApplicationData;
-      form.reset(merged);
-    }
-  }, [open, initialData]);
+   useEffect(() => {
+     if (!open) return;
+     if (initialData) {
+       const merged: LoanApplicationData = {
+         loan_product_id: initialData.loan_product_id || "",
+         fund_source_id: initialData.fund_source_id || "",
+         requested_amount: initialData.requested_amount ?? 0,
+         requested_term: initialData.requested_term ?? 12,
+         term_frequency: (initialData.term_frequency as any) || "monthly",
+         purpose: initialData.purpose || "",
+         interest_rate: initialData.interest_rate ?? 0,
+         interest_calculation_method: (initialData as any).interest_calculation_method || "declining_balance",
+         loan_officer_id: initialData.loan_officer_id || "unassigned",
+         linked_savings_account_id: initialData.linked_savings_account_id || "none",
+         submit_date: (initialData as any).submit_date
+           || (initialData as any).submitted_at?.slice(0,10)
+           || form.getValues('submit_date')
+           || format(new Date(), 'yyyy-MM-dd'),
+         disbursement_date: (initialData as any).disbursement_date 
+           || (initialData as any).expected_disbursement_date?.slice(0,10)
+           || form.getValues('disbursement_date')
+           || format(new Date(), 'yyyy-MM-dd'),
+         product_charges: Array.isArray((initialData as any).product_charges) ? (initialData as any).product_charges : [],
+         collateral_ids: Array.isArray((initialData as any).collateral_ids) ? (initialData as any).collateral_ids : [],
+         // Optional collateral details if present on initialData
+         ...(initialData as any).collateral_type ? { collateral_type: (initialData as any).collateral_type } : {},
+         ...(initialData as any).collateral_value !== undefined ? { collateral_value: (initialData as any).collateral_value as number } : {},
+         ...(initialData as any).collateral_description ? { collateral_description: (initialData as any).collateral_description } : {},
+       } as LoanApplicationData;
+ 
+       form.reset(merged);
+ 
+       // Restore selected charges for display/calculations
+       if (Array.isArray((initialData as any).selected_charges)) {
+         setSelectedCharges((initialData as any).selected_charges as any[]);
+       }
+ 
+       // Ensure schedule reflects restored data
+       updateSchedule();
+     }
+   }, [open, initialData]);
 
   // After products load, set selectedProduct if initial loan_product_id provided
   useEffect(() => {

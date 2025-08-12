@@ -957,22 +957,29 @@ const onApprovalSubmit = async (data: ApprovalData) => {
         </Tabs>
 
         <NewLoanDialog
-          open={modifyOpen}
-          onOpenChange={setModifyOpen}
-          clientId={loanApplication.client_id}
-          initialData={{
-            loan_product_id: loanApplication.loan_product_id,
-            requested_amount: loanApplication.requested_amount,
-            requested_term: loanApplication.requested_term,
-            term_frequency: (loanApplication.term_frequency as any) || (loanApplication.loan_products?.repayment_frequency as any) || 'monthly',
-            purpose: loanApplication.purpose || '',
-            interest_rate: (loanApplication.requested_interest_rate ?? loanApplication.interest_rate ?? loanApplication.loan_products?.default_nominal_interest_rate ?? 0) as number,
-            linked_savings_account_id: loanApplication.linked_savings_account_id || undefined,
-          }}
-          onApplicationCreated={() => {
-            setModifyOpen(false);
-          }}
-        />
+           open={modifyOpen}
+           onOpenChange={setModifyOpen}
+           clientId={loanApplication.client_id}
+           initialData={{
+             loan_product_id: loanApplication.loan_product_id,
+             requested_amount: loanApplication.requested_amount,
+             requested_term: loanApplication.requested_term,
+             term_frequency: (loanApplication.term_frequency as any) || (loanApplication.loan_products?.repayment_frequency as any) || 'monthly',
+             purpose: loanApplication.purpose || '',
+             interest_rate: (loanApplication.requested_interest_rate ?? loanApplication.interest_rate ?? loanApplication.loan_products?.default_nominal_interest_rate ?? 0) as number,
+             fund_source_id: (loanApplication as any).fund_source_id || '',
+             loan_officer_id: (loanApplication as any).loan_officer_id || 'unassigned',
+             linked_savings_account_id: loanApplication.linked_savings_account_id || undefined,
+             // Persist dates from application
+             submit_date: (loanApplication as any).submitted_at ? (loanApplication as any).submitted_at.slice(0,10) : undefined,
+             disbursement_date: (loanApplication as any).expected_disbursement_date ? (loanApplication as any).expected_disbursement_date.slice(0,10) : undefined,
+             // Persist selected charges if any
+             selected_charges: (loanApplication as any).selected_charges || [],
+           }}
+           onApplicationCreated={() => {
+             setModifyOpen(false);
+           }}
+         />
       </DialogContent>
     </Dialog>
   );
