@@ -61,6 +61,15 @@ export const LoanDisbursementDialog = ({
     }
   }, [open, receiptNumber]);
 
+  // When dialog opens, default date to application/creation date if present
+  useEffect(() => {
+    if (open) {
+      const today = new Date().toISOString().split('T')[0];
+      const base = getLoanCreationDate();
+      setDisbursementDate(base && new Date(base) <= new Date(today) ? base : today);
+    }
+  }, [open, loanData]);
+
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
@@ -116,17 +125,16 @@ export const LoanDisbursementDialog = ({
     return d ? String(d).slice(0, 10) : undefined;
   };
   const getMinDisbursementDate = () => {
+    // Allow backdating to the loan application/creation date
     const c = getLoanCreationDate();
-    const a = getLoanApprovalDate();
-    const candidates = [c, a].filter(Boolean) as string[];
-    if (candidates.length === 0) return undefined;
-    return candidates.sort()[candidates.length - 1]; // latest of creation/approval
+    return c || undefined;
   };
 
   const isFormValid = () => {
     if (disbursementMethod === 'undo') return true;
     if (disbursementMethod === 'savings') {
-      return Boolean(receiptNumber && loanData?.linked_savings_account_id && disbursementDate);
+      // For transfers to savings, no receipt required; just need linked savings and date
+      return Boolean(loanData?.linked_savings_account_id && disbursementDate);
     }
     return Boolean(receiptNumber && selectedPaymentMapping && disbursementDate);
   };
@@ -174,19 +182,10 @@ export const LoanDisbursementDialog = ({
     const disbursementDateIso = new Date(disbursementDate + 'T00:00:00').toISOString();
 
     const creationMin = getLoanCreationDate();
-    const approvalMin = getLoanApprovalDate();
     if (creationMin && new Date(disbursementDate) < new Date(creationMin)) {
       toast({
         title: "Invalid date",
-        description: `Disbursement date must be on or after loan creation date (${creationMin})`,
-        variant: "destructive",
-      });
-      return;
-    }
-    if (approvalMin && new Date(disbursementDate) < new Date(approvalMin)) {
-      toast({
-        title: "Invalid date",
-        description: `Disbursement date must be on or after loan approval date (${approvalMin})`,
+        description: `Disbursement date must be on or after application date (${creationMin})`,
         variant: "destructive",
       });
       return;
@@ -205,7 +204,7 @@ export const LoanDisbursementDialog = ({
       disbursed_amount: getDisbursementAmount(),
       disbursement_date: disbursementDateIso,
       disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
-      reference_number: receiptNumber,
+      ...(disbursementMethod === 'direct' ? { reference_number: receiptNumber } : {}),
       ...(disbursementMethod === 'savings' && { savings_account_id: loanData.linked_savings_account_id })
     };
 
@@ -310,21 +309,24 @@ export const LoanDisbursementDialog = ({
                     max={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setDisbursementDate(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">You can backdate to the application date; future dates are not allowed.</p>
                 </div>
 
-                {/* Receipt Number */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Receipt className="h-4 w-4" />
-                    Receipt Number (Unique)
-                  </Label>
-                  <Input
-                    value={receiptNumber}
-                    onChange={(e) => setReceiptNumber(e.target.value)}
-                    placeholder="Unique receipt number"
-                    className="font-mono"
-                  />
-                </div>
+                {/* Receipt Number - show only for direct disbursement */}
+                {disbursementMethod === 'direct' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Receipt className="h-4 w-4" />
+                      Receipt Number (Unique)
+                    </Label>
+                    <Input
+                      value={receiptNumber}
+                      onChange={(e) => setReceiptNumber(e.target.value)}
+                      placeholder="Unique receipt number"
+                      className="font-mono"
+                    />
+                  </div>
+                )}
 
                 {/* Payment Method from Product Mappings (Direct disbursement only) */}
                 {disbursementMethod === 'direct' && (

@@ -65,7 +65,16 @@ export const ClientLoansTab = ({
     }
   };
 
-  const { loans: visibleLoans, applications: visibleApplications } = getVisibleLoansAndApplications();
+  const { loans: visibleLoans, applications: visibleApplicationsRaw } = getVisibleLoansAndApplications();
+  
+  // If a loan is already active/disbursed for an application, hide that application row
+  const activeLoanAppIds = new Set(
+    visibleLoans
+      .filter((l) => ['active', 'disbursed'].includes((l.status || '').toLowerCase()))
+      .map((l) => l.application_id)
+      .filter(Boolean)
+  );
+  const visibleApplications = visibleApplicationsRaw.filter((a) => !activeLoanAppIds.has(a.id));
   
   // Deduplicate: if an approved/pending_disbursement loan exists for an application, show only the application row
   const applicationIds = new Set(visibleApplications.map((a) => a.id));
@@ -144,6 +153,7 @@ export const ClientLoansTab = ({
             size="sm"
             onClick={() => onProcessDisbursement(item)}
             className="bg-gradient-primary"
+            disabled={activeLoanAppIds.has(item.id)}
           >
             <DollarSign className="h-4 w-4 mr-1" />
             Disburse
