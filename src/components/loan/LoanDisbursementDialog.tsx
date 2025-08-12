@@ -50,6 +50,7 @@ export const LoanDisbursementDialog = ({
   const [selectedPaymentMapping, setSelectedPaymentMapping] = useState('');
   const [disbursementMethod, setDisbursementMethod] = useState<'direct' | 'savings' | 'undo'>('direct');
   const [selectedSavingsAccount, setSelectedSavingsAccount] = useState('');
+  const [disbursementDate, setDisbursementDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Generate unique receipt number on dialog open
   useEffect(() => {
@@ -67,6 +68,7 @@ export const LoanDisbursementDialog = ({
       setSelectedPaymentMapping('');
       setDisbursementMethod('direct');
       setSelectedSavingsAccount('');
+      setDisbursementDate(new Date().toISOString().split('T')[0]);
     }
   }, [open]);
 
@@ -105,12 +107,28 @@ export const LoanDisbursementDialog = ({
     return loanData.final_approved_amount || loanData.requested_amount || loanData.principal_amount || 0;
   };
 
+  const getLoanCreationDate = () => {
+    const d = loanData?.created_date || loanData?.submitted_on_date || loanData?.created_at;
+    return d ? String(d).slice(0, 10) : undefined;
+  };
+  const getLoanApprovalDate = () => {
+    const d = loanData?.approved_on_date || loanData?.approval_date || loanData?.approved_at;
+    return d ? String(d).slice(0, 10) : undefined;
+  };
+  const getMinDisbursementDate = () => {
+    const c = getLoanCreationDate();
+    const a = getLoanApprovalDate();
+    const candidates = [c, a].filter(Boolean) as string[];
+    if (candidates.length === 0) return undefined;
+    return candidates.sort()[candidates.length - 1]; // latest of creation/approval
+  };
+
   const isFormValid = () => {
     if (disbursementMethod === 'undo') return true;
     if (disbursementMethod === 'savings') {
-      return Boolean(receiptNumber && loanData?.linked_savings_account_id);
+      return Boolean(receiptNumber && loanData?.linked_savings_account_id && disbursementDate);
     }
-    return Boolean(receiptNumber && selectedPaymentMapping);
+    return Boolean(receiptNumber && selectedPaymentMapping && disbursementDate);
   };
   const handleSubmit = async () => {
     if (disbursementMethod === 'undo') {
@@ -152,10 +170,31 @@ export const LoanDisbursementDialog = ({
       });
       return;
     }
+    const disbursementDateIso = new Date(disbursementDate + 'T00:00:00').toISOString();
+
+    const creationMin = getLoanCreationDate();
+    const approvalMin = getLoanApprovalDate();
+    if (creationMin && new Date(disbursementDate) < new Date(creationMin)) {
+      toast({
+        title: "Invalid date",
+        description: `Disbursement date must be on or after loan creation date (${creationMin})`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (approvalMin && new Date(disbursementDate) < new Date(approvalMin)) {
+      toast({
+        title: "Invalid date",
+        description: `Disbursement date must be on or after loan approval date (${approvalMin})`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const disbursementData: any = {
       loan_application_id: loanData.id,
       disbursed_amount: getDisbursementAmount(),
-      disbursement_date: new Date().toISOString(),
+      disbursement_date: disbursementDateIso,
       disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
       reference_number: receiptNumber,
       ...(disbursementMethod === 'savings' && { savings_account_id: loanData.linked_savings_account_id })
@@ -171,7 +210,7 @@ export const LoanDisbursementDialog = ({
               client_id: result.loan.client_id,
               loan_product_id: loanData.loan_product_id,
               principal_amount: getDisbursementAmount(),
-              disbursement_date: new Date().toISOString().split('T')[0],
+              disbursement_date: disbursementDate,
               loan_number: result.loan.loan_number,
               payment_method: disbursementMethod === 'savings' ? undefined : (selectedPaymentMapping || undefined),
             });
@@ -252,6 +291,17 @@ export const LoanDisbursementDialog = ({
                 <CardTitle className="text-base">Disbursement Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Disbursement Date */}
+                <div className="space-y-2">
+                  <Label>Disbursement Date</Label>
+                  <Input
+                    type="date"
+                    value={disbursementDate}
+                    min={getMinDisbursementDate()}
+                    onChange={(e) => setDisbursementDate(e.target.value)}
+                  />
+                </div>
+
                 {/* Receipt Number */}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
