@@ -163,13 +163,14 @@ export const EnhancedLoanWorkflowDialog = ({
       if (error) throw error;
       return data || null;
     },
-    enabled: !loanApplication.loan_products && !!loanApplication.loan_product_id && open,
+    enabled: !!loanApplication.loan_product_id && open && (!loanApplication.loan_products || !loanApplication.loan_products.repayment_frequency),
   });
 
   const displayClient = loanApplication.clients || fallbackClient || {};
   const displayProduct = loanApplication.loan_products || fallbackProduct || ({} as any);
 
-  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || displayProduct?.repayment_frequency || 'monthly') as string;
+  const productRepaymentFrequency = loanApplication.loan_products?.repayment_frequency ?? fallbackProduct?.repayment_frequency;
+  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || productRepaymentFrequency || 'monthly') as string;
   const termUnit = ((): string => {
     const f = (frequency || '').toString().toLowerCase().replace(/[-_]/g, '');
     if (f.includes('day')) return 'days'; // day, days, daily
