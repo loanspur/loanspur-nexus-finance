@@ -50,15 +50,18 @@ export const LoanApprovalDialog = ({
   const [selectedAction, setSelectedAction] = useState<'approved' | 'rejected' | null>(null);
   const processApproval = useProcessApprovalAction();
 
+  const loanData = approvalRequest?.record_data;
+  const requester = approvalRequest?.requester;
+
   const form = useForm<ApprovalFormData>({
     resolver: zodResolver(approvalSchema),
     defaultValues: {
       comments: "",
+      approved_amount: (loanData?.requested_amount as number | undefined),
+      approved_term: (loanData?.requested_term as number | undefined),
+      approved_interest_rate: ((loanData?.requested_interest_rate ?? loanData?.interest_rate) as number | undefined),
     },
   });
-
-  const loanData = approvalRequest?.record_data;
-  const requester = approvalRequest?.requester;
 
   const getTermUnit = (frequency?: string) => {
     const f = (frequency || '').toLowerCase();
@@ -204,7 +207,8 @@ export const LoanApprovalDialog = ({
                               type="number"
                               placeholder={loanData?.requested_amount?.toString()}
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              readOnly
+                              disabled
                             />
                           </FormControl>
                           <FormMessage />
@@ -222,7 +226,8 @@ export const LoanApprovalDialog = ({
                               type="number"
                               placeholder={loanData?.requested_term?.toString()}
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                              readOnly
+                              disabled
                             />
                           </FormControl>
                           <FormMessage />
@@ -241,7 +246,8 @@ export const LoanApprovalDialog = ({
                               step="0.01"
                               placeholder="12.5"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              readOnly
+                              disabled
                             />
                           </FormControl>
                           <FormMessage />
