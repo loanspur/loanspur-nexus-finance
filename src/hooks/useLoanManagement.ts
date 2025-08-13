@@ -609,33 +609,45 @@ export const useProcessLoanApproval = () => {
 
       if (updateError) throw updateError;
 
-      // If approved, create loan record immediately
+      // If approved, create loan record immediately (idempotent - skip if already exists)
       if (approval.action === 'approve') {
-        const loanNumber = `LN-${Date.now()}`;
-        
-        const { data: loanData, error: loanError } = await supabase
+        // Check if loan already exists for this application
+        const { data: existingLoan, error: checkError } = await supabase
           .from('loans')
-          .insert([{
-            tenant_id: profile.tenant_id,
-            client_id: loanApplication.client_id,
-            loan_product_id: loanApplication.loan_product_id,
-            application_id: approval.loan_application_id, // Link back to application
-            loan_number: loanNumber,
-            principal_amount: approval.approved_amount || loanApplication.requested_amount,
-            // Normalize interest rate: accept 10 (percent) or 0.10 (fraction)
-            interest_rate: (() => {
-              const r = (approval.approved_interest_rate ?? 10);
-              return r > 1 ? r / 100 : r;
-            })(),
-            term_months: approval.approved_term || loanApplication.requested_term,
-            outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
-            status: 'pending_disbursement',
-            loan_officer_id: profile.id,
-          }])
-          .select()
-          .single();
+          .select('id, status')
+          .eq('application_id', approval.loan_application_id)
+          .maybeSingle();
         
-        if (loanError) throw loanError;
+        if (checkError && checkError.code !== 'PGRST116') throw checkError;
+        
+        // Only create loan if none exists
+        if (!existingLoan) {
+          const loanNumber = `LN-${Date.now()}`;
+          
+          const { data: loanData, error: loanError } = await supabase
+            .from('loans')
+            .insert([{
+              tenant_id: profile.tenant_id,
+              client_id: loanApplication.client_id,
+              loan_product_id: loanApplication.loan_product_id,
+              application_id: approval.loan_application_id, // Link back to application
+              loan_number: loanNumber,
+              principal_amount: approval.approved_amount || loanApplication.requested_amount,
+              // Normalize interest rate: accept 10 (percent) or 0.10 (fraction)
+              interest_rate: (() => {
+                const r = (approval.approved_interest_rate ?? 10);
+                return r > 1 ? r / 100 : r;
+              })(),
+              term_months: approval.approved_term || loanApplication.requested_term,
+              outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
+              status: 'pending_disbursement',
+              loan_officer_id: profile.id,
+            }])
+            .select()
+            .single();
+          
+          if (loanError) throw loanError;
+        }
       }
 
       // If undoing approval, delete any pending loan records
