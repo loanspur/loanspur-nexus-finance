@@ -340,7 +340,6 @@ export const useLoanRepaymentAccounting = () => {
     },
     onSuccess: (_, variables) => {
       // Invalidate relevant queries to trigger real-time updates
-      const queryClient = useQueryClient();
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['loan-payments'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });

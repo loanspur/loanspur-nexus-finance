@@ -70,6 +70,8 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   });
 
   const onSubmit = async (data: PaymentFormData) => {
+    if (isSubmitting) return; // Prevent double submission
+    
     setIsSubmitting(true);
     try {
       const amount = Number(data.amount);
@@ -136,14 +138,18 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
       
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Payment processing error:', error);
       toast({
         title: "Error",
-        description: "Failed to process payment. Please try again.",
+        description: error.message || "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      // Only update state if component is still mounted
+      if (typeof setIsSubmitting === 'function') {
+        setIsSubmitting(false);
+      }
     }
   };
 
