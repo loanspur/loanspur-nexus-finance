@@ -116,8 +116,9 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
       }
 
       // 2) Save fee -> income account mappings for loan products
+      let configuredFees: any[] = [];
       if (productType === 'loan') {
-        const configuredFees = feeMappings.filter(m => m.feeType && m.incomeAccount);
+        configuredFees = feeMappings.filter(m => m.feeType && m.incomeAccount);
         const feePayload = configuredFees.map(m => ({
           fee_id: m.feeType,
           fee_type: feeStructures.find(f => f.id === m.feeType)?.fee_type || 'loan',
@@ -130,7 +131,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
         if (lpErr) throw lpErr;
       }
 
-      toast({ title: 'Advanced mappings saved', description: `${configured.length} payment channel(s) and ${feeMappings.length} fee mapping(s) saved.` });
+      toast({ title: 'Advanced mappings saved', description: `${configured.length} payment channel(s) and ${configuredFees.length} fee mapping(s) saved.` });
     });
   }, [onRegisterSave, profile?.tenant_id, paymentChannelMappings, existingMappings, productType, paymentTypes, feeMappings, feeStructures, toast]);
 
