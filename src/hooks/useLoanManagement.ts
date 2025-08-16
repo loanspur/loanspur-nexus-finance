@@ -959,7 +959,8 @@ export const useProcessLoanDisbursement = () => {
         const { error: savingsError } = await supabase
           .from('savings_accounts')
           .update({
-            account_balance: newBalance
+            account_balance: newBalance,
+            available_balance: newBalance
           })
           .eq('id', disbursement.savings_account_id);
 

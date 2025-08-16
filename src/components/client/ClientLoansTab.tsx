@@ -160,6 +160,20 @@ export const ClientLoansTab = ({
           </Button>
         );
       }
+    } else {
+      // Loan actions
+      actions.push(
+        <Button 
+          key="view"
+          size="sm" 
+          variant="outline"
+          onClick={() => onViewLoanDetails(item)}
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          <CheckCircle className="h-4 w-4 mr-1" />
+          View Details
+        </Button>
+      );
     }
 
 
