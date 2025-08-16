@@ -294,6 +294,19 @@ export const TransactionStatement = ({
         {
           event: '*',
           schema: 'public',
+          table: 'loan_payments',
+          filter: `loan_id=eq.${accountId}`
+        },
+        () => {
+          console.log('Loan payment updated, refreshing...');
+          fetchTransactions();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
           table: 'loans',
           filter: `id=eq.${accountId}`
         },

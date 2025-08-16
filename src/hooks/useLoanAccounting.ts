@@ -133,6 +133,7 @@ export const useLoanRepaymentAccounting = () => {
   const { profile } = useAuth();
   const createJournalEntry = useCreateJournalEntry();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: LoanRepaymentData) => {
@@ -291,9 +292,61 @@ export const useLoanRepaymentAccounting = () => {
         lines,
       });
 
+      // Create transaction record for the payment  
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          tenant_id: profile.tenant_id,
+          loan_id: data.loan_id,
+          amount: data.payment_amount,
+          transaction_type: 'loan_repayment',
+          payment_type: (data.payment_method || 'cash') as any,
+          payment_status: 'completed',
+          transaction_date: new Date(data.payment_date).toISOString(),
+          transaction_id: `LR-${Date.now()}`,
+          external_transaction_id: data.payment_reference,
+          description: `Loan repayment - ${loan.loan_number}`,
+          processed_by: profile.id,
+          reconciliation_status: 'reconciled'
+        });
+
+      if (transactionError) {
+        console.error('Failed to create transaction record:', transactionError);
+        // Don't throw error as accounting entry was successful
+      }
+
+      // Create loan payment record
+      const { error: paymentError } = await supabase
+        .from('loan_payments')
+        .insert({
+          tenant_id: profile.tenant_id,
+          loan_id: data.loan_id,
+          payment_amount: data.payment_amount,
+          principal_amount: data.principal_amount,
+          interest_amount: data.interest_amount,
+          fee_amount: data.fee_amount || 0,
+          payment_date: data.payment_date,
+          payment_method: data.payment_method || 'cash',
+          reference_number: data.payment_reference,
+          processed_by: profile.id
+        });
+
+      if (paymentError) {
+        console.error('Failed to create loan payment record:', paymentError);
+        // Don't throw error as accounting entry was successful
+      }
+
       return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate relevant queries to trigger real-time updates
+      const queryClient = useQueryClient();
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['all-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      
       toast({
         title: "Repayment Recorded",
         description: "Loan repayment has been recorded in the accounting system.",
