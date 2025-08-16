@@ -43,9 +43,17 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
   const schedule: LoanScheduleEntry[] = [];
   const startDate = new Date(disbursementDate);
   
-  // Calculate number of payments based on frequency
+  // Calculate number of payments based on frequency and term
   const paymentsPerYear = getPaymentsPerYear(repaymentFrequency);
-  const totalPayments = Math.ceil((termMonths / 12) * paymentsPerYear);
+  let totalPayments;
+  
+  // For daily frequency, use termMonths as days directly
+  if (repaymentFrequency === 'daily') {
+    totalPayments = termMonths; // termMonths represents days for daily frequency
+  } else {
+    totalPayments = Math.ceil((termMonths / 12) * paymentsPerYear);
+  }
+  
   const periodicRate = interestRate / paymentsPerYear;
 
   // Calculate first payment date
