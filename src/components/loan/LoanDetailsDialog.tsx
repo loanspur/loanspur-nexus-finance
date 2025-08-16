@@ -1206,7 +1206,75 @@ const getStatusColor = (status: string) => {
                 <CardContent>
                   <div className="space-y-4">
                     {schedules.length === 0 ? (
-                      <p className="text-muted-foreground">No repayment schedule available.</p>
+                      <div className="text-center space-y-4 py-8">
+                        <p className="text-muted-foreground">No repayment schedule available.</p>
+                        <Button 
+                          onClick={async () => {
+                            try {
+                              const { data: loanDetails, error: loanError } = await supabase
+                                .from('loans')
+                                .select(`
+                                  principal_amount, 
+                                  interest_rate, 
+                                  term_months, 
+                                  disbursement_date,
+                                  loan_products(
+                                    default_nominal_interest_rate, 
+                                    repayment_frequency, 
+                                    interest_calculation_method
+                                  )
+                                `)
+                                .eq('id', loan.id)
+                                .single();
+
+                              if (loanError) throw loanError;
+
+                              const product = loanDetails.loan_products;
+                              if (!product) throw new Error('Loan product not found');
+
+                              // Import generateLoanSchedule dynamically
+                              const { generateLoanSchedule } = await import('@/lib/loan-schedule-generator');
+                              
+                              const scheduleParams = {
+                                loanId: loan.id,
+                                principal: Number(loanDetails.principal_amount),
+                                interestRate: Number(loanDetails.interest_rate || product.default_nominal_interest_rate || 0.15) / 100,
+                                termMonths: Number(loanDetails.term_months || 12),
+                                disbursementDate: loanDetails.disbursement_date || new Date().toISOString(),
+                                repaymentFrequency: (product.repayment_frequency || 'monthly') as any,
+                                calculationMethod: (product.interest_calculation_method || 'reducing_balance') as any,
+                              };
+
+                              const schedule = generateLoanSchedule(scheduleParams);
+
+                              const { error: scheduleInsertError } = await supabase
+                                .from('loan_schedules')
+                                .insert(schedule);
+
+                              if (scheduleInsertError) throw scheduleInsertError;
+
+                              // Invalidate queries to refresh the schedule
+                              queryClient.invalidateQueries({ queryKey: ['loan-schedules', loan.id] });
+                              
+                              toast({
+                                title: "Success",
+                                description: "Loan schedule generated successfully",
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message || "Failed to generate loan schedule",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          variant="outline"
+                          className="mx-auto"
+                        >
+                          <Calculator className="h-4 w-4 mr-2" />
+                          Generate Schedule
+                        </Button>
+                      </div>
                     ) : (
                       <div className="border rounded-lg overflow-hidden">
                         <table className="w-full">
