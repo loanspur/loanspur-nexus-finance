@@ -372,6 +372,28 @@ export const useLoanRepaymentAccounting = () => {
         // Don't throw error as accounting entry was successful
       }
 
+      // Update loan outstanding balance and automatically close if overpaid
+      const newOutstanding = (loan.outstanding_balance || 0) - data.payment_amount;
+      const loanUpdatePayload: any = { 
+        outstanding_balance: Math.max(0, newOutstanding) 
+      };
+
+      // Automatically close loan if overpaid
+      if (newOutstanding <= 0) {
+        loanUpdatePayload.status = 'closed';
+        loanUpdatePayload.closed_date = data.payment_date;
+      }
+
+      const { error: loanUpdateError } = await supabase
+        .from('loans')
+        .update(loanUpdatePayload)
+        .eq('id', data.loan_id);
+
+      if (loanUpdateError) {
+        console.error('Failed to update loan status:', loanUpdateError);
+        // Don't throw error as payment was successful
+      }
+
       return { success: true };
     },
     onSuccess: (_, variables) => {
