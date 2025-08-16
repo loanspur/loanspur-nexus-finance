@@ -6,7 +6,7 @@ export interface LoanScheduleParams {
   interestRate: number; // Annual rate as decimal (e.g., 0.15 for 15%)
   termMonths: number;
   disbursementDate: string;
-  repaymentFrequency: 'monthly' | 'weekly' | 'bi-weekly' | 'quarterly';
+  repaymentFrequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly';
   calculationMethod: 'reducing_balance' | 'flat_rate' | 'declining_balance';
   firstPaymentDate?: string; // Optional, defaults to one period after disbursement
   disbursementFees?: Array<{ name: string; amount: number; charge_time_type: string }>; // Disbursement-level fees
@@ -128,6 +128,8 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
 
 function getPaymentsPerYear(frequency: string): number {
   switch (frequency) {
+    case 'daily':
+      return 365;
     case 'weekly':
       return 52;
     case 'bi-weekly':
@@ -143,6 +145,8 @@ function getPaymentsPerYear(frequency: string): number {
 
 function getNextPaymentDate(currentDate: Date, frequency: string): Date {
   switch (frequency) {
+    case 'daily':
+      return addDays(currentDate, 1);
     case 'weekly':
       return addWeeks(currentDate, 1);
     case 'bi-weekly':
