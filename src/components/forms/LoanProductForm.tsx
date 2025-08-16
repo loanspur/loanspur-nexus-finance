@@ -214,6 +214,24 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         const updatePayload: any = {
           ...productData,
           linked_fee_ids: data.linked_fee_ids || [],
+          // Explicitly include all accounting fields
+          accounting_type: data.accounting_type,
+          loan_portfolio_account_id: data.loan_portfolio_account_id || null,
+          interest_receivable_account_id: data.interest_receivable_account_id || null,
+          fee_receivable_account_id: data.fee_receivable_account_id || null,
+          penalty_receivable_account_id: data.penalty_receivable_account_id || null,
+          interest_income_account_id: data.interest_income_account_id || null,
+          fee_income_account_id: data.fee_income_account_id || null,
+          penalty_income_account_id: data.penalty_income_account_id || null,
+          provision_account_id: data.provision_account_id || null,
+          writeoff_expense_account_id: data.writeoff_expense_account_id || null,
+          overpayment_liability_account_id: data.overpayment_liability_account_id || null,
+          suspended_income_account_id: data.suspended_income_account_id || null,
+          fund_source_account_id: data.fund_source_account_id || null,
+          principal_payment_account_id: data.principal_payment_account_id || null,
+          interest_payment_account_id: data.interest_payment_account_id || null,
+          fee_payment_account_id: data.fee_payment_account_id || null,
+          penalty_payment_account_id: data.penalty_payment_account_id || null,
         };
         
         const updated = await updateLoanProductMutation.mutateAsync({
@@ -230,6 +248,24 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         const createPayload = {
           ...productData,
           linked_fee_ids: data.linked_fee_ids || [],
+          // Explicitly include all accounting fields
+          accounting_type: data.accounting_type,
+          loan_portfolio_account_id: data.loan_portfolio_account_id || null,
+          interest_receivable_account_id: data.interest_receivable_account_id || null,
+          fee_receivable_account_id: data.fee_receivable_account_id || null,
+          penalty_receivable_account_id: data.penalty_receivable_account_id || null,
+          interest_income_account_id: data.interest_income_account_id || null,
+          fee_income_account_id: data.fee_income_account_id || null,
+          penalty_income_account_id: data.penalty_income_account_id || null,
+          provision_account_id: data.provision_account_id || null,
+          writeoff_expense_account_id: data.writeoff_expense_account_id || null,
+          overpayment_liability_account_id: data.overpayment_liability_account_id || null,
+          suspended_income_account_id: data.suspended_income_account_id || null,
+          fund_source_account_id: data.fund_source_account_id || null,
+          principal_payment_account_id: data.principal_payment_account_id || null,
+          interest_payment_account_id: data.interest_payment_account_id || null,
+          fee_payment_account_id: data.fee_payment_account_id || null,
+          penalty_payment_account_id: data.penalty_payment_account_id || null,
         };
         
         const created: any = await createLoanProductMutation.mutateAsync(createPayload);
