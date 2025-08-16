@@ -9,6 +9,8 @@ export interface LoanScheduleParams {
   repaymentFrequency: 'monthly' | 'weekly' | 'bi-weekly' | 'quarterly';
   calculationMethod: 'reducing_balance' | 'flat_rate' | 'declining_balance';
   firstPaymentDate?: string; // Optional, defaults to one period after disbursement
+  disbursementFees?: Array<{ name: string; amount: number; charge_time_type: string }>; // Disbursement-level fees
+  installmentFees?: Array<{ name: string; amount: number; charge_time_type: string }>; // Per-installment fees
 }
 
 export interface LoanScheduleEntry {
@@ -33,7 +35,9 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     disbursementDate,
     repaymentFrequency = 'monthly',
     calculationMethod = 'reducing_balance',
-    firstPaymentDate
+    firstPaymentDate,
+    disbursementFees = [],
+    installmentFees = []
   } = params;
 
   const schedule: LoanScheduleEntry[] = [];
@@ -84,7 +88,20 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     principalAmount = Math.round(principalAmount * 100) / 100;
     interestAmount = Math.round(interestAmount * 100) / 100;
 
-    const totalAmount = principalAmount + interestAmount;
+    // Calculate fees for this installment
+    let feeAmount = 0;
+    
+    // Add disbursement fees to first installment only
+    if (i === 1) {
+      feeAmount += disbursementFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
+    }
+    
+    // Add per-installment fees
+    feeAmount += installmentFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
+    
+    feeAmount = Math.round(feeAmount * 100) / 100;
+
+    const totalAmount = principalAmount + interestAmount + feeAmount;
     remainingBalance = Math.max(0, remainingBalance - principalAmount);
 
     const scheduleEntry: LoanScheduleEntry = {
@@ -93,7 +110,7 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
       due_date: format(nextPaymentDate, 'yyyy-MM-dd'),
       principal_amount: principalAmount,
       interest_amount: interestAmount,
-      fee_amount: 0, // Fees can be added separately
+      fee_amount: feeAmount,
       total_amount: totalAmount,
       paid_amount: 0,
       outstanding_amount: totalAmount,

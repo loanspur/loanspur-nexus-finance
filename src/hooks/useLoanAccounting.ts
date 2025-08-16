@@ -394,6 +394,47 @@ export const useLoanRepaymentAccounting = () => {
         // Don't throw error as payment was successful
       }
 
+      // Fetch loan details to get all charges and fees
+      const { data: loanDetails, error: loanDetailsError } = await supabase
+        .from('loans')
+        .select(`
+          *,
+          loan_applications!inner(selected_charges),
+          loan_products!inner(linked_fee_ids)
+        `)
+        .eq('id', data.loan_id)
+        .single();
+
+      // Fetch all loan charges including disbursement-level fees
+      let allLoanCharges: any[] = [];
+      
+      if (!loanDetailsError && loanDetails) {
+        // Get charges from application
+        if (loanDetails.loan_applications?.selected_charges && Array.isArray(loanDetails.loan_applications.selected_charges)) {
+          allLoanCharges = [...allLoanCharges, ...loanDetails.loan_applications.selected_charges];
+        }
+        
+        // Get fees from linked product fee structures
+        if (loanDetails.loan_products?.linked_fee_ids && Array.isArray(loanDetails.loan_products.linked_fee_ids) && loanDetails.loan_products.linked_fee_ids.length > 0) {
+          const { data: feeStructures } = await supabase
+            .from('fee_structures')
+            .select('*')
+            .in('id', loanDetails.loan_products.linked_fee_ids)
+            .eq('is_active', true);
+            
+          if (feeStructures) {
+            allLoanCharges = [...allLoanCharges, ...feeStructures.map(fee => ({
+              fee_id: fee.id,
+              name: fee.name,
+              amount: fee.amount,
+              charge_time_type: fee.charge_time_type,
+              charge_payment_by: fee.charge_payment_by,
+              calculation_type: fee.calculation_type
+            }))];
+          }
+        }
+      }
+
       // Update loan schedules to reflect the payment
       const { data: schedules, error: schedulesError } = await supabase
         .from('loan_schedules')
@@ -427,7 +468,7 @@ export const useLoanRepaymentAccounting = () => {
           }
         }
 
-        // Update all schedules
+        // Update all schedules with payment allocation
         for (const update of scheduleUpdates) {
           const { error: updateError } = await supabase
             .from('loan_schedules')
@@ -440,6 +481,37 @@ export const useLoanRepaymentAccounting = () => {
 
           if (updateError) {
             console.error('Failed to update schedule:', updateError);
+          }
+        }
+
+        // If schedules need to include missing fees, update them
+        if (allLoanCharges.length > 0) {
+          const disbursementFees = allLoanCharges.filter(charge => 
+            ['on_disbursement', 'disbursement', 'upfront'].includes(charge.charge_time_type?.toLowerCase())
+          );
+          
+          if (disbursementFees.length > 0) {
+            const firstSchedule = schedules[0];
+            const totalDisbursementFees = disbursementFees.reduce((sum, fee) => {
+              const feeAmount = fee.calculation_type === 'percentage' 
+                ? (Number(fee.amount) / 100) * Number(loanDetails.principal_amount || 0)
+                : Number(fee.amount || 0);
+              return sum + feeAmount;
+            }, 0);
+            
+            if (firstSchedule && Number(firstSchedule.fee_amount || 0) === 0 && totalDisbursementFees > 0) {
+              const newTotalAmount = Number(firstSchedule.principal_amount) + Number(firstSchedule.interest_amount) + totalDisbursementFees;
+              const newOutstandingAmount = newTotalAmount - Number(firstSchedule.paid_amount || 0);
+              
+              await supabase
+                .from('loan_schedules')
+                .update({
+                  fee_amount: totalDisbursementFees,
+                  total_amount: newTotalAmount,
+                  outstanding_amount: Math.max(0, newOutstandingAmount)
+                })
+                .eq('id', firstSchedule.id);
+            }
           }
         }
       }
