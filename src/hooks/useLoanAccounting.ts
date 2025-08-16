@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useCreateJournalEntry } from './useAccounting';
+import { allocateRepayment, type RepaymentStrategyType, type LoanBalances } from '@/lib/loan-repayment-strategy';
 
 // Types for loan accounting transactions
 export interface LoanDisbursementData {
@@ -141,13 +142,16 @@ export const useLoanRepaymentAccounting = () => {
         throw new Error('No tenant context');
       }
 
-      // Get loan and product information
+      // Get loan and product information with repayment strategy
       const { data: loan, error: loanError } = await supabase
         .from('loans')
         .select(`
           loan_number,
+          principal_amount,
+          outstanding_balance,
           loan_products (
             id,
+            repayment_strategy,
             loan_portfolio_account_id,
             interest_income_account_id,
             fee_income_account_id,
@@ -164,6 +168,37 @@ export const useLoanRepaymentAccounting = () => {
       const product = loan.loan_products;
       if (!product || product.accounting_type === 'none') {
         throw new Error('Accounting is disabled for this loan product');
+      }
+
+      // Apply repayment strategy allocation if not manually specified
+      let finalAllocation = {
+        principal: data.principal_amount,
+        interest: data.interest_amount,
+        fees: data.fee_amount || 0,
+        penalties: data.penalty_amount || 0
+      };
+
+      // If amounts aren't manually specified, use strategy-based allocation
+      const totalSpecified = data.principal_amount + data.interest_amount + (data.fee_amount || 0) + (data.penalty_amount || 0);
+      if (Math.abs(totalSpecified - data.payment_amount) > 0.01) {
+        // For strategy-based allocation, we need to get current outstanding amounts
+        // This is a simplified approach - in real implementation, you'd calculate this from loan schedules
+        const loanBalances: LoanBalances = {
+          outstandingPrincipal: loan.outstanding_balance || 0,
+          unpaidInterest: 0, // This would be calculated from loan schedules
+          unpaidFees: 0, // This would be calculated from charges
+          unpaidPenalties: 0 // This would be calculated from penalties
+        };
+
+        const repaymentStrategy = (product.repayment_strategy || 'penalties_fees_interest_principal') as RepaymentStrategyType;
+        const allocation = allocateRepayment(data.payment_amount, loanBalances, repaymentStrategy);
+        
+        finalAllocation = {
+          principal: allocation.principal,
+          interest: allocation.interest,
+          fees: allocation.fees,
+          penalties: allocation.penalties
+        };
       }
 
       // Get payment account from payment channel mapping if payment method is provided
@@ -196,7 +231,7 @@ export const useLoanRepaymentAccounting = () => {
       }> = [];
 
       // Principal repayment
-      if (data.principal_amount > 0) {
+      if (finalAllocation.principal > 0) {
         if (!product.loan_portfolio_account_id) {
           throw new Error('Loan portfolio account not configured');
         }
@@ -204,7 +239,7 @@ export const useLoanRepaymentAccounting = () => {
         lines.push({
           account_id: paymentAccount,
           description: `Principal repayment - ${loan.loan_number}`,
-          debit_amount: data.principal_amount,
+          debit_amount: finalAllocation.principal,
           credit_amount: 0,
         });
 
@@ -212,12 +247,12 @@ export const useLoanRepaymentAccounting = () => {
           account_id: product.loan_portfolio_account_id,
           description: `Principal repayment - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: data.principal_amount,
+          credit_amount: finalAllocation.principal,
         });
       }
 
       // Interest repayment
-      if (data.interest_amount > 0) {
+      if (finalAllocation.interest > 0) {
         if (!product.interest_income_account_id) {
           throw new Error('Interest income account not configured');
         }
@@ -225,7 +260,7 @@ export const useLoanRepaymentAccounting = () => {
         lines.push({
           account_id: paymentAccount,
           description: `Interest repayment - ${loan.loan_number}`,
-          debit_amount: data.interest_amount,
+          debit_amount: finalAllocation.interest,
           credit_amount: 0,
         });
 
@@ -233,12 +268,12 @@ export const useLoanRepaymentAccounting = () => {
           account_id: product.interest_income_account_id,
           description: `Interest repayment - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: data.interest_amount,
+          credit_amount: finalAllocation.interest,
         });
       }
 
       // Fee repayment
-      if (data.fee_amount && data.fee_amount > 0) {
+      if (finalAllocation.fees > 0) {
         if (!product.fee_income_account_id) {
           throw new Error('Fee income account not configured');
         }
@@ -246,7 +281,7 @@ export const useLoanRepaymentAccounting = () => {
         lines.push({
           account_id: paymentAccount,
           description: `Fee repayment - ${loan.loan_number}`,
-          debit_amount: data.fee_amount,
+          debit_amount: finalAllocation.fees,
           credit_amount: 0,
         });
 
@@ -254,12 +289,12 @@ export const useLoanRepaymentAccounting = () => {
           account_id: product.fee_income_account_id,
           description: `Fee repayment - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: data.fee_amount,
+          credit_amount: finalAllocation.fees,
         });
       }
 
       // Penalty repayment
-      if (data.penalty_amount && data.penalty_amount > 0) {
+      if (finalAllocation.penalties > 0) {
         if (!product.penalty_income_account_id) {
           throw new Error('Penalty income account not configured');
         }
@@ -267,7 +302,7 @@ export const useLoanRepaymentAccounting = () => {
         lines.push({
           account_id: paymentAccount,
           description: `Penalty repayment - ${loan.loan_number}`,
-          debit_amount: data.penalty_amount,
+          debit_amount: finalAllocation.penalties,
           credit_amount: 0,
         });
 
@@ -275,7 +310,7 @@ export const useLoanRepaymentAccounting = () => {
           account_id: product.penalty_income_account_id,
           description: `Penalty repayment - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: data.penalty_amount,
+          credit_amount: finalAllocation.penalties,
         });
       }
 
@@ -315,16 +350,17 @@ export const useLoanRepaymentAccounting = () => {
         // Don't throw error as accounting entry was successful
       }
 
-      // Create loan payment record
+      // Create loan payment record with strategy-allocated amounts
       const { error: paymentError } = await supabase
         .from('loan_payments')
         .insert({
           tenant_id: profile.tenant_id,
           loan_id: data.loan_id,
           payment_amount: data.payment_amount,
-          principal_amount: data.principal_amount,
-          interest_amount: data.interest_amount,
-          fee_amount: data.fee_amount || 0,
+          principal_amount: finalAllocation.principal,
+          interest_amount: finalAllocation.interest,
+          fee_amount: finalAllocation.fees,
+          penalty_amount: finalAllocation.penalties,
           payment_date: data.payment_date,
           payment_method: data.payment_method || 'cash',
           reference_number: data.payment_reference,

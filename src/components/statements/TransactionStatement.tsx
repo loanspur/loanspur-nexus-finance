@@ -3,11 +3,13 @@ import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, RefreshCw } from "lucide-react";
+import { FileText, Download, RefreshCw, Eye, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { generateLoanStatement, generateSavingsStatement } from "@/lib/statement-generator";
+import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
 
 interface Transaction {
   date: string;
@@ -18,6 +20,12 @@ interface Transaction {
   reference: string;
   description?: string;
   status?: string;
+  // Payment breakdown for loan transactions
+  principalAmount?: number;
+  interestAmount?: number;
+  feeAmount?: number;
+  penaltyAmount?: number;
+  paymentId?: string;
 }
 
 interface TransactionStatementProps {
@@ -63,6 +71,7 @@ export const TransactionStatement = ({
 }: TransactionStatementProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [loanTotals, setLoanTotals] = useState({
     totalPrincipalPaid: 0,
     totalInterestPaid: 0,
@@ -218,16 +227,6 @@ export const TransactionStatement = ({
             const feesPaid = parseFloat(payment.fee_amount) || 0;
             const penaltiesPaid = parseFloat(payment.penalty_amount) || 0;
             
-            let description = 'Loan repayment';
-            if (principalPaid || interestPaid || feesPaid || penaltiesPaid) {
-              const parts = [];
-              if (principalPaid > 0) parts.push(`Principal: ${formatCurrency(principalPaid)}`);
-              if (interestPaid > 0) parts.push(`Interest: ${formatCurrency(interestPaid)}`);
-              if (feesPaid > 0) parts.push(`Fees: ${formatCurrency(feesPaid)}`);
-              if (penaltiesPaid > 0) parts.push(`Penalties: ${formatCurrency(penaltiesPaid)}`);
-              description = parts.join(', ');
-            }
-
             allTransactions.push({
               date: payment.payment_date,
               type: 'Payment',
@@ -235,8 +234,14 @@ export const TransactionStatement = ({
               balance: Math.max(0, runningBalance), // Ensure balance doesn't go negative
               method: payment.payment_method || 'Cash',
               reference: payment.reference_number || `PMT-${String(payment.id).slice(-6)}`,
-              description,
-              status: 'completed'
+              description: `Loan repayment - ${formatCurrency(paymentAmount)}`,
+              status: 'completed',
+              // Store breakdown for detailed view
+              principalAmount: principalPaid,
+              interestAmount: interestPaid,
+              feeAmount: feesPaid,
+              penaltyAmount: penaltiesPaid,
+              paymentId: payment.id
             });
           });
         }
@@ -616,50 +621,75 @@ export const TransactionStatement = ({
                   <TableHead>Method</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((transaction, index) => (
-                  <TableRow key={index} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">
-                      {formatDate(transaction.date)}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`capitalize ${getTransactionTypeColor(transaction.type)}`}>
-                        {transaction.type}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {transaction.description || '-'}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {transaction.reference}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {transaction.method || '-'}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      <span className={getTransactionTypeColor(transaction.type)}>
-                        {["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
-                        {formatCurrency(transaction.amount)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(transaction.balance)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusColor(transaction.status || 'completed')}>
-                        {transaction.status || 'completed'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                   <TableHead>Status</TableHead>
+                   <TableHead className="w-12"></TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                 {transactions.map((transaction, index) => (
+                   <TableRow key={index} className="hover:bg-muted/50">
+                     <TableCell className="font-medium">
+                       {formatDate(transaction.date)}
+                     </TableCell>
+                     <TableCell>
+                       <span className={`capitalize ${getTransactionTypeColor(transaction.type)}`}>
+                         {transaction.type}
+                       </span>
+                     </TableCell>
+                     <TableCell>
+                       {transaction.description || '-'}
+                     </TableCell>
+                     <TableCell className="font-mono text-sm">
+                       {transaction.reference}
+                     </TableCell>
+                     <TableCell className="text-sm">
+                       {transaction.method || '-'}
+                     </TableCell>
+                     <TableCell className="text-right font-medium">
+                       <span className={getTransactionTypeColor(transaction.type)}>
+                         {["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
+                         {formatCurrency(transaction.amount)}
+                       </span>
+                     </TableCell>
+                     <TableCell className="text-right font-bold">
+                       {formatCurrency(transaction.balance)}
+                     </TableCell>
+                     <TableCell>
+                       <Badge variant={getStatusColor(transaction.status || 'completed')}>
+                         {transaction.status || 'completed'}
+                       </Badge>
+                     </TableCell>
+                     <TableCell>
+                       {(transaction.principalAmount !== undefined || 
+                         transaction.interestAmount !== undefined || 
+                         transaction.feeAmount !== undefined || 
+                         transaction.penaltyAmount !== undefined) && (
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => setSelectedTransaction(transaction)}
+                           className="h-8 w-8 p-0"
+                         >
+                           <Eye className="h-4 w-4" />
+                         </Button>
+                       )}
+                     </TableCell>
+                   </TableRow>
+                 ))}
               </TableBody>
             </Table>
-          )}
+           )}
         </CardContent>
       </Card>
+
+      {/* Transaction Details Dialog */}
+      {selectedTransaction && (
+        <TransactionDetailsDialog
+          open={!!selectedTransaction}
+          onOpenChange={(open) => !open && setSelectedTransaction(null)}
+          transaction={selectedTransaction}
+        />
+      )}
     </div>
   );
 };
