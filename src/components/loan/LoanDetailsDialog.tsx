@@ -177,8 +177,61 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     return base.filter((f: any) => allowedIds.includes(f.id));
   }, [feeMappings, feeStructures]);
 
-  // TODO: Re-enable these queries once database types are updated
-  const loanCharges: any[] = [];
+  // Fetch loan charges from application and product
+  const { data: loanCharges = [] } = useQuery({
+    queryKey: ['loan-charges', loan?.id, loan?.application_id],
+    queryFn: async () => {
+      // First check for charges in the application
+      if (loan?.application_id) {
+        const { data: app, error: appErr } = await supabase
+          .from('loan_applications')
+          .select('selected_charges')
+          .eq('id', loan.application_id)
+          .single();
+        
+        if (!appErr && app?.selected_charges && Array.isArray(app.selected_charges)) {
+          return app.selected_charges.map((charge: any, index: number) => ({
+            id: `app_charge_${index}`,
+            charge_type: charge.charge_type || charge.fee_id,
+            charge_amount: Number(charge.amount || charge.calculated_amount || 0),
+            is_paid: false,
+            created_at: new Date().toISOString()
+          }));
+        }
+      }
+
+      // Fallback to product linked fees
+      if (loan?.loan_product_id) {
+        const { data: product, error: prodErr } = await supabase
+          .from('loan_products')
+          .select('linked_fee_ids')
+          .eq('id', loan.loan_product_id)
+          .single();
+        
+        if (!prodErr && product?.linked_fee_ids && Array.isArray(product.linked_fee_ids) && product.linked_fee_ids.length) {
+          const { data: fees, error: feeErr } = await supabase
+            .from('fee_structures')
+            .select('*')
+            .in('id', product.linked_fee_ids);
+          
+          if (!feeErr && fees) {
+            return fees.map((fee: any) => ({
+              id: `prod_fee_${fee.id}`,
+              charge_type: fee.name,
+              charge_amount: Number(fee.amount || 0),
+              is_paid: false,
+              created_at: new Date().toISOString(),
+              fee_structure: fee
+            }));
+          }
+        }
+      }
+      
+      return [];
+    },
+    enabled: !!loan?.id,
+  });
+
   const loanCollaterals: any[] = [];
   const loanGuarantors: any[] = [];
   const loanDocuments: any[] = [];
@@ -494,7 +547,27 @@ const getStatusColor = (status: string) => {
   };
 
   // Compute real loan details from schedules and payments with actual data
-  const monthlyPayment = (schedules && schedules.length > 0) ? (schedules[0].total_amount || 0) : 0;
+  const monthlyPayment = useMemo(() => {
+    if (schedules && schedules.length > 0) {
+      // Get the average installment amount from unpaid schedules
+      const unpaidSchedules = schedules.filter((s: any) => s.payment_status !== 'paid');
+      if (unpaidSchedules.length > 0) {
+        return unpaidSchedules[0].total_amount || 0;
+      }
+      return schedules[0].total_amount || 0;
+    }
+    
+    // Fallback calculation if no schedules
+    const principal = Number(loan?.principal_amount || 0);
+    const rate = Number(loan?.interest_rate || loanProduct?.default_nominal_interest_rate || 0) / 100 / 12;
+    const term = Number(loan?.term_months || 12);
+    
+    if (rate > 0) {
+      return (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+    }
+    return principal / term;
+  }, [schedules, loan?.principal_amount, loan?.interest_rate, loan?.term_months, loanProduct?.default_nominal_interest_rate]);
+
   const remainingTerm = (schedules || []).filter((s: any) => s.payment_status !== 'paid').length;
   const totalTerm = (schedules || []).length;
   const principalPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.principal_amount || 0), 0);
@@ -1218,39 +1291,78 @@ const getStatusColor = (status: string) => {
                 <CardContent>
                   <div className="space-y-4">
                     {loanCharges.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No charges recorded for this loan yet.</p>
+                      <div className="text-center py-8">
+                        <FileWarning className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No charges recorded for this loan yet.</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Charges will appear here once applied or inherited from the loan product.
+                        </p>
+                      </div>
                     ) : (
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="border-b bg-muted/30">
-                            <tr className="text-left">
-                              <th className="p-3 font-medium">Charge Name</th>
-                              <th className="p-3 font-medium">Type</th>
-                              <th className="p-3 font-medium">Amount</th>
-                              <th className="p-3 font-medium">Paid</th>
-                              <th className="p-3 font-medium">Outstanding</th>
-                              <th className="p-3 font-medium">Date Applied</th>
-                              <th className="p-3 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {loanCharges.map((charge: any) => (
-                              <tr key={charge.id} className="border-b">
-                                <td className="p-3 text-sm font-medium">{charge.charge_name}</td>
-                                <td className="p-3 text-sm capitalize">{charge.charge_type}</td>
-                                <td className="p-3 text-sm">{formatCurrency(charge.charge_amount)}</td>
-                                <td className="p-3 text-sm text-green-600">{formatCurrency(charge.paid_amount || 0)}</td>
-                                <td className="p-3 text-sm font-medium">{formatCurrency((charge.charge_amount || 0) - (charge.paid_amount || 0))}</td>
-                                <td className="p-3 text-sm">{safeFormatDate(charge.charge_date)}</td>
-                                <td className="p-3 text-sm">
-                                  <Badge variant={charge.is_paid ? 'default' : charge.is_waived ? 'secondary' : 'outline'}>
-                                    {charge.is_paid ? 'Paid' : charge.is_waived ? 'Waived' : 'Outstanding'}
-                                  </Badge>
-                                </td>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-medium">Applied Charges & Fees</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {loanCharges.filter((c: any) => !c.is_paid).length} outstanding
+                          </Badge>
+                        </div>
+                        
+                        <div className="overflow-hidden rounded-lg border">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted/50">
+                              <tr>
+                                <th className="text-left p-3 font-medium">Charge Type</th>
+                                <th className="text-right p-3 font-medium">Amount</th>
+                                <th className="text-center p-3 font-medium">Status</th>
+                                <th className="text-right p-3 font-medium">Applied Date</th>
+                                <th className="text-center p-3 font-medium">Source</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {loanCharges.map((charge: any) => (
+                                <tr key={charge.id} className="border-b hover:bg-muted/20 transition-colors">
+                                  <td className="p-3">
+                                    <div className="font-medium">{charge.charge_type}</div>
+                                    {charge.fee_structure && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {charge.fee_structure.calculation_type} • {charge.fee_structure.fee_type}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-right font-mono">{formatCurrency(charge.charge_amount)}</td>
+                                  <td className="p-3 text-center">
+                                    <Badge variant={charge.is_paid ? "default" : "destructive"} className="text-xs">
+                                      {charge.is_paid ? "Paid" : "Outstanding"}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3 text-right text-muted-foreground">
+                                    {safeFormatDate(charge.created_at, 'MMM dd, yyyy')}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <Badge variant="outline" className="text-xs">
+                                      {charge.id.startsWith('app_') ? 'Application' : 'Product'}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">Total Charges:</span>
+                              <span className="font-bold">{formatCurrency(loanCharges.reduce((sum: number, c: any) => sum + Number(c.charge_amount || 0), 0))}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-muted-foreground">Outstanding:</span>
+                              <span className="text-red-600 font-medium">
+                                {formatCurrency(loanCharges.filter((c: any) => !c.is_paid).reduce((sum: number, c: any) => sum + Number(c.charge_amount || 0), 0))}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
