@@ -177,42 +177,43 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     return base.filter((f: any) => allowedIds.includes(f.id));
   }, [feeMappings, feeStructures]);
 
-  const [earlyFeeId, setEarlyFeeId] = useState<string>('');
-  const earlyFeeAmount = useMemo(() => {
-    const fee: any = productFees.find((f: any) => f.id === earlyFeeId);
-    if (!fee) return 0;
-    const baseOutstanding = Number((loan as any)?.outstanding_balance ?? 0);
-    const calc = calculateFeeAmount({
-      id: fee.id,
-      name: fee.name,
-      calculation_type: fee.calculation_type,
-      amount: Number(fee.amount || 0),
-      min_amount: fee.min_amount,
-      max_amount: fee.max_amount,
-      fee_type: fee.fee_type,
-      charge_time_type: fee.charge_time_type,
-    } as any, baseOutstanding);
-    return Number(calc.calculated_amount || 0);
-  }, [earlyFeeId, productFees, loan]);
+  // TODO: Re-enable these queries once database types are updated
+  const loanCharges: any[] = [];
+  const loanCollaterals: any[] = [];
+  const loanGuarantors: any[] = [];
+  const loanDocuments: any[] = [];
 
-  // Auto-calc default fee amount in Add Fee dialog
-  useEffect(() => {
-    if (!feeId) return;
-    const fee: any = productFees.find((f: any) => f.id === feeId);
-    if (!fee) return;
-    const baseOutstanding = Number((loan as any)?.outstanding_balance ?? 0);
-    const calc = calculateFeeAmount({
-      id: fee.id,
-      name: fee.name,
-      calculation_type: fee.calculation_type,
-      amount: Number(fee.amount || 0),
-      min_amount: fee.min_amount,
-      max_amount: fee.max_amount,
-      fee_type: fee.fee_type,
-      charge_time_type: fee.charge_time_type,
-    } as any, baseOutstanding);
-    setFeeAmount(Number(calc.calculated_amount || 0));
-  }, [feeId, loan, productFees]);
+  // Fetch actual loan product details
+  const { data: loanProduct } = useQuery({
+    queryKey: ['loan-product-details', loan?.loan_product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('id', loan.loan_product_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loan?.loan_product_id,
+  });
+
+  // Fetch actual loan transactions
+  const { data: loanTransactions = [] } = useQuery({
+    queryKey: ['loan-transactions', loan?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('loan_id', loan.id)
+        .order('transaction_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id,
+  });
+
+  const [earlyFeeId, setEarlyFeeId] = useState<string>('');
 
   // Derived status: in_arrears and overpaid
   const { data: schedules = [] } = useLoanSchedules(loan?.id);
@@ -230,6 +231,75 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     },
     enabled: !!loan?.id,
   });
+
+  // Calculate comprehensive outstanding balance = unpaid principal + unpaid interest + unpaid fees + unpaid penalties
+  const outstandingBalanceCalculation = useMemo(() => {
+    let unpaidPrincipal = 0;
+    let unpaidInterest = 0;
+    let unpaidFees = 0;
+    let unpaidPenalties = 0;
+
+    // Calculate from schedules
+    const unpaidSchedules = (schedules || []).filter((s: any) => s.payment_status !== 'paid');
+    unpaidPrincipal = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.principal_amount) - Number(s.paid_amount || 0)), 0);
+    unpaidInterest = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.interest_amount) - Number(s.paid_interest || 0)), 0);
+    unpaidFees = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.fee_amount) - Number(s.paid_fees || 0)), 0);
+
+    // Add outstanding charges/fees
+    const outstandingCharges = (loanCharges || []).filter((c: any) => !c.is_paid);
+    unpaidFees += outstandingCharges.reduce((sum: number, c: any) => sum + Number(c.charge_amount || 0), 0);
+
+    // Total outstanding
+    const totalOutstanding = unpaidPrincipal + unpaidInterest + unpaidFees + unpaidPenalties;
+
+    return {
+      unpaidPrincipal,
+      unpaidInterest,
+      unpaidFees,
+      unpaidPenalties,
+      totalOutstanding
+    };
+  }, [schedules, loanCharges]);
+  
+  // Enhanced early fee calculation with proper product fee fetching
+  const earlyFeeAmount = useMemo(() => {
+    if (!earlyFeeId) return 0;
+    const fee: any = productFees.find((f: any) => f.id === earlyFeeId);
+    if (!fee) return 0;
+    
+    const baseOutstanding = outstandingBalanceCalculation.totalOutstanding;
+    const calc = calculateFeeAmount({
+      id: fee.id,
+      name: fee.name,
+      calculation_type: fee.calculation_type,
+      amount: Number(fee.amount || 0),
+      min_amount: fee.min_amount,
+      max_amount: fee.max_amount,
+      fee_type: fee.fee_type,
+      charge_time_type: fee.charge_time_type,
+    } as any, baseOutstanding);
+    return Number(calc.calculated_amount || 0);
+  }, [earlyFeeId, productFees, outstandingBalanceCalculation.totalOutstanding]);
+
+  // Enhanced fee calculation for Add Fee dialog with proper outstanding balance
+  useEffect(() => {
+    if (!feeId) return;
+    const fee: any = productFees.find((f: any) => f.id === feeId);
+    if (!fee) return;
+    
+    const baseOutstanding = outstandingBalanceCalculation.totalOutstanding;
+    const calc = calculateFeeAmount({
+      id: fee.id,
+      name: fee.name,
+      calculation_type: fee.calculation_type,
+      amount: Number(fee.amount || 0),
+      min_amount: fee.min_amount,
+      max_amount: fee.max_amount,
+      fee_type: fee.fee_type,
+      charge_time_type: fee.charge_time_type,
+    } as any, baseOutstanding);
+    setFeeAmount(Number(calc.calculated_amount || 0));
+  }, [feeId, outstandingBalanceCalculation.totalOutstanding, productFees]);
 
   const derived = useMemo(() => {
     const today = new Date();
@@ -404,71 +474,6 @@ const getStatusColor = (status: string) => {
     }
   };
 
-  // TODO: Re-enable these queries once database types are updated
-  const loanCharges: any[] = [];
-  const loanCollaterals: any[] = [];
-  const loanGuarantors: any[] = [];
-  const loanDocuments: any[] = [];
-
-  // Fetch actual loan product details
-  const { data: loanProduct } = useQuery({
-    queryKey: ['loan-product-details', loan?.loan_product_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('loan_products')
-        .select('*')
-        .eq('id', loan.loan_product_id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!loan?.loan_product_id,
-  });
-
-  // Fetch actual loan transactions
-  const { data: loanTransactions = [] } = useQuery({
-    queryKey: ['loan-transactions', loan?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('loan_id', loan.id)
-        .order('transaction_date', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!loan?.id,
-  });
-
-  // Calculate comprehensive outstanding balance = unpaid principal + unpaid interest + unpaid fees + unpaid penalties
-  const outstandingBalanceCalculation = useMemo(() => {
-    let unpaidPrincipal = 0;
-    let unpaidInterest = 0;
-    let unpaidFees = 0;
-    let unpaidPenalties = 0;
-
-    // Calculate from schedules
-    const unpaidSchedules = (schedules || []).filter((s: any) => s.payment_status !== 'paid');
-    unpaidPrincipal = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.principal_amount) - Number(s.paid_amount || 0)), 0);
-    unpaidInterest = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.interest_amount) - Number(s.paid_interest || 0)), 0);
-    unpaidFees = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.fee_amount) - Number(s.paid_fees || 0)), 0);
-
-    // Add outstanding charges/fees
-    const outstandingCharges = (loanCharges || []).filter((c: any) => !c.is_paid);
-    unpaidFees += outstandingCharges.reduce((sum: number, c: any) => sum + Number(c.charge_amount || 0), 0);
-
-    // Total outstanding
-    const totalOutstanding = unpaidPrincipal + unpaidInterest + unpaidFees + unpaidPenalties;
-
-    return {
-      unpaidPrincipal,
-      unpaidInterest,
-      unpaidFees,
-      unpaidPenalties,
-      totalOutstanding
-    };
-  }, [schedules, loanCharges]);
-
   // Compute real loan details from schedules and payments with actual data
   const monthlyPayment = (schedules && schedules.length > 0) ? (schedules[0].total_amount || 0) : 0;
   const remainingTerm = (schedules || []).filter((s: any) => s.payment_status !== 'paid').length;
@@ -509,94 +514,33 @@ const getStatusColor = (status: string) => {
     purpose: (loan as any).purpose ?? null,
     guarantor: (loan as any).guarantor ?? (loanGuarantors.length > 0 ? loanGuarantors[0] : null),
     loanOfficer: (loan as any).loan_officer_name ?? null,
-    approvalStatus: loan.status === 'pending_approval' ? (loan as any).approvalStatus ?? null : null,
-    closureDetails: loan.status === 'closed' ? (loan as any).closureDetails ?? null : null,
-    overdueDetails: loan.status === 'overdue' ? (loan as any).overdueDetails ?? null : null,
   };
 
-  const paymentHistory = (payments as any[]).map((p: any) => ({
-    date: p.payment_date,
-    amount: p.payment_amount || 0,
-    type: 'Payment',
-    status: p.status || 'Paid',
-    balance: 0,
-  }));
+  // Mock upcoming payments for now
+  const upcomingPayments = [
+    { date: new Date('2024-02-15'), amount: 15000, type: 'Monthly Payment', status: 'Due' },
+    { date: new Date('2024-03-15'), amount: 15000, type: 'Monthly Payment', status: 'Upcoming' },
+    { date: new Date('2024-04-15'), amount: 15000, type: 'Monthly Payment', status: 'Upcoming' },
+  ];
 
-  const handleClearLoan = async () => {
-    const { error } = await supabase
-      .from('loans')
-      .update({ status: 'closed', outstanding_balance: 0 })
-      .eq('id', loan.id);
-    if (error) {
-      toast({ title: 'Error', description: 'Failed to clear loan', variant: 'destructive' });
-    } else {
-      toast({ title: 'Loan Cleared', description: 'Loan marked as closed.' });
-      onOpenChange(false);
-    }
-  };
-
-  const handleWriteOffLoan = async () => {
-    const { error } = await supabase
-      .from('loans')
-      .update({ status: 'written_off' })
-      .eq('id', loan.id);
-    if (error) {
-      toast({ title: 'Error', description: 'Failed to write off loan', variant: 'destructive' });
-    } else {
-      toast({ title: 'Loan Written Off', description: 'Loan marked as written off.' });
-      onOpenChange(false);
-    }
-  };
-
-  const upcomingPayments = (schedules || [])
-    .filter((s: any) => s.payment_status !== 'paid' && new Date(s.due_date) >= new Date())
-    .slice(0, 3)
-    .map((s: any) => ({
-      date: s.due_date,
-      amount: s.total_amount || 0,
-      type: 'Scheduled Payment',
-      status: new Date(s.due_date).toDateString() === new Date().toDateString() ? 'Due' : 'Scheduled',
-    }));
-
-  // Transaction helpers and handlers
-  // Compute remaining components from unpaid schedules
-  const componentTotals = useMemo(() => {
-    const unpaid = (schedules || []).filter((s: any) => s.payment_status !== 'paid');
-    const remainingPrincipal = unpaid.reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0), 0);
-    const remainingInterest = unpaid.reduce((sum: number, s: any) => sum + Number(s.interest_amount || 0), 0);
-    const remainingFees = unpaid.reduce((sum: number, s: any) => sum + Number(s.fee_amount || 0), 0);
-    return { remainingPrincipal, remainingInterest, remainingFees };
-  }, [schedules]);
-
-  const toISO = (d?: Date) => (d ? format(d, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+  const toISO = (d?: Date) => d ? d.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
   const allocateByStrategy = (amount: number) => {
-    let remaining = Number(amount || 0);
-    let principal = 0, interest = 0, fee = 0, penalty = 0;
+    const repaymentStrategy = (productConfig as any)?.repayment_strategy || 'penalties_fees_interest_principal';
+    let remaining = amount;
+    let penalty = 0, fee = 0, interest = 0, principal = 0;
 
-    const orderMap: Record<string, Array<'penalty' | 'fee' | 'interest' | 'principal'>> = {
-      penalties_fees_interest_principal: ['penalty', 'fee', 'interest', 'principal'],
-      interest_principal_penalties_fees: ['interest', 'principal', 'penalty', 'fee'],
-      interest_penalties_fees_principal: ['interest', 'penalty', 'fee', 'principal'],
-      principal_interest_fees_penalties: ['principal', 'interest', 'fee', 'penalty'],
-    };
-    const order = orderMap[(productConfig as any)?.repayment_strategy] || ['interest', 'fee', 'principal', 'penalty'];
+    // Simplified allocation
+    if (repaymentStrategy.includes('fees') && remaining > 0) {
+      const feeAmount = Math.min(remaining, outstandingBalanceCalculation.unpaidFees);
+      fee = feeAmount;
+      remaining -= feeAmount;
+    }
 
-    const caps: Record<'principal' | 'interest' | 'fee' | 'penalty', number> = {
-      principal: componentTotals.remainingPrincipal,
-      interest: componentTotals.remainingInterest,
-      fee: componentTotals.remainingFees,
-      penalty: 0,
-    };
-
-    for (const key of order) {
-      const take = Math.min(remaining, caps[key]);
-      if (key === 'principal') principal += take;
-      if (key === 'interest') interest += take;
-      if (key === 'fee') fee += take;
-      if (key === 'penalty') penalty += take;
-      remaining -= take;
-      if (remaining <= 0) break;
+    if (repaymentStrategy.includes('interest') && remaining > 0) {
+      const interestAmount = Math.min(remaining, outstandingBalanceCalculation.unpaidInterest);
+      interest = interestAmount;
+      remaining -= interestAmount;
     }
 
     // Any leftover goes to principal
@@ -798,103 +742,96 @@ const getStatusColor = (status: string) => {
 
         <div className="flex-1 overflow-y-auto">
           <Tabs defaultValue="overview" className="h-full">
-            <TabsList className="w-full justify-start mb-4">
+            <TabsList className="w-full grid grid-cols-6">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="payments" disabled={loan.status === 'pending_approval'}>Loan Transactions</TabsTrigger>
-              <TabsTrigger value="schedule" disabled={loan.status === 'pending_approval' || loan.status === 'closed'}>Repayment Schedule</TabsTrigger>
+              <TabsTrigger value="payments">Transactions</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
               <TabsTrigger value="charges">Charges Applied</TabsTrigger>
-              <TabsTrigger value="documents">Loan Documents</TabsTrigger>
-              
-              
-              <TabsTrigger value="collateral">Collaterals</TabsTrigger>
-              <TabsTrigger value="guarantors">Guarantors</TabsTrigger>
-              
-              
-              {loan.status === 'pending_approval' && <TabsTrigger value="approval">Approval Details</TabsTrigger>}
-              {loan.status === 'closed' && <TabsTrigger value="closure">Closure Details</TabsTrigger>}
-              {loan.status === 'overdue' && <TabsTrigger value="recovery">Recovery</TabsTrigger>}
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+              <TabsTrigger value="collateral">Collateral</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6">
-              {/* Loan Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Outstanding Balance</p>
-                        <p className="text-2xl font-bold text-orange-600">{formatCurrency(loanDetails.outstanding)}</p>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-500 rounded-lg">
+                        <DollarSign className="h-4 w-4 text-white" />
                       </div>
-                      <DollarSign className="h-8 w-8 text-orange-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Monthly Payment</p>
-                        <p className="text-2xl font-bold">{formatCurrency(loanDetails.monthlyPayment)}</p>
+                        <p className="text-sm text-orange-700">Outstanding Balance</p>
+                        <p className="text-xl font-bold text-orange-900">{formatCurrency(loanDetails.outstanding)}</p>
                       </div>
-                      <Calendar className="h-8 w-8 text-blue-600" />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Remaining Term</p>
-                        <p className="text-2xl font-bold">{loanDetails.remainingTerm} months</p>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <Calendar className="h-4 w-4 text-white" />
                       </div>
-                      <Clock className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Monthly Payment</p>
+                        <p className="text-xl font-bold">{formatCurrency(loanDetails.monthlyPayment)}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500 rounded-lg">
+                        <Clock className="h-4 w-4 text-white" />
+                      </div>
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Status</p>
-                        <Badge variant={getStatusColor(derived.status)} className="mt-1">
+                        <p className="text-sm text-muted-foreground">Remaining Term</p>
+                        <p className="text-xl font-bold">{loanDetails.remainingTerm} months</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500 rounded-lg">
+                        <Badge className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Status</p>
+                        <Badge variant={getStatusColor(derived.status)} className="flex items-center gap-1">
                           {getStatusIcon(derived.status)}
-                          <span className="ml-1">{derived.status.replace('_', ' ').toUpperCase()}</span>
+                          <span className="capitalize">{derived.status}</span>
                         </Badge>
                       </div>
-                      <CheckCircle className="h-8 w-8 text-primary" />
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">TRP (Timely Repayment)</p>
-                        <p className="text-2xl font-bold">{loanTRP !== null ? `${loanTRP}%` : 'N/A'}</p>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-500 rounded-lg">
+                        <CheckCircle className="h-4 w-4 text-white" />
                       </div>
-                      <CheckCircle className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">TRP (Timely Repayment)</p>
+                        <p className="text-xl font-bold text-emerald-600">{loanTRP ?? 'N/A'}%</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {derived.status === 'in_arrears' && (
-                <div className="p-4 border rounded-lg bg-destructive/10 border-destructive text-destructive-foreground mb-4">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="font-medium">In arrears</span>
-                    <span className="text-sm">({derived.daysInArrears} days overdue)</span>
-                  </div>
-                </div>
-              )}
-
-              {derived.status === 'overpaid' && (
-                <div className="p-4 border rounded-lg bg-muted mb-4">
+              {/* Overpaid Transfer to Savings */}
+              {derived.overpaidAmount > 0 && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4" />
@@ -1164,7 +1101,7 @@ const getStatusColor = (status: string) => {
               </Card>
             </TabsContent>
 
-            {/* Schedule Tab */}
+            {/* Schedule Tab - Enhanced with actual payment status */}
             <TabsContent value="schedule" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -1368,234 +1305,15 @@ const getStatusColor = (status: string) => {
                 </CardContent>
               </Card>
             </TabsContent>
-
-            <TabsContent value="guarantors" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Guarantors
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {loanGuarantors.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No guarantors assigned to this loan yet.</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {loanGuarantors.map((guarantor: any) => (
-                          <div key={guarantor.id} className="p-4 border rounded-lg">
-                            <div className="font-medium">{guarantor.guarantor_name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              Guarantee: {formatCurrency(guarantor.guarantee_amount || 0)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-
-
-            {/* Approval Details Tab */}
-            {loan.status === 'pending_approval' && (
-              <TabsContent value="approval" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-yellow-600" />
-                      Approval Process
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Application Date</span>
-                          <div className="font-medium">{safeFormatDate(loanDetails.approvalStatus?.submittedDate, 'MMM dd, yyyy')}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Current Stage</span>
-                          <div className="font-medium">{loanDetails.approvalStatus?.reviewStage}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Assigned Approver</span>
-                          <div className="font-medium">{loanDetails.approvalStatus?.approver}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Estimated Approval</span>
-                          <div className="font-medium">{safeFormatDate(loanDetails.approvalStatus?.estimatedApproval, 'MMM dd, yyyy')}</div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Required Documents</span>
-                          <div className="mt-2 space-y-1">
-                            {loanDetails.approvalStatus?.requiredDocuments.map((doc: string, index: number) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                                <span className="text-sm">{doc}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Comments</span>
-                          <div className="mt-1 p-3 bg-muted rounded-md text-sm">{loanDetails.approvalStatus?.comments}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
-
-            {/* Closure Details Tab */}
-            {loan.status === 'closed' && (
-              <TabsContent value="closure" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      Loan Closure Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Closure Date</span>
-                          <div className="font-medium">{safeFormatDate(loanDetails.closureDetails?.closureDate, 'MMM dd, yyyy')}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Closure Reason</span>
-                          <div className="font-medium">{loanDetails.closureDetails?.closureReason}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Final Payment</span>
-                          <div className="font-medium text-green-600">{formatCurrency(loanDetails.closureDetails?.finalPayment || 0)}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Closed By</span>
-                          <div className="font-medium">{loanDetails.closureDetails?.closedBy}</div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Total Amount Paid</span>
-                          <div className="font-medium text-green-600">{formatCurrency(loanDetails.closureDetails?.totalAmountPaid || 0)}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Completion Certificate</span>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={loanDetails.closureDetails?.certificateGenerated ? 'default' : 'secondary'}>
-                              {loanDetails.closureDetails?.certificateGenerated ? 'Generated' : 'Pending'}
-                            </Badge>
-                            {loanDetails.closureDetails?.certificateGenerated && (
-                              <Button variant="outline" size="sm">
-                                <Download className="h-4 w-4 mr-2" />
-                                Download
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-center gap-2 text-green-800">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="font-medium">Loan Successfully Completed</span>
-                          </div>
-                          <p className="text-sm text-green-700 mt-1">
-                            This loan has been fully repaid and closed successfully.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
-
-            {/* Recovery Details Tab */}
-            {loan.status === 'overdue' && (
-              <TabsContent value="recovery" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-red-600" />
-                      Recovery Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Days Past Due</span>
-                          <div className="font-medium text-red-600">{loanDetails.overdueDetails?.daysPastDue} days</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Overdue Amount</span>
-                          <div className="font-medium text-red-600">{formatCurrency(loanDetails.overdueDetails?.overdueAmount || 0)}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Penalty Charges</span>
-                          <div className="font-medium text-red-600">{formatCurrency(loanDetails.overdueDetails?.penaltyCharges || 0)}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Last Contact</span>
-                          <div className="font-medium">{safeFormatDate(loanDetails.overdueDetails?.lastContactDate, 'MMM dd, yyyy')}</div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <span className="text-sm text-muted-foreground">Next Action</span>
-                          <div className="font-medium">{loanDetails.overdueDetails?.nextAction}</div>
-                        </div>
-                        <div>
-                          <span className="text-sm text-muted-foreground">Restructure Available</span>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={loanDetails.overdueDetails?.restructureOption ? 'default' : 'secondary'}>
-                              {loanDetails.overdueDetails?.restructureOption ? 'Yes' : 'No'}
-                            </Badge>
-                            {loanDetails.overdueDetails?.restructureOption && (
-                              <Button variant="outline" size="sm">
-                                Initiate Restructure
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                          <div className="flex items-center gap-2 text-red-800">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="font-medium">Immediate Action Required</span>
-                          </div>
-                          <p className="text-sm text-red-700 mt-1">
-                            This loan requires immediate attention due to overdue payments.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
           </Tabs>
         </div>
-
-        {/* Payment Form Dialog */}
-        <PaymentForm
-          open={paymentFormOpen}
-          onOpenChange={setPaymentFormOpen}
-        />
 
         {/* Repayment Dialog */}
         <Dialog open={repayOpen} onOpenChange={setRepayOpen}>
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
-              <DialogTitle>Make Repayment</DialogTitle>
-              <DialogDescription>Record a repayment for this loan.</DialogDescription>
+              <DialogTitle>Record Repayment</DialogTitle>
+              <DialogDescription>Apply allocation per product strategy. Outstanding: {formatCurrency(outstanding)}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
