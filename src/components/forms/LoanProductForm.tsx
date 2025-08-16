@@ -208,15 +208,27 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
 
     try {
       if (editingProduct) {
-        console.log("Updating loan product", { id: editingProduct.id });
-        const updated = await updateLoanProductMutation.mutateAsync({
+        console.log("Updating loan product", { id: editingProduct.id, productData });
+        
+        // Include linked_fee_ids in the update payload
+        const updatePayload = {
           id: editingProduct.id,
           ...productData,
-        });
+          linked_fee_ids: data.linked_fee_ids || [],
+        };
+        
+        const updated = await updateLoanProductMutation.mutateAsync(updatePayload);
         await saveAdvancedRef.current?.(editingProduct.id);
       } else {
-        console.log("Creating new loan product");
-        const created: any = await createLoanProductMutation.mutateAsync(productData);
+        console.log("Creating new loan product", { productData });
+        
+        // Include linked_fee_ids in the create payload
+        const createPayload = {
+          ...productData,
+          linked_fee_ids: data.linked_fee_ids || [],
+        };
+        
+        const created: any = await createLoanProductMutation.mutateAsync(createPayload);
         if (created?.id) {
           await saveAdvancedRef.current?.(created.id);
         }
