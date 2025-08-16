@@ -404,17 +404,130 @@ const getStatusColor = (status: string) => {
     }
   };
 
-  // Compute real loan details from schedules and payments
+  // Fetch loan charges/fees
+  const { data: loanCharges = [] } = useQuery({
+    queryKey: ['loan-charges', loan?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_charges')
+        .select('*')
+        .eq('loan_id', loan.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id,
+  });
+
+  // Fetch loan collaterals
+  const { data: loanCollaterals = [] } = useQuery({
+    queryKey: ['loan-collaterals', loan?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_collaterals')
+        .select(`
+          *,
+          collateral_types(name, category)
+        `)
+        .eq('loan_id', loan.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id,
+  });
+
+  // Fetch loan guarantors
+  const { data: loanGuarantors = [] } = useQuery({
+    queryKey: ['loan-guarantors', loan?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_guarantors')
+        .select('*')
+        .eq('loan_id', loan.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id,
+  });
+
+  // Fetch loan documents
+  const { data: loanDocuments = [] } = useQuery({
+    queryKey: ['loan-documents', loan?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_documents')
+        .select('*')
+        .eq('loan_id', loan.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id,
+  });
+
+  // Fetch actual loan product details
+  const { data: loanProduct } = useQuery({
+    queryKey: ['loan-product-details', loan?.loan_product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('id', loan.loan_product_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loan?.loan_product_id,
+  });
+
+  // Calculate comprehensive outstanding balance = unpaid principal + unpaid interest + unpaid fees + unpaid penalties
+  const outstandingBalanceCalculation = useMemo(() => {
+    let unpaidPrincipal = 0;
+    let unpaidInterest = 0;
+    let unpaidFees = 0;
+    let unpaidPenalties = 0;
+
+    // Calculate from schedules
+    const unpaidSchedules = (schedules || []).filter((s: any) => s.payment_status !== 'paid');
+    unpaidPrincipal = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.principal_amount) - Number(s.paid_principal || 0)), 0);
+    unpaidInterest = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.interest_amount) - Number(s.paid_interest || 0)), 0);
+    unpaidFees = unpaidSchedules.reduce((sum: number, s: any) => sum + (Number(s.fee_amount) - Number(s.paid_fees || 0)), 0);
+
+    // Add outstanding charges/fees
+    const outstandingCharges = (loanCharges || []).filter((c: any) => !c.is_paid);
+    unpaidFees += outstandingCharges.reduce((sum: number, c: any) => sum + Number(c.charge_amount || 0), 0);
+
+    // Total outstanding
+    const totalOutstanding = unpaidPrincipal + unpaidInterest + unpaidFees + unpaidPenalties;
+
+    return {
+      unpaidPrincipal,
+      unpaidInterest,
+      unpaidFees,
+      unpaidPenalties,
+      totalOutstanding
+    };
+  }, [schedules, loanCharges]);
+
+  // Compute real loan details from schedules and payments with actual data
   const monthlyPayment = (schedules && schedules.length > 0) ? (schedules[0].total_amount || 0) : 0;
   const remainingTerm = (schedules || []).filter((s: any) => s.payment_status !== 'paid').length;
   const totalTerm = (schedules || []).length;
   const principalPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.principal_amount || 0), 0);
   const interestPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.interest_amount || 0), 0);
+  const feesPaid = (payments as any[]).reduce((sum: number, p: any) => sum + (p.fee_amount || 0), 0);
   const totalPayments = (payments as any[]).length;
   const missedPayments = (schedules || []).filter((s: any) => s.payment_status === 'unpaid' && new Date(s.due_date) < new Date()).length;
+  const latePayments = (payments as any[]).filter((p: any) => {
+    const schedule = (schedules || []).find((s: any) => s.id === p.schedule_id);
+    return schedule && new Date(p.payment_date) > new Date(schedule.due_date);
+  }).length;
   const nextSchedule = (schedules || []).find((s: any) => s.payment_status !== 'paid' && new Date(s.due_date) >= new Date());
   const maturityDate = (schedules && schedules.length > 0) ? schedules[schedules.length - 1].due_date : null;
-  const outstanding = (loan as any).outstanding_balance ?? (schedules || []).reduce((acc: number, s: any) => acc + (s.outstanding_amount || 0), 0) ?? (loan as any).principal_amount ?? 0;
+  const outstanding = outstandingBalanceCalculation.totalOutstanding;
 
   const loanDetails = {
     ...loan,
