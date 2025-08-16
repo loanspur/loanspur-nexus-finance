@@ -1068,6 +1068,7 @@ export const useProcessLoanDisbursement = () => {
             amount: totalTransferFees,
             transaction_type: 'fee_payment',
             payment_type: 'bank_transfer',
+            payment_status: 'completed',
             transaction_date: new Date(disbursement.disbursement_date).toISOString(),
             transaction_id: feeTxId,
             description: feeDesc,
