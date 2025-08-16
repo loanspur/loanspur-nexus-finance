@@ -91,40 +91,118 @@ export const TransactionStatement = ({
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
-      const dateField = accountType === 'savings' ? 'transaction_date' : 'payment_date';
-      let query = accountType === 'savings'
-        ? supabase
-            .from('savings_transactions')
+      if (accountType === 'savings') {
+        // Savings transactions logic remains the same
+        let query = supabase
+          .from('savings_transactions')
+          .select('*')
+          .eq('savings_account_id', accountId);
+
+        if (period?.from) query = query.gte('transaction_date', period.from);
+        if (period?.to) query = query.lte('transaction_date', period.to);
+
+        query = query
+          .order('transaction_date', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const transformedTransactions: Transaction[] = (data || []).map((item: any) => ({
+          date: item.transaction_date,
+          type: item.transaction_type,
+          amount: parseFloat(item.amount) || 0,
+          balance: parseFloat(item.balance_after) || 0,
+          method: item.method || 'N/A',
+          reference: item.reference_number || `TXN-${String(item.id).slice(-8)}`,
+          description: item.description || '',
+          status: item.status || 'completed'
+        }));
+
+        setTransactions(transformedTransactions);
+      } else {
+        // Loan transactions - fetch comprehensive loan transaction data
+        const [
+          { data: loanData, error: loanError },
+          { data: paymentsData, error: paymentsError }
+        ] = await Promise.all([
+          // Get loan basic info for disbursement
+          supabase
+            .from('loans')
+            .select('*, loan_products(name)')
+            .eq('id', accountId)
+            .single(),
+          
+          // Get payments
+          supabase
+            .from('transactions')
             .select('*')
-            .eq('savings_account_id', accountId)
-        : supabase
-            .from('loan_payments')
-            .select('*')
-            .eq('loan_id', accountId);
+            .eq('loan_id', accountId)
+            .gte('transaction_date', period.from)
+            .lte('transaction_date', period.to)
+            .order('transaction_date', { ascending: true })
+        ]);
 
-      if (period?.from) query = query.gte(dateField, period.from);
-      if (period?.to) query = query.lte(dateField, period.to);
+        if (loanError) throw loanError;
+        if (paymentsError) throw paymentsError;
+        
+        const allTransactions: Transaction[] = [];
+        let runningBalance = accountDetails.principal || 0;
 
-      query = query
-        .order(dateField, { ascending: false })
-        .order('created_at', { ascending: false });
+        // Add disbursement as first transaction
+        if (loanData) {
+          allTransactions.push({
+            date: loanData.disbursement_date || loanData.created_at,
+            type: 'Disbursement',
+            amount: parseFloat(String(loanData.principal_amount)) || 0,
+            balance: runningBalance,
+            method: 'Bank Transfer',
+            reference: `DISB-${loanData.loan_number || String(loanData.id).slice(-6)}`,
+            description: `Loan disbursement - ${loanData.loan_products?.name || 'Loan'}`,
+            status: 'completed'
+          });
+        }
 
-      const { data, error } = await query;
+        // Add payments with proper distribution
+        if (paymentsData && paymentsData.length > 0) {
+          paymentsData.forEach((payment: any) => {
+            const paymentAmount = parseFloat(payment.amount) || 0;
+            runningBalance -= paymentAmount;
+            
+            // Parse payment distribution from description or metadata
+            const distribution = payment.payment_breakdown || {};
+            const principalPaid = distribution.principal || 0;
+            const interestPaid = distribution.interest || 0;
+            const feesPaid = distribution.fees || 0;
+            const penaltiesPaid = distribution.penalties || 0;
+            
+            let description = 'Loan repayment';
+            if (principalPaid || interestPaid || feesPaid || penaltiesPaid) {
+              const parts = [];
+              if (principalPaid > 0) parts.push(`Principal: ${formatCurrency(principalPaid)}`);
+              if (interestPaid > 0) parts.push(`Interest: ${formatCurrency(interestPaid)}`);
+              if (feesPaid > 0) parts.push(`Fees: ${formatCurrency(feesPaid)}`);
+              if (penaltiesPaid > 0) parts.push(`Penalties: ${formatCurrency(penaltiesPaid)}`);
+              description = parts.join(', ');
+            }
 
-      if (error) throw error;
+            allTransactions.push({
+              date: payment.transaction_date,
+              type: 'Payment',
+              amount: paymentAmount,
+              balance: Math.max(0, runningBalance), // Ensure balance doesn't go negative
+              method: payment.payment_type || payment.method || 'Cash',
+              reference: payment.external_transaction_id || payment.transaction_id || `PMT-${String(payment.id).slice(-6)}`,
+              description,
+              status: payment.payment_status || 'completed'
+            });
+          });
+        }
 
-      const transformedTransactions: Transaction[] = (data || []).map((item: any) => ({
-        date: accountType === 'savings' ? item.transaction_date : item.payment_date,
-        type: accountType === 'savings' ? item.transaction_type : 'payment',
-        amount: parseFloat(item.amount),
-        balance: accountType === 'savings' ? parseFloat(item.balance_after) : 0,
-        method: item.method || item.payment_method || 'N/A',
-        reference: item.reference_number || `${accountType === 'savings' ? 'TXN' : 'PMT'}-${String(item.id).slice(-8)}`,
-        description: item.description || '',
-        status: item.status || 'completed'
-      }));
-
-      setTransactions(transformedTransactions);
+        // Sort by date descending for display
+        allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setTransactions(allTransactions);
+      }
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
       toast({
@@ -132,6 +210,7 @@ export const TransactionStatement = ({
         description: "Failed to load transaction history",
         variant: "destructive"
       });
+      setTransactions([]);
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +228,15 @@ export const TransactionStatement = ({
 
   const handleDownload = () => {
     try {
+      // Calculate totals for statement generation
+      const totalDebits = transactions
+        .filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase()))
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const totalCredits = transactions
+        .filter(t => ["deposit", "disbursement"].includes(t.type.toLowerCase()))
+        .reduce((sum, t) => sum + t.amount, 0);
+
       if (accountType === 'loan') {
         // Generate comprehensive loan statement
         const loanData = {
@@ -174,7 +262,7 @@ export const TransactionStatement = ({
           type: t.type,
           amount: t.amount,
           status: t.status || 'completed',
-          balance: accountDetails.outstanding || accountDetails.balance,
+          balance: t.balance,
         }));
 
         generateLoanStatement({
@@ -284,14 +372,6 @@ export const TransactionStatement = ({
       </Card>
     );
   }
-
-  const totalDebits = transactions
-    .filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase()))
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const totalCredits = transactions
-    .filter(t => ["deposit"].includes(t.type.toLowerCase()))
-    .reduce((sum, t) => sum + t.amount, 0);
 
   const totalTransactions = transactions.length;
 
@@ -411,45 +491,6 @@ export const TransactionStatement = ({
         </CardContent>
       </Card>
 
-      {/* Transaction Summary */}
-      {showSummary && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-6 text-center">
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Total Credits</div>
-                <div className="text-2xl font-bold text-green-600">
-                  +{formatCurrency(totalCredits)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {transactions.filter(t => ["deposit"].includes(t.type.toLowerCase())).length} transactions
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Total Debits</div>
-                <div className="text-2xl font-bold text-red-600">
-                  -{formatCurrency(totalDebits)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {transactions.filter(t => ["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(t.type.toLowerCase())).length} transactions
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">Net Movement</div>
-                <div className={`text-2xl font-bold ${(totalCredits - totalDebits) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(totalCredits - totalDebits) >= 0 ? '+' : ''}{formatCurrency(totalCredits - totalDebits)}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  This period
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Transaction Details */}
       <Card>
