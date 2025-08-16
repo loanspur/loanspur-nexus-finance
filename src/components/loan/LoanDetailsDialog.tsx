@@ -1044,78 +1044,41 @@ const getStatusColor = (status: string) => {
               </div>
             </TabsContent>
 
-            {/* Transactions Tab - Updated with real data */}
+            {/* Transactions Tab - Enhanced with comprehensive statement */}
             <TabsContent value="payments" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <History className="h-4 w-4" />
-                    Loan Transaction History
+                    Loan Transaction History & Statement
                   </CardTitle>
-                  <CardDescription>Complete transaction history and outstanding balance breakdown</CardDescription>
+                  <CardDescription>Complete transaction history from disbursement with downloadable statement</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {/* Outstanding Balance Summary */}
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <h4 className="font-semibold mb-2">Outstanding Balance Breakdown</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Unpaid Principal</span>
-                          <div className="font-medium">{formatCurrency(outstandingBalanceCalculation.unpaidPrincipal)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Unpaid Interest</span>
-                          <div className="font-medium">{formatCurrency(outstandingBalanceCalculation.unpaidInterest)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Unpaid Fees</span>
-                          <div className="font-medium">{formatCurrency(outstandingBalanceCalculation.unpaidFees)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Total Outstanding</span>
-                          <div className="font-semibold text-lg">{formatCurrency(outstandingBalanceCalculation.totalOutstanding)}</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Transaction List */}
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Recent Transactions</h4>
-                      {loanTransactions.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">No transactions recorded yet.</p>
-                      ) : (
-                        <div className="border rounded-lg">
-                          <table className="w-full">
-                            <thead className="border-b bg-muted/30">
-                              <tr className="text-left">
-                                <th className="p-3 font-medium">Date</th>
-                                <th className="p-3 font-medium">Type</th>
-                                <th className="p-3 font-medium">Amount</th>
-                                <th className="p-3 font-medium">Status</th>
-                                <th className="p-3 font-medium">Reference</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {loanTransactions.map((txn: any) => (
-                                <tr key={txn.id} className="border-b">
-                                  <td className="p-3 text-sm">{safeFormatDate(txn.transaction_date)}</td>
-                                  <td className="p-3 text-sm capitalize">{txn.transaction_type}</td>
-                                  <td className="p-3 text-sm font-medium">{formatCurrency(txn.amount)}</td>
-                                  <td className="p-3 text-sm">
-                                    <Badge variant={txn.payment_status === 'completed' ? 'default' : 'secondary'}>
-                                      {txn.payment_status}
-                                    </Badge>
-                                  </td>
-                                  <td className="p-3 text-sm text-muted-foreground">{txn.external_transaction_id || txn.transaction_id}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <TransactionStatement
+                    accountId={loan.id}
+                    accountType="loan"
+                    accountNumber={loan.loan_number || loan.id}
+                    clientName={clientName}
+                    accountDetails={{
+                      balance: outstandingBalanceCalculation.totalOutstanding,
+                      interestRate: loanDetails.interestRate,
+                      openingDate: loanDetails.disbursementDate,
+                      principal: loanDetails.amount,
+                      outstanding: outstandingBalanceCalculation.totalOutstanding,
+                      principalPaid: loanDetails.principalPaid,
+                      interestPaid: loanDetails.interestPaid,
+                      feesPaid: loanDetails.feesPaid,
+                      totalPayments: loanDetails.totalPayments,
+                      maturityDate: loanDetails.maturityDate,
+                      monthlyPayment: loanDetails.monthlyPayment,
+                      paymentFrequency: loanDetails.paymentFrequency,
+                      unpaidPrincipal: outstandingBalanceCalculation.unpaidPrincipal,
+                      unpaidInterest: outstandingBalanceCalculation.unpaidInterest,
+                      unpaidFees: outstandingBalanceCalculation.unpaidFees,
+                    }}
+                    statementPeriod={{ days: 365 }} // Show full year by default
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

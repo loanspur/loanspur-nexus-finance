@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { generateLoanStatement, generateSavingsStatement } from "@/lib/statement-generator";
 
 interface Transaction {
   date: string;
@@ -32,10 +30,24 @@ interface TransactionStatementProps {
     interestRate?: number;
     openingDate?: string;
     accountOfficer?: string;
+    // Loan-specific fields
+    principal?: number;
+    outstanding?: number;
+    principalPaid?: number;
+    interestPaid?: number;
+    feesPaid?: number;
+    totalPayments?: number;
+    maturityDate?: string;
+    monthlyPayment?: number;
+    paymentFrequency?: string;
+    unpaidPrincipal?: number;
+    unpaidInterest?: number;
+    unpaidFees?: number;
   };
   statementPeriod?: {
-    from: string;
-    to: string;
+    from?: string;
+    to?: string;
+    days?: number; // Alternative to from/to - show last N days
   };
   showSummary?: boolean;
 }
@@ -51,12 +63,22 @@ export const TransactionStatement = ({
 }: TransactionStatementProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [period, setPeriod] = useState<{ from: string; to: string }>(() => (
-    statementPeriod || {
-      from: format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-      to: format(new Date(), 'yyyy-MM-dd'),
+  const [period, setPeriod] = useState<{ from: string; to: string }>(() => {
+    const endDate = new Date();
+    const startDate = new Date();
+    
+    // Handle different period specifications
+    if (statementPeriod?.days) {
+      startDate.setDate(endDate.getDate() - statementPeriod.days);
+    } else {
+      startDate.setMonth(endDate.getMonth() - 3); // Default to last 3 months
     }
-  ));
+    
+    return {
+      from: statementPeriod?.from || format(startDate, 'yyyy-MM-dd'),
+      to: statementPeriod?.to || format(endDate, 'yyyy-MM-dd'),
+    };
+  });
   const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
@@ -126,33 +148,88 @@ export const TransactionStatement = ({
   };
 
   const handleDownload = () => {
-    const doc = new jsPDF();
-    const title = `${accountType === 'savings' ? 'SAVINGS' : 'LOAN'} STATEMENT`;
-    doc.setFontSize(18);
-    doc.text(title, 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Account: ${accountNumber}`, 20, 30);
-    doc.text(`Client: ${clientName}`, 20, 36);
-    doc.text(`Period: ${formatDate(period.from)} - ${formatDate(period.to)}`, 20, 42);
+    try {
+      if (accountType === 'loan') {
+        // Generate comprehensive loan statement
+        const loanData = {
+          id: accountId,
+          amount: accountDetails.principal || 0,
+          outstanding: accountDetails.outstanding || accountDetails.balance,
+          type: 'Loan Account',
+          loan_number: accountNumber,
+        };
 
-    const rows = transactions.map((t) => [
-      formatDate(t.date),
-      t.type,
-      t.method || '-',
-      formatCurrency(t.amount),
-      formatCurrency(t.balance),
-      t.reference,
-    ]);
+        const loanDetails = {
+          disbursementDate: accountDetails.openingDate || new Date().toISOString(),
+          maturityDate: accountDetails.maturityDate || new Date().toISOString(),
+          interestRate: accountDetails.interestRate || 0,
+          monthlyPayment: accountDetails.monthlyPayment || 0,
+          totalPayments: accountDetails.totalPayments || 0,
+          principalPaid: accountDetails.principalPaid || 0,
+          interestPaid: accountDetails.interestPaid || 0,
+        };
 
-    (doc as any).autoTable({
-      startY: 50,
-      head: [['Date', 'Type', 'Method', 'Amount', 'Balance', 'Reference']],
-      body: rows,
-      theme: 'grid',
-      styles: { fontSize: 9 },
-    });
+        const paymentHistory = transactions.map(t => ({
+          date: t.date,
+          type: t.type,
+          amount: t.amount,
+          status: t.status || 'completed',
+          balance: accountDetails.outstanding || accountDetails.balance,
+        }));
 
-    doc.save(`${accountType}-statement-${accountNumber}-${period.from}-to-${period.to}.pdf`);
+        generateLoanStatement({
+          loan: loanData,
+          clientName,
+          paymentHistory,
+          loanDetails,
+        });
+      } else {
+        // Generate savings statement
+        const savingsData = {
+          id: accountId,
+          balance: accountDetails.balance,
+          type: 'Savings Account',
+          interestRate: accountDetails.interestRate || 0,
+        };
+
+        const savingsDetails = {
+          openingDate: accountDetails.openingDate || new Date().toISOString(),
+          totalDeposits: totalCredits,
+          totalWithdrawals: totalDebits,
+          interestEarned: 0,
+          averageBalance: accountDetails.balance,
+          numberOfTransactions: transactions.length,
+        };
+
+        const transactionHistory = transactions.map(t => ({
+          date: t.date,
+          type: t.type,
+          method: t.method || 'N/A',
+          amount: t.amount,
+          balance: t.balance,
+          reference: t.reference,
+        }));
+
+        generateSavingsStatement({
+          savings: savingsData,
+          clientName,
+          transactionHistory,
+          savingsDetails,
+        });
+      }
+
+      toast({
+        title: "Statement Generated",
+        description: "Your statement has been downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error generating statement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate statement",
+        variant: "destructive"
+      });
+    }
   };
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "MMM dd, yyyy");
@@ -266,8 +343,12 @@ export const TransactionStatement = ({
               <div className="font-medium">{clientName}</div>
             </div>
             <div>
-              <span className="text-muted-foreground">Current Balance</span>
-              <div className="font-bold text-green-600">{formatCurrency(accountDetails.balance)}</div>
+              <span className="text-muted-foreground">
+                {accountType === 'loan' ? 'Outstanding Balance' : 'Current Balance'}
+              </span>
+              <div className={`font-bold ${accountType === 'loan' ? 'text-red-600' : 'text-green-600'}`}>
+                {formatCurrency(accountDetails.balance)}
+              </div>
             </div>
             <div>
               <span className="text-muted-foreground">Statement Period</span>
@@ -278,6 +359,55 @@ export const TransactionStatement = ({
               <div className="font-medium">{totalTransactions}</div>
             </div>
           </div>
+
+          {/* Loan-specific information */}
+          {accountType === 'loan' && accountDetails.principal && (
+            <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+              <h4 className="font-semibold mb-3">Loan Summary</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Original Amount</span>
+                  <div className="font-medium">{formatCurrency(accountDetails.principal)}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Principal Paid</span>
+                  <div className="font-medium text-green-600">{formatCurrency(accountDetails.principalPaid || 0)}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Interest Paid</span>
+                  <div className="font-medium">{formatCurrency(accountDetails.interestPaid || 0)}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Interest Rate</span>
+                  <div className="font-medium">{accountDetails.interestRate || 0}% p.a.</div>
+                </div>
+                {accountDetails.monthlyPayment && (
+                  <div>
+                    <span className="text-muted-foreground">Monthly Payment</span>
+                    <div className="font-medium">{formatCurrency(accountDetails.monthlyPayment)}</div>
+                  </div>
+                )}
+                {accountDetails.totalPayments && (
+                  <div>
+                    <span className="text-muted-foreground">Total Payments Made</span>
+                    <div className="font-medium">{accountDetails.totalPayments}</div>
+                  </div>
+                )}
+                {accountDetails.maturityDate && (
+                  <div>
+                    <span className="text-muted-foreground">Maturity Date</span>
+                    <div className="font-medium">{formatDate(accountDetails.maturityDate)}</div>
+                  </div>
+                )}
+                {accountDetails.paymentFrequency && (
+                  <div>
+                    <span className="text-muted-foreground">Payment Frequency</span>
+                    <div className="font-medium">{accountDetails.paymentFrequency}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
