@@ -379,9 +379,17 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     const earliest = overdue.length ? overdue.reduce((min: any, s: any) => (new Date(s.due_date) < new Date(min.due_date) ? s : min), overdue[0]) : null;
     const daysInArrears = earliest ? differenceInCalendarDays(today, new Date(earliest.due_date)) : 0;
 
+    // Use correct overpayment calculation - last payment vs outstanding balance
+    const lastPayment = (payments as any[]).length > 0 ? (payments as any[])[(payments as any[]).length - 1] : null;
+    const lastPaymentAmount = lastPayment ? Number(lastPayment.payment_amount || 0) : 0;
+    const currentOutstanding = Number(loan.outstanding_balance || 0);
+    
     const totalDue = (schedules || []).reduce((acc: number, s: any) => acc + (s.total_amount || 0), 0);
     const totalPaid = (payments as any[]).reduce((acc, p: any) => acc + (p.payment_amount || 0), 0);
-    const overpaidAmount = Math.max(0, totalPaid - totalDue);
+    
+    const overpaidAmount = (lastPayment && lastPaymentAmount > currentOutstanding && currentOutstanding >= 0) 
+      ? lastPaymentAmount - currentOutstanding 
+      : Math.max(0, Math.abs(Math.min(0, currentOutstanding)));
 
     let status: string = loan.status;
     if (overpaidAmount > 0) status = 'overpaid';
@@ -567,6 +575,16 @@ const getStatusColor = (status: string) => {
     }
     return principal / term;
   }, [schedules, loan?.principal_amount, loan?.interest_rate, loan?.term_months, loanProduct?.default_nominal_interest_rate]);
+
+  // Calculate remaining term dynamically based on payment frequency
+  const getTermUnit = (frequency?: string) => {
+    switch (frequency?.toLowerCase()) {
+      case 'daily': return 'days';
+      case 'weekly': return 'weeks';
+      case 'monthly': return 'months';
+      default: return 'months';
+    }
+  };
 
   const remainingTerm = (schedules || []).filter((s: any) => s.payment_status !== 'paid').length;
   const totalTerm = (schedules || []).length;
@@ -883,7 +901,9 @@ const getStatusColor = (status: string) => {
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Remaining Term</p>
-                        <p className="text-xl font-bold">{loanDetails.remainingTerm} months</p>
+                        <p className="text-xl font-bold">
+                          {loanDetails.remainingTerm} {getTermUnit(loanDetails.paymentFrequency)}
+                        </p>
                       </div>
                     </div>
                   </CardContent>

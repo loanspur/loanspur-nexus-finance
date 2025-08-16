@@ -72,7 +72,7 @@ export const LoanStatusBadge = ({ status, size = 'default' }: LoanStatusBadgePro
           variant: 'outline' as const,
           icon: <Banknote className="h-3 w-3" />,
           text: 'OVERPAID',
-          className: 'bg-banking-emerald/10 text-banking-emerald border border-banking-emerald/20 hover:bg-banking-emerald/20'
+          className: 'bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200'
         };
       case 'rejected':
         return {

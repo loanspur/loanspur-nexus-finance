@@ -21,21 +21,27 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
 
   const rawStatus: string = (loan.status || '').toLowerCase();
 
-  // Overpaid: if we can detect a negative outstanding balance or total paid > principal
-  const principal = Number(loan.principal_amount ?? loan.amount ?? 0) || 0;
+  // Get the most recent payment to check for overpayment
+  const payments = loan.loan_payments || loan.payments || [];
+  const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
+  const lastPaymentAmount = lastPayment ? Number(lastPayment.payment_amount || 0) : 0;
+  
+  // Current outstanding balance
   const outstanding = Number(loan.outstanding_balance ?? loan.outstanding ?? 0);
-  const totalPaid = Number(loan.total_paid ?? 0);
-
+  
+  // Overpaid: if last payment amount > total outstanding loan balance at time of payment
+  if (lastPayment && lastPaymentAmount > outstanding && outstanding >= 0) {
+    return {
+      status: 'overpaid',
+      overpaidAmount: lastPaymentAmount - outstanding,
+    };
+  }
+  
+  // Also check if outstanding balance is negative (overpaid scenario)
   if (!Number.isNaN(outstanding) && outstanding < 0) {
     return {
       status: 'overpaid',
       overpaidAmount: Math.abs(outstanding),
-    };
-  }
-  if (principal > 0 && totalPaid > principal + 1e-6) {
-    return {
-      status: 'overpaid',
-      overpaidAmount: totalPaid - principal,
     };
   }
 
