@@ -210,19 +210,23 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       if (editingProduct) {
         console.log("Updating loan product", { id: editingProduct.id, productData });
         
-        // Include linked_fee_ids in the update payload
-        const updatePayload = {
-          id: editingProduct.id,
+        // Build update payload properly to ensure all fields are included
+        const updatePayload: any = {
           ...productData,
           linked_fee_ids: data.linked_fee_ids || [],
         };
         
-        const updated = await updateLoanProductMutation.mutateAsync(updatePayload);
+        const updated = await updateLoanProductMutation.mutateAsync({
+          id: editingProduct.id,
+          ...updatePayload
+        });
+        
+        // Save advanced configurations
         await saveAdvancedRef.current?.(editingProduct.id);
       } else {
         console.log("Creating new loan product", { productData });
         
-        // Include linked_fee_ids in the create payload
+        // Build create payload properly
         const createPayload = {
           ...productData,
           linked_fee_ids: data.linked_fee_ids || [],

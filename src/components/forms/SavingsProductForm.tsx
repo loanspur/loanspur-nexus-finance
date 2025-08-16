@@ -207,7 +207,8 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
     setIsSubmitting(true);
     try {
       if (editingProduct) {
-        await updateSavingsProduct.mutateAsync({
+        // Build update payload properly to avoid spread issues
+        const updatePayload: any = {
           id: editingProduct.id,
           name: values.name,
           short_name: values.short_name,
@@ -217,20 +218,44 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
           min_required_opening_balance: values.min_required_opening_balance,
           min_balance_for_interest_calculation: values.min_balance_for_interest_calculation,
           is_active: values.is_active,
-          // Accounting configuration (using any to bypass type checking for new fields)
-          ...values.max_overdraft_amount !== undefined && { max_overdraft_amount: values.max_overdraft_amount },
-          ...values.accounting_method && { accounting_method: values.accounting_method },
-          ...values.savings_reference_account_id && { savings_reference_account_id: values.savings_reference_account_id },
-          ...values.savings_control_account_id && { savings_control_account_id: values.savings_control_account_id },
-          ...values.interest_on_savings_account_id && { interest_on_savings_account_id: values.interest_on_savings_account_id },
-          ...values.income_from_fees_account_id && { income_from_fees_account_id: values.income_from_fees_account_id },
-          ...values.income_from_penalties_account_id && { income_from_penalties_account_id: values.income_from_penalties_account_id },
-          ...values.overdraft_portfolio_control_id && { overdraft_portfolio_control_id: values.overdraft_portfolio_control_id },
-          ...values.payment_type_mappings && { payment_type_mappings: values.payment_type_mappings },
-          ...values.fee_mappings && { fee_mappings: values.fee_mappings },
-        } as any);
+        };
+
+        // Add optional fields only if they have values
+        if (values.max_overdraft_amount !== undefined) {
+          updatePayload.max_overdraft_amount = values.max_overdraft_amount;
+        }
+        if (values.accounting_method) {
+          updatePayload.accounting_method = values.accounting_method;
+        }
+        if (values.savings_reference_account_id) {
+          updatePayload.savings_reference_account_id = values.savings_reference_account_id;
+        }
+        if (values.savings_control_account_id) {
+          updatePayload.savings_control_account_id = values.savings_control_account_id;
+        }
+        if (values.interest_on_savings_account_id) {
+          updatePayload.interest_on_savings_account_id = values.interest_on_savings_account_id;
+        }
+        if (values.income_from_fees_account_id) {
+          updatePayload.income_from_fees_account_id = values.income_from_fees_account_id;
+        }
+        if (values.income_from_penalties_account_id) {
+          updatePayload.income_from_penalties_account_id = values.income_from_penalties_account_id;
+        }
+        if (values.overdraft_portfolio_control_id) {
+          updatePayload.overdraft_portfolio_control_id = values.overdraft_portfolio_control_id;
+        }
+        if (values.payment_type_mappings) {
+          updatePayload.payment_type_mappings = values.payment_type_mappings;
+        }
+        if (values.fee_mappings) {
+          updatePayload.fee_mappings = values.fee_mappings;
+        }
+
+        await updateSavingsProduct.mutateAsync(updatePayload);
       } else {
-        await createSavingsProduct.mutateAsync({
+        // Build create payload properly to avoid spread issues
+        const createPayload: any = {
           tenant_id: tenantId,
           name: values.name,
           short_name: values.short_name,
@@ -241,18 +266,41 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
           min_balance_for_interest_calculation: values.min_balance_for_interest_calculation,
           is_active: values.is_active,
           mifos_product_id: null,
-          // Accounting configuration (using any to bypass type checking for new fields)
-          ...values.max_overdraft_amount !== undefined && { max_overdraft_amount: values.max_overdraft_amount },
-          ...values.accounting_method && { accounting_method: values.accounting_method },
-          ...values.savings_reference_account_id && { savings_reference_account_id: values.savings_reference_account_id },
-          ...values.savings_control_account_id && { savings_control_account_id: values.savings_control_account_id },
-          ...values.interest_on_savings_account_id && { interest_on_savings_account_id: values.interest_on_savings_account_id },
-          ...values.income_from_fees_account_id && { income_from_fees_account_id: values.income_from_fees_account_id },
-          ...values.income_from_penalties_account_id && { income_from_penalties_account_id: values.income_from_penalties_account_id },
-          ...values.overdraft_portfolio_control_id && { overdraft_portfolio_control_id: values.overdraft_portfolio_control_id },
-          ...values.payment_type_mappings && { payment_type_mappings: values.payment_type_mappings },
-          ...values.fee_mappings && { fee_mappings: values.fee_mappings },
-        } as any);
+        };
+
+        // Add optional fields only if they have values
+        if (values.max_overdraft_amount !== undefined) {
+          createPayload.max_overdraft_amount = values.max_overdraft_amount;
+        }
+        if (values.accounting_method) {
+          createPayload.accounting_method = values.accounting_method;
+        }
+        if (values.savings_reference_account_id) {
+          createPayload.savings_reference_account_id = values.savings_reference_account_id;
+        }
+        if (values.savings_control_account_id) {
+          createPayload.savings_control_account_id = values.savings_control_account_id;
+        }
+        if (values.interest_on_savings_account_id) {
+          createPayload.interest_on_savings_account_id = values.interest_on_savings_account_id;
+        }
+        if (values.income_from_fees_account_id) {
+          createPayload.income_from_fees_account_id = values.income_from_fees_account_id;
+        }
+        if (values.income_from_penalties_account_id) {
+          createPayload.income_from_penalties_account_id = values.income_from_penalties_account_id;
+        }
+        if (values.overdraft_portfolio_control_id) {
+          createPayload.overdraft_portfolio_control_id = values.overdraft_portfolio_control_id;
+        }
+        if (values.payment_type_mappings) {
+          createPayload.payment_type_mappings = values.payment_type_mappings;
+        }
+        if (values.fee_mappings) {
+          createPayload.fee_mappings = values.fee_mappings;
+        }
+
+        await createSavingsProduct.mutateAsync(createPayload);
       }
       form.reset();
       onOpenChange(false);
