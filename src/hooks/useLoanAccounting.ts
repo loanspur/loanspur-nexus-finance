@@ -394,6 +394,56 @@ export const useLoanRepaymentAccounting = () => {
         // Don't throw error as payment was successful
       }
 
+      // Update loan schedules to reflect the payment
+      const { data: schedules, error: schedulesError } = await supabase
+        .from('loan_schedules')
+        .select('*')
+        .eq('loan_id', data.loan_id)
+        .order('installment_number', { ascending: true });
+
+      if (!schedulesError && schedules && schedules.length > 0) {
+        let remainingPayment = data.payment_amount;
+        const scheduleUpdates = [];
+
+        for (const schedule of schedules) {
+          if (remainingPayment <= 0) break;
+
+          const outstandingForThisSchedule = Number(schedule.outstanding_amount || schedule.total_amount);
+          const currentPaid = Number(schedule.paid_amount || 0);
+          
+          if (outstandingForThisSchedule > 0) {
+            const paymentForThisSchedule = Math.min(remainingPayment, outstandingForThisSchedule);
+            const newPaidAmount = currentPaid + paymentForThisSchedule;
+            const newOutstandingAmount = Math.max(0, Number(schedule.total_amount) - newPaidAmount);
+            
+            scheduleUpdates.push({
+              id: schedule.id,
+              paid_amount: newPaidAmount,
+              outstanding_amount: newOutstandingAmount,
+              payment_status: newOutstandingAmount <= 0.01 ? 'paid' : (newPaidAmount > 0 ? 'partial' : 'unpaid')
+            });
+
+            remainingPayment -= paymentForThisSchedule;
+          }
+        }
+
+        // Update all schedules
+        for (const update of scheduleUpdates) {
+          const { error: updateError } = await supabase
+            .from('loan_schedules')
+            .update({
+              paid_amount: update.paid_amount,
+              outstanding_amount: update.outstanding_amount,
+              payment_status: update.payment_status
+            })
+            .eq('id', update.id);
+
+          if (updateError) {
+            console.error('Failed to update schedule:', updateError);
+          }
+        }
+      }
+
       return { success: true };
     },
     onSuccess: (_, variables) => {
