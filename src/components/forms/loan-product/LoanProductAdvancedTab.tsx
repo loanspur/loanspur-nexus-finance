@@ -7,10 +7,7 @@ import { LoanProductFormData } from "./LoanProductSchema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
-import { useFunds } from "@/hooks/useFundsManagement";
-import { useMPesaCredentials } from "@/hooks/useIntegrations";
 import { usePaymentTypes } from "@/hooks/usePaymentTypes";
-import { useFundSources } from "@/hooks/useFundSources";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +24,7 @@ interface LoanProductAdvancedTabProps {
 interface PaymentChannelMapping {
   id: string;
   paymentType: string;
-  fundSource: string;
+  assetAccount: string;
 }
 
 interface FeeMapping {
@@ -40,7 +37,6 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
   const { data: chartOfAccounts = [] } = useChartOfAccounts();
   const { data: feeStructures = [] } = useFeeStructures();
   const { data: paymentTypes = [], isLoading: paymentTypesLoading } = usePaymentTypes();
-  const { data: fundSources = [], isLoading: fundSourcesLoading } = useFundSources();
   const { profile } = useAuth();
   const { toast } = useToast();
   const [existingMappings, setExistingMappings] = useState<Array<{ channel_id: string; account_id: string }>>([]);
@@ -64,7 +60,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
       }
       const rows = (data || []) as Array<{ channel_id: string; account_id: string }>;
       setExistingMappings(rows);
-      setPaymentChannelMappings(rows.map(r => ({ id: r.channel_id, paymentType: r.channel_id, fundSource: r.account_id })));
+      setPaymentChannelMappings(rows.map(r => ({ id: r.channel_id, paymentType: r.channel_id, assetAccount: r.account_id })));
 
       // Load fee mappings for loan products
       if (productType === 'loan') {
@@ -88,15 +84,15 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
   useEffect(() => {
     if (!onRegisterSave || !profile?.tenant_id) return;
     onRegisterSave(async (pid: string) => {
-      // 1) Save payment channel -> fund source mappings
-      const configured = paymentChannelMappings.filter(m => m.paymentType && m.fundSource);
+      // 1) Save payment channel -> asset account mappings
+      const configured = paymentChannelMappings.filter(m => m.paymentType && m.assetAccount);
       const upsertPayload = configured.map(m => ({
         tenant_id: profile.tenant_id!,
         product_id: pid,
         product_type: productType,
         channel_id: m.paymentType,
         channel_name: (paymentTypes.find(pt => pt.id === m.paymentType)?.name) || m.paymentType,
-        account_id: m.fundSource,
+        account_id: m.assetAccount,
       }));
 
       const { error: upsertError } = await supabase
@@ -145,7 +141,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
     const newMapping: PaymentChannelMapping = {
       id: Date.now().toString(),
       paymentType: "",
-      fundSource: ""
+      assetAccount: ""
     };
     setPaymentChannelMappings([...paymentChannelMappings, newMapping]);
   };
@@ -221,10 +217,10 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
         </CardHeader>
         <CardContent className="space-y-8">
           
-          {/* Configure Fund Sources for Payment Channels */}
+          {/* Configure Asset Accounts for Payment Channels */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-medium text-muted-foreground">Configure Fund Sources for Payment Channels</h3>
+              <h3 className="text-base font-medium text-muted-foreground">Configure Asset Accounts for Payment Channels</h3>
               <Button onClick={addPaymentChannelMapping} size="sm" className="bg-blue-500 hover:bg-blue-600">
                 Add
               </Button>
@@ -234,7 +230,7 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
               {/* Header Row */}
               <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground pb-2 border-b">
                 <div className="col-span-5">Payment Type</div>
-                <div className="col-span-5">Fund Source</div>
+                <div className="col-span-5">Asset Account</div>
                 <div className="col-span-2">Actions</div>
               </div>
               
@@ -261,17 +257,16 @@ export const LoanProductAdvancedTab = ({ form, tenantId, productId, productType 
                   </div>
                   <div className="col-span-5">
                     <Select
-                      value={mapping.fundSource}
-                      onValueChange={(value) => updatePaymentChannelMapping(mapping.id, 'fundSource', value)}
-                      disabled={fundSourcesLoading}
+                      value={mapping.assetAccount}
+                      onValueChange={(value) => updatePaymentChannelMapping(mapping.id, 'assetAccount', value)}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder={fundSourcesLoading ? "Loading..." : "Select fund source"} />
+                        <SelectValue placeholder="Select asset account" />
                       </SelectTrigger>
                       <SelectContent>
-                        {fundSources.map((source) => (
-                          <SelectItem key={source.id} value={source.id}>
-                            {source.name}
+                        {assetAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.account_code} - {account.account_name}
                           </SelectItem>
                         ))}
                       </SelectContent>

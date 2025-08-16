@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { LoanProductForm } from "@/components/forms/LoanProductForm";
-import { FundSourcesConfigDialog } from "@/components/forms/FundSourcesConfigDialog";
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,8 +15,6 @@ import { Edit, Plus, ToggleLeft, ToggleRight, DollarSign, Percent, Calendar, Set
 export const LoanProductManagement = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [fundSourcesOpen, setFundSourcesOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const { profile } = useAuth();
   const { mutate: updateLoanProduct } = useUpdateLoanProduct();
 
@@ -209,18 +207,6 @@ export const LoanProductManagement = () => {
                             <Edit className="w-3 h-3" />
                             Edit
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="flex items-center gap-1"
-                            onClick={() => {
-                              setSelectedProduct(product);
-                              setFundSourcesOpen(true);
-                            }}
-                          >
-                            <Settings className="w-3 h-3" />
-                            Fund Sources
-                          </Button>
                          <Button 
                            variant="outline" 
                            size="sm" 
@@ -252,16 +238,6 @@ export const LoanProductManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Fund Sources Configuration Dialog */}
-      {selectedProduct && (
-        <FundSourcesConfigDialog
-          open={fundSourcesOpen}
-          onOpenChange={setFundSourcesOpen}
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          productType="loan"
-        />
-      )}
     </div>
   );
 };
