@@ -53,13 +53,21 @@ export const ClientLoansTab = ({
     const rejectedClosedStatuses = ['rejected', 'closed'];
     
     if (showClosedLoans) {
-      // Show only rejected/closed loans and applications
-      const filteredLoans = loans.filter(loan => rejectedClosedStatuses.includes(loan.status?.toLowerCase()));
+      // Show only rejected/closed loans and applications (including derived closed status)
+      const filteredLoans = loans.filter(loan => {
+        const rawStatus = loan.status?.toLowerCase();
+        const derivedStatus = getDerivedLoanStatus(loan);
+        return rejectedClosedStatuses.includes(rawStatus) || rejectedClosedStatuses.includes(derivedStatus.status);
+      });
       const filteredApplications = loanApplications.filter(app => rejectedClosedStatuses.includes(app.status?.toLowerCase()));
       return { loans: filteredLoans, applications: filteredApplications };
     } else {
-      // Show all except rejected/closed loans and applications
-      const filteredLoans = loans.filter(loan => !rejectedClosedStatuses.includes(loan.status?.toLowerCase()));
+      // Show all except rejected/closed loans and applications (including derived closed status)
+      const filteredLoans = loans.filter(loan => {
+        const rawStatus = loan.status?.toLowerCase();
+        const derivedStatus = getDerivedLoanStatus(loan);
+        return !rejectedClosedStatuses.includes(rawStatus) && !rejectedClosedStatuses.includes(derivedStatus.status);
+      });
       const filteredApplications = loanApplications.filter(app => !rejectedClosedStatuses.includes(app.status?.toLowerCase()));
       return { loans: filteredLoans, applications: filteredApplications };
     }
@@ -239,12 +247,27 @@ export const ClientLoansTab = ({
                         </div>
                          {(() => {
                            const derivedStatus = getDerivedLoanStatus(item);
-                           const displayStatus = derivedStatus.overpaidAmount ? 'overpaid' : derivedStatus.status;
+                           let displayStatus = derivedStatus.status;
+                           
+                           // Map derived statuses to display appropriately
+                           if (derivedStatus.status === 'in_arrears') {
+                             displayStatus = 'overdue';
+                           } else if (derivedStatus.overpaidAmount) {
+                             displayStatus = 'overpaid';
+                           }
+                           
                            return (
-                             <LoanStatusBadge 
-                               status={displayStatus} 
-                               size="sm" 
-                             />
+                             <div className="flex items-center gap-2">
+                               <LoanStatusBadge 
+                                 status={displayStatus} 
+                                 size="sm" 
+                               />
+                               {derivedStatus.daysInArrears && (
+                                 <span className="text-xs text-red-600 font-medium">
+                                   {derivedStatus.daysInArrears} days overdue
+                                 </span>
+                               )}
+                             </div>
                            );
                          })()}
                          {getDerivedLoanStatus(item).overpaidAmount && (

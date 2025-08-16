@@ -29,6 +29,11 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
   // Current outstanding balance
   const outstanding = Number(loan.outstanding_balance ?? loan.outstanding ?? 0);
   
+  // Check if loan is fully paid (outstanding balance is 0 or negative with 0 meaning fully paid)
+  if (outstanding === 0) {
+    return { status: 'closed' };
+  }
+  
   // Overpaid: only if outstanding balance is negative (means overpayment)
   // Return as 'active' since 'overpaid' isn't a valid DB status
   if (!Number.isNaN(outstanding) && outstanding < 0) {
@@ -42,6 +47,8 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
   const schedules: any[] = loan.loan_schedules || loan.schedules || [];
   if (Array.isArray(schedules) && schedules.length > 0) {
     const today = new Date();
+    today.setHours(23, 59, 59, 999); // Set to end of day for comparison
+    
     const overdueSchedules = schedules.filter((s) => {
       const due = parseDate(s.due_date);
       const paid = (s.payment_status || '').toLowerCase() === 'paid';
@@ -54,13 +61,18 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
         const d = parseDate(s.due_date)!;
         return d < min ? d : min;
       }, parseDate(overdueSchedules[0].due_date)!);
-      const diffMs = new Date().getTime() - oldest.getTime();
+      const diffMs = today.getTime() - oldest.getTime();
       const days = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
       return {
         status: 'in_arrears',
         daysInArrears: days,
       };
     }
+  }
+
+  // If the raw status is already 'overdue', preserve it
+  if (rawStatus === 'overdue') {
+    return { status: 'overdue' };
   }
 
   // Normalize semantics: treat 'disbursed' as 'active' for UX, unless arrears/overpaid
