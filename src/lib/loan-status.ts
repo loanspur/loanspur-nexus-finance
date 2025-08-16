@@ -30,9 +30,10 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
   const outstanding = Number(loan.outstanding_balance ?? loan.outstanding ?? 0);
   
   // Overpaid: only if outstanding balance is negative (means overpayment)
+  // Return as 'active' since 'overpaid' isn't a valid DB status
   if (!Number.isNaN(outstanding) && outstanding < 0) {
     return {
-      status: 'overpaid',
+      status: 'active',
       overpaidAmount: Math.abs(outstanding),
     };
   }
@@ -64,6 +65,9 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
 
   // Normalize semantics: treat 'disbursed' as 'active' for UX, unless arrears/overpaid
   if (rawStatus === 'disbursed') return { status: 'active' };
+
+  // For overpaid scenarios, keep loan as active since overpaid isn't a valid DB status
+  if (rawStatus === 'overpaid') return { status: 'active' };
 
   // Pass-through for application states and other known statuses
   return { status: rawStatus || 'unknown' };
