@@ -285,21 +285,96 @@ export const useCreateLoanApplication = () => {
   });
 };
 
-// Loan Schedules Hook
+// Loan Schedules Hook with Payment Data
 export const useLoanSchedules = (loanId?: string) => {
   return useQuery({
     queryKey: ['loan-schedules', loanId],
     queryFn: async () => {
       if (!loanId) throw new Error('No loan ID provided');
 
-      const { data, error } = await supabase
+      // Get loan schedules
+      const { data: schedules, error: scheduleError } = await supabase
         .from('loan_schedules')
         .select('*')
         .eq('loan_id', loanId)
         .order('installment_number', { ascending: true });
       
-      if (error) throw error;
-      return data as LoanSchedule[];
+      if (scheduleError) throw scheduleError;
+
+      // Get actual payments for this loan
+      const { data: payments, error: paymentsError } = await supabase
+        .from('transactions')
+        .select(`
+          id,
+          amount,
+          transaction_date,
+          payment_status,
+          description,
+          external_transaction_id,
+          mpesa_receipt_number
+        `)
+        .eq('loan_id', loanId)
+        .eq('transaction_type', 'loan_repayment')
+        .eq('payment_status', 'completed')
+        .order('transaction_date', { ascending: true });
+      
+      if (paymentsError) throw paymentsError;
+
+      // Calculate actual paid amounts for each schedule installment
+      const enhancedSchedules = (schedules || []).map(schedule => {
+        // Calculate payments that apply to this schedule installment
+        const schedulePayments = (payments || []).filter(payment => {
+          const paymentDate = new Date(payment.transaction_date);
+          const scheduleDate = new Date(schedule.due_date);
+          
+          // Consider payments made up to this schedule's due date
+          return paymentDate <= scheduleDate;
+        });
+
+        // Calculate total payments allocated to this and previous installments
+        let totalPaid = 0;
+        let remainingToPay = Number(schedule.total_amount);
+        
+        // Allocate payments chronologically across installments
+        for (const payment of schedulePayments) {
+          const paymentAmount = Number(payment.amount);
+          if (totalPaid < Number(schedule.total_amount)) {
+            const allocationToThisSchedule = Math.min(paymentAmount, remainingToPay);
+            totalPaid += allocationToThisSchedule;
+            remainingToPay -= allocationToThisSchedule;
+          }
+        }
+
+        const actualPaidAmount = Math.min(totalPaid, Number(schedule.total_amount));
+        const actualOutstanding = Math.max(0, Number(schedule.total_amount) - actualPaidAmount);
+        
+        let paymentStatus: 'paid' | 'partial' | 'unpaid' = 'unpaid';
+        if (actualPaidAmount >= Number(schedule.total_amount)) {
+          paymentStatus = 'paid';
+        } else if (actualPaidAmount > 0) {
+          paymentStatus = 'partial';
+        }
+
+        return {
+          ...schedule,
+          paid_amount: actualPaidAmount,
+          outstanding_amount: actualOutstanding,
+          payment_status: paymentStatus,
+          actual_payments: schedulePayments
+        };
+      });
+      
+      return enhancedSchedules as (LoanSchedule & { 
+        actual_payments: Array<{
+          id: string;
+          amount: number;
+          transaction_date: string;
+          payment_status: string;
+          description?: string;
+          external_transaction_id?: string;
+          mpesa_receipt_number?: string;
+        }>;
+      })[];
     },
     enabled: !!loanId,
   });
