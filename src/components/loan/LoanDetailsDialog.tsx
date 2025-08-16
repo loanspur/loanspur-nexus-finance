@@ -576,7 +576,7 @@ const getStatusColor = (status: string) => {
     return principal / term;
   }, [schedules, loan?.principal_amount, loan?.interest_rate, loan?.term_months, loanProduct?.default_nominal_interest_rate]);
 
-  // Calculate remaining term dynamically based on payment frequency
+  // Calculate remaining term dynamically based on payment frequency and loan schedules
   const getTermUnit = (frequency?: string) => {
     switch (frequency?.toLowerCase()) {
       case 'daily': return 'days';
@@ -584,6 +584,21 @@ const getStatusColor = (status: string) => {
       case 'monthly': return 'months';
       default: return 'months';
     }
+  };
+
+  // Calculate remaining installments from loan schedules
+  const getRemainingTerm = () => {
+    if (!schedules || schedules.length === 0) {
+      // Fallback to original term from loan data
+      return Number(loan?.term_months || loan?.number_of_repayments || 0);
+    }
+    
+    // Count unpaid schedules
+    const remainingSchedules = schedules.filter((schedule: any) => 
+      schedule.payment_status?.toLowerCase() !== 'paid'
+    );
+    
+    return remainingSchedules.length;
   };
 
   const remainingTerm = (schedules || []).filter((s: any) => s.payment_status !== 'paid').length;
@@ -902,7 +917,7 @@ const getStatusColor = (status: string) => {
                       <div>
                         <p className="text-sm text-muted-foreground">Remaining Term</p>
                         <p className="text-xl font-bold">
-                          {loanDetails.remainingTerm} {getTermUnit(loanDetails.paymentFrequency)}
+                          {getRemainingTerm()} {getTermUnit(loanDetails.paymentFrequency)}
                         </p>
                       </div>
                     </div>

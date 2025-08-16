@@ -237,7 +237,15 @@ export const ClientLoansTab = ({
                             }
                           </p>
                         </div>
-                        <LoanStatusBadge status={getDerivedLoanStatus(item).status} size="sm" />
+                         <LoanStatusBadge 
+                           status={getDerivedLoanStatus(item).status} 
+                           size="sm" 
+                         />
+                         {getDerivedLoanStatus(item).overpaidAmount && (
+                           <div className="text-xs text-purple-600 font-medium">
+                             Excess: {formatAmount(getDerivedLoanStatus(item).overpaidAmount || 0)}
+                           </div>
+                         )}
                       </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
