@@ -146,14 +146,11 @@ export const useLoanRepaymentAccounting = () => {
         .select(`
           loan_number,
           loan_products (
+            id,
             loan_portfolio_account_id,
             interest_income_account_id,
             fee_income_account_id,
             penalty_income_account_id,
-            principal_payment_account_id,
-            interest_payment_account_id,
-            fee_payment_account_id,
-            penalty_payment_account_id,
             fund_source_account_id,
             accounting_type
           )
@@ -168,6 +165,28 @@ export const useLoanRepaymentAccounting = () => {
         throw new Error('Accounting is disabled for this loan product');
       }
 
+      // Get payment account from payment channel mapping if payment method is provided
+      let paymentAccount = product.fund_source_account_id; // fallback to fund source account
+      
+      if (data.payment_method) {
+        const { data: mappings, error: mappingError } = await supabase
+          .from('product_fund_source_mappings')
+          .select('account_id')
+          .eq('tenant_id', profile.tenant_id)
+          .eq('product_id', product.id)
+          .eq('product_type', 'loan')
+          .eq('channel_id', data.payment_method)
+          .maybeSingle();
+
+        if (!mappingError && mappings?.account_id) {
+          paymentAccount = mappings.account_id;
+        }
+      }
+
+      if (!paymentAccount) {
+        throw new Error('Payment account not configured for this payment method');
+      }
+
       const lines: Array<{
         account_id: string;
         description: string;
@@ -177,13 +196,12 @@ export const useLoanRepaymentAccounting = () => {
 
       // Principal repayment
       if (data.principal_amount > 0) {
-        const principalPaymentAccountId = product.principal_payment_account_id || product.fund_source_account_id;
-        if (!principalPaymentAccountId || !product.loan_portfolio_account_id) {
-          throw new Error('Principal payment account not configured');
+        if (!product.loan_portfolio_account_id) {
+          throw new Error('Loan portfolio account not configured');
         }
 
         lines.push({
-          account_id: principalPaymentAccountId,
+          account_id: paymentAccount,
           description: `Principal repayment - ${loan.loan_number}`,
           debit_amount: data.principal_amount,
           credit_amount: 0,
@@ -199,12 +217,12 @@ export const useLoanRepaymentAccounting = () => {
 
       // Interest repayment
       if (data.interest_amount > 0) {
-        if (!product.interest_payment_account_id || !product.interest_income_account_id) {
-          throw new Error('Interest payment accounts not configured');
+        if (!product.interest_income_account_id) {
+          throw new Error('Interest income account not configured');
         }
 
         lines.push({
-          account_id: product.interest_payment_account_id,
+          account_id: paymentAccount,
           description: `Interest repayment - ${loan.loan_number}`,
           debit_amount: data.interest_amount,
           credit_amount: 0,
@@ -220,12 +238,12 @@ export const useLoanRepaymentAccounting = () => {
 
       // Fee repayment
       if (data.fee_amount && data.fee_amount > 0) {
-        if (!product.fee_payment_account_id || !product.fee_income_account_id) {
-          throw new Error('Fee payment accounts not configured');
+        if (!product.fee_income_account_id) {
+          throw new Error('Fee income account not configured');
         }
 
         lines.push({
-          account_id: product.fee_payment_account_id,
+          account_id: paymentAccount,
           description: `Fee repayment - ${loan.loan_number}`,
           debit_amount: data.fee_amount,
           credit_amount: 0,
@@ -241,12 +259,12 @@ export const useLoanRepaymentAccounting = () => {
 
       // Penalty repayment
       if (data.penalty_amount && data.penalty_amount > 0) {
-        if (!product.penalty_payment_account_id || !product.penalty_income_account_id) {
-          throw new Error('Penalty payment accounts not configured');
+        if (!product.penalty_income_account_id) {
+          throw new Error('Penalty income account not configured');
         }
 
         lines.push({
-          account_id: product.penalty_payment_account_id,
+          account_id: paymentAccount,
           description: `Penalty repayment - ${loan.loan_number}`,
           debit_amount: data.penalty_amount,
           credit_amount: 0,
