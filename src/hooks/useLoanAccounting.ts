@@ -177,7 +177,11 @@ export const useLoanRepaymentAccounting = () => {
 
       // Principal repayment
       if (data.principal_amount > 0) {
-        const principalPaymentAccountId = product.principal_payment_account_id || product.fund_source_account_id;
+        // Use specific payment account, fallback to fund source, then loan portfolio
+        const principalPaymentAccountId = product.principal_payment_account_id || 
+                                        product.fund_source_account_id || 
+                                        product.loan_portfolio_account_id;
+        
         if (!principalPaymentAccountId || !product.loan_portfolio_account_id) {
           throw new Error('Principal payment account not configured');
         }
@@ -199,12 +203,16 @@ export const useLoanRepaymentAccounting = () => {
 
       // Interest repayment
       if (data.interest_amount > 0) {
-        if (!product.interest_payment_account_id || !product.interest_income_account_id) {
+        // Use specific payment account, fallback to fund source
+        const interestPaymentAccountId = product.interest_payment_account_id || 
+                                       product.fund_source_account_id;
+        
+        if (!interestPaymentAccountId || !product.interest_income_account_id) {
           throw new Error('Interest payment accounts not configured');
         }
 
         lines.push({
-          account_id: product.interest_payment_account_id,
+          account_id: interestPaymentAccountId,
           description: `Interest repayment - ${loan.loan_number}`,
           debit_amount: data.interest_amount,
           credit_amount: 0,
@@ -220,12 +228,16 @@ export const useLoanRepaymentAccounting = () => {
 
       // Fee repayment
       if (data.fee_amount && data.fee_amount > 0) {
-        if (!product.fee_payment_account_id || !product.fee_income_account_id) {
+        // Use specific payment account, fallback to fund source
+        const feePaymentAccountId = product.fee_payment_account_id || 
+                                  product.fund_source_account_id;
+        
+        if (!feePaymentAccountId || !product.fee_income_account_id) {
           throw new Error('Fee payment accounts not configured');
         }
 
         lines.push({
-          account_id: product.fee_payment_account_id,
+          account_id: feePaymentAccountId,
           description: `Fee repayment - ${loan.loan_number}`,
           debit_amount: data.fee_amount,
           credit_amount: 0,
@@ -241,12 +253,16 @@ export const useLoanRepaymentAccounting = () => {
 
       // Penalty repayment
       if (data.penalty_amount && data.penalty_amount > 0) {
-        if (!product.penalty_payment_account_id || !product.penalty_income_account_id) {
+        // Use specific payment account, fallback to fund source
+        const penaltyPaymentAccountId = product.penalty_payment_account_id || 
+                                      product.fund_source_account_id;
+        
+        if (!penaltyPaymentAccountId || !product.penalty_income_account_id) {
           throw new Error('Penalty payment accounts not configured');
         }
 
         lines.push({
-          account_id: product.penalty_payment_account_id,
+          account_id: penaltyPaymentAccountId,
           description: `Penalty repayment - ${loan.loan_number}`,
           debit_amount: data.penalty_amount,
           credit_amount: 0,
