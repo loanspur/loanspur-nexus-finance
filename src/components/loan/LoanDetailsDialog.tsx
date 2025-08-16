@@ -1277,48 +1277,74 @@ const getStatusColor = (status: string) => {
                       </div>
                     ) : (
                       <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full">
-                          <thead className="border-b bg-muted/30">
-                            <tr className="text-left">
-                              <th className="p-3 font-medium">#</th>
-                              <th className="p-3 font-medium">Due Date</th>
-                              <th className="p-3 font-medium">Principal</th>
-                              <th className="p-3 font-medium">Interest</th>
-                              <th className="p-3 font-medium">Fees</th>
-                              <th className="p-3 font-medium">Total Due</th>
-                              <th className="p-3 font-medium">Paid</th>
-                              <th className="p-3 font-medium">Outstanding</th>
-                              <th className="p-3 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {schedules.map((schedule: any) => (
-                              <tr key={schedule.id} className={`border-b ${
-                                schedule.payment_status === 'paid' ? 'bg-green-50' : 
-                                schedule.payment_status === 'overdue' ? 'bg-red-50' : 
-                                new Date(schedule.due_date) < new Date() ? 'bg-yellow-50' : ''
-                              }`}>
-                                <td className="p-3 text-sm font-medium">{schedule.installment_number}</td>
-                                <td className="p-3 text-sm">{safeFormatDate(schedule.due_date)}</td>
-                                <td className="p-3 text-sm">{formatCurrency(schedule.principal_amount)}</td>
-                                <td className="p-3 text-sm">{formatCurrency(schedule.interest_amount)}</td>
-                                <td className="p-3 text-sm">{formatCurrency(schedule.fee_amount || 0)}</td>
-                                <td className="p-3 text-sm font-medium">{formatCurrency(schedule.total_amount)}</td>
-                                <td className="p-3 text-sm text-green-600">{formatCurrency(schedule.paid_amount || 0)}</td>
-                                <td className="p-3 text-sm font-medium">{formatCurrency(schedule.outstanding_amount || 0)}</td>
-                                <td className="p-3 text-sm">
-                                  <Badge variant={
-                                    schedule.payment_status === 'paid' ? 'default' :
-                                    schedule.payment_status === 'overdue' ? 'destructive' :
-                                    schedule.payment_status === 'partial' ? 'secondary' : 'outline'
-                                  }>
-                                    {schedule.payment_status}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                         <table className="w-full">
+                           <thead className="border-b bg-muted/30">
+                             <tr className="text-left">
+                               <th className="p-3 font-medium">#</th>
+                               <th className="p-3 font-medium">Due Date</th>
+                               <th className="p-3 font-medium">Principal</th>
+                               <th className="p-3 font-medium">Interest</th>
+                               <th className="p-3 font-medium">Fees</th>
+                               <th className="p-3 font-medium">Total Due</th>
+                               <th className="p-3 font-medium">Paid</th>
+                               <th className="p-3 font-medium">Outstanding</th>
+                               <th className="p-3 font-medium">Status</th>
+                             </tr>
+                           </thead>
+                           <tbody>
+                             {schedules.map((schedule: any) => (
+                               <tr key={schedule.id} className={`border-b ${
+                                 schedule.payment_status === 'paid' ? 'bg-green-50' : 
+                                 schedule.payment_status === 'overdue' ? 'bg-red-50' : 
+                                 new Date(schedule.due_date) < new Date() ? 'bg-yellow-50' : ''
+                               }`}>
+                                 <td className="p-3 text-sm font-medium">{schedule.installment_number}</td>
+                                 <td className="p-3 text-sm">{safeFormatDate(schedule.due_date)}</td>
+                                 <td className="p-3 text-sm">{formatCurrency(schedule.principal_amount)}</td>
+                                 <td className="p-3 text-sm">{formatCurrency(schedule.interest_amount)}</td>
+                                 <td className="p-3 text-sm">{formatCurrency(schedule.fee_amount || 0)}</td>
+                                 <td className="p-3 text-sm font-medium">{formatCurrency(schedule.total_amount)}</td>
+                                 <td className="p-3 text-sm text-green-600">{formatCurrency(schedule.paid_amount || 0)}</td>
+                                 <td className="p-3 text-sm font-medium">{formatCurrency(schedule.outstanding_amount || 0)}</td>
+                                 <td className="p-3 text-sm">
+                                   <Badge variant={
+                                     schedule.payment_status === 'paid' ? 'default' :
+                                     schedule.payment_status === 'overdue' ? 'destructive' :
+                                     schedule.payment_status === 'partial' ? 'secondary' : 'outline'
+                                   }>
+                                     {schedule.payment_status}
+                                   </Badge>
+                                 </td>
+                               </tr>
+                             ))}
+                             {/* Totals Row */}
+                             {schedules.length > 0 && (
+                               <tr className="border-t-2 border-primary bg-primary/5 font-semibold">
+                                 <td className="p-3 text-sm font-bold">TOTALS</td>
+                                 <td className="p-3 text-sm"></td>
+                                 <td className="p-3 text-sm font-bold">
+                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0), 0))}
+                                 </td>
+                                 <td className="p-3 text-sm font-bold">
+                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.interest_amount || 0), 0))}
+                                 </td>
+                                 <td className="p-3 text-sm font-bold">
+                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.fee_amount || 0), 0))}
+                                 </td>
+                                 <td className="p-3 text-sm font-bold">
+                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0))}
+                                 </td>
+                                 <td className="p-3 text-sm font-bold text-green-600">
+                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.paid_amount || 0), 0))}
+                                 </td>
+                                 <td className="p-3 text-sm font-bold">
+                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.outstanding_amount || 0), 0))}
+                                 </td>
+                                 <td className="p-3 text-sm"></td>
+                               </tr>
+                             )}
+                           </tbody>
+                         </table>
                       </div>
                     )}
                   </div>

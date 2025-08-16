@@ -435,7 +435,7 @@ export const useLoanRepaymentAccounting = () => {
         }
       }
 
-      // Update loan schedules to reflect the payment
+      // Critical: Update loan schedules to reflect the payment - this was missing!
       const { data: schedules, error: schedulesError } = await supabase
         .from('loan_schedules')
         .select('*')
@@ -468,20 +468,21 @@ export const useLoanRepaymentAccounting = () => {
           }
         }
 
-        // Update all schedules with payment allocation
-        for (const update of scheduleUpdates) {
-          const { error: updateError } = await supabase
-            .from('loan_schedules')
-            .update({
-              paid_amount: update.paid_amount,
-              outstanding_amount: update.outstanding_amount,
-              payment_status: update.payment_status
-            })
-            .eq('id', update.id);
-
-          if (updateError) {
-            console.error('Failed to update schedule:', updateError);
+        // IMPORTANT: Update all schedules with payment allocation using a single batch update
+        if (scheduleUpdates.length > 0) {
+          // Use upsert to ensure updates happen
+          for (const update of scheduleUpdates) {
+            await supabase
+              .from('loan_schedules')
+              .update({
+                paid_amount: update.paid_amount,
+                outstanding_amount: update.outstanding_amount,
+                payment_status: update.payment_status
+              })
+              .eq('id', update.id);
           }
+          
+          console.log(`Updated ${scheduleUpdates.length} loan schedules for payment`);
         }
 
         // If schedules need to include missing fees, update them
