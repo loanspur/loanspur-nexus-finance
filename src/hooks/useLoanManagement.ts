@@ -6,6 +6,7 @@ import { useMifosIntegration } from './useMifosIntegration';
 import { defaultQueryOptions } from './useOptimizedQueries';
 import { useLoanDisbursementAccounting, useLoanChargeAccounting } from './useLoanAccounting';
 import { calculateFeeAmount } from '@/lib/fee-calculation';
+import { generateLoanSchedule } from '@/lib/loan-schedule-generator';
 export interface LoanApplication {
   id: string;
   tenant_id: string;
@@ -1097,6 +1098,72 @@ export const useProcessLoanDisbursement = () => {
         }
       }
 
+      // Generate loan repayment schedule after successful disbursement
+      try {
+        // First check if schedule already exists to avoid duplicates
+        const { data: existingSchedule, error: scheduleCheckError } = await supabase
+          .from('loan_schedules')
+          .select('id')
+          .eq('loan_id', existingLoan.id)
+          .limit(1)
+          .maybeSingle();
+
+        if (scheduleCheckError && scheduleCheckError.code !== 'PGRST116') {
+          console.warn('Error checking existing schedule:', scheduleCheckError);
+        }
+
+        if (!existingSchedule) {
+          // Fetch loan product details for schedule calculation
+          const { data: loanProduct, error: productError } = await supabase
+            .from('loan_products')
+            .select('default_nominal_interest_rate, repayment_frequency, interest_calculation_method')
+            .eq('id', existingLoan.loan_product_id)
+            .single();
+
+          if (productError) {
+            console.warn('Could not fetch loan product for schedule generation:', productError);
+          } else {
+            // Get loan details for schedule generation
+            const { data: loanDetails, error: loanError } = await supabase
+              .from('loans')
+              .select('principal_amount, interest_rate, term_months')
+              .eq('id', existingLoan.id)
+              .single();
+
+            if (!loanError && loanDetails) {
+              const scheduleParams = {
+                loanId: existingLoan.id,
+                principal: Number(loanDetails.principal_amount || disbursement.disbursed_amount),
+                interestRate: Number(loanDetails.interest_rate || loanProduct.default_nominal_interest_rate || 0),
+                termMonths: Number(loanDetails.term_months || 12),
+                disbursementDate: disbursement.disbursement_date,
+                repaymentFrequency: (loanProduct.repayment_frequency || 'monthly') as any,
+                calculationMethod: (loanProduct.interest_calculation_method || 'reducing_balance') as any,
+              };
+
+              const schedule = generateLoanSchedule(scheduleParams);
+
+              // Insert the schedule into the database
+              const { error: scheduleInsertError } = await supabase
+                .from('loan_schedules')
+                .insert(schedule);
+
+              if (scheduleInsertError) {
+                console.error('Error inserting loan schedule:', scheduleInsertError);
+                // Don't throw error - disbursement should still succeed even if schedule generation fails
+              } else {
+                console.log(`Generated ${schedule.length} schedule entries for loan ${existingLoan.id}`);
+              }
+            }
+          }
+        } else {
+          console.log('Loan schedule already exists, skipping generation');
+        }
+      } catch (scheduleError) {
+        console.error('Error during schedule generation:', scheduleError);
+        // Don't throw - disbursement should succeed even if schedule generation fails
+      }
+
       // Mark application as disbursed after successful loan activation
        const { error: applicationUpdateError } = await supabase
          .from('loan_applications')
@@ -1119,6 +1186,7 @@ export const useProcessLoanDisbursement = () => {
       queryClient.invalidateQueries({ queryKey: ['client-loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-schedules'] }); // Refresh schedules
       
       const message = result?.message || "Loan disbursed successfully";
       toast({

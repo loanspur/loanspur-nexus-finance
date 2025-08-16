@@ -1,0 +1,172 @@
+import { addMonths, addWeeks, addDays, format } from 'date-fns';
+
+export interface LoanScheduleParams {
+  loanId: string;
+  principal: number;
+  interestRate: number; // Annual rate as decimal (e.g., 0.15 for 15%)
+  termMonths: number;
+  disbursementDate: string;
+  repaymentFrequency: 'monthly' | 'weekly' | 'bi-weekly' | 'quarterly';
+  calculationMethod: 'reducing_balance' | 'flat_rate' | 'declining_balance';
+  firstPaymentDate?: string; // Optional, defaults to one period after disbursement
+}
+
+export interface LoanScheduleEntry {
+  loan_id: string;
+  installment_number: number;
+  due_date: string;
+  principal_amount: number;
+  interest_amount: number;
+  fee_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  payment_status: 'unpaid';
+}
+
+export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEntry[] {
+  const {
+    loanId,
+    principal,
+    interestRate,
+    termMonths,
+    disbursementDate,
+    repaymentFrequency = 'monthly',
+    calculationMethod = 'reducing_balance',
+    firstPaymentDate
+  } = params;
+
+  const schedule: LoanScheduleEntry[] = [];
+  const startDate = new Date(disbursementDate);
+  
+  // Calculate number of payments based on frequency
+  const paymentsPerYear = getPaymentsPerYear(repaymentFrequency);
+  const totalPayments = Math.ceil((termMonths / 12) * paymentsPerYear);
+  const periodicRate = interestRate / paymentsPerYear;
+
+  // Calculate first payment date
+  let nextPaymentDate = firstPaymentDate ? new Date(firstPaymentDate) : getNextPaymentDate(startDate, repaymentFrequency);
+  
+  let remainingBalance = principal;
+
+  for (let i = 1; i <= totalPayments; i++) {
+    let principalAmount = 0;
+    let interestAmount = 0;
+
+    if (calculationMethod === 'reducing_balance' || calculationMethod === 'declining_balance') {
+      // Reducing/Declining balance method
+      if (periodicRate > 0) {
+        const monthlyPayment = calculateMonthlyPayment(principal, periodicRate, totalPayments);
+        interestAmount = remainingBalance * periodicRate;
+        principalAmount = monthlyPayment - interestAmount;
+        
+        // Ensure principal doesn't exceed remaining balance for last payment
+        if (i === totalPayments || principalAmount > remainingBalance) {
+          principalAmount = remainingBalance;
+          interestAmount = principalAmount * periodicRate;
+        }
+      } else {
+        // Zero interest rate
+        principalAmount = principal / totalPayments;
+        interestAmount = 0;
+      }
+    } else if (calculationMethod === 'flat_rate') {
+      // Flat rate method - interest calculated on original principal
+      principalAmount = principal / totalPayments;
+      interestAmount = (principal * interestRate * termMonths) / (12 * totalPayments);
+    } else {
+      // Default to equal principal installments
+      principalAmount = principal / totalPayments;
+      interestAmount = remainingBalance * periodicRate;
+    }
+
+    // Round amounts to 2 decimal places
+    principalAmount = Math.round(principalAmount * 100) / 100;
+    interestAmount = Math.round(interestAmount * 100) / 100;
+
+    const totalAmount = principalAmount + interestAmount;
+    remainingBalance = Math.max(0, remainingBalance - principalAmount);
+
+    const scheduleEntry: LoanScheduleEntry = {
+      loan_id: loanId,
+      installment_number: i,
+      due_date: format(nextPaymentDate, 'yyyy-MM-dd'),
+      principal_amount: principalAmount,
+      interest_amount: interestAmount,
+      fee_amount: 0, // Fees can be added separately
+      total_amount: totalAmount,
+      paid_amount: 0,
+      outstanding_amount: totalAmount,
+      payment_status: 'unpaid' as const,
+    };
+
+    schedule.push(scheduleEntry);
+
+    // Calculate next payment date
+    nextPaymentDate = getNextPaymentDate(nextPaymentDate, repaymentFrequency);
+  }
+
+  return schedule;
+}
+
+function getPaymentsPerYear(frequency: string): number {
+  switch (frequency) {
+    case 'weekly':
+      return 52;
+    case 'bi-weekly':
+      return 26;
+    case 'monthly':
+      return 12;
+    case 'quarterly':
+      return 4;
+    default:
+      return 12;
+  }
+}
+
+function getNextPaymentDate(currentDate: Date, frequency: string): Date {
+  switch (frequency) {
+    case 'weekly':
+      return addWeeks(currentDate, 1);
+    case 'bi-weekly':
+      return addWeeks(currentDate, 2);
+    case 'monthly':
+      return addMonths(currentDate, 1);
+    case 'quarterly':
+      return addMonths(currentDate, 3);
+    default:
+      return addMonths(currentDate, 1);
+  }
+}
+
+function calculateMonthlyPayment(principal: number, periodicRate: number, totalPayments: number): number {
+  if (periodicRate === 0) {
+    return principal / totalPayments;
+  }
+  
+  return (principal * periodicRate * Math.pow(1 + periodicRate, totalPayments)) / 
+         (Math.pow(1 + periodicRate, totalPayments) - 1);
+}
+
+// Helper function to recalculate outstanding amounts after payments
+export function recalculateScheduleOutstanding(
+  schedule: LoanScheduleEntry[],
+  payments: Array<{ schedule_id?: string; principal_amount: number; interest_amount: number; fee_amount: number }>
+): LoanScheduleEntry[] {
+  const updatedSchedule = [...schedule];
+  
+  payments.forEach(payment => {
+    if (payment.schedule_id) {
+      const scheduleIndex = updatedSchedule.findIndex(s => s.loan_id === payment.schedule_id);
+      if (scheduleIndex >= 0) {
+        const entry = updatedSchedule[scheduleIndex];
+        entry.paid_amount += payment.principal_amount + payment.interest_amount + payment.fee_amount;
+        entry.outstanding_amount = Math.max(0, entry.total_amount - entry.paid_amount);
+        entry.payment_status = entry.outstanding_amount === 0 ? 'paid' as any : 
+                              entry.paid_amount > 0 ? 'partial' as any : 'unpaid';
+      }
+    }
+  });
+  
+  return updatedSchedule;
+}
