@@ -130,8 +130,8 @@ export const TransactionStatement = ({
         // Loan transactions - fetch comprehensive loan transaction data
         const [
           { data: loanData, error: loanError },
-          { data: paymentsData, error: paymentsError },
-          { data: allPaymentsData, error: allPaymentsError }
+          { data: loanPaymentsData, error: loanPaymentsError },
+          { data: allLoanPaymentsData, error: allLoanPaymentsError }
         ] = await Promise.all([
           // Get loan basic info for disbursement
           supabase
@@ -140,47 +140,42 @@ export const TransactionStatement = ({
             .eq('id', accountId)
             .single(),
           
-          // Get payments for the period
+          // Get loan payments for the period from loan_payments table
           supabase
-            .from('transactions')
+            .from('loan_payments')
             .select('*')
             .eq('loan_id', accountId)
-            .gte('transaction_date', period.from)
-            .lte('transaction_date', period.to)
-            .order('transaction_date', { ascending: true }),
+            .gte('payment_date', period.from)
+            .lte('payment_date', period.to)
+            .order('payment_date', { ascending: true }),
 
-          // Get all payments to calculate total paid amounts
+          // Get all loan payments to calculate total paid amounts
           supabase
-            .from('transactions')
+            .from('loan_payments')
             .select('*')
             .eq('loan_id', accountId)
-            .eq('transaction_type', 'loan_repayment')
-            .order('transaction_date', { ascending: true })
+            .order('payment_date', { ascending: true })
         ]);
 
         if (loanError) throw loanError;
-        if (paymentsError) throw paymentsError;
-        if (allPaymentsError) throw allPaymentsError;
+        if (loanPaymentsError) throw loanPaymentsError;
+        if (allLoanPaymentsError) throw allLoanPaymentsError;
         
         const allTransactions: Transaction[] = [];
         
         // Calculate total outstanding balance (principal + interest + fees + penalties)
         const principal = parseFloat(String(loanData?.principal_amount)) || 0;
-        const totalPrincipalPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
-          const breakdown = p.payment_breakdown || {};
-          return sum + (parseFloat(breakdown.principal) || 0);
+        const totalPrincipalPaid = (allLoanPaymentsData || []).reduce((sum: number, p: any) => {
+          return sum + (parseFloat(p.principal_amount) || 0);
         }, 0);
-        const totalInterestPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
-          const breakdown = p.payment_breakdown || {};
-          return sum + (parseFloat(breakdown.interest) || 0);
+        const totalInterestPaid = (allLoanPaymentsData || []).reduce((sum: number, p: any) => {
+          return sum + (parseFloat(p.interest_amount) || 0);
         }, 0);
-        const totalFeesPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
-          const breakdown = p.payment_breakdown || {};
-          return sum + (parseFloat(breakdown.fees) || 0);
+        const totalFeesPaid = (allLoanPaymentsData || []).reduce((sum: number, p: any) => {
+          return sum + (parseFloat(p.fee_amount) || 0);
         }, 0);
-        const totalPenaltiesPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
-          const breakdown = p.payment_breakdown || {};
-          return sum + (parseFloat(breakdown.penalties) || 0);
+        const totalPenaltiesPaid = (allLoanPaymentsData || []).reduce((sum: number, p: any) => {
+          return sum + (parseFloat(p.penalty_amount) || 0);
         }, 0);
 
         // Update loan totals state
@@ -212,17 +207,16 @@ export const TransactionStatement = ({
         }
 
         // Add payments with proper distribution
-        if (paymentsData && paymentsData.length > 0) {
-          paymentsData.forEach((payment: any) => {
-            const paymentAmount = parseFloat(payment.amount) || 0;
+        if (loanPaymentsData && loanPaymentsData.length > 0) {
+          loanPaymentsData.forEach((payment: any) => {
+            const paymentAmount = parseFloat(payment.payment_amount) || 0;
             runningBalance -= paymentAmount;
             
-            // Parse payment distribution from description or metadata
-            const distribution = payment.payment_breakdown || {};
-            const principalPaid = distribution.principal || 0;
-            const interestPaid = distribution.interest || 0;
-            const feesPaid = distribution.fees || 0;
-            const penaltiesPaid = distribution.penalties || 0;
+            // Get payment breakdown from loan_payments table
+            const principalPaid = parseFloat(payment.principal_amount) || 0;
+            const interestPaid = parseFloat(payment.interest_amount) || 0;
+            const feesPaid = parseFloat(payment.fee_amount) || 0;
+            const penaltiesPaid = parseFloat(payment.penalty_amount) || 0;
             
             let description = 'Loan repayment';
             if (principalPaid || interestPaid || feesPaid || penaltiesPaid) {
@@ -235,14 +229,14 @@ export const TransactionStatement = ({
             }
 
             allTransactions.push({
-              date: payment.transaction_date,
+              date: payment.payment_date,
               type: 'Payment',
               amount: paymentAmount,
               balance: Math.max(0, runningBalance), // Ensure balance doesn't go negative
-              method: payment.payment_type || payment.method || 'Cash',
-              reference: payment.external_transaction_id || payment.transaction_id || `PMT-${String(payment.id).slice(-6)}`,
+              method: payment.payment_method || 'Cash',
+              reference: payment.reference_number || `PMT-${String(payment.id).slice(-6)}`,
               description,
-              status: payment.payment_status || 'completed'
+              status: 'completed'
             });
           });
         }
@@ -281,11 +275,11 @@ export const TransactionStatement = ({
         {
           event: '*',
           schema: 'public',
-          table: 'transactions',
+          table: 'loan_payments',
           filter: `loan_id=eq.${accountId}`
         },
         () => {
-          console.log('Transaction updated, refreshing...');
+          console.log('Loan payment updated, refreshing...');
           fetchTransactions();
         }
       )
