@@ -29,15 +29,7 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
   // Current outstanding balance
   const outstanding = Number(loan.outstanding_balance ?? loan.outstanding ?? 0);
   
-  // Overpaid: if last payment amount > total outstanding loan balance at time of payment
-  if (lastPayment && lastPaymentAmount > outstanding && outstanding >= 0) {
-    return {
-      status: 'overpaid',
-      overpaidAmount: lastPaymentAmount - outstanding,
-    };
-  }
-  
-  // Also check if outstanding balance is negative (overpaid scenario)
+  // Overpaid: only if outstanding balance is negative (means overpayment)
   if (!Number.isNaN(outstanding) && outstanding < 0) {
     return {
       status: 'overpaid',
