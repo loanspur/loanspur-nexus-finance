@@ -362,6 +362,44 @@ const disbursementData: any = {
                     </Select>
                   </div>
                 )}
+
+                {/* Savings Account Selection (for savings disbursement) */}
+                {disbursementMethod === 'savings' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4" />
+                      Target Savings Account
+                    </Label>
+                    {loanData?.linked_savings_account_id ? (
+                      <div className="p-3 rounded-md bg-muted">
+                        <p className="text-sm font-medium">Linked Savings Account</p>
+                        <p className="text-xs text-muted-foreground">
+                          Funds will be transferred to the linked savings account
+                        </p>
+                      </div>
+                    ) : (
+                      <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select savings account" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-background">
+                          {isLoadingSavings ? (
+                            <SelectItem value="loading" disabled>Loading accounts...</SelectItem>
+                          ) : savingsAccounts.length === 0 ? (
+                            <SelectItem value="no-accounts" disabled>No active savings accounts found</SelectItem>
+                          ) : (
+                            savingsAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.account_number} - {account.savings_products?.name} 
+                                ({formatAmount(account.account_balance || 0)})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
