@@ -366,6 +366,107 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
+            <span>Payment Accounts</span>
+            <Badge variant="secondary">{assetAccounts.length} available</Badge>
+          </CardTitle>
+          <CardDescription>Configure payment accounts for loan repayments from your chart of accounts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="principal_payment_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Principal Payment Account</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment account for principal" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Payment Accounts</div>
+                    {renderAccountOptions(assetAccounts, true)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="interest_payment_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Interest Payment Account</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment account for interest" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Payment Accounts</div>
+                    {renderAccountOptions(assetAccounts, true)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="fee_payment_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fee Payment Account</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment account for fees" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Payment Accounts</div>
+                    {renderAccountOptions(assetAccounts, true)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="penalty_payment_account_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Penalty Payment Account</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment account for penalties" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Payment Accounts</div>
+                    {renderAccountOptions(assetAccounts, true)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
             <span>Expense & Liability Accounts</span>
             <Badge variant="secondary">{expenseAccounts.length + liabilityAccounts.length} available</Badge>
           </CardTitle>
