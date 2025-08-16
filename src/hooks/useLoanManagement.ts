@@ -1134,11 +1134,11 @@ export const useProcessLoanDisbursement = () => {
               const scheduleParams = {
                 loanId: existingLoan.id,
                 principal: Number(loanDetails.principal_amount || disbursement.disbursed_amount),
-                interestRate: Number(loanDetails.interest_rate || loanProduct.default_nominal_interest_rate || 0),
+                interestRate: Number(loanDetails.interest_rate || loanProduct.default_nominal_interest_rate || 0) / 100, // Convert percentage to decimal
                 termMonths: Number(loanDetails.term_months || 12),
                 disbursementDate: disbursement.disbursement_date,
-                repaymentFrequency: (loanProduct.repayment_frequency || 'monthly') as any,
-                calculationMethod: (loanProduct.interest_calculation_method || 'reducing_balance') as any,
+                repaymentFrequency: (loanProduct.repayment_frequency || 'monthly') as 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly',
+                calculationMethod: (loanProduct.interest_calculation_method || 'reducing_balance') as 'reducing_balance' | 'flat_rate' | 'declining_balance',
               };
 
               const schedule = generateLoanSchedule(scheduleParams);
