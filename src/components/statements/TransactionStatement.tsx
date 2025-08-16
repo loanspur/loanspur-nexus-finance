@@ -63,6 +63,12 @@ export const TransactionStatement = ({
 }: TransactionStatementProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loanTotals, setLoanTotals] = useState({
+    totalPrincipalPaid: 0,
+    totalInterestPaid: 0,
+    totalFeesPaid: 0,
+    totalPenaltiesPaid: 0
+  });
   const [period, setPeriod] = useState<{ from: string; to: string }>(() => {
     const endDate = new Date();
     const startDate = new Date();
@@ -124,7 +130,8 @@ export const TransactionStatement = ({
         // Loan transactions - fetch comprehensive loan transaction data
         const [
           { data: loanData, error: loanError },
-          { data: paymentsData, error: paymentsError }
+          { data: paymentsData, error: paymentsError },
+          { data: allPaymentsData, error: allPaymentsError }
         ] = await Promise.all([
           // Get loan basic info for disbursement
           supabase
@@ -133,21 +140,62 @@ export const TransactionStatement = ({
             .eq('id', accountId)
             .single(),
           
-          // Get payments
+          // Get payments for the period
           supabase
             .from('transactions')
             .select('*')
             .eq('loan_id', accountId)
             .gte('transaction_date', period.from)
             .lte('transaction_date', period.to)
+            .order('transaction_date', { ascending: true }),
+
+          // Get all payments to calculate total paid amounts
+          supabase
+            .from('transactions')
+            .select('*')
+            .eq('loan_id', accountId)
+            .eq('transaction_type', 'loan_repayment')
             .order('transaction_date', { ascending: true })
         ]);
 
         if (loanError) throw loanError;
         if (paymentsError) throw paymentsError;
+        if (allPaymentsError) throw allPaymentsError;
         
         const allTransactions: Transaction[] = [];
-        let runningBalance = accountDetails.principal || 0;
+        
+        // Calculate total outstanding balance (principal + interest + fees + penalties)
+        const principal = parseFloat(String(loanData?.principal_amount)) || 0;
+        const totalPrincipalPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
+          const breakdown = p.payment_breakdown || {};
+          return sum + (parseFloat(breakdown.principal) || 0);
+        }, 0);
+        const totalInterestPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
+          const breakdown = p.payment_breakdown || {};
+          return sum + (parseFloat(breakdown.interest) || 0);
+        }, 0);
+        const totalFeesPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
+          const breakdown = p.payment_breakdown || {};
+          return sum + (parseFloat(breakdown.fees) || 0);
+        }, 0);
+        const totalPenaltiesPaid = (allPaymentsData || []).reduce((sum: number, p: any) => {
+          const breakdown = p.payment_breakdown || {};
+          return sum + (parseFloat(breakdown.penalties) || 0);
+        }, 0);
+
+        // Update loan totals state
+        setLoanTotals({
+          totalPrincipalPaid,
+          totalInterestPaid,
+          totalFeesPaid,
+          totalPenaltiesPaid
+        });
+
+        // Calculate outstanding balances - use current loan balance from accountDetails
+        const outstandingPrincipal = principal - totalPrincipalPaid;
+        
+        // Use the actual balance from the loan account details as the total outstanding
+        let runningBalance = accountDetails.balance || (principal - totalPrincipalPaid);
 
         // Add disbursement as first transaction
         if (loanData) {
@@ -221,6 +269,45 @@ export const TransactionStatement = ({
       fetchTransactions();
     }
   }, [accountId, accountType, period.from, period.to]);
+
+  // Real-time updates for loan transactions
+  useEffect(() => {
+    if (!accountId || accountType !== 'loan') return;
+
+    const channel = supabase
+      .channel('loan-transactions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `loan_id=eq.${accountId}`
+        },
+        () => {
+          console.log('Transaction updated, refreshing...');
+          fetchTransactions();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'loans',
+          filter: `id=eq.${accountId}`
+        },
+        () => {
+          console.log('Loan updated, refreshing...');
+          fetchTransactions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [accountId, accountType]);
 
   const handleRefresh = () => {
     fetchTransactions();
@@ -451,11 +538,11 @@ export const TransactionStatement = ({
                 </div>
                 <div>
                   <span className="text-muted-foreground">Principal Paid</span>
-                  <div className="font-medium text-green-600">{formatCurrency(accountDetails.principalPaid || 0)}</div>
+                  <div className="font-medium text-green-600">{formatCurrency(loanTotals.totalPrincipalPaid)}</div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Interest Paid</span>
-                  <div className="font-medium">{formatCurrency(accountDetails.interestPaid || 0)}</div>
+                  <div className="font-medium">{formatCurrency(loanTotals.totalInterestPaid)}</div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Interest Rate</span>
