@@ -7,6 +7,7 @@ import { defaultQueryOptions } from './useOptimizedQueries';
 import { useLoanDisbursementAccounting, useLoanChargeAccounting } from './useLoanAccounting';
 import { calculateFeeAmount } from '@/lib/fee-calculation';
 import { generateLoanSchedule } from '@/lib/loan-schedule-generator';
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
 export interface LoanApplication {
   id: string;
   tenant_id: string;
@@ -399,15 +400,20 @@ export const useGenerateLoanSchedule = () => {
       termMonths: number; 
       startDate: string;
     }) => {
-      // Calculate monthly payment using standard loan formula
-      const monthlyRate = interestRate / 100 / 12;
-      const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal,
+        annualRate: interestRate,
+        termInMonths: termMonths,
+        calculationMethod: 'reducing_balance'
+      });
+      const monthlyPayment = interestResult.monthlyPayment;
 
       const schedules: Omit<LoanSchedule, 'id' | 'created_at'>[] = [];
       let remainingBalance = principal;
 
       for (let i = 1; i <= termMonths; i++) {
-        const interestAmount = remainingBalance * monthlyRate;
+        const interestAmount = calculateMonthlyInterest(remainingBalance, interestRate);
         const principalAmount = monthlyPayment - interestAmount;
         const dueDate = new Date(startDate);
         dueDate.setMonth(dueDate.getMonth() + i);

@@ -2,7 +2,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
 import {
   FormControl,
   FormField,
@@ -164,10 +164,14 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
       const totalInterest = (requestedAmount * interestRate * requestedTerm) / 100;
       return (requestedAmount + totalInterest) / numberOfInstallments;
     } else if (calculationMethod === 'declining_balance') {
-      const monthlyRate = interestRate / 100 / 12;
-      const payment = (requestedAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfInstallments)) / 
-                     (Math.pow(1 + monthlyRate, numberOfInstallments) - 1);
-      return payment;
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: numberOfInstallments,
+        calculationMethod: 'reducing_balance'
+      });
+      return interestResult.monthlyPayment;
     }
     
     return 0;

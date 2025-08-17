@@ -62,7 +62,7 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Client is required"),
@@ -244,10 +244,14 @@ export const FullLoanApplicationDialog = ({
       const monthlyPrincipal = requestedAmount / requestedTerm;
       return monthlyPrincipal + monthlyInterest;
     } else if (calculationMethod === 'reducing_balance') {
-      const monthlyRate = interestRate / 100 / 12;
-      const numberOfPayments = requestedTerm;
-      if (monthlyRate === 0) return requestedAmount / numberOfPayments;
-      return requestedAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: requestedTerm,
+        calculationMethod: 'reducing_balance'
+      });
+      return interestResult.monthlyPayment;
     }
     return 0;
   };
@@ -334,7 +338,7 @@ const { formatAmount: formatCurrency } = useCurrency();
     for (let i = 1; i <= numberOfInstallments; i++) {
       const monthlyPayment = calculateMonthlyPayment();
       const interestPayment = calculationMethod === 'reducing_balance' 
-        ? (remainingBalance * (interestRate / 100 / 12))
+        ? calculateMonthlyInterest(remainingBalance, interestRate)
         : calculateMonthlyInterest(requestedAmount, interestRate);
       const principalPayment = monthlyPayment - interestPayment;
       

@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { calculateReducingBalanceInterest } from "@/lib/interest-calculation";
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
 
 const calculatorSchema = z.object({
   principal: z.number().min(1, "Principal amount must be greater than 0"),
@@ -80,10 +80,9 @@ export const LoanCalculatorDialog = ({
     // Calculate amortization schedule using unified calculation
     const schedule = [];
     let remainingBalance = principal;
-    const monthlyRate = interestRate / 100 / 12;
     
     for (let month = 1; month <= termMonths; month++) {
-      const interestPayment = remainingBalance * monthlyRate;
+      const interestPayment = calculateMonthlyInterest(remainingBalance, interestRate);
       const principalPayment = monthlyPayment - interestPayment;
       remainingBalance -= principalPayment;
       
