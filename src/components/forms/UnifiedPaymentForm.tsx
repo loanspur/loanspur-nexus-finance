@@ -158,7 +158,7 @@ export const UnifiedPaymentForm = ({
           .select('*')
           .eq('loan_id', watchedLoanId)
           .eq('tenant_id', profile?.tenant_id)
-          .neq('payment_method', 'LIKE', '%_REVERSED')
+          .not('payment_method', 'like', '%_REVERSED')
           .order('payment_date', { ascending: false });
         
         setAvailablePayments(payments || []);
