@@ -21,7 +21,22 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
 
   const rawStatus: string = (loan.status || '').toLowerCase();
 
-  // Get payments and schedules
+  // Handle pending disbursement states first - these should never be marked as closed
+  if (rawStatus === 'approved' || rawStatus === 'pending_disbursement') {
+    return { status: rawStatus };
+  }
+
+  // Handle application states
+  if (rawStatus === 'pending' || rawStatus === 'under_review' || rawStatus === 'submitted') {
+    return { status: rawStatus };
+  }
+
+  // Only mark as closed if loan is explicitly closed or withdrawn
+  if (rawStatus === 'closed' || rawStatus === 'withdrawn' || rawStatus === 'written_off' || rawStatus === 'rejected') {
+    return { status: 'closed' };
+  }
+
+  // Get payments and schedules for active loans only
   const payments = loan.loan_payments || loan.payments || [];
   const schedules: any[] = loan.loan_schedules || loan.schedules || [];
   
@@ -49,17 +64,12 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
     };
   }
   
-  // Only mark as closed if loan is explicitly closed or fully paid with zero outstanding
-  if (rawStatus === 'closed' || rawStatus === 'withdrawn' || rawStatus === 'written_off') {
-    return { status: 'closed' };
-  }
-  
   // Check if loan is fully paid (total payments equal loan amount AND outstanding is 0)
   if (totalPayments >= totalLoanAmount && totalPayments > 0 && dbOutstanding === 0) {
     return { status: 'closed' };
   }
   
-  // Check database outstanding balance for fully paid loans
+  // Check database outstanding balance for fully paid loans (only if there are actual payments)
   if (dbOutstanding === 0 && totalPayments > 0) {
     return { status: 'closed' };
   }
