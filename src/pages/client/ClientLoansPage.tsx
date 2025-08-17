@@ -65,6 +65,8 @@ const ClientLoansPage = () => {
       return data;
     },
     enabled: !!profile?.id,
+    staleTime: 30000, // Cache for 30 seconds to prevent unnecessary refetches
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Fetch actual loans for this client
@@ -87,6 +89,8 @@ const ClientLoansPage = () => {
       return data;
     },
     enabled: !!profile?.id,
+    staleTime: 30000, // Cache for 30 seconds to prevent unnecessary refetches
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Categorize loans by status

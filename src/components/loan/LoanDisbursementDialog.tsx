@@ -344,13 +344,19 @@ const disbursementData: any = {
                 {disbursementMethod === 'direct' && (
                   <div className="space-y-2">
                     <Label>Payment Method</Label>
-                    <Select value={selectedPaymentMapping} onValueChange={setSelectedPaymentMapping} disabled={paymentOptions.length === 0}>
+                    <Select 
+                      value={selectedPaymentMapping} 
+                      onValueChange={setSelectedPaymentMapping} 
+                      disabled={!loanData?.loan_product_id}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
+                        <SelectValue placeholder={paymentOptions.length === 0 && loanData?.loan_product_id ? "Loading payment methods..." : "Select payment method"} />
                       </SelectTrigger>
                       <SelectContent className="z-50 bg-background">
-                        {paymentOptions.length === 0 ? (
-                          <SelectItem value="no-options" disabled>No mapped payment methods</SelectItem>
+                        {!loanData?.loan_product_id ? (
+                          <SelectItem value="no-product" disabled>No loan product selected</SelectItem>
+                        ) : paymentOptions.length === 0 ? (
+                          <SelectItem value="loading" disabled>Loading payment methods...</SelectItem>
                         ) : (
                           paymentOptions.map((opt) => (
                             <SelectItem key={opt.id} value={opt.code}>
