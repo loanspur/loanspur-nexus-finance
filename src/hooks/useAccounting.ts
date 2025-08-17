@@ -115,13 +115,15 @@ export interface ClosingEntry {
   updated_at: string;
 }
 
-// Enhanced Journal Entries Hooks with Real-time Updates
+// Enhanced Journal Entries Hooks with Real-time Updates and Pagination
 export const useJournalEntries = (filters?: {
   dateFrom?: string;
   dateTo?: string;
   status?: string;
   searchTerm?: string;
   officeId?: string;
+  page?: number;
+  pageSize?: number;
 }) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -167,7 +169,12 @@ export const useJournalEntries = (filters?: {
   return useQuery({
     queryKey: ['journal-entries', profile?.tenant_id, filters],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      if (!profile?.tenant_id) return { data: [], count: 0 };
+
+      const page = filters?.page || 1;
+      const pageSize = filters?.pageSize || 10;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
       let query = supabase
         .from('journal_entries')
@@ -180,9 +187,10 @@ export const useJournalEntries = (filters?: {
               account_code
             )
           )
-        `)
+        `, { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
-        .order('transaction_date', { ascending: false });
+        .order('transaction_date', { ascending: false })
+        .range(from, to);
 
       if (filters?.dateFrom) {
         query = query.gte('transaction_date', filters.dateFrom);
@@ -200,9 +208,9 @@ export const useJournalEntries = (filters?: {
         query = query.eq('office_id', filters.officeId);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as JournalEntry[];
+      return { data: data as JournalEntry[], count: count || 0 };
     },
     enabled: !!profile?.tenant_id,
   });
@@ -296,8 +304,8 @@ export const useCreateJournalEntry = () => {
   });
 };
 
-// Enhanced Account Balances Hook with Real-time Updates
-export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo?: string) => {
+// Enhanced Account Balances Hook with Real-time Updates and Pagination
+export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo?: string, page = 1, pageSize = 10) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -341,9 +349,12 @@ export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo
   }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
-    queryKey: ['account-balances', profile?.tenant_id, accountId, dateFrom, dateTo],
+    queryKey: ['account-balances', profile?.tenant_id, accountId, dateFrom, dateTo, page, pageSize],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      if (!profile?.tenant_id) return { data: [], count: 0 };
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
       let query = supabase
         .from('account_balances')
@@ -354,9 +365,10 @@ export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo
             account_code,
             account_type
           )
-        `)
+        `, { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
-        .order('balance_date', { ascending: false });
+        .order('balance_date', { ascending: false })
+        .range(from, to);
 
       if (accountId) {
         query = query.eq('account_id', accountId);
@@ -368,9 +380,9 @@ export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo
         query = query.lte('balance_date', dateTo);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as AccountBalance[];
+      return { data: data as AccountBalance[], count: count || 0 };
     },
     enabled: !!profile?.tenant_id,
   });

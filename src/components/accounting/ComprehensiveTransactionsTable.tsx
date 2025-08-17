@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Filter, RefreshCw, Activity } from "lucide-react";
 import { useComprehensiveTransactions, type ComprehensiveTransaction } from "@/hooks/useComprehensiveTransactions";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 export const ComprehensiveTransactionsTable = () => {
   const [filters, setFilters] = useState({
@@ -16,6 +17,8 @@ export const ComprehensiveTransactionsTable = () => {
     dateTo: "",
     transactionType: "all",
     searchTerm: "",
+    page: 1,
+    pageSize: 10,
   });
 
   // Debounced filters to prevent excessive API calls
@@ -24,10 +27,15 @@ export const ComprehensiveTransactionsTable = () => {
     dateTo: filters.dateTo,
     transactionType: filters.transactionType,
     searchTerm: filters.searchTerm,
-  }), [filters.dateFrom, filters.dateTo, filters.transactionType, filters.searchTerm]);
+    page: filters.page,
+    pageSize: filters.pageSize,
+  }), [filters.dateFrom, filters.dateTo, filters.transactionType, filters.searchTerm, filters.page, filters.pageSize]);
 
-  const { data: transactions, isLoading, refetch } = useComprehensiveTransactions(debouncedFilters);
+  const { data: transactionsResponse, isLoading, refetch } = useComprehensiveTransactions(debouncedFilters);
   const { formatAmount } = useCurrency();
+
+  const transactions = Array.isArray(transactionsResponse) ? transactionsResponse : (transactionsResponse?.data || []);
+  const totalCount = Array.isArray(transactionsResponse) ? transactionsResponse.length : (transactionsResponse?.count || 0);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -136,7 +144,7 @@ export const ComprehensiveTransactionsTable = () => {
             
             <Button 
               variant="outline"
-              onClick={() => setFilters({ dateFrom: "", dateTo: "", transactionType: "all", searchTerm: "" })}
+              onClick={() => setFilters({ dateFrom: "", dateTo: "", transactionType: "all", searchTerm: "", page: 1, pageSize: 10 })}
               className="col-span-2"
             >
               <Filter className="h-4 w-4 mr-2" />
@@ -201,6 +209,14 @@ export const ComprehensiveTransactionsTable = () => {
               </TableBody>
             </Table>
           </div>
+          
+          <PaginationControls
+            currentPage={filters.page}
+            totalCount={totalCount}
+            pageSize={filters.pageSize}
+            onPageChange={(page) => setFilters({ ...filters, page })}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
     </div>

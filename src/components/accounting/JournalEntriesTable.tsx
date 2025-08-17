@@ -12,6 +12,7 @@ import { JournalEntryForm } from "./JournalEntryForm";
 import { JournalEntryDetailsDialog } from "./JournalEntryDetailsDialog";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useOffices } from "@/hooks/useOfficeManagement";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 export const JournalEntriesTable = () => {
   const [filters, setFilters] = useState({
@@ -20,13 +21,18 @@ export const JournalEntriesTable = () => {
     status: "all",
     searchTerm: "",
     officeId: "",
+    page: 1,
+    pageSize: 10,
   });
   const [showForm, setShowForm] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
-  const { data: journalEntries, isLoading } = useJournalEntries(filters);
+  const { data: journalEntriesResponse, isLoading } = useJournalEntries(filters);
   const { data: offices } = useOffices();
   const { formatAmount } = useCurrency();
+
+  const journalEntries = journalEntriesResponse?.data || [];
+  const totalCount = journalEntriesResponse?.count || 0;
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -121,7 +127,7 @@ export const JournalEntriesTable = () => {
             
             <Button 
               variant="outline"
-              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "all", searchTerm: "", officeId: "" })}
+              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "all", searchTerm: "", officeId: "", page: 1, pageSize: 10 })}
             >
               <Filter className="h-4 w-4 mr-2" />
               Clear Filters
@@ -182,6 +188,14 @@ export const JournalEntriesTable = () => {
               </TableBody>
             </Table>
           </div>
+          
+          <PaginationControls
+            currentPage={filters.page}
+            totalCount={totalCount}
+            pageSize={filters.pageSize}
+            onPageChange={(page) => setFilters({ ...filters, page })}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
 

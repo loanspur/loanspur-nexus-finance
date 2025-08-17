@@ -14,16 +14,20 @@ export interface ComprehensiveTransaction {
   status: string;
   client_name?: string;
   account_info?: string;
+  payment_type?: string;
+  reference_id?: string;
   source_table: 'loan_payments' | 'savings_transactions' | 'transactions' | 'journal_entries';
   created_at: string;
 }
 
-// Hook to fetch all transactions across different tables with real-time updates
+// Hook to fetch all transactions across different tables with real-time updates and pagination
 export const useComprehensiveTransactions = (filters?: {
   dateFrom?: string;
   dateTo?: string;
   transactionType?: string;
   searchTerm?: string;
+  page?: number;
+  pageSize?: number;
 }) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -96,7 +100,7 @@ export const useComprehensiveTransactions = (filters?: {
   return useQuery({
     queryKey: ['comprehensive-transactions', profile?.tenant_id, filters?.dateFrom, filters?.dateTo, filters?.transactionType],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      if (!profile?.tenant_id) return { data: [], count: 0 };
 
       const transactions: ComprehensiveTransaction[] = [];
 
@@ -286,9 +290,18 @@ export const useComprehensiveTransactions = (filters?: {
       }
 
       // Sort by date descending
-      return filteredTransactions.sort((a, b) => 
+      const sortedTransactions = filteredTransactions.sort((a, b) => 
         new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()
       );
+
+      // Apply pagination
+      const page = filters?.page || 1;
+      const pageSize = filters?.pageSize || 10;
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = sortedTransactions.slice(startIndex, endIndex);
+
+      return { data: paginatedData, count: sortedTransactions.length };
     },
     enabled: !!profile?.tenant_id,
     refetchInterval: 30000, // Refetch every 30 seconds as backup to real-time
