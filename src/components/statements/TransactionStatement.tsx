@@ -3,13 +3,14 @@ import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, RefreshCw, Eye, Info } from "lucide-react";
+import { FileText, Download, RefreshCw, Eye, Info, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { generateLoanStatement, generateSavingsStatement } from "@/lib/statement-generator";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
+import { LoanRepaymentUndoDialog } from "@/components/forms/LoanRepaymentUndoDialog";
 
 interface Transaction {
   date: string;
@@ -72,6 +73,7 @@ export const TransactionStatement = ({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedPaymentForUndo, setSelectedPaymentForUndo] = useState<any>(null);
   const [loanTotals, setLoanTotals] = useState({
     totalPrincipalPaid: 0,
     totalInterestPaid: 0,
@@ -622,7 +624,7 @@ export const TransactionStatement = ({
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
                    <TableHead>Status</TableHead>
-                   <TableHead className="w-12"></TableHead>
+                   <TableHead className="w-24">Actions</TableHead>
                  </TableRow>
                </TableHeader>
                <TableBody>
@@ -659,21 +661,64 @@ export const TransactionStatement = ({
                          {transaction.status || 'completed'}
                        </Badge>
                      </TableCell>
-                     <TableCell>
-                       {(transaction.principalAmount !== undefined || 
-                         transaction.interestAmount !== undefined || 
-                         transaction.feeAmount !== undefined || 
-                         transaction.penaltyAmount !== undefined) && (
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           onClick={() => setSelectedTransaction(transaction)}
-                           className="h-8 w-8 p-0"
-                         >
-                           <Eye className="h-4 w-4" />
-                         </Button>
-                       )}
-                     </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {(transaction.principalAmount !== undefined || 
+                            transaction.interestAmount !== undefined || 
+                            transaction.feeAmount !== undefined || 
+                            transaction.penaltyAmount !== undefined) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedTransaction(transaction)}
+                              className="h-8 w-8 p-0"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {accountType === 'loan' && 
+                           transaction.type === 'Payment' && 
+                           transaction.paymentId &&
+                           transaction.status !== 'reversed' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                // Fetch full payment details for undo dialog
+                                try {
+                                  const { data: paymentDetails, error } = await supabase
+                                    .from('loan_payments')
+                                    .select('*')
+                                    .eq('id', transaction.paymentId)
+                                    .single();
+                                  
+                                  if (error || !paymentDetails) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Could not load payment details",
+                                      variant: "destructive"
+                                    });
+                                    return;
+                                  }
+
+                                  setSelectedPaymentForUndo(paymentDetails);
+                                } catch (err) {
+                                  toast({
+                                    title: "Error", 
+                                    description: "Failed to load payment details",
+                                    variant: "destructive"
+                                  });
+                                }
+                              }}
+                              className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                              title="Undo Payment"
+                            >
+                              <Undo2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
                    </TableRow>
                  ))}
               </TableBody>
@@ -688,6 +733,16 @@ export const TransactionStatement = ({
           open={!!selectedTransaction}
           onOpenChange={(open) => !open && setSelectedTransaction(null)}
           transaction={selectedTransaction}
+        />
+      )}
+
+      {/* Loan Repayment Undo Dialog */}
+      {selectedPaymentForUndo && (
+        <LoanRepaymentUndoDialog
+          open={!!selectedPaymentForUndo}
+          onOpenChange={(open) => !open && setSelectedPaymentForUndo(null)}
+          payment={selectedPaymentForUndo}
+          loanNumber={accountNumber}
         />
       )}
     </div>
