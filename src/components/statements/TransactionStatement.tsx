@@ -276,12 +276,12 @@ export const TransactionStatement = ({
     }
   }, [accountId, accountType, period.from, period.to]);
 
-  // Real-time updates for loan transactions
+  // Real-time updates for transactions
   useEffect(() => {
-    if (!accountId || accountType !== 'loan') return;
+    if (!accountId) return;
 
     const channel = supabase
-      .channel('loan-transactions')
+      .channel('transaction-updates')
       .on(
         'postgres_changes',
         {
@@ -300,11 +300,11 @@ export const TransactionStatement = ({
         {
           event: '*',
           schema: 'public',
-          table: 'loan_payments',
-          filter: `loan_id=eq.${accountId}`
+          table: 'savings_transactions',
+          filter: `savings_account_id=eq.${accountId}`
         },
         () => {
-          console.log('Loan payment updated, refreshing...');
+          console.log('Savings transaction updated, refreshing...');
           fetchTransactions();
         }
       )
@@ -321,12 +321,25 @@ export const TransactionStatement = ({
           fetchTransactions();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'savings_accounts',
+          filter: `id=eq.${accountId}`
+        },
+        () => {
+          console.log('Savings account updated, refreshing...');
+          fetchTransactions();
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [accountId, accountType]);
+  }, [accountId]);
 
   const handleRefresh = () => {
     fetchTransactions();
