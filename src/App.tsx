@@ -16,13 +16,18 @@ import { LoanClosureNotification } from "@/components/notifications/LoanClosureN
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * 60 * 1000, // 10 minutes - increased for better performance
+      gcTime: 30 * 60 * 1000, // 30 minutes - increased cache time
       retry: (failureCount: number, error: any) => {
         if (error?.status === 401 || error?.status === 403) return false;
         return failureCount < 2;
       },
       refetchOnWindowFocus: false,
+      refetchOnMount: false, // Prevent unnecessary refetches
+      networkMode: 'online', // Only fetch when online
+    },
+    mutations: {
+      networkMode: 'online',
     },
   },
 });

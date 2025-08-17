@@ -1,12 +1,25 @@
 import { Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { SuperAdminSidebar } from "@/components/super-admin/SuperAdminSidebar";
 import { UserMenu } from "@/components/UserMenu";
-import SuperAdminDashboard from "@/pages/super-admin/SuperAdminDashboard";
-import TenantsPage from "@/pages/super-admin/TenantsPage";
-import BillingPage from "@/pages/super-admin/BillingPage";
-import IntegrationsPage from "@/pages/super-admin/IntegrationsPage";
-import SettingsPage from "@/pages/super-admin/SettingsPage";
+
+// Lazy load pages for better performance
+const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/SuperAdminDashboard"));
+const TenantsPage = lazy(() => import("@/pages/super-admin/TenantsPage"));
+const BillingPage = lazy(() => import("@/pages/super-admin/BillingPage"));
+const IntegrationsPage = lazy(() => import("@/pages/super-admin/IntegrationsPage"));
+const SettingsPage = lazy(() => import("@/pages/super-admin/SettingsPage"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <div className="flex items-center space-x-2">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <span className="text-muted-foreground">Loading...</span>
+    </div>
+  </div>
+);
 
 const SuperAdminLayout = () => {
   return (
@@ -19,14 +32,16 @@ const SuperAdminLayout = () => {
             <UserMenu />
           </div>
           <div className="p-6">
-            <Routes>
-              <Route path="/" element={<SuperAdminDashboard />} />
-              <Route path="/dashboard" element={<SuperAdminDashboard />} />
-              <Route path="/tenants" element={<TenantsPage />} />
-              <Route path="/billing" element={<BillingPage />} />
-              <Route path="/integrations" element={<IntegrationsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<SuperAdminDashboard />} />
+                <Route path="/dashboard" element={<SuperAdminDashboard />} />
+                <Route path="/tenants" element={<TenantsPage />} />
+                <Route path="/billing" element={<BillingPage />} />
+                <Route path="/integrations" element={<IntegrationsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>

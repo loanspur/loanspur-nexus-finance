@@ -3,8 +3,8 @@ import { useEffect } from 'react';
 
 // Common query options for better performance
 export const defaultQueryOptions = {
-  staleTime: 5 * 60 * 1000, // 5 minutes - data considered fresh for 5 minutes
-  gcTime: 10 * 60 * 1000, // 10 minutes - cache time (formerly cacheTime)
+  staleTime: 10 * 60 * 1000, // 10 minutes - increased for better performance
+  gcTime: 30 * 60 * 1000, // 30 minutes - increased cache time
   retry: (failureCount: number, error: any) => {
     // Don't retry on 401/403 errors (auth issues)
     if (error?.status === 401 || error?.status === 403) return false;
@@ -12,6 +12,8 @@ export const defaultQueryOptions = {
     return failureCount < 2;
   },
   refetchOnWindowFocus: false, // Disable refetch on window focus for better UX
+  refetchOnMount: false, // Prevent unnecessary refetches on mount
+  networkMode: 'online' as const, // Only fetch when online
 };
 
 // Optimized query options for frequently updated data
