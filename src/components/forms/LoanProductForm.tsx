@@ -221,6 +221,40 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         const updatePayload: any = {
           ...productData,
           linked_fee_ids: data.linked_fee_ids || [],
+          
+          // Interest calculation settings (MiFos X compatible)
+          interest_calculation_method: data.interest_calculation_method,
+          interest_calculation_period: data.interest_calculation_period,
+          compounding_frequency: data.compounding_frequency,
+          allow_partial_period_interest: data.allow_partial_period_interest,
+          
+          // Enhanced calculation settings - critical for persistence
+          days_in_year_type: data.days_in_year_type,
+          days_in_month_type: data.days_in_month_type,
+          amortization_method: data.amortization_method,
+          interest_recalculation_enabled: data.interest_recalculation_enabled,
+          compounding_enabled: data.compounding_enabled,
+          
+          // Grace period and tolerance settings
+          grace_period_type: data.grace_period_type,
+          grace_period_duration: data.grace_period_duration ? parseFloat(data.grace_period_duration) : 0,
+          arrears_tolerance_amount: data.arrears_tolerance_amount ? parseFloat(data.arrears_tolerance_amount) : 0,
+          arrears_tolerance_days: data.arrears_tolerance_days ? parseInt(data.arrears_tolerance_days) : 0,
+          moratorium_period: data.moratorium_period ? parseInt(data.moratorium_period) : 0,
+          
+          // Prepayment and reschedule settings
+          pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
+          advance_payments_adjustment_type: data.advance_payments_adjustment_type,
+          reschedule_strategy_method: data.reschedule_strategy_method,
+          
+          // Fee amounts
+          processing_fee_amount: data.processing_fee_amount ? parseFloat(data.processing_fee_amount) : 0,
+          processing_fee_percentage: data.processing_fee_percentage ? parseFloat(data.processing_fee_percentage) : 0,
+          late_payment_penalty_amount: data.late_payment_penalty_amount ? parseFloat(data.late_payment_penalty_amount) : 0,
+          late_payment_penalty_percentage: data.late_payment_penalty_percentage ? parseFloat(data.late_payment_penalty_percentage) : 0,
+          early_repayment_penalty_amount: data.early_repayment_penalty_amount ? parseFloat(data.early_repayment_penalty_amount) : 0,
+          early_repayment_penalty_percentage: data.early_repayment_penalty_percentage ? parseFloat(data.early_repayment_penalty_percentage) : 0,
+          
           // Explicitly include all accounting fields
           accounting_type: data.accounting_type,
           loan_portfolio_account_id: data.loan_portfolio_account_id || null,
@@ -255,6 +289,40 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         const createPayload = {
           ...productData,
           linked_fee_ids: data.linked_fee_ids || [],
+          
+          // Interest calculation settings (MiFos X compatible)
+          interest_calculation_method: data.interest_calculation_method,
+          interest_calculation_period: data.interest_calculation_period,
+          compounding_frequency: data.compounding_frequency,
+          allow_partial_period_interest: data.allow_partial_period_interest,
+          
+          // Enhanced calculation settings - critical for persistence
+          days_in_year_type: data.days_in_year_type,
+          days_in_month_type: data.days_in_month_type,
+          amortization_method: data.amortization_method,
+          interest_recalculation_enabled: data.interest_recalculation_enabled,
+          compounding_enabled: data.compounding_enabled,
+          
+          // Grace period and tolerance settings
+          grace_period_type: data.grace_period_type,
+          grace_period_duration: data.grace_period_duration ? parseFloat(data.grace_period_duration) : 0,
+          arrears_tolerance_amount: data.arrears_tolerance_amount ? parseFloat(data.arrears_tolerance_amount) : 0,
+          arrears_tolerance_days: data.arrears_tolerance_days ? parseInt(data.arrears_tolerance_days) : 0,
+          moratorium_period: data.moratorium_period ? parseInt(data.moratorium_period) : 0,
+          
+          // Prepayment and reschedule settings
+          pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
+          advance_payments_adjustment_type: data.advance_payments_adjustment_type,
+          reschedule_strategy_method: data.reschedule_strategy_method,
+          
+          // Fee amounts
+          processing_fee_amount: data.processing_fee_amount ? parseFloat(data.processing_fee_amount) : 0,
+          processing_fee_percentage: data.processing_fee_percentage ? parseFloat(data.processing_fee_percentage) : 0,
+          late_payment_penalty_amount: data.late_payment_penalty_amount ? parseFloat(data.late_payment_penalty_amount) : 0,
+          late_payment_penalty_percentage: data.late_payment_penalty_percentage ? parseFloat(data.late_payment_penalty_percentage) : 0,
+          early_repayment_penalty_amount: data.early_repayment_penalty_amount ? parseFloat(data.early_repayment_penalty_amount) : 0,
+          early_repayment_penalty_percentage: data.early_repayment_penalty_percentage ? parseFloat(data.early_repayment_penalty_percentage) : 0,
+          
           // Explicitly include all accounting fields
           accounting_type: data.accounting_type,
           loan_portfolio_account_id: data.loan_portfolio_account_id || null,
