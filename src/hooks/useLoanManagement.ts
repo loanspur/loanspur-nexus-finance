@@ -502,23 +502,16 @@ export const useProcessLoanPayment = () => {
       
       if (error) throw error;
 
-      // Update loan schedule if schedule_id is provided
-      if (payment.schedule_id) {
-        const { error: updateError } = await supabase
-          .from('loan_schedules')
-          .update({
-            paid_amount: payment.payment_amount,
-            outstanding_amount: 0,
-            payment_status: 'paid'
-          })
-          .eq('id', payment.schedule_id);
-
-        if (updateError) throw updateError;
-      }
+      // The database trigger will automatically:
+      // 1. Calculate if overpayment occurred
+      // 2. Transfer overpaid amount to savings account
+      // 3. Auto-close loan if fully paid
+      // 4. Update loan schedules
+      // Real-time updates will handle UI refresh automatically
 
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
       // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loan-schedules', variables.loan_id] });
       queryClient.invalidateQueries({ queryKey: ['collection-cases'] });
@@ -528,9 +521,12 @@ export const useProcessLoanPayment = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['savings-transactions'] });
+      
       toast({
-        title: "Success",
-        description: "Payment processed successfully",
+        title: "Payment Processed",
+        description: "Payment processed successfully. If overpayment occurred, excess amount has been transferred to savings account and loan has been auto-closed.",
       });
     },
     onError: (error: any) => {

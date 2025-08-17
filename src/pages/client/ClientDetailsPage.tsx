@@ -142,6 +142,58 @@ const ClientDetailsPageRefactored = () => {
     }
   }, [clientId]);
 
+  // Real-time subscription for loan and savings updates
+  useEffect(() => {
+    if (!clientId) return;
+
+    const channel = supabase
+      .channel('client-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'loans',
+          filter: `client_id=eq.${clientId}`
+        },
+        (payload) => {
+          console.log('Loan updated for client:', payload);
+          fetchClientData(); // Refresh all data to get updated loan status
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'savings_accounts',
+          filter: `client_id=eq.${clientId}`
+        },
+        (payload) => {
+          console.log('Savings account updated for client:', payload);
+          fetchClientData(); // Refresh all data to get updated savings
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'savings_transactions',
+          filter: `savings_account_id=in.(${savings.map(s => s.id).join(',')})`
+        },
+        (payload) => {
+          console.log('Savings transaction updated for client:', payload);
+          fetchClientData(); // Refresh to show new transactions/balances
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientId, savings]);
+
   const fetchClientData = async () => {
     if (!clientId) return;
 

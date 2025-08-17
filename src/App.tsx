@@ -11,6 +11,7 @@ import { MainSiteRouter } from "./components/MainSiteRouter";
 import { DevToolsBar } from "@/components/dev/DevToolsBar";
 import { useDataOptimization } from "@/hooks/useOptimizedQueries";
 import { getCurrentSubdomain } from "@/utils/tenant";
+import { LoanClosureNotification } from "@/components/notifications/LoanClosureNotification";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +47,7 @@ const App = () => (
               <Sonner />
               <AppRouter />
               <DevToolsBar />
+              <LoanClosureNotification />
             </TooltipProvider>
           </CurrencyProvider>
         </TenantProvider>
