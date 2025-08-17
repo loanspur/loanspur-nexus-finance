@@ -31,11 +31,9 @@ export interface HarmonizedLoanCalculation {
  */
 export async function harmonizeLoanCalculations(loan: LoanCalculationData): Promise<HarmonizedLoanCalculation> {
   try {
-    // Step 1: Correct and validate interest rate
-    const correctedInterestRate = normalizeInterestRate(
-      loan.interest_rate, 
-      loan.loan_products?.default_nominal_interest_rate
-    );
+    // Step 1: Preserve loan's original interest rate - NEVER use product default
+    // Only normalize format (decimal to percentage) but keep the original rate value
+    const correctedInterestRate = normalizeInterestRate(loan.interest_rate);
 
     // Step 2: Fetch current loan schedule
     const { data: currentSchedule, error: scheduleError } = await supabase
@@ -125,37 +123,20 @@ export async function harmonizeLoanCalculations(loan: LoanCalculationData): Prom
 
 /**
  * Normalizes interest rate to ensure it's displayed correctly
- * Handles various formats: 0.067 (6.7%), 6.7 (6.7%), 67 (6.7%), 670 (6.7%)
+ * CRITICAL: Always preserves the loan's original interest rate from creation
+ * Only converts between decimal and percentage formats, never changes the actual rate
  */
 function normalizeInterestRate(currentRate: number, productDefaultRate?: number): number {
-  // If we have a product default rate as reference, use it to determine the correct scale
-  if (productDefaultRate && productDefaultRate > 0) {
-    // If current rate is way off from product rate, normalize it
-    const rateDifference = Math.abs(currentRate - productDefaultRate);
-    
-    if (rateDifference > 100) {
-      // Current rate is likely in wrong scale (e.g., 670 instead of 6.7)
-      if (currentRate > 100) {
-        return currentRate / 100; // Convert 670 to 6.7
-      }
-    }
-    
-    // If they're close, use current rate
-    if (rateDifference <= productDefaultRate * 0.5) {
-      return currentRate;
-    }
-    
-    // Otherwise, use product default
-    return productDefaultRate;
-  }
-
-  // If no product reference, make educated guess
-  if (currentRate > 100) {
-    return currentRate / 100; // Convert 670 to 6.7
-  } else if (currentRate > 1) {
-    return currentRate; // Assume it's already in percentage form
+  // PRESERVE LOAN TERMS: Never replace loan's original rate with product default
+  // The loan should maintain its creation-time interest rate throughout its lifecycle
+  
+  // Convert rate to percentage format for display consistency
+  if (currentRate <= 1) {
+    return currentRate * 100; // Convert 0.067 to 6.7% or 1.2 to 120%
+  } else if (currentRate > 100) {
+    return currentRate / 100; // Convert 670 to 6.7% (likely data entry error)
   } else {
-    return currentRate * 100; // Convert 0.067 to 6.7
+    return currentRate; // Already in percentage form (6.7%)
   }
 }
 

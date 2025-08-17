@@ -725,6 +725,13 @@ export const useProcessLoanApproval = () => {
               status: 'pending_disbursement',
               loan_officer_id: profile.id,
               loan_product_snapshot: productSnapshot, // Preserve product details at loan creation
+              // CRITICAL: Store original creation terms to prevent product updates from affecting loans
+              creation_interest_rate: (() => {
+                const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+                return r > 1 ? r / 100 : r; // Store as decimal
+              })(),
+              creation_term_months: approval.approved_term || loanApplication.requested_term,
+              creation_principal: approval.approved_amount || loanApplication.requested_amount,
             }])
             .select()
             .single();
