@@ -34,6 +34,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { cn } from "@/lib/utils";
 import { isDevelopment, generateSampleLoanData } from "@/lib/dev-utils";
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
+import { generateLoanSchedule } from "@/lib/loan-schedule-generator";
 
 const addLoanAccountSchema = z.object({
   loan_product_id: z.string().min(1, "Please select a loan product"),
@@ -346,7 +347,7 @@ export const AddLoanAccountDialog = ({
     }
   };
 
-  // Generate repayment schedule preview
+  // Generate repayment schedule preview using the proper loan schedule generator
   const generateSchedulePreview = () => {
     const formData = form.getValues();
     if (!formData.requested_amount || !formData.interest_rate || !formData.loan_term || !formData.first_repayment_date) {
@@ -358,42 +359,56 @@ export const AddLoanAccountDialog = ({
       return;
     }
 
+    // Get the selected loan product to determine repayment frequency and calculation method
+    const selectedProduct = loanProducts?.find(p => p.id === formData.loan_product_id);
+    if (!selectedProduct) {
+      toast({
+        title: "Missing Product Information",
+        description: "Please select a loan product first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const principal = parseFloat(formData.requested_amount);
-    const annualRate = parseFloat(formData.interest_rate) / 100;
-    const monthlyRate = annualRate / 12;
+    const annualRate = parseFloat(formData.interest_rate) / 100; // Convert percentage to decimal
     const termMonths = parseInt(formData.loan_term);
     
-    // Calculate fees from selected charges
-    const totalFees = loanCharges.reduce((sum, charge) => {
-      return sum + (parseFloat(charge.amount) || 0);
-    }, 0);
-    const monthlyFees = totalFees / termMonths;
+    // Prepare loan schedule parameters
+    const scheduleParams = {
+      loanId: 'preview',
+      principal,
+      interestRate: annualRate, // Already in decimal format
+      termMonths: selectedProduct.repayment_frequency === 'daily' ? termMonths : termMonths, // For daily, term is in days
+      disbursementDate: format(formData.expected_disbursement_date, 'yyyy-MM-dd'),
+      firstPaymentDate: format(formData.first_repayment_date, 'yyyy-MM-dd'),
+      repaymentFrequency: (selectedProduct.repayment_frequency || 'monthly') as 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly',
+      calculationMethod: (selectedProduct.interest_calculation_method || 'reducing_balance') as 'reducing_balance' | 'flat_rate' | 'declining_balance',
+      installmentFees: loanCharges.map(charge => ({
+        name: charge.charge_type,
+        amount: parseFloat(charge.amount) || 0,
+        charge_time_type: 'installment'
+      }))
+    };
+
+    console.log('Generating schedule with params:', scheduleParams);
+
+    // Generate the schedule using the proper library function
+    const generatedSchedule = generateLoanSchedule(scheduleParams);
     
-    // Calculate monthly payment using standard loan formula
-    const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
-    
-    const schedule = [];
-    let remainingBalance = principal;
-    let currentDate = new Date(formData.first_repayment_date);
+    // Convert to the format expected by the UI
+    const schedule = generatedSchedule.map((entry, index) => ({
+      installment: entry.installment_number,
+      due_date: format(new Date(entry.due_date), "MMM dd, yyyy"),
+      principal: entry.principal_amount,
+      interest: entry.interest_amount,
+      fees: entry.fee_amount,
+      total: entry.total_amount,
+      balance: index === generatedSchedule.length - 1 ? 0 : 
+        generatedSchedule.slice(index + 1).reduce((sum, future) => sum + future.principal_amount, 0)
+    }));
 
-    for (let i = 1; i <= termMonths; i++) {
-      const interestAmount = remainingBalance * monthlyRate;
-      const principalAmount = monthlyPayment - interestAmount;
-      remainingBalance -= principalAmount;
-
-      schedule.push({
-        installment: i,
-        due_date: format(currentDate, "MMM dd, yyyy"),
-        principal: principalAmount,
-        interest: interestAmount,
-        fees: monthlyFees,
-        total: monthlyPayment + monthlyFees,
-        balance: Math.max(0, remainingBalance)
-      });
-
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
+    console.log('Generated schedule preview:', schedule);
 
     setRepaymentSchedule(schedule);
     setShowSchedulePreview(true);
