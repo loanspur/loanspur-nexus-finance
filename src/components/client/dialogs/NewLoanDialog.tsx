@@ -370,11 +370,12 @@ const { formatAmount: formatCurrency } = useCurrency();
         });
       }
     } else {
-      // Flat rate calculation
-      const totalInterest = principal * rate;
-      const monthlyPayment = (principal + totalInterest) / totalPayments;
+      // Flat rate calculation using daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
+      const daysInMonth = 30; // Average days in month for flat rate calculation
+      const dailyInterest = (principal * rate) / (12 * daysInMonth);
+      const monthlyInterest = dailyInterest * daysInMonth;
       const monthlyPrincipal = principal / totalPayments;
-      const monthlyInterest = totalInterest / totalPayments;
+      const monthlyPayment = monthlyPrincipal + monthlyInterest;
       
       for (let i = 1; i <= totalPayments; i++) {
         balance -= monthlyPrincipal;
