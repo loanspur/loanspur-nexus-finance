@@ -4971,6 +4971,7 @@ export type Database = {
           loan_number: string
           loan_officer_id: string | null
           loan_product_id: string
+          loan_product_snapshot: Json | null
           mifos_loan_id: number | null
           next_repayment_amount: number | null
           next_repayment_date: string | null
@@ -4993,6 +4994,7 @@ export type Database = {
           loan_number: string
           loan_officer_id?: string | null
           loan_product_id: string
+          loan_product_snapshot?: Json | null
           mifos_loan_id?: number | null
           next_repayment_amount?: number | null
           next_repayment_date?: string | null
@@ -5015,6 +5017,7 @@ export type Database = {
           loan_number?: string
           loan_officer_id?: string | null
           loan_product_id?: string
+          loan_product_snapshot?: Json | null
           mifos_loan_id?: number | null
           next_repayment_amount?: number | null
           next_repayment_date?: string | null
