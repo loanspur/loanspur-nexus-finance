@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -25,14 +25,17 @@ export const AccountBalancesTable = () => {
   const { data: accountBalances, isLoading: balancesLoading } = useAccountBalances(filters.balanceDate);
   const { data: currentAccounts, isLoading: accountsLoading } = useCurrentAccountBalances();
 
-  const filteredBalances = accountBalances?.filter((balance) => {
-    const matchesSearch = 
-      balance.chart_of_accounts.account_name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-      balance.chart_of_accounts.account_code.toLowerCase().includes(filters.searchTerm.toLowerCase());
-    const matchesType = filters.accountType === "all" || balance.chart_of_accounts.account_type === filters.accountType;
+  // Memoize filtered balances to prevent unnecessary recalculations
+  const filteredBalances = useMemo(() => {
+    return accountBalances?.filter((balance) => {
+      const matchesSearch = 
+        balance.chart_of_accounts.account_name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        balance.chart_of_accounts.account_code.toLowerCase().includes(filters.searchTerm.toLowerCase());
+      const matchesType = filters.accountType === "all" || balance.chart_of_accounts.account_type === filters.accountType;
 
-    return matchesSearch && matchesType;
-  }) || [];
+      return matchesSearch && matchesType;
+    }) || [];
+  }, [accountBalances, filters.searchTerm, filters.accountType]);
 
   // Fallback: compute balances directly from journal entries if no snapshots exist
   const [computedBalances, setComputedBalances] = useState<any[]>([]);
@@ -137,17 +140,22 @@ export const AccountBalancesTable = () => {
     }
   }, [filteredBalances.length, currentAccounts?.length, filters.searchTerm, filters.accountType, filters.balanceDate]);
 
-  const dataSource = (filteredBalances.length > 0 ? filteredBalances : computedBalances);
+  // Memoize data source to prevent unnecessary re-renders
+  const dataSource = useMemo(() => {
+    return filteredBalances.length > 0 ? filteredBalances : computedBalances;
+  }, [filteredBalances, computedBalances]);
 
-  const handleDateSelect = (date: Date | undefined) => {
+  // Debounced date selection to improve performance
+  const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
-    setFilters({ 
-      ...filters, 
+    setFilters(prev => ({ 
+      ...prev, 
       balanceDate: date ? format(date, 'yyyy-MM-dd') : "" 
-    });
-  };
+    }));
+  }, []);
 
-  const getAccountTypeBadge = (type: string) => {
+  // Memoize badge component to prevent re-renders
+  const getAccountTypeBadge = useCallback((type: string) => {
     const typeColors = {
       asset: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
       liability: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
@@ -157,11 +165,11 @@ export const AccountBalancesTable = () => {
     };
     const colorClass = typeColors[type as keyof typeof typeColors] || "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100";
     return <Badge className={colorClass}>{type.toUpperCase()}</Badge>;
-  };
+  }, []);
 
-
-  const getTotalsByType = () => {
-    const totals = {
+  // Memoize totals calculation to prevent unnecessary recalculations
+  const totals = useMemo(() => {
+    const result = {
       assets: 0,
       liabilities: 0,
       equity: 0,
@@ -173,27 +181,25 @@ export const AccountBalancesTable = () => {
       const type = balance.chart_of_accounts.account_type;
       switch (type) {
         case 'asset':
-          totals.assets += balance.closing_balance;
+          result.assets += balance.closing_balance;
           break;
         case 'liability':
-          totals.liabilities += balance.closing_balance;
+          result.liabilities += balance.closing_balance;
           break;
         case 'equity':
-          totals.equity += balance.closing_balance;
+          result.equity += balance.closing_balance;
           break;
         case 'income':
-          totals.income += balance.closing_balance;
+          result.income += balance.closing_balance;
           break;
         case 'expense':
-          totals.expenses += balance.closing_balance;
+          result.expenses += balance.closing_balance;
           break;
       }
     });
 
-    return totals;
-  };
-
-  const totals = getTotalsByType();
+    return result;
+  }, [dataSource]);
 
   if (balancesLoading || accountsLoading || isComputing) {
     return <div>Loading account balances...</div>;
@@ -257,12 +263,12 @@ export const AccountBalancesTable = () => {
               <Input
                 placeholder="Search accounts..."
                 value={filters.searchTerm}
-                onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+                onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
                 className="pl-10"
               />
             </div>
             
-            <Select value={filters.accountType} onValueChange={(value) => setFilters({ ...filters, accountType: value })}>
+            <Select value={filters.accountType} onValueChange={(value) => setFilters(prev => ({ ...prev, accountType: value }))}>
               <SelectTrigger>
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
