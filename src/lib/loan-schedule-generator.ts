@@ -111,8 +111,9 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     } else if (calculationMethod === 'flat_rate') {
       // Flat rate method - interest calculated on original principal
       principalAmount = principal / totalPayments;
-      // Use normalized rate for flat rate calculation
-      interestAmount = (principal * normalizedRate * termMonths) / (12 * totalPayments);
+      // For daily loans, convert term appropriately for flat rate calculation
+      const termInMonths = repaymentFrequency === 'daily' ? termMonths / 30 : termMonths;
+      interestAmount = (principal * normalizedRate * termInMonths) / (12 * totalPayments);
     } else {
       // Default to equal principal installments
       principalAmount = principal / totalPayments;
