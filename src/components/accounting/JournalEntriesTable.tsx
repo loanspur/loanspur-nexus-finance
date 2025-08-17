@@ -11,6 +11,7 @@ import { useJournalEntries, type JournalEntry } from "@/hooks/useAccounting";
 import { JournalEntryForm } from "./JournalEntryForm";
 import { JournalEntryDetailsDialog } from "./JournalEntryDetailsDialog";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useOffices } from "@/hooks/useOfficeManagement";
 
 export const JournalEntriesTable = () => {
   const [filters, setFilters] = useState({
@@ -18,11 +19,13 @@ export const JournalEntriesTable = () => {
     dateTo: "",
     status: "all",
     searchTerm: "",
+    officeId: "",
   });
   const [showForm, setShowForm] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   const { data: journalEntries, isLoading } = useJournalEntries(filters);
+  const { data: offices } = useOffices();
   const { formatAmount } = useCurrency();
 
   const getStatusBadge = (status: string) => {
@@ -65,7 +68,7 @@ export const JournalEntriesTable = () => {
         </CardHeader>
         <CardContent>
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -90,6 +93,20 @@ export const JournalEntriesTable = () => {
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
             />
             
+            <Select value={filters.officeId} onValueChange={(value) => setFilters({ ...filters, officeId: value === "all" ? "" : value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Offices" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Offices</SelectItem>
+                {offices?.map((office) => (
+                  <SelectItem key={office.id} value={office.id}>
+                    {office.office_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? "" : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="All Status" />
@@ -104,7 +121,7 @@ export const JournalEntriesTable = () => {
             
             <Button 
               variant="outline"
-              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "all", searchTerm: "" })}
+              onClick={() => setFilters({ dateFrom: "", dateTo: "", status: "all", searchTerm: "", officeId: "" })}
             >
               <Filter className="h-4 w-4 mr-2" />
               Clear Filters
@@ -119,6 +136,7 @@ export const JournalEntriesTable = () => {
                 <TableRow>
                   <TableHead>Entry #</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Branch/Office</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Reference</TableHead>
@@ -128,31 +146,35 @@ export const JournalEntriesTable = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {journalEntries?.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium">{entry.entry_number}</TableCell>
-                    <TableCell>{format(new Date(entry.transaction_date), 'MMM dd, yyyy')}</TableCell>
-                    <TableCell>{getReferenceTypeBadge(entry.reference_type)}</TableCell>
-                    <TableCell className="max-w-xs truncate" title={entry.description}>
-                      {entry.description}
-                    </TableCell>
-                    <TableCell>{entry.reference_id || "-"}</TableCell>
-                    <TableCell className="text-right">{formatAmount(entry.total_amount)}</TableCell>
-                    <TableCell>{getStatusBadge(entry.status)}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedEntry(entry)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {journalEntries?.map((entry) => {
+                  const office = offices?.find(o => o.id === entry.office_id);
+                  return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">{entry.entry_number}</TableCell>
+                      <TableCell>{format(new Date(entry.transaction_date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{office ? office.office_name : "N/A"}</TableCell>
+                      <TableCell>{getReferenceTypeBadge(entry.reference_type)}</TableCell>
+                      <TableCell className="max-w-xs truncate" title={entry.description}>
+                        {entry.description}
+                      </TableCell>
+                      <TableCell>{entry.reference_id || "-"}</TableCell>
+                      <TableCell className="text-right">{formatAmount(entry.total_amount)}</TableCell>
+                      <TableCell>{getStatusBadge(entry.status)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedEntry(entry)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {(!journalEntries || journalEntries.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No journal entries found. Create your first entry to get started.
                     </TableCell>
                   </TableRow>

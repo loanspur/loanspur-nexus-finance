@@ -12,6 +12,7 @@ export interface JournalEntry {
   transaction_date: string;
   reference_type?: string;
   reference_id?: string;
+  office_id?: string;
   description: string;
   total_amount: number;
   status: 'draft' | 'posted' | 'reversed';
@@ -30,7 +31,7 @@ export interface JournalEntryLine {
   description?: string;
   debit_amount: number;
   credit_amount: number;
-  line_order: number;
+  line_order?: number;
   created_at: string;
   account?: {
     account_name: string;
@@ -120,6 +121,7 @@ export const useJournalEntries = (filters?: {
   dateTo?: string;
   status?: string;
   searchTerm?: string;
+  officeId?: string;
 }) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -194,6 +196,9 @@ export const useJournalEntries = (filters?: {
       if (filters?.searchTerm) {
         query = query.or(`description.ilike.%${filters.searchTerm}%,entry_number.ilike.%${filters.searchTerm}%`);
       }
+      if (filters?.officeId && filters.officeId !== 'all') {
+        query = query.eq('office_id', filters.officeId);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -214,6 +219,7 @@ export const useCreateJournalEntry = () => {
       description: string;
       reference_type?: string;
       reference_id?: string;
+      office_id?: string;
       lines: Array<{
         account_id: string;
         description?: string;
@@ -246,7 +252,9 @@ export const useCreateJournalEntry = () => {
           description: data.description,
           reference_type: data.reference_type || null,
           reference_id: data.reference_id && data.reference_id.trim() !== '' ? data.reference_id : null,
+          office_id: data.office_id || null,
           total_amount: totalDebit,
+          status: 'posted',
           created_by: profile.id,
         })
         .select()

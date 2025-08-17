@@ -13,12 +13,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useUserAccessibleOffices } from "@/hooks/useOfficeManagement";
 
 const journalEntrySchema = z.object({
   transaction_date: z.string().min(1, "Transaction date is required"),
   description: z.string().min(1, "Description is required"),
   reference_type: z.string().optional(),
   reference_id: z.string().optional(),
+  office_id: z.string().optional(),
   lines: z.array(z.object({
     account_id: z.string().min(1, "Account is required"),
     description: z.string().optional(),
@@ -37,6 +39,7 @@ interface JournalEntryFormProps {
 export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) => {
   const createJournalEntryMutation = useCreateJournalEntry();
   const { data: accounts } = useChartOfAccounts();
+  const { data: offices } = useUserAccessibleOffices();
   const { formatAmount } = useCurrency();
 
   const form = useForm<JournalEntryFormData>({
@@ -46,6 +49,7 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
       description: "",
       reference_type: "",
       reference_id: "",
+      office_id: "",
       lines: [
         { account_id: "", description: "", debit_amount: "0", credit_amount: "0" },
         { account_id: "", description: "", debit_amount: "0", credit_amount: "0" },
@@ -68,6 +72,7 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
         description: data.description,
         reference_type: data.reference_type,
         reference_id: data.reference_id,
+        office_id: data.office_id,
         lines: data.lines.map(line => ({
           account_id: line.account_id,
           description: line.description,
@@ -100,7 +105,7 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="transaction_date"
@@ -110,6 +115,31 @@ export const JournalEntryForm = ({ open, onOpenChange }: JournalEntryFormProps) 
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="office_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Branch/Office</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select branch/office" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {offices?.map((office) => (
+                          <SelectItem key={office.id} value={office.id}>
+                            {office.office_name} ({office.office_code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
