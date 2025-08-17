@@ -205,6 +205,11 @@ export const AccountBalancesTable = () => {
     return <div>Loading account balances...</div>;
   }
 
+  // Check if there are no journal entries or transactions
+  const hasNoTransactionData = dataSource.length === 0 || dataSource.every((balance: any) => 
+    balance.opening_balance === 0 && balance.period_debits === 0 && balance.period_credits === 0
+  );
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -330,14 +335,10 @@ export const AccountBalancesTable = () => {
                 {dataSource.length === 0 && !filters.balanceDate && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      {currentAccounts && currentAccounts.length > 0 ? (
-                        <div>
-                          <p>No account balances recorded yet.</p>
-                          <p className="text-sm mt-2">We are computing live balances from journal entries.</p>
-                        </div>
-                      ) : (
-                        "No accounts found. Create accounts in the Chart of Accounts tab first."
-                      )}
+                      <div className="space-y-2">
+                        <p>No journal entries found in the system.</p>
+                        <p className="text-sm">Account balances will appear here once you create loan disbursements, repayments, or other financial transactions.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
@@ -345,6 +346,16 @@ export const AccountBalancesTable = () => {
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No account balances found for the selected date.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {hasNoTransactionData && dataSource.length > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-4 text-amber-600 bg-amber-50 dark:bg-amber-900/20">
+                      <div className="space-y-1">
+                        <p className="font-medium">No transaction data available</p>
+                        <p className="text-sm">Opening balances, debits, and credits will show once journal entries are created.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
