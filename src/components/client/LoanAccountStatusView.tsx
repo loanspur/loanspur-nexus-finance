@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -15,8 +14,8 @@ import {
   DollarSign
 } from "lucide-react";
 import { format } from "date-fns";
-import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
-import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface LoanAccount {
@@ -58,57 +57,23 @@ export const LoanAccountStatusView = ({
 
 const { formatAmount: formatCurrency } = useCurrency();
 
-  const getStatusBadge = (status: string, type: 'loan' | 'application') => {
-    const statusLower = status.toLowerCase();
-    
-    if (type === 'application') {
-      switch (statusLower) {
-        case 'pending':
-          return <Badge variant="outline" className="border-yellow-500 text-yellow-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-        case 'pending_approval':
-          return <Badge variant="outline" className="border-blue-500 text-blue-600"><Clock className="w-3 h-3 mr-1" />Under Review</Badge>;
-        case 'pending_disbursement':
-          return <Badge variant="outline" className="border-green-500 text-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-        case 'approved':
-          return <Badge variant="outline" className="border-green-500 text-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-        case 'rejected':
-          return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
-        case 'withdrawn':
-          return <Badge variant="outline" className="border-gray-500 text-gray-600"><XCircle className="w-3 h-3 mr-1" />Withdrawn</Badge>;
-        default:
-          return <Badge variant="outline" className="capitalize">{status}</Badge>;
-      }
-    } else {
-      switch (statusLower) {
-        case 'active':
-          return <Badge variant="outline" className="border-green-500 text-green-600"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
-        case 'pending_approval':
-          return <Badge variant="outline" className="border-blue-500 text-blue-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-        case 'overdue':
-          return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Overdue</Badge>;
-        case 'closed':
-        case 'fully_paid':
-          return <Badge variant="outline" className="border-gray-500 text-gray-600"><CheckCircle className="w-3 h-3 mr-1" />Closed</Badge>;
-        case 'written_off':
-          return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Written Off</Badge>;
-        default:
-          return <Badge variant="outline" className="capitalize">{status}</Badge>;
-      }
-    }
-  };
+  // Removed getStatusBadge - now using UnifiedStatusBadge
 
-  const accountsWithDerived = accounts.map((a) => ({ ...a, __derived: getDerivedLoanStatus(a) }));
+  const accountsWithDerived = accounts.map((a) => ({ 
+    ...a, 
+    __unified: getUnifiedLoanStatus(a)
+  }));
 
   const filteredAccounts = accountsWithDerived.filter(account => {
     if (filterStatus === 'all') return true;
-    return account.__derived.status === filterStatus;
+    return account.__unified.status === filterStatus;
   });
 
   const statusCounts = {
-    active: accountsWithDerived.filter(a => a.__derived.status === 'active').length,
-    pending: accountsWithDerived.filter(a => ['pending', 'pending_approval', 'under_review'].includes(a.__derived.status)).length,
-    overdue: accountsWithDerived.filter(a => a.__derived.status === 'in_arrears').length,
-    closed: accountsWithDerived.filter(a => ['closed', 'fully_paid', 'rejected', 'withdrawn'].includes(a.__derived.status)).length,
+    active: accountsWithDerived.filter(a => StatusHelpers.isActive(a.__unified.status)).length,
+    pending: accountsWithDerived.filter(a => StatusHelpers.isPending(a.__unified.status) || StatusHelpers.isApproved(a.__unified.status)).length,
+    overdue: accountsWithDerived.filter(a => StatusHelpers.isProblem(a.__unified.status)).length,
+    closed: accountsWithDerived.filter(a => StatusHelpers.isClosed(a.__unified.status)).length,
   };
 
   return (
@@ -229,7 +194,7 @@ const { formatAmount: formatCurrency } = useCurrency();
                           <h4 className="font-medium">{account.display_name}</h4>
                           <p className="text-sm text-muted-foreground font-mono">{account.identifier}</p>
                         </div>
-                        <LoanStatusBadge status={getDerivedLoanStatus(account).status} size="sm" />
+                        <UnifiedStatusBadge entity={account} entityType="loan" size="sm" />
                       </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

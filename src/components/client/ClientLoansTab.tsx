@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
-import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ClientLoansTabProps {
@@ -55,18 +55,16 @@ export const ClientLoansTab = ({
     if (showClosedLoans) {
       // Show only rejected/closed loans and applications (including derived closed status)
       const filteredLoans = loans.filter(loan => {
-        const rawStatus = loan.status?.toLowerCase();
-        const derivedStatus = getDerivedLoanStatus(loan);
-        return rejectedClosedStatuses.includes(rawStatus) || rejectedClosedStatuses.includes(derivedStatus.status);
+        const unified = getUnifiedLoanStatus(loan);
+        return StatusHelpers.isClosed(unified.status);
       });
       const filteredApplications = loanApplications.filter(app => rejectedClosedStatuses.includes(app.status?.toLowerCase()));
       return { loans: filteredLoans, applications: filteredApplications };
     } else {
       // Show all except rejected/closed loans and applications (including derived closed status)
       const filteredLoans = loans.filter(loan => {
-        const rawStatus = loan.status?.toLowerCase();
-        const derivedStatus = getDerivedLoanStatus(loan);
-        return !rejectedClosedStatuses.includes(rawStatus) && !rejectedClosedStatuses.includes(derivedStatus.status);
+        const unified = getUnifiedLoanStatus(loan);
+        return !StatusHelpers.isClosed(unified.status);
       });
       const filteredApplications = loanApplications.filter(app => !rejectedClosedStatuses.includes(app.status?.toLowerCase()));
       return { loans: filteredLoans, applications: filteredApplications };
@@ -246,35 +244,26 @@ export const ClientLoansTab = ({
                           </p>
                         </div>
                          {(() => {
-                           const derivedStatus = getDerivedLoanStatus(item);
-                           let displayStatus = derivedStatus.status;
-                           
-                           // Map derived statuses to display appropriately
-                           if (derivedStatus.status === 'in_arrears') {
-                             displayStatus = 'overdue';
-                           } else if (derivedStatus.overpaidAmount) {
-                             displayStatus = 'overpaid';
-                           }
-                           
+                           const unified = getUnifiedLoanStatus(item);
                            return (
                              <div className="flex items-center gap-2">
                                <LoanStatusBadge 
-                                 status={displayStatus} 
+                                 status={unified.status} 
                                  size="sm" 
                                />
-                               {derivedStatus.daysInArrears && (
+                               {unified.derived.daysInArrears && (
                                  <span className="text-xs text-red-600 font-medium">
-                                   {derivedStatus.daysInArrears} days overdue
+                                   {unified.derived.daysInArrears} days overdue
                                  </span>
+                               )}
+                               {unified.derived.overpaidAmount && (
+                                 <div className="text-xs text-purple-600 font-medium">
+                                   Excess: {formatAmount(unified.derived.overpaidAmount)}
+                                 </div>
                                )}
                              </div>
                            );
                          })()}
-                         {getDerivedLoanStatus(item).overpaidAmount && (
-                           <div className="text-xs text-purple-600 font-medium">
-                             Excess: {formatAmount(getDerivedLoanStatus(item).overpaidAmount || 0)}
-                           </div>
-                         )}
                       </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { 
   Edit, 
   CreditCard, 
@@ -403,24 +403,21 @@ const { formatAmount: formatCurrency } = useCurrency();
   };
 
   const activeLoans = loans.filter(loan => {
-    const derivedStatus = getDerivedLoanStatus(loan);
-    const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
-    return !closedStatuses.includes(derivedStatus.status?.toLowerCase());
+    const unified = getUnifiedLoanStatus(loan);
+    return !StatusHelpers.isClosed(unified.status);
   });
 
   const activeSavings = savings.filter(account => {
-    const closedStatuses = ['closed', 'inactive', 'dormant'];
-    return !closedStatuses.includes(account.status?.toLowerCase());
+    return !StatusHelpers.isClosed(account.status?.toLowerCase());
   });
 
   // Unified loans count (dedupe applications vs. approved/pending_disbursement loans)
-  const rejectedClosedStatuses = ['rejected', 'closed'];
   const visibleLoans = showClosedLoans
-    ? loans.filter(l => rejectedClosedStatuses.includes(l.status?.toLowerCase()))
-    : loans.filter(l => !rejectedClosedStatuses.includes(l.status?.toLowerCase()));
+    ? loans.filter(l => StatusHelpers.isClosed(l.status?.toLowerCase()))
+    : loans.filter(l => !StatusHelpers.isClosed(l.status?.toLowerCase()));
   const visibleApplications = showClosedLoans
-    ? loanApplications.filter(a => rejectedClosedStatuses.includes(a.status?.toLowerCase()))
-    : loanApplications.filter(a => !rejectedClosedStatuses.includes(a.status?.toLowerCase()));
+    ? loanApplications.filter(a => StatusHelpers.isClosed(a.status?.toLowerCase()))
+    : loanApplications.filter(a => !StatusHelpers.isClosed(a.status?.toLowerCase()));
   const applicationIds = new Set(visibleApplications.map(a => a.id));
   const dedupedLoans = visibleLoans.filter((loan) => {
     const status = (loan.status || '').toLowerCase();
