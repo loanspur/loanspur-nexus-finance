@@ -100,7 +100,8 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
         // Ensure principal doesn't exceed remaining balance for last payment
         if (i === totalPayments || principalAmount > remainingBalance) {
           principalAmount = remainingBalance;
-          interestAmount = principalAmount * periodicRate;
+          // Interest should be calculated on remaining balance before payment, not on principal amount
+          interestAmount = remainingBalance * periodicRate;
         }
       } else {
         // Zero interest rate
@@ -110,7 +111,8 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     } else if (calculationMethod === 'flat_rate') {
       // Flat rate method - interest calculated on original principal
       principalAmount = principal / totalPayments;
-      interestAmount = (principal * interestRate * termMonths) / (12 * totalPayments);
+      // Use normalized rate for flat rate calculation
+      interestAmount = (principal * normalizedRate * termMonths) / (12 * totalPayments);
     } else {
       // Default to equal principal installments
       principalAmount = principal / totalPayments;
