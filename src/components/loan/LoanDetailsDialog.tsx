@@ -53,6 +53,7 @@ import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
 import { useLoanDisplayData } from "@/hooks/useHarmonizedLoanData";
+import { calculateReducingBalanceInterest } from "@/lib/interest-calculation";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -578,11 +579,18 @@ const getStatusColor = (status: string) => {
     
     // Fallback calculation if no schedules
     const principal = Number(loan?.principal_amount || 0);
-    const rate = Number(loan?.interest_rate || loanProduct?.default_nominal_interest_rate || 0) / 100 / 12;
+    const interestRate = Number(loan?.interest_rate || loanProduct?.default_nominal_interest_rate || 0);
     const term = Number(loan?.term_months || 12);
     
-    if (rate > 0) {
-      return (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+    if (interestRate > 0 && principal > 0) {
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal,
+        annualRate: interestRate,
+        termInMonths: term,
+        calculationMethod: 'reducing_balance'
+      });
+      return interestResult.monthlyPayment;
     }
     return principal / term;
   }, [schedules, loan?.principal_amount, loan?.interest_rate, loan?.term_months, loanProduct?.default_nominal_interest_rate]);

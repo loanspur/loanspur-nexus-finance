@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { useSavingsInterestPostingAccounting } from '@/hooks/useSavingsAccounting';
+import { calculateDailyInterest } from '@/lib/interest-calculation';
 export interface SavingsTransaction {
   id: string;
   tenant_id: string;
@@ -252,7 +253,9 @@ export const useCalculateInterest = () => {
 
       const averageBalance = account.account_balance || 0;
       const days = Math.ceil((new Date(periodEnd).getTime() - new Date(periodStart).getTime()) / (1000 * 60 * 60 * 24));
-      const interestAmount = (averageBalance * interestRate / 100 * days) / 365;
+      // Use standardized interest calculation for savings
+      const dailyInterest = calculateDailyInterest(averageBalance, interestRate, 365);
+      const interestAmount = dailyInterest * days;
 
       // Create interest posting record
       const { data: posting, error: postingError } = await supabase

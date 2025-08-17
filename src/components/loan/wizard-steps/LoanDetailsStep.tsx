@@ -2,7 +2,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest, calculateFlatRateInterest } from "@/lib/interest-calculation";
 import {
   FormControl,
   FormField,
@@ -161,8 +161,14 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      const totalInterest = (requestedAmount * interestRate * requestedTerm) / 100;
-      return (requestedAmount + totalInterest) / numberOfInstallments;
+      // Use unified interest calculation library
+      const interestResult = calculateFlatRateInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: requestedTerm,
+        calculationMethod: 'flat_rate'
+      });
+      return interestResult.monthlyPayment;
     } else if (calculationMethod === 'declining_balance') {
       // Use unified interest calculation library
       const interestResult = calculateReducingBalanceInterest({
@@ -181,7 +187,14 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      return (requestedAmount * interestRate * requestedTerm) / 100;
+      // Use unified interest calculation library
+      const interestResult = calculateFlatRateInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: requestedTerm,
+        calculationMethod: 'flat_rate'
+      });
+      return interestResult.totalInterest;
     } else if (calculationMethod === 'declining_balance') {
       const monthlyPayment = calculateMonthlyPayment();
       return (monthlyPayment * numberOfInstallments) - requestedAmount;

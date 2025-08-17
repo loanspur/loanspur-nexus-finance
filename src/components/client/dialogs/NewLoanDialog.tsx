@@ -33,7 +33,7 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { FormDescription } from "@/components/ui/form";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
-import { calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
 import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -350,11 +350,17 @@ const { formatAmount: formatCurrency } = useCurrency();
     };
     
     if (formData.interest_calculation_method === 'declining_balance') {
-      const monthlyPayment = (principal * periodicRate * Math.pow(1 + periodicRate, totalPayments)) / 
-                            (Math.pow(1 + periodicRate, totalPayments) - 1);
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal,
+        annualRate: rate * 100, // rate is in decimal, convert to percentage
+        termInMonths: totalPayments,
+        calculationMethod: 'reducing_balance'
+      });
+      const monthlyPayment = interestResult.monthlyPayment;
       
       for (let i = 1; i <= totalPayments; i++) {
-        const interestPayment = balance * periodicRate;
+        const interestPayment = calculateMonthlyInterest(balance, rate * 100);
         const principalPayment = monthlyPayment - interestPayment;
         const repaymentDate = getRepaymentDate(i);
         balance -= principalPayment;

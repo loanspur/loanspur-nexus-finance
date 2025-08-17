@@ -61,6 +61,7 @@ import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
 
 interface Client {
   id: string;
@@ -1445,11 +1446,18 @@ const ClientDetailsPage = () => {
                       <CardContent>
                         {(() => {
                           const principal = selectedAccount.final_approved_amount || selectedAccount.requested_amount || selectedAccount.principal_amount || 0;
-                          const rate = (selectedAccount.final_approved_interest_rate || selectedAccount.nominal_annual_interest_rate || 0) / 100 / 12;
+                          const interestRate = selectedAccount.final_approved_interest_rate || selectedAccount.nominal_annual_interest_rate || 0;
                           const term = selectedAccount.final_approved_term || selectedAccount.requested_term || selectedAccount.term_frequency || 12;
                           
-                          if (principal > 0 && rate > 0 && term > 0) {
-                            const monthlyPayment = (principal * rate * Math.pow(1 + rate, term)) / (Math.pow(1 + rate, term) - 1);
+                          if (principal > 0 && interestRate > 0 && term > 0) {
+                            // Use unified interest calculation library
+                            const interestResult = calculateReducingBalanceInterest({
+                              principal,
+                              annualRate: interestRate,
+                              termInMonths: term,
+                              calculationMethod: 'reducing_balance'
+                            });
+                            const monthlyPayment = interestResult.monthlyPayment;
                             const totalPayment = monthlyPayment * term;
                             const totalInterest = totalPayment - principal;
 

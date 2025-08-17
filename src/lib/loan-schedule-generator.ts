@@ -1,5 +1,5 @@
 import { addMonths, addWeeks, addDays, format } from 'date-fns';
-import { calculateDailyInterestForDate } from './interest-calculation';
+import { calculateDailyInterestForDate, calculateMonthlyInterest } from './interest-calculation';
 
 export interface LoanScheduleParams {
   loanId: string;
@@ -90,12 +90,14 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
         if (amortizationMethod === 'equal_installments') {
           // Equal total payments (PMT calculation)
           const monthlyPayment = calculateMonthlyPayment(principal, periodicRate, totalPayments);
-          interestAmount = remainingBalance * periodicRate;
+          // Use unified interest calculation for reducing balance
+          interestAmount = calculateMonthlyInterest(remainingBalance, normalizedRate * 100);
           principalAmount = monthlyPayment - interestAmount;
         } else if (amortizationMethod === 'equal_principal') {
           // Equal principal payments
           principalAmount = principal / totalPayments;
-          interestAmount = remainingBalance * periodicRate;
+          // Use unified interest calculation for flat rate equal principal
+          interestAmount = calculateMonthlyInterest(remainingBalance, normalizedRate * 100);
         }
         
         // Ensure principal doesn't exceed remaining balance for last payment
@@ -127,7 +129,8 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     } else {
       // Default to equal principal installments
       principalAmount = principal / totalPayments;
-      interestAmount = remainingBalance * periodicRate;
+      // Use unified interest calculation for flat rate
+      interestAmount = calculateMonthlyInterest(remainingBalance, normalizedRate * 100);
     }
 
     // Round amounts to 2 decimal places
