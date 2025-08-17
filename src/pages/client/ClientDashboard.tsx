@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
 import { useClientDashboardData } from "@/hooks/useDashboardData";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 import { 
   CreditCard, 
   PiggyBank, 
@@ -285,9 +287,10 @@ const ClientDashboard = () => {
                           Principal: {formatAmount(loan.principal_amount)}
                         </div>
                       </div>
-                      <Badge variant={loan.status === 'active' ? 'default' : 'secondary'}>
-                        {loan.status}
-                      </Badge>
+                       <LoanStatusBadge 
+                        status={getDerivedLoanStatus(loan).status} 
+                        size="sm" 
+                      />
                     </div>
                     <div className="text-xl font-semibold text-primary">
                       {formatAmount(loan.outstanding_balance || 0)}
