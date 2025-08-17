@@ -129,7 +129,14 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         // Prepayment & Reschedule Settings
         pre_closure_interest_calculation_rule: (editingProduct as any).pre_closure_interest_calculation_rule || "till_pre_close_date",
         advance_payments_adjustment_type: (editingProduct as any).advance_payments_adjustment_type || "reduce_emi",
-        reschedule_strategy: (editingProduct as any).reschedule_strategy || "reduce_emi",
+        reschedule_strategy_method: (editingProduct as any).reschedule_strategy_method || "reduce_emi",
+        
+        // Enhanced calculation settings
+        days_in_year_type: (editingProduct as any).days_in_year_type || '365',
+        days_in_month_type: (editingProduct as any).days_in_month_type || 'actual',
+        amortization_method: (editingProduct as any).amortization_method || 'equal_installments',
+        interest_recalculation_enabled: (editingProduct as any).interest_recalculation_enabled || false,
+        compounding_enabled: (editingProduct as any).compounding_enabled || false,
         repayment_strategy: (editingProduct as any).repayment_strategy || 'penalties_fees_interest_principal',
         
         // Fees & Charges

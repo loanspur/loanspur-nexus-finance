@@ -725,13 +725,22 @@ export const useProcessLoanApproval = () => {
               status: 'pending_disbursement',
               loan_officer_id: profile.id,
               loan_product_snapshot: productSnapshot, // Preserve product details at loan creation
-              // CRITICAL: Store original creation terms to prevent product updates from affecting loans
-              creation_interest_rate: (() => {
-                const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
-                return r > 1 ? r / 100 : r; // Store as decimal
-              })(),
-              creation_term_months: approval.approved_term || loanApplication.requested_term,
-              creation_principal: approval.approved_amount || loanApplication.requested_amount,
+               // CRITICAL: Store original creation terms to prevent product updates from affecting loans
+               creation_interest_rate: (() => {
+                 const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+                 return r > 1 ? r / 100 : r; // Store as decimal
+               })(),
+               creation_term_months: approval.approved_term || loanApplication.requested_term,
+               creation_principal: approval.approved_amount || loanApplication.requested_amount,
+               // Enhanced MiFos X settings persistence
+               creation_days_in_year_type: productSnapshot?.days_in_year_type || '365',
+               creation_days_in_month_type: productSnapshot?.days_in_month_type || 'actual',
+               creation_amortization_method: productSnapshot?.amortization_method || 'equal_installments',
+               creation_interest_recalculation_enabled: productSnapshot?.interest_recalculation_enabled || false,
+               creation_compounding_enabled: productSnapshot?.compounding_enabled || false,
+               creation_reschedule_strategy_method: productSnapshot?.reschedule_strategy_method || 'reduce_emi',
+               creation_pre_closure_interest_calculation_rule: productSnapshot?.pre_closure_interest_calculation_rule || 'till_pre_close_date',
+               creation_advance_payments_adjustment_type: productSnapshot?.advance_payments_adjustment_type || 'reduce_emi',
             }])
             .select()
             .single();

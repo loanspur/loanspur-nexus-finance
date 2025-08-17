@@ -4639,13 +4639,17 @@ export type Database = {
           advance_payments_adjustment_type: string | null
           allow_joint_applications: boolean | null
           allow_partial_period_interest: boolean | null
+          amortization_method: string | null
           application_steps: Json | null
           arrears_tolerance_amount: number | null
           arrears_tolerance_days: number | null
           auto_calculate_repayment: boolean | null
+          compounding_enabled: boolean | null
           compounding_frequency: string | null
           created_at: string
           currency_code: string
+          days_in_month_type: string | null
+          days_in_year_type: string | null
           default_nominal_interest_rate: number | null
           default_principal: number | null
           default_term: number | null
@@ -4665,6 +4669,7 @@ export type Database = {
           interest_calculation_period: string | null
           interest_income_account_id: string | null
           interest_payment_account_id: string | null
+          interest_recalculation_enabled: boolean | null
           interest_receivable_account_id: string | null
           is_active: boolean
           late_payment_penalty_amount: number | null
@@ -4703,6 +4708,7 @@ export type Database = {
           require_insurance: boolean | null
           required_documents: Json | null
           reschedule_strategy: string | null
+          reschedule_strategy_method: string | null
           short_name: string
           suspended_income_account_id: string | null
           tenant_id: string
@@ -4714,13 +4720,17 @@ export type Database = {
           advance_payments_adjustment_type?: string | null
           allow_joint_applications?: boolean | null
           allow_partial_period_interest?: boolean | null
+          amortization_method?: string | null
           application_steps?: Json | null
           arrears_tolerance_amount?: number | null
           arrears_tolerance_days?: number | null
           auto_calculate_repayment?: boolean | null
+          compounding_enabled?: boolean | null
           compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
+          days_in_month_type?: string | null
+          days_in_year_type?: string | null
           default_nominal_interest_rate?: number | null
           default_principal?: number | null
           default_term?: number | null
@@ -4740,6 +4750,7 @@ export type Database = {
           interest_calculation_period?: string | null
           interest_income_account_id?: string | null
           interest_payment_account_id?: string | null
+          interest_recalculation_enabled?: boolean | null
           interest_receivable_account_id?: string | null
           is_active?: boolean
           late_payment_penalty_amount?: number | null
@@ -4778,6 +4789,7 @@ export type Database = {
           require_insurance?: boolean | null
           required_documents?: Json | null
           reschedule_strategy?: string | null
+          reschedule_strategy_method?: string | null
           short_name: string
           suspended_income_account_id?: string | null
           tenant_id: string
@@ -4789,13 +4801,17 @@ export type Database = {
           advance_payments_adjustment_type?: string | null
           allow_joint_applications?: boolean | null
           allow_partial_period_interest?: boolean | null
+          amortization_method?: string | null
           application_steps?: Json | null
           arrears_tolerance_amount?: number | null
           arrears_tolerance_days?: number | null
           auto_calculate_repayment?: boolean | null
+          compounding_enabled?: boolean | null
           compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
+          days_in_month_type?: string | null
+          days_in_year_type?: string | null
           default_nominal_interest_rate?: number | null
           default_principal?: number | null
           default_term?: number | null
@@ -4815,6 +4831,7 @@ export type Database = {
           interest_calculation_period?: string | null
           interest_income_account_id?: string | null
           interest_payment_account_id?: string | null
+          interest_recalculation_enabled?: boolean | null
           interest_receivable_account_id?: string | null
           is_active?: boolean
           late_payment_penalty_amount?: number | null
@@ -4853,6 +4870,7 @@ export type Database = {
           require_insurance?: boolean | null
           required_documents?: Json | null
           reschedule_strategy?: string | null
+          reschedule_strategy_method?: string | null
           short_name?: string
           suspended_income_account_id?: string | null
           tenant_id?: string
@@ -5087,6 +5105,14 @@ export type Database = {
           application_id: string | null
           client_id: string
           created_at: string
+          creation_advance_payments_adjustment_type: string | null
+          creation_amortization_method: string | null
+          creation_compounding_enabled: boolean | null
+          creation_days_in_month_type: string | null
+          creation_days_in_year_type: string | null
+          creation_interest_recalculation_enabled: boolean | null
+          creation_pre_closure_interest_calculation_rule: string | null
+          creation_reschedule_strategy_method: string | null
           disbursement_date: string | null
           expected_maturity_date: string | null
           id: string
@@ -5110,6 +5136,14 @@ export type Database = {
           application_id?: string | null
           client_id: string
           created_at?: string
+          creation_advance_payments_adjustment_type?: string | null
+          creation_amortization_method?: string | null
+          creation_compounding_enabled?: boolean | null
+          creation_days_in_month_type?: string | null
+          creation_days_in_year_type?: string | null
+          creation_interest_recalculation_enabled?: boolean | null
+          creation_pre_closure_interest_calculation_rule?: string | null
+          creation_reschedule_strategy_method?: string | null
           disbursement_date?: string | null
           expected_maturity_date?: string | null
           id?: string
@@ -5133,6 +5167,14 @@ export type Database = {
           application_id?: string | null
           client_id?: string
           created_at?: string
+          creation_advance_payments_adjustment_type?: string | null
+          creation_amortization_method?: string | null
+          creation_compounding_enabled?: boolean | null
+          creation_days_in_month_type?: string | null
+          creation_days_in_year_type?: string | null
+          creation_interest_recalculation_enabled?: boolean | null
+          creation_pre_closure_interest_calculation_rule?: string | null
+          creation_reschedule_strategy_method?: string | null
           disbursement_date?: string | null
           expected_maturity_date?: string | null
           id?: string

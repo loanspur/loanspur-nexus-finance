@@ -11,6 +11,10 @@ export interface LoanScheduleParams {
   firstPaymentDate?: string; // Optional, defaults to one period after disbursement
   disbursementFees?: Array<{ name: string; amount: number; charge_time_type: string }>; // Disbursement-level fees
   installmentFees?: Array<{ name: string; amount: number; charge_time_type: string }>; // Per-installment fees
+  // Enhanced MiFos X compatible settings
+  daysInYearType?: '360' | '365' | 'actual';
+  daysInMonthType?: '30' | 'actual';
+  amortizationMethod?: 'equal_installments' | 'equal_principal';
 }
 
 export interface LoanScheduleEntry {
@@ -37,7 +41,10 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     calculationMethod = 'reducing_balance',
     firstPaymentDate,
     disbursementFees = [],
-    installmentFees = []
+    installmentFees = [],
+    daysInYearType = '365',
+    daysInMonthType = 'actual',
+    amortizationMethod = 'equal_installments'
   } = params;
 
   const schedule: LoanScheduleEntry[] = [];
@@ -63,7 +70,9 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     totalPayments = Math.ceil((termMonths / 12) * paymentsPerYear);
   }
   
-  const periodicRate = normalizedRate / paymentsPerYear;
+  // Calculate periodic rate using MiFos X compatible days convention
+  const daysInYear = getDaysInYear(daysInYearType, startDate);
+  const periodicRate = calculatePeriodicRate(normalizedRate, repaymentFrequency, daysInYear, paymentsPerYear);
 
   // Calculate first payment date
   let nextPaymentDate = firstPaymentDate ? new Date(firstPaymentDate) : getNextPaymentDate(startDate, repaymentFrequency);
@@ -75,11 +84,18 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     let interestAmount = 0;
 
     if (calculationMethod === 'reducing_balance' || calculationMethod === 'declining_balance') {
-      // Reducing/Declining balance method
+      // Reducing/Declining balance method with amortization options
       if (periodicRate > 0) {
-        const monthlyPayment = calculateMonthlyPayment(principal, periodicRate, totalPayments);
-        interestAmount = remainingBalance * periodicRate;
-        principalAmount = monthlyPayment - interestAmount;
+        if (amortizationMethod === 'equal_installments') {
+          // Equal total payments (PMT calculation)
+          const monthlyPayment = calculateMonthlyPayment(principal, periodicRate, totalPayments);
+          interestAmount = remainingBalance * periodicRate;
+          principalAmount = monthlyPayment - interestAmount;
+        } else if (amortizationMethod === 'equal_principal') {
+          // Equal principal payments
+          principalAmount = principal / totalPayments;
+          interestAmount = remainingBalance * periodicRate;
+        }
         
         // Ensure principal doesn't exceed remaining balance for last payment
         if (i === totalPayments || principalAmount > remainingBalance) {
@@ -184,6 +200,31 @@ function calculateMonthlyPayment(principal: number, periodicRate: number, totalP
   
   return (principal * periodicRate * Math.pow(1 + periodicRate, totalPayments)) / 
          (Math.pow(1 + periodicRate, totalPayments) - 1);
+}
+
+// Enhanced helper functions for MiFos X compatibility
+function getDaysInYear(daysInYearType: string, referenceDate: Date): number {
+  switch (daysInYearType) {
+    case '360':
+      return 360;
+    case '365':
+      return 365;
+    case 'actual':
+      const year = referenceDate.getFullYear();
+      return (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 366 : 365;
+    default:
+      return 365;
+  }
+}
+
+function calculatePeriodicRate(annualRate: number, frequency: string, daysInYear: number, paymentsPerYear: number): number {
+  // For some frequencies, use exact day calculations
+  if (frequency === 'daily') {
+    return annualRate / daysInYear;
+  }
+  
+  // For other frequencies, use standard calculation
+  return annualRate / paymentsPerYear;
 }
 
 // Helper function to recalculate outstanding amounts after payments
