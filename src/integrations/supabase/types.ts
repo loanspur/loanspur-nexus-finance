@@ -2718,6 +2718,53 @@ export type Database = {
           },
         ]
       }
+      financial_activity_mappings: {
+        Row: {
+          account_id: string
+          activity_code: string
+          activity_name: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          mapping_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          activity_code: string
+          activity_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mapping_type?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          activity_code?: string
+          activity_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mapping_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_activity_mappings_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_reports: {
         Row: {
           created_at: string
