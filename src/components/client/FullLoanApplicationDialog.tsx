@@ -62,6 +62,7 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateMonthlyInterest } from "@/lib/interest-calculation";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Client is required"),
@@ -238,10 +239,8 @@ export const FullLoanApplicationDialog = ({
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      // Use unified daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
-      const daysInMonth = 30; // Standard for flat rate calculations
-      const dailyInterest = (requestedAmount * (interestRate / 100)) / (12 * daysInMonth);
-      const monthlyInterest = dailyInterest * daysInMonth;
+      // Use unified interest calculation library
+      const monthlyInterest = calculateMonthlyInterest(requestedAmount, interestRate);
       const monthlyPrincipal = requestedAmount / requestedTerm;
       return monthlyPrincipal + monthlyInterest;
     } else if (calculationMethod === 'reducing_balance') {
@@ -336,7 +335,7 @@ const { formatAmount: formatCurrency } = useCurrency();
       const monthlyPayment = calculateMonthlyPayment();
       const interestPayment = calculationMethod === 'reducing_balance' 
         ? (remainingBalance * (interestRate / 100 / 12))
-        : ((requestedAmount * interestRate * requestedTerm) / 100) / requestedTerm;
+        : calculateMonthlyInterest(requestedAmount, interestRate);
       const principalPayment = monthlyPayment - interestPayment;
       
       const dueDate = firstRepaymentDate ? 
@@ -1175,7 +1174,7 @@ const { formatAmount: formatCurrency } = useCurrency();
                               {Array.from({ length: Math.min(5, numberOfInstallments) }, (_, i) => {
                                 const paymentNumber = i + 1;
                                 const monthlyPayment = calculateMonthlyPayment();
-                                const interestPayment = (requestedAmount * (interestRate / 100)) / 12;
+                                const interestPayment = calculateMonthlyInterest(requestedAmount, interestRate);
                                 const principalPayment = monthlyPayment - interestPayment;
                                 const remainingBalance = requestedAmount - (principalPayment * paymentNumber);
                                 const dueDate = firstRepaymentDate ? 

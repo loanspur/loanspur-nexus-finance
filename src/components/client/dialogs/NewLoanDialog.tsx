@@ -33,6 +33,7 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { FormDescription } from "@/components/ui/form";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
+import { calculateMonthlyInterest } from "@/lib/interest-calculation";
 import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -370,10 +371,8 @@ const { formatAmount: formatCurrency } = useCurrency();
         });
       }
     } else {
-      // Flat rate calculation using unified daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
-      const daysInMonth = 30; // Standard for flat rate calculations
-      const dailyInterest = (principal * rate) / (12 * daysInMonth);
-      const monthlyInterest = dailyInterest * daysInMonth;
+      // Use unified interest calculation library
+      const monthlyInterest = calculateMonthlyInterest(principal, rate * 100); // rate is in decimal, convert to percentage
       const monthlyPrincipal = principal / totalPayments;
       const monthlyPayment = monthlyPrincipal + monthlyInterest;
       

@@ -2,6 +2,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { calculateMonthlyInterest } from "@/lib/interest-calculation";
 import {
   FormControl,
   FormField,
@@ -207,10 +208,10 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
       let principalPayment = 0;
       
       if (calculationMethod === 'flat') {
-        interestPayment = (requestedAmount * interestRate) / 100 / 12;
+        interestPayment = calculateMonthlyInterest(requestedAmount, interestRate);
         principalPayment = monthlyPayment - interestPayment;
       } else if (calculationMethod === 'declining_balance') {
-        interestPayment = (outstandingPrincipal * interestRate) / 100 / 12;
+        interestPayment = calculateMonthlyInterest(outstandingPrincipal, interestRate);
         principalPayment = monthlyPayment - interestPayment;
       }
       
