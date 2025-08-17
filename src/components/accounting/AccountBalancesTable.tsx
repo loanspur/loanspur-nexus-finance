@@ -40,62 +40,102 @@ export const AccountBalancesTable = () => {
 
   useEffect(() => {
     const compute = async () => {
-      if (!currentAccounts || currentAccounts.length === 0) { setComputedBalances([]); return; }
-      // Filter accounts by search/type
+      if (!currentAccounts || currentAccounts.length === 0) { 
+        setComputedBalances([]);
+        return; 
+      }
+      
+      // Filter accounts by search/type  
       const accounts = currentAccounts.filter((acc: any) => {
         const matchesSearch = (acc.account_name || '').toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
           (acc.account_code || '').toLowerCase().includes(filters.searchTerm.toLowerCase());
         const matchesType = filters.accountType === 'all' || acc.account_type === filters.accountType;
         return matchesSearch && matchesType;
       });
-      if (accounts.length === 0) { setComputedBalances([]); return; }
+      
+      if (accounts.length === 0) { 
+        setComputedBalances([]);
+        return; 
+      }
+      
       setIsComputing(true);
       const dateParam = filters.balanceDate || format(new Date(), 'yyyy-MM-dd');
+      const periodStart = format(new Date(dateParam + '-01'), 'yyyy-MM-dd');
       
-      // Calculate period start (beginning of month for the selected date)
-      const periodStart = format(new Date(dateParam).setDate(1), 'yyyy-MM-dd');
-      
-      const results = await Promise.all(accounts.map(async (acc: any) => {
-        try {
-          const { data } = await supabase.rpc('calculate_account_balance_with_periods', { 
-            p_account_id: acc.id, 
-            p_date: dateParam,
-            p_period_start: periodStart
-          });
+      try {
+        // Process accounts in smaller batches to improve performance
+        const batchSize = 10;
+        const results = [];
+        
+        for (let i = 0; i < accounts.length; i += batchSize) {
+          const batch = accounts.slice(i, i + batchSize);
           
-          const balanceData = Array.isArray(data) ? data[0] : data;
+          const batchResults = await Promise.all(batch.map(async (acc: any) => {
+            try {
+              console.log(`Calculating balance for account ${acc.account_code} (${acc.id})`);
+              
+              const { data, error } = await supabase.rpc('calculate_account_balance_with_periods', { 
+                p_account_id: acc.id, 
+                p_date: dateParam,
+                p_period_start: periodStart
+              });
+              
+              if (error) {
+                console.error(`RPC error for account ${acc.account_code}:`, error);
+                return null;
+              }
+              
+              console.log(`Balance data for ${acc.account_code}:`, data);
+              
+              const balanceData = Array.isArray(data) ? data[0] : data;
+              
+              if (!balanceData) {
+                console.warn(`No balance data returned for account ${acc.account_code}`);
+                return null;
+              }
+              
+              return {
+                id: `${acc.id}-${dateParam}`,
+                tenant_id: acc.tenant_id,
+                account_id: acc.id,
+                balance_date: dateParam,
+                opening_balance: Number(balanceData.opening_balance) || 0,
+                period_debits: Number(balanceData.period_debits) || 0,
+                period_credits: Number(balanceData.period_credits) || 0,
+                closing_balance: Number(balanceData.closing_balance) || 0,
+                chart_of_accounts: {
+                  account_code: acc.account_code,
+                  account_name: acc.account_name,
+                  account_type: acc.account_type,
+                  account_category: acc.account_category,
+                },
+              };
+            } catch (error) {
+              console.error(`Error calculating balance for account ${acc.account_code}:`, error);
+              return null;
+            }
+          }));
           
-          return {
-            id: `${acc.id}-${dateParam}`,
-            tenant_id: acc.tenant_id,
-            account_id: acc.id,
-            balance_date: dateParam,
-            opening_balance: Number(balanceData?.opening_balance) || 0,
-            period_debits: Number(balanceData?.period_debits) || 0,
-            period_credits: Number(balanceData?.period_credits) || 0,
-            closing_balance: Number(balanceData?.closing_balance) || 0,
-            chart_of_accounts: {
-              account_code: acc.account_code,
-              account_name: acc.account_name,
-              account_type: acc.account_type,
-              account_category: acc.account_category,
-            },
-          };
-        } catch (error) {
-          console.error(`Error calculating balance for account ${acc.account_code}:`, error);
-          return null;
+          results.push(...batchResults.filter(Boolean));
         }
-      }));
-      setComputedBalances(results.filter(Boolean));
-      setIsComputing(false);
+        
+        console.log('Final computed balances:', results);
+        setComputedBalances(results);
+      } catch (error) {
+        console.error('Error in compute function:', error);
+        setComputedBalances([]);
+      } finally {
+        setIsComputing(false);
+      }
     };
 
-    if (filteredBalances.length === 0) {
+    // Only compute if no stored balances and we have accounts to process
+    if (filteredBalances.length === 0 && currentAccounts && currentAccounts.length > 0) {
       compute();
-    } else {
+    } else if (filteredBalances.length > 0) {
       setComputedBalances([]);
     }
-  }, [filteredBalances.length, currentAccounts, filters.searchTerm, filters.accountType, filters.balanceDate]);
+  }, [filteredBalances.length, currentAccounts?.length, filters.searchTerm, filters.accountType, filters.balanceDate]);
 
   const dataSource = (filteredBalances.length > 0 ? filteredBalances : computedBalances);
 
