@@ -4023,6 +4023,7 @@ export type Database = {
           description: string | null
           id: string
           journal_entry_id: string
+          tenant_id: string
         }
         Insert: {
           account_id: string
@@ -4032,6 +4033,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_entry_id: string
+          tenant_id: string
         }
         Update: {
           account_id?: string
@@ -4041,6 +4043,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_entry_id?: string
+          tenant_id?: string
         }
         Relationships: [
           {
