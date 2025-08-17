@@ -50,13 +50,13 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
   const schedule: LoanScheduleEntry[] = [];
   const startDate = new Date(disbursementDate);
   
-  // Normalize interest rate - ensure it's a reasonable decimal value
+  // CRITICAL: Interest rate should be in decimal format (e.g., 0.12 for 12%)
+  // The interestRate parameter should already be normalized before this function
   let normalizedRate = interestRate;
   
-  // If interest rate seems too high (likely percentage instead of decimal), convert it
-  if (normalizedRate > 1) {
-    normalizedRate = normalizedRate / 100;
-    console.warn(`Interest rate ${interestRate} seems to be in percentage format, converting to decimal: ${normalizedRate}`);
+  // Safety check: if rate is suspiciously high, it might be in wrong format
+  if (normalizedRate > 0.5) { // More than 50% is unusual for normal loans
+    console.warn(`Very high interest rate detected: ${interestRate}. Double-check rate format.`);
   }
   
   // Calculate number of payments based on frequency and term
@@ -218,13 +218,26 @@ function getDaysInYear(daysInYearType: string, referenceDate: Date): number {
 }
 
 function calculatePeriodicRate(annualRate: number, frequency: string, daysInYear: number, paymentsPerYear: number): number {
-  // For some frequencies, use exact day calculations
+  // CRITICAL: Ensure proper periodic rate calculation
+  // annualRate should be in decimal format (e.g., 0.12 for 12% annual)
+  
+  console.log(`Calculating periodic rate: annual=${annualRate}, frequency=${frequency}, daysInYear=${daysInYear}, paymentsPerYear=${paymentsPerYear}`);
+  
+  let periodicRate;
   if (frequency === 'daily') {
-    return annualRate / daysInYear;
+    periodicRate = annualRate / daysInYear;
+  } else {
+    periodicRate = annualRate / paymentsPerYear;
   }
   
-  // For other frequencies, use standard calculation
-  return annualRate / paymentsPerYear;
+  console.log(`Calculated periodic rate: ${periodicRate} (${(periodicRate * 100).toFixed(4)}%)`);
+  
+  // Safety check: periodic rate should be reasonable
+  if (periodicRate > 0.1) { // More than 10% per period is suspicious
+    console.error(`WARNING: Very high periodic rate calculated: ${periodicRate}. Check input data.`);
+  }
+  
+  return periodicRate;
 }
 
 // Helper function to recalculate outstanding amounts after payments

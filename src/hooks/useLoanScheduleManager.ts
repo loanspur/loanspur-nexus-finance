@@ -84,23 +84,30 @@ export const useLoanScheduleManager = () => {
           .delete()
           .eq('loan_id', loanId);
 
-        // Generate new schedule with proper interest rate normalization
+        // CRITICAL: Proper interest rate normalization for schedule generation
         const loanInterestRate = Number(loan.interest_rate);
         const productDefaultRate = Number(loan.loan_products.default_nominal_interest_rate || 0);
         
-        // Normalize interest rate - handle cases where it might be stored incorrectly
-        let normalizedInterestRate = loanInterestRate;
+        console.log(`Loan interest rate: ${loanInterestRate}, Product default: ${productDefaultRate}`);
         
-        // If loan interest rate is vastly different from product rate, likely a data issue
-        if (productDefaultRate > 0 && Math.abs(loanInterestRate - productDefaultRate) > 100) {
-          // If loan rate is way higher, likely stored as basis points or wrong scale
-          if (loanInterestRate > 100) {
-            normalizedInterestRate = loanInterestRate / 100;
-          }
+        // Determine if rate needs conversion to decimal format
+        let interestRateDecimal = loanInterestRate;
+        
+        // CASE 1: Rate stored as percentage (e.g., 12.5 for 12.5%)
+        if (loanInterestRate > 1) {
+          interestRateDecimal = loanInterestRate / 100;
+          console.log(`Converting percentage to decimal: ${loanInterestRate}% -> ${interestRateDecimal}`);
+        }
+        // CASE 2: Rate already in decimal format (e.g., 0.125 for 12.5%)
+        else if (loanInterestRate <= 1) {
+          interestRateDecimal = loanInterestRate;
+          console.log(`Using decimal rate as-is: ${interestRateDecimal}`);
         }
         
-        // Ensure we're using decimal format for calculations (e.g., 0.067 for 6.7%)
-        const interestRateDecimal = normalizedInterestRate > 1 ? normalizedInterestRate / 100 : normalizedInterestRate;
+        // Safety validation
+        if (interestRateDecimal > 0.5) { // More than 50% annual is unusual
+          console.warn(`WARNING: Very high annual interest rate: ${interestRateDecimal * 100}%`);
+        }
         
         const scheduleParams = {
           loanId,
