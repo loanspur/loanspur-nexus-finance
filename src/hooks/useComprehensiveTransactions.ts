@@ -94,7 +94,7 @@ export const useComprehensiveTransactions = (filters?: {
   }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
-    queryKey: ['comprehensive-transactions', profile?.tenant_id, filters],
+    queryKey: ['comprehensive-transactions', profile?.tenant_id, filters?.dateFrom, filters?.dateTo, filters?.transactionType],
     queryFn: async () => {
       if (!profile?.tenant_id) return [];
 

@@ -117,14 +117,10 @@ const AccountingPage = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="all-transactions" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             All Transactions
-          </TabsTrigger>
-          <TabsTrigger value="journal-entries" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Journal Entries
           </TabsTrigger>
           <TabsTrigger value="chart-of-accounts" className="flex items-center gap-2">
             <Calculator className="h-4 w-4" />
@@ -152,9 +148,6 @@ const AccountingPage = () => {
           <ComprehensiveTransactionsTable />
         </TabsContent>
 
-        <TabsContent value="journal-entries" className="space-y-4">
-          <JournalEntriesTable />
-        </TabsContent>
 
         <TabsContent value="chart-of-accounts" className="space-y-4">
           <ChartOfAccountsTable />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,15 @@ export const ComprehensiveTransactionsTable = () => {
     searchTerm: "",
   });
 
-  const { data: transactions, isLoading, refetch } = useComprehensiveTransactions(filters);
+  // Debounced filters to prevent excessive API calls
+  const debouncedFilters = useMemo(() => ({
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    transactionType: filters.transactionType,
+    searchTerm: filters.searchTerm,
+  }), [filters.dateFrom, filters.dateTo, filters.transactionType, filters.searchTerm]);
+
+  const { data: transactions, isLoading, refetch } = useComprehensiveTransactions(debouncedFilters);
   const { formatAmount } = useCurrency();
 
   const getStatusBadge = (status: string) => {
@@ -94,7 +102,7 @@ export const ComprehensiveTransactionsTable = () => {
               <Input
                 placeholder="Search transactions..."
                 value={filters.searchTerm}
-                onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
+                onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
                 className="pl-10"
               />
             </div>
@@ -103,21 +111,21 @@ export const ComprehensiveTransactionsTable = () => {
               type="date"
               placeholder="From Date"
               value={filters.dateFrom}
-              onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
             />
             
             <Input
               type="date"
               placeholder="To Date"
               value={filters.dateTo}
-              onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
             />
             
-            <Select value={filters.transactionType} onValueChange={(value) => setFilters({ ...filters, transactionType: value })}>
-              <SelectTrigger>
+            <Select value={filters.transactionType} onValueChange={(value) => setFilters(prev => ({ ...prev, transactionType: value }))}>
+              <SelectTrigger className="bg-background">
                 <SelectValue placeholder="Transaction Type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border shadow-md z-50">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="loan">Loan Payments</SelectItem>
                 <SelectItem value="savings">Savings Transactions</SelectItem>
