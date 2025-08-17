@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { format } from 'date-fns';
+import { useEffect } from 'react';
 
 export interface AccountingMetrics {
   journalEntriesThisMonth: number;
@@ -14,6 +15,79 @@ export interface AccountingMetrics {
 
 export const useAccountingMetrics = () => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for accounting data
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('accounting-metrics-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entries',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['accounting-metrics'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entry_lines',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['accounting-metrics'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chart_of_accounts',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['accounting-metrics'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'account_balances',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['accounting-metrics'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'financial_activity_mappings',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['accounting-metrics'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['accounting-metrics', profile?.tenant_id],
@@ -102,7 +176,7 @@ export const useAccountingMetrics = () => {
       // Financial activity mappings (best-effort)
       let activityMappings = 0;
       try {
-        const famRes = await (supabase as any)
+        const famRes = await supabase
           .from('financial_activity_mappings')
           .select('id', { count: 'exact', head: true })
           .eq('tenant_id', profile.tenant_id);

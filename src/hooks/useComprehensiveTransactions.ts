@@ -153,7 +153,6 @@ export const useComprehensiveTransactions = (filters?: {
           description,
           reference_number,
           method,
-          status,
           created_at,
           savings_accounts!inner(
             account_number,
@@ -179,7 +178,7 @@ export const useComprehensiveTransactions = (filters?: {
           amount: transaction.amount,
           description: transaction.description || `Savings ${transaction.transaction_type}`,
           reference_number: transaction.reference_number,
-          status: transaction.method?.includes('_REVERSED') ? 'reversed' : (transaction.status || 'completed'),
+          status: transaction.method?.includes('_REVERSED') ? 'reversed' : 'completed',
           client_name: `${transaction.savings_accounts?.clients?.first_name} ${transaction.savings_accounts?.clients?.last_name}`,
           account_info: transaction.savings_accounts?.account_number,
           source_table: 'savings_transactions' as const,
