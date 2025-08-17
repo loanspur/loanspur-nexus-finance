@@ -238,8 +238,8 @@ export const FullLoanApplicationDialog = ({
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      // Use daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
-      const daysInMonth = 30; // Average days in month for flat rate calculation
+      // Use unified daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
+      const daysInMonth = 30; // Standard for flat rate calculations
       const dailyInterest = (requestedAmount * (interestRate / 100)) / (12 * daysInMonth);
       const monthlyInterest = dailyInterest * daysInMonth;
       const monthlyPrincipal = requestedAmount / requestedTerm;

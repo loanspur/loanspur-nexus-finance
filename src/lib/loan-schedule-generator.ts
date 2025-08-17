@@ -112,9 +112,9 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
       // Flat rate method - interest calculated on original principal
       principalAmount = principal / totalPayments;
       
-      // Use new flat rate formula: interest = original principal * rate% / (12 * actual days in month)
+      // Use unified daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
       const daysInCurrentMonth = new Date(nextPaymentDate.getFullYear(), nextPaymentDate.getMonth() + 1, 0).getDate();
-      interestAmount = principal * normalizedRate / (12 * daysInCurrentMonth);
+      interestAmount = (principal * normalizedRate) / (12 * daysInCurrentMonth);
     } else {
       // Default to equal principal installments
       principalAmount = principal / totalPayments;
