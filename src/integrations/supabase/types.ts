@@ -3940,6 +3940,7 @@ export type Database = {
           description: string
           entry_number: string
           id: string
+          office_id: string | null
           reference_id: string | null
           reference_type: string | null
           status: string
@@ -3956,6 +3957,7 @@ export type Database = {
           description: string
           entry_number: string
           id?: string
+          office_id?: string | null
           reference_id?: string | null
           reference_type?: string | null
           status?: string
@@ -3972,6 +3974,7 @@ export type Database = {
           description?: string
           entry_number?: string
           id?: string
+          office_id?: string | null
           reference_id?: string | null
           reference_type?: string | null
           status?: string
@@ -3993,6 +3996,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
             referencedColumns: ["id"]
           },
           {
