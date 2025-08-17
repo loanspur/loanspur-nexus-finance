@@ -350,6 +350,11 @@ export const AddLoanAccountDialog = ({
   const generateSchedulePreview = () => {
     const formData = form.getValues();
     if (!formData.requested_amount || !formData.interest_rate || !formData.loan_term || !formData.first_repayment_date) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields: amount, interest rate, term, and first repayment date.",
+        variant: "destructive",
+      });
       return;
     }
 

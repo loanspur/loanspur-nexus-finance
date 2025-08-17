@@ -105,6 +105,47 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
   const repaymentFrequency = form.watch('repayment_frequency');
   const firstRepaymentDate = form.watch('first_repayment_date');
   const selectedCharges = form.watch('selected_charges') || [];
+  const loanProductId = form.watch('loan_product_id');
+  const fundSourceId = form.watch('fund_source_id');
+
+  // Get selected loan product details
+  const { data: selectedLoanProduct } = useQuery({
+    queryKey: ['loan-product-details', loanProductId],
+    queryFn: async () => {
+      if (!loanProductId) return null;
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('id', loanProductId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loanProductId,
+  });
+
+  // Auto-populate form fields when loan product is selected
+  useEffect(() => {
+    if (selectedLoanProduct && loanProductId) {
+      // Only update if fields are empty to avoid overriding user input
+      if (!form.getValues('requested_amount') && selectedLoanProduct.default_principal) {
+        form.setValue('requested_amount', selectedLoanProduct.default_principal);
+      }
+      if (!form.getValues('requested_term') && selectedLoanProduct.default_term) {
+        form.setValue('requested_term', selectedLoanProduct.default_term);
+        form.setValue('number_of_installments', selectedLoanProduct.default_term);
+      }
+      if (!form.getValues('interest_rate') && selectedLoanProduct.default_nominal_interest_rate) {
+        form.setValue('interest_rate', selectedLoanProduct.default_nominal_interest_rate);
+      }
+      if (!form.getValues('calculation_method') && selectedLoanProduct.interest_calculation_method) {
+        form.setValue('calculation_method', selectedLoanProduct.interest_calculation_method);
+      }
+      if (!form.getValues('repayment_frequency') && selectedLoanProduct.repayment_frequency) {
+        form.setValue('repayment_frequency', selectedLoanProduct.repayment_frequency);
+      }
+    }
+  }, [selectedLoanProduct, loanProductId, form]);
 
   const { currency } = useCurrency();
   
