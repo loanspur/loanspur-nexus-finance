@@ -700,6 +700,15 @@ export const useProcessLoanApproval = () => {
         if (!existingLoan) {
           const loanNumber = `LN-${Date.now()}`;
           
+          // Get full loan product details for snapshot preservation
+          const { data: productSnapshot, error: productError } = await supabase
+            .from('loan_products')
+            .select('*')
+            .eq('id', loanApplication.loan_product_id)
+            .single();
+
+          if (productError) throw new Error('Failed to fetch loan product details for snapshot');
+          
           const { data: loanData, error: loanError } = await supabase
             .from('loans')
             .insert([{
@@ -718,6 +727,7 @@ export const useProcessLoanApproval = () => {
               outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
               status: 'pending_disbursement',
               loan_officer_id: profile.id,
+              loan_product_snapshot: productSnapshot, // Preserve product details at loan creation
             }])
             .select()
             .single();

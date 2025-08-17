@@ -81,6 +81,21 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
       switch (data.transactionType) {
         case 'loan_repayment':
           if (data.loanId) {
+            // Check loan status before processing payment
+            const { data: loanData, error: loanError } = await supabase
+              .from('loans')
+              .select('status, loan_number')
+              .eq('id', data.loanId)
+              .single();
+
+            if (loanError) {
+              throw new Error('Failed to verify loan status');
+            }
+
+            if (['closed', 'written_off', 'fully_paid'].includes(loanData.status?.toLowerCase())) {
+              throw new Error(`Cannot process payments on ${loanData.status} loans (${loanData.loan_number})`);
+            }
+
             await loanRepaymentAccounting.mutateAsync({
               loan_id: data.loanId,
               payment_amount: amount,

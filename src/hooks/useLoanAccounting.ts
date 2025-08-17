@@ -149,6 +149,7 @@ export const useLoanRepaymentAccounting = () => {
           loan_number,
           principal_amount,
           outstanding_balance,
+          status,
           loan_products (
             id,
             repayment_strategy,
@@ -164,6 +165,11 @@ export const useLoanRepaymentAccounting = () => {
         .single();
 
       if (loanError) throw loanError;
+
+      // Prevent repayments on closed loans - check early
+      if (loan.status && ['closed', 'written_off', 'fully_paid'].includes(loan.status.toLowerCase())) {
+        throw new Error(`Cannot process repayments on ${loan.status} loans`);
+      }
 
       const product = loan.loan_products;
       if (!product || product.accounting_type === 'none') {
@@ -372,13 +378,13 @@ export const useLoanRepaymentAccounting = () => {
         // Don't throw error as accounting entry was successful
       }
 
-      // Update loan outstanding balance and automatically close if overpaid
+      // Update loan outstanding balance and automatically close if balance goes to zero
       const newOutstanding = (loan.outstanding_balance || 0) - data.payment_amount;
       const loanUpdatePayload: any = { 
         outstanding_balance: Math.max(0, newOutstanding) 
       };
 
-      // Automatically close loan if overpaid
+      // Automatically close loan if balance reaches zero or negative
       if (newOutstanding <= 0) {
         loanUpdatePayload.status = 'closed';
         loanUpdatePayload.closed_date = data.payment_date;
