@@ -21,30 +21,53 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
 
   const rawStatus: string = (loan.status || '').toLowerCase();
 
-  // Get the most recent payment to check for overpayment
+  // Get payments and schedules
   const payments = loan.loan_payments || loan.payments || [];
-  const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
-  const lastPaymentAmount = lastPayment ? Number(lastPayment.payment_amount || 0) : 0;
+  const schedules: any[] = loan.loan_schedules || loan.schedules || [];
   
-  // Current outstanding balance
-  const outstanding = Number(loan.outstanding_balance ?? loan.outstanding ?? 0);
+  // Calculate total payments made
+  const totalPayments = payments.reduce((sum: number, payment: any) => {
+    return sum + Number(payment.payment_amount || 0);
+  }, 0);
   
-  // Check if loan is fully paid (outstanding balance is 0 or negative with 0 meaning fully paid)
-  if (outstanding === 0) {
+  // Calculate total loan amount (principal + interest + fees)
+  const totalLoanAmount = schedules.reduce((sum: number, schedule: any) => {
+    return sum + Number(schedule.total_amount || 0);
+  }, 0) || Number(loan.principal_amount || 0);
+  
+  // Current outstanding balance from database
+  const dbOutstanding = Number(loan.outstanding_balance ?? loan.outstanding ?? 0);
+  
+  // Calculate derived outstanding: total loan amount - total payments
+  const derivedOutstanding = totalLoanAmount - totalPayments;
+  
+  // If we have payments that exceed the loan amount, it's overpaid
+  if (totalPayments > totalLoanAmount && totalPayments > 0) {
+    return {
+      status: 'active', // Keep as active since overpaid isn't a valid DB status
+      overpaidAmount: totalPayments - totalLoanAmount,
+    };
+  }
+  
+  // If total payments equal or exceed loan amount, or derived outstanding is 0 or negative
+  if ((totalPayments >= totalLoanAmount && totalPayments > 0) || derivedOutstanding <= 0) {
+    return { status: 'closed' };
+  }
+  
+  // Check database outstanding balance as fallback
+  if (dbOutstanding === 0) {
     return { status: 'closed' };
   }
   
   // Overpaid: only if outstanding balance is negative (means overpayment)
-  // Return as 'active' since 'overpaid' isn't a valid DB status
-  if (!Number.isNaN(outstanding) && outstanding < 0) {
+  if (!Number.isNaN(dbOutstanding) && dbOutstanding < 0) {
     return {
       status: 'active',
-      overpaidAmount: Math.abs(outstanding),
+      overpaidAmount: Math.abs(dbOutstanding),
     };
   }
 
   // In arrears: check schedules if available
-  const schedules: any[] = loan.loan_schedules || loan.schedules || [];
   if (Array.isArray(schedules) && schedules.length > 0) {
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Set to end of day for comparison
