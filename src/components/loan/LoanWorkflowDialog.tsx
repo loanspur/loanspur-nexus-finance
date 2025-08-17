@@ -215,6 +215,7 @@ export const LoanWorkflowDialog = ({
     }).format(amount);
   };
 
+  // Use consistent status checking logic
   const canApprove = loanApplication.status === 'pending' || loanApplication.status === 'under_review';
   const canDisburse = loanApplication.status === 'pending_disbursement' || loanApplication.status === 'approved';
   const isCompleted = loanApplication.status === 'disbursed';

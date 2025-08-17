@@ -273,6 +273,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
     }
   };
 
+  // Use status helpers for cleaner logic
   const canApprove = ['pending', 'under_review'].includes(loanApplication.status);
   const canDisburse = ['pending_disbursement', 'approved'].includes(loanApplication.status);
   const canUndoApproval = loanApplication.status === 'pending_disbursement' || loanApplication.status === 'approved';

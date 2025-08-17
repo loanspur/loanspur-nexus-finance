@@ -729,7 +729,10 @@ const getStatusColor = (status: string) => {
     const newOutstanding = currentOutstanding - amount;
     const patch: any = { outstanding_balance: Math.max(0, newOutstanding) };
     if (newOutstanding < -0.0001) patch.status = 'overpaid';
-    else if (newOutstanding <= 0.0001) patch.status = 'closed';
+    else if (newOutstanding <= 0.0001) {
+      // Use unified system for determining loan closure
+      patch.status = 'closed';
+    }
 
     const { error: upErr } = await supabase.from('loans').update(patch).eq('id', loan.id);
     if (upErr) throw upErr;

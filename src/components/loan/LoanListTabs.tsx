@@ -14,11 +14,11 @@ import {
   CreditCard
 } from "lucide-react";
 import { useAllLoans } from "@/hooks/useLoanManagement";
-import { LoanStatusBadge } from "./LoanStatusBadge";
+import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
 import { BulkLoanActions } from "./BulkLoanActions";
 import { LoanWorkflowDialog } from "./LoanWorkflowDialog";
 import { format } from "date-fns";
-import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 
 export const LoanListTabs = () => {
   const { data: allLoans, isLoading, error } = useAllLoans();
@@ -36,23 +36,23 @@ export const LoanListTabs = () => {
     return matchesSearch;
   }) || [];
 
-  // Derive statuses consistently
+  // Derive statuses consistently using unified system
   const loansWithDerived = filteredLoans.map((item: any) => ({
     ...item,
-    __derived: getDerivedLoanStatus(item),
+    __unified: getUnifiedLoanStatus(item),
   }));
 
-  // Group loans by derived status
+  // Group loans by derived status using status helpers
   const pendingApprovalLoans = loansWithDerived.filter((item: any) => 
-    ['pending', 'under_review'].includes(item.__derived.status)
+    StatusHelpers.isPending(item.__unified.status) || item.__unified.status === 'under_review'
   );
   
   const pendingDisbursementLoans = loansWithDerived.filter((item: any) => 
-    ['approved', 'pending_disbursement'].includes(item.__derived.status)
+    StatusHelpers.isApproved(item.__unified.status)
   );
   
   const disbursedLoans = loansWithDerived.filter((item: any) => 
-    ['active', 'in_arrears', 'overpaid'].includes(item.__derived.status)
+    StatusHelpers.isActive(item.__unified.status) || StatusHelpers.isProblem(item.__unified.status)
   );
 
   const formatCurrency = (amount: number) => {
@@ -112,7 +112,7 @@ export const LoanListTabs = () => {
               <div className="text-sm">{loan.term} months</div>
             </TableCell>
             <TableCell>
-              <LoanStatusBadge status={loan.__derived?.status || loan.status} />
+              <UnifiedStatusBadge entity={loan} entityType="loan" size="sm" />
             </TableCell>
             <TableCell>
               <div className="text-sm text-muted-foreground">

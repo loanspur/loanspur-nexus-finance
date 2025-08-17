@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
 import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
 import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 
@@ -91,7 +92,11 @@ const ClientLoansPage = () => {
   // Categorize loans by status
   const createdLoans = loans.filter(loan => ['approved', 'active', 'disbursed', 'pending_disbursement'].includes(loan.status));
   const pendingLoans = loanApplications.filter(app => ['pending', 'under_review'].includes(app.status));
-  const closedLoans = loans.filter(loan => ['closed', 'written_off', 'fully_paid', 'rejected', 'withdrawn'].includes(loan.status));
+  // Use unified status system to filter closed loans
+  const closedLoans = loans.filter(loan => {
+    const unified = getUnifiedLoanStatus(loan);
+    return StatusHelpers.isClosed(unified.status);
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {

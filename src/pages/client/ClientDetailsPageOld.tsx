@@ -62,6 +62,7 @@ import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 
 interface Client {
   id: string;
