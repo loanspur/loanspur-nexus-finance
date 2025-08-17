@@ -49,13 +49,18 @@ export function getDerivedLoanStatus(loan: any): DerivedLoanStatus {
     };
   }
   
-  // If total payments equal or exceed loan amount, or derived outstanding is 0 or negative
-  if ((totalPayments >= totalLoanAmount && totalPayments > 0) || derivedOutstanding <= 0) {
+  // Only mark as closed if loan is explicitly closed or fully paid with zero outstanding
+  if (rawStatus === 'closed' || rawStatus === 'withdrawn' || rawStatus === 'written_off') {
     return { status: 'closed' };
   }
   
-  // Check database outstanding balance as fallback
-  if (dbOutstanding === 0) {
+  // Check if loan is fully paid (total payments equal loan amount AND outstanding is 0)
+  if (totalPayments >= totalLoanAmount && totalPayments > 0 && dbOutstanding === 0) {
+    return { status: 'closed' };
+  }
+  
+  // Check database outstanding balance for fully paid loans
+  if (dbOutstanding === 0 && totalPayments > 0) {
     return { status: 'closed' };
   }
   
