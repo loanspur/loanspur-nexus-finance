@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useCreateJournalEntry } from './useAccounting';
+import { harmonizeLoanCalculations } from '@/lib/loan-calculation-harmonizer';
 
 export interface LoanRepaymentUndoData {
   paymentId: string;
@@ -23,12 +24,13 @@ export const useLoanRepaymentUndo = () => {
         throw new Error('No tenant context');
       }
 
-      // 1. Get the original payment details
+          // 1. Get the original payment details
       const { data: payment, error: paymentError } = await supabase
         .from('loan_payments')
         .select(`
           *,
           loans!inner(
+            client_id,
             loan_number,
             status,
             outstanding_balance,
@@ -209,7 +211,81 @@ export const useLoanRepaymentUndo = () => {
         console.error('Failed to create reversal transaction:', transactionError);
       }
 
-      // 8. Create loan payment reversal record - simplified approach
+      // 8. Handle overpayment reversal - check if there was a savings transfer
+      const { data: overpaymentTransfers } = await supabase
+        .from('savings_transactions')
+        .select(`
+          *,
+          savings_accounts!inner(account_balance, available_balance)
+        `)
+        .eq('description', `Overpayment transfer from loan ${loan.loan_number}`)
+        .gte('created_at', payment.created_at);
+
+      let overpaymentReversalAmount = 0;
+      if (overpaymentTransfers && overpaymentTransfers.length > 0) {
+        for (const transfer of overpaymentTransfers) {
+          // Reverse the savings deposit
+          const reversalAmount = Number(transfer.amount);
+          overpaymentReversalAmount += reversalAmount;
+
+          // Get current savings account balance
+          const { data: savingsAccount } = await supabase
+            .from('savings_accounts')
+            .select('account_balance, available_balance')
+            .eq('id', transfer.savings_account_id)
+            .single();
+
+          if (savingsAccount) {
+            // Create withdrawal to reverse the deposit
+            const { error: savingsReversalError } = await supabase
+              .from('savings_transactions')
+              .insert({
+                tenant_id: profile.tenant_id,
+                savings_account_id: transfer.savings_account_id,
+                amount: reversalAmount,
+                transaction_type: 'withdrawal',
+                transaction_date: new Date().toISOString().split('T')[0],
+                description: `Reversal: Overpayment transfer from loan ${loan.loan_number}`,
+                reference_number: `REV-OVP-${transfer.id}`,
+                method: 'cash',
+                processed_by: profile.id,
+                balance_after: (savingsAccount.account_balance || 0) - reversalAmount
+              });
+
+            if (!savingsReversalError) {
+              // Update savings account balance
+              await supabase
+                .from('savings_accounts')
+                .update({
+                  account_balance: (savingsAccount.account_balance || 0) - reversalAmount,
+                  available_balance: (savingsAccount.available_balance || 0) - reversalAmount,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', transfer.savings_account_id);
+
+              // Create transaction record for overpayment reversal
+              await supabase
+                .from('transactions')
+                .insert({
+                  tenant_id: profile.tenant_id,
+                  client_id: loan.client_id,
+                  loan_id: data.loanId,
+                  savings_account_id: transfer.savings_account_id,
+                  amount: -reversalAmount, // Negative for withdrawal
+                  transaction_type: 'savings_withdrawal',
+                  payment_type: 'cash',
+                  payment_status: 'completed',
+                  transaction_date: new Date().toISOString(),
+                  transaction_id: `OVP-REV-${Date.now()}`,
+                  description: `Overpayment reversal from loan payment undo: ${reversalDescription}`,
+                  processed_by: profile.id
+                });
+            }
+          }
+        }
+      }
+
+      // 9. Create undo transaction record
       const { error: reversalError } = await supabase
         .from('transactions')
         .insert({
@@ -229,27 +305,6 @@ export const useLoanRepaymentUndo = () => {
 
       if (reversalError) {
         console.error('Failed to create undo record:', reversalError);
-      }
-
-      // 9. Update loan outstanding balance
-      const newOutstanding = (loan.outstanding_balance || 0) + payment.payment_amount;
-      const loanUpdatePayload: any = { 
-        outstanding_balance: newOutstanding 
-      };
-
-      // Reopen loan if it was closed and now has outstanding balance
-      if (loan.status === 'closed' && newOutstanding > 0) {
-        loanUpdatePayload.status = 'active';
-        loanUpdatePayload.closed_date = null;
-      }
-
-      const { error: loanUpdateError } = await supabase
-        .from('loans')
-        .update(loanUpdatePayload)
-        .eq('id', data.loanId);
-
-      if (loanUpdateError) {
-        console.error('Failed to update loan status:', loanUpdateError);
       }
 
       // 10. Update loan schedules to reflect the reversal
@@ -297,7 +352,7 @@ export const useLoanRepaymentUndo = () => {
         }
       }
 
-      // 11. Mark original payment as reversed - using direct update
+      // 11. Mark original payment as reversed
       const { error: paymentUpdateError } = await supabase
         .from('loan_payments')
         .update({ 
@@ -309,27 +364,72 @@ export const useLoanRepaymentUndo = () => {
         console.error('Failed to mark payment as reversed:', paymentUpdateError);
       }
 
+      // 12. Trigger harmonized loan calculations to ensure consistency
+      try {
+        const { data: updatedLoan } = await supabase
+          .from('loans')
+          .select(`
+            *,
+            loan_products!inner(
+              repayment_frequency,
+              interest_calculation_method,
+              default_nominal_interest_rate
+            )
+          `)
+          .eq('id', data.loanId)
+          .single();
+
+        if (updatedLoan) {
+          const harmonizedResult = await harmonizeLoanCalculations(updatedLoan);
+          console.log('Harmonized calculations after reversal:', harmonizedResult);
+          
+          // Update loan status based on new calculations
+          const shouldReopen = harmonizedResult.calculatedOutstanding > 0 && loan.status === 'closed';
+          if (shouldReopen) {
+            await supabase
+              .from('loans')
+              .update({
+                status: harmonizedResult.daysInArrears > 0 ? 'overdue' : 'active',
+                closed_date: null,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', data.loanId);
+          }
+        }
+      } catch (harmonizationError) {
+        console.error('Harmonization after reversal failed:', harmonizationError);
+        // Don't fail the reversal if harmonization fails
+      }
+
       return { 
         success: true, 
-        reversalAmount: payment.payment_amount,
-        loanNumber: loan.loan_number
+        reversalAmount: payment.payment_amount + overpaymentReversalAmount,
+        loanNumber: loan.loan_number,
+        overpaymentReversed: overpaymentReversalAmount > 0
       };
     },
     onSuccess: (result) => {
+      const overpaymentText = result.overpaymentReversed 
+        ? " Overpayment transfers have also been reversed." 
+        : "";
+      
       toast({
         title: "Payment Reversed",
         description: `Successfully reversed payment of ${new Intl.NumberFormat('en-KE', {
           style: 'currency',
           currency: 'KES',
-        }).format(result.reversalAmount)} for loan ${result.loanNumber}`,
+        }).format(result.reversalAmount)} for loan ${result.loanNumber}.${overpaymentText}`,
       });
       
-      // Invalidate relevant queries to refresh data
+      // Invalidate relevant queries to refresh data - including harmonized data
       queryClient.invalidateQueries({ queryKey: ['loan_payments'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['loan_schedules'] });
       queryClient.invalidateQueries({ queryKey: ['journal_entries'] });
+      queryClient.invalidateQueries({ queryKey: ['savings_transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['savings_accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['harmonized_loan_calculations'] });
     },
     onError: (error: any) => {
       toast({
