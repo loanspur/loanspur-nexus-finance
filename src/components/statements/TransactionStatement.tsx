@@ -633,39 +633,45 @@ export const TransactionStatement = ({
                  </TableRow>
                </TableHeader>
                <TableBody>
-                 {transactions.map((transaction, index) => (
-                   <TableRow key={index} className="hover:bg-muted/50">
-                     <TableCell className="font-medium">
-                       {formatDate(transaction.date)}
-                     </TableCell>
-                     <TableCell>
-                       <span className={`capitalize ${getTransactionTypeColor(transaction.type)}`}>
-                         {transaction.type}
-                       </span>
-                     </TableCell>
-                     <TableCell>
-                       {transaction.description || '-'}
-                     </TableCell>
-                     <TableCell className="font-mono text-sm">
-                       {transaction.reference}
-                     </TableCell>
-                     <TableCell className="text-sm">
-                       {transaction.method || '-'}
-                     </TableCell>
-                     <TableCell className="text-right font-medium">
-                       <span className={getTransactionTypeColor(transaction.type)}>
-                         {["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
-                         {formatCurrency(transaction.amount)}
-                       </span>
-                     </TableCell>
-                     <TableCell className="text-right font-bold">
-                       {formatCurrency(transaction.balance)}
-                     </TableCell>
-                     <TableCell>
-                       <Badge variant={getStatusColor(transaction.status || 'completed')}>
-                         {transaction.status || 'completed'}
-                       </Badge>
-                     </TableCell>
+                  {transactions.map((transaction, index) => {
+                    const isReversed = transaction.status === 'reversed' || transaction.method?.includes('_REVERSED');
+                    const rowClassName = isReversed 
+                      ? "hover:bg-muted/50 line-through text-muted-foreground opacity-70" 
+                      : "hover:bg-muted/50";
+                    
+                    return (
+                      <TableRow key={index} className={rowClassName}>
+                        <TableCell className="font-medium">
+                          {formatDate(transaction.date)}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`capitalize ${getTransactionTypeColor(transaction.type)}`}>
+                            {transaction.type}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {transaction.description || '-'}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {transaction.reference}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {transaction.method || '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          <span className={getTransactionTypeColor(transaction.type)}>
+                            {["withdrawal", "payment", "transfer", "fee", "fees", "charge", "fee_charge", "account_charge", "penalty"].includes(transaction.type.toLowerCase()) ? '-' : '+'}
+                            {formatCurrency(transaction.amount)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {formatCurrency(transaction.balance)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(transaction.status || 'completed')}>
+                            {transaction.status || 'completed'}
+                          </Badge>
+                        </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           {(transaction.principalAmount !== undefined || 
@@ -765,9 +771,10 @@ export const TransactionStatement = ({
                              </Button>
                            )}
                          </div>
-                       </TableCell>
-                   </TableRow>
-                 ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
            )}

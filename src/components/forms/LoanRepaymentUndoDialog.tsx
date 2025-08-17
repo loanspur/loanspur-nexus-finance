@@ -243,23 +243,6 @@ export const LoanRepaymentUndoDialog = ({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Additional Notes</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Any additional information or instructions..."
-                          rows={3}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <div className="flex justify-end gap-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
