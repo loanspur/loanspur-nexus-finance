@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 import { 
   Edit, 
   CreditCard, 
@@ -402,8 +403,9 @@ const { formatAmount: formatCurrency } = useCurrency();
   };
 
   const activeLoans = loans.filter(loan => {
+    const derivedStatus = getDerivedLoanStatus(loan);
     const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
-    return !closedStatuses.includes(loan.status?.toLowerCase());
+    return !closedStatuses.includes(derivedStatus.status?.toLowerCase());
   });
 
   const activeSavings = savings.filter(account => {
