@@ -111,9 +111,14 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     } else if (calculationMethod === 'flat_rate') {
       // Flat rate method - interest calculated on original principal
       principalAmount = principal / totalPayments;
-      // For daily loans, convert term appropriately for flat rate calculation
-      const termInMonths = repaymentFrequency === 'daily' ? termMonths / 30 : termMonths;
-      interestAmount = (principal * normalizedRate * termInMonths) / (12 * totalPayments);
+      // For flat rate, calculate total interest based on periodic rate
+      if (repaymentFrequency === 'daily') {
+        // Daily flat rate: use the same daily periodic rate as reducing balance
+        interestAmount = principal * periodicRate;
+      } else {
+        // Other frequencies: use traditional flat rate calculation
+        interestAmount = (principal * normalizedRate * termMonths) / (12 * totalPayments);
+      }
     } else {
       // Default to equal principal installments
       principalAmount = principal / totalPayments;
