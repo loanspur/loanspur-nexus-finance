@@ -3955,7 +3955,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
-          entry_number: string
+          entry_number?: string
           id?: string
           office_id?: string | null
           reference_id?: string | null
@@ -8264,6 +8264,10 @@ export type Database = {
       check_client_activation_eligibility: {
         Args: { client_id: string }
         Returns: boolean
+      }
+      generate_journal_entry_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_current_account_balance: {
         Args: { p_account_id: string }
