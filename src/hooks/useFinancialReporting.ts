@@ -305,6 +305,7 @@ export const useFinancialReporting = () => {
         .from('journal_entry_lines')
         .insert(
           lines.map(line => ({
+            tenant_id: profile.tenant_id, // Include tenant_id for RLS policy
             journal_entry_id: journalEntry.id,
             ...line
           }))

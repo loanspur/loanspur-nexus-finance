@@ -272,6 +272,7 @@ export const useCreateJournalEntry = () => {
 
       // Create journal entry lines
       const lines = data.lines.map((line) => ({
+        tenant_id: profile.tenant_id, // Include tenant_id for RLS policy
         journal_entry_id: journalEntry.id,
         account_id: line.account_id,
         description: line.description,
