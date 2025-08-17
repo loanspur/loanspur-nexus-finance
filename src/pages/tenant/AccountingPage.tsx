@@ -10,13 +10,15 @@ import {
   Calendar,
   PieChart,
   Settings,
-  RefreshCw
+  RefreshCw,
+  Activity
 } from "lucide-react";
 import { JournalEntriesTable } from "@/components/accounting/JournalEntriesTable";
 import { ChartOfAccountsTable } from "@/components/accounting/ChartOfAccountsTable";
 import { AccountBalancesTable } from "@/components/accounting/AccountBalancesTable";
 import { FinancialActivityMappingsTable } from "@/components/accounting/FinancialActivityMappingsTable";
 import { ReconciliationManagement } from "@/components/accounting/ReconciliationManagement";
+import { ComprehensiveTransactionsTable } from "@/components/accounting/ComprehensiveTransactionsTable";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -25,7 +27,7 @@ import { useAccountingMetrics } from "@/hooks/useAccountingMetrics";
 const AccountingPage = () => {
   const { profile } = useAuth();
   const { formatAmount } = useCurrency();
-  const [activeTab, setActiveTab] = useState("journal-entries");
+  const [activeTab, setActiveTab] = useState("all-transactions"); // Set default to all-transactions
   const { data: metrics } = useAccountingMetrics();
 
   if (!profile || profile.role === 'client') {
@@ -115,7 +117,11 @@ const AccountingPage = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="all-transactions" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            All Transactions
+          </TabsTrigger>
           <TabsTrigger value="journal-entries" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Journal Entries
@@ -141,6 +147,10 @@ const AccountingPage = () => {
             Closing Entries
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="all-transactions" className="space-y-4">
+          <ComprehensiveTransactionsTable />
+        </TabsContent>
 
         <TabsContent value="journal-entries" className="space-y-4">
           <JournalEntriesTable />

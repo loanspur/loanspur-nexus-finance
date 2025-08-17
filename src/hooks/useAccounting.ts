@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { useEffect } from 'react';
 
 // Types
 export interface JournalEntry {
@@ -113,7 +114,7 @@ export interface ClosingEntry {
   updated_at: string;
 }
 
-// Journal Entries Hooks
+// Enhanced Journal Entries Hooks with Real-time Updates
 export const useJournalEntries = (filters?: {
   dateFrom?: string;
   dateTo?: string;
@@ -121,6 +122,45 @@ export const useJournalEntries = (filters?: {
   searchTerm?: string;
 }) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for journal entries
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('journal-entries-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entries',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        (payload) => {
+          console.log('Journal entry updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entry_lines',
+        },
+        (payload) => {
+          console.log('Journal entry lines updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['journal-entries', profile?.tenant_id, filters],
@@ -248,9 +288,49 @@ export const useCreateJournalEntry = () => {
   });
 };
 
-// Account Balances Hook
+// Enhanced Account Balances Hook with Real-time Updates
 export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo?: string) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for account balances
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('account-balances-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'account_balances',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        (payload) => {
+          console.log('Account balance updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chart_of_accounts',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        (payload) => {
+          console.log('Chart of accounts updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['account-balances', profile?.tenant_id, accountId, dateFrom, dateTo],
