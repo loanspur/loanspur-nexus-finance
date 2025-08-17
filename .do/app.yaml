@@ -5,7 +5,7 @@ services:
   github:
     repo: your-username/your-repo-name
     branch: main
-    deploy_on_push: false
+    deploy_on_push: true
   dockerfile_path: Dockerfile
   instance_count: 1
   instance_size_slug: basic-xxs
