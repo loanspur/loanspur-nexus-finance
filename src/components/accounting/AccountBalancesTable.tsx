@@ -51,19 +51,29 @@ export const AccountBalancesTable = () => {
       if (accounts.length === 0) { setComputedBalances([]); return; }
       setIsComputing(true);
       const dateParam = filters.balanceDate || format(new Date(), 'yyyy-MM-dd');
+      
+      // Calculate period start (beginning of month for the selected date)
+      const periodStart = format(new Date(dateParam).setDate(1), 'yyyy-MM-dd');
+      
       const results = await Promise.all(accounts.map(async (acc: any) => {
         try {
-          const { data } = await supabase.rpc('calculate_account_balance', { p_account_id: acc.id, p_date: dateParam });
-          const closing = (data as any) ?? 0;
+          const { data } = await supabase.rpc('calculate_account_balance_with_periods', { 
+            p_account_id: acc.id, 
+            p_date: dateParam,
+            p_period_start: periodStart
+          });
+          
+          const balanceData = Array.isArray(data) ? data[0] : data;
+          
           return {
             id: `${acc.id}-${dateParam}`,
             tenant_id: acc.tenant_id,
             account_id: acc.id,
             balance_date: dateParam,
-            opening_balance: 0,
-            period_debits: 0,
-            period_credits: 0,
-            closing_balance: Number(closing) || 0,
+            opening_balance: Number(balanceData?.opening_balance) || 0,
+            period_debits: Number(balanceData?.period_debits) || 0,
+            period_credits: Number(balanceData?.period_credits) || 0,
+            closing_balance: Number(balanceData?.closing_balance) || 0,
             chart_of_accounts: {
               account_code: acc.account_code,
               account_name: acc.account_name,
@@ -71,7 +81,8 @@ export const AccountBalancesTable = () => {
               account_category: acc.account_category,
             },
           };
-        } catch {
+        } catch (error) {
+          console.error(`Error calculating balance for account ${acc.account_code}:`, error);
           return null;
         }
       }));

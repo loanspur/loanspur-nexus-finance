@@ -8198,6 +8198,15 @@ export type Database = {
         Args: { p_account_id: string; p_date?: string }
         Returns: number
       }
+      calculate_account_balance_with_periods: {
+        Args: { p_account_id: string; p_date?: string; p_period_start?: string }
+        Returns: {
+          closing_balance: number
+          opening_balance: number
+          period_credits: number
+          period_debits: number
+        }[]
+      }
       check_client_activation_eligibility: {
         Args: { client_id: string }
         Returns: boolean
