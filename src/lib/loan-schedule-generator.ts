@@ -1,4 +1,5 @@
 import { addMonths, addWeeks, addDays, format } from 'date-fns';
+import { calculateDailyInterestForDate } from './interest-calculation';
 
 export interface LoanScheduleParams {
   loanId: string;
@@ -112,9 +113,17 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
       // Flat rate method - interest calculated on original principal
       principalAmount = principal / totalPayments;
       
-      // Use unified daily interest formula: (Principal × Annual Rate) ÷ (12 × Days in Month)
-      const daysInCurrentMonth = new Date(nextPaymentDate.getFullYear(), nextPaymentDate.getMonth() + 1, 0).getDate();
-      interestAmount = (principal * normalizedRate) / (12 * daysInCurrentMonth);
+      // Use unified daily interest calculation from the library
+      // Convert decimal rate back to percentage for the unified function
+      const annualRatePercentage = normalizedRate * 100;
+      interestAmount = calculateDailyInterestForDate(principal, annualRatePercentage, nextPaymentDate);
+      
+      // For flat rate, daily interest stays constant for each payment period
+      if (repaymentFrequency !== 'daily') {
+        // For non-daily frequencies, multiply by the payment period
+        const daysInPeriod = getPaymentPeriodDays(repaymentFrequency);
+        interestAmount = interestAmount * daysInPeriod;
+      }
     } else {
       // Default to equal principal installments
       principalAmount = principal / totalPayments;
@@ -242,6 +251,21 @@ function calculatePeriodicRate(annualRate: number, frequency: string, daysInYear
   }
   
   return periodicRate;
+}
+
+function getPaymentPeriodDays(frequency: string): number {
+  switch (frequency) {
+    case 'weekly':
+      return 7;
+    case 'bi-weekly':
+      return 14;
+    case 'monthly':
+      return 30; // Standard month for flat rate calculations
+    case 'quarterly':
+      return 90; // 3 months
+    default:
+      return 1; // daily
+  }
 }
 
 // Helper function to recalculate outstanding amounts after payments
