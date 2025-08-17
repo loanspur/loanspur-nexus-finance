@@ -52,6 +52,7 @@ import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/use
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
+import { useLoanDisplayData } from "@/hooks/useHarmonizedLoanData";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {
@@ -115,6 +116,17 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const chargeAccounting = useLoanChargeAccounting();
   const createJournal = useCreateJournalEntry();
   const { data: feeStructures = [] } = useFeeStructures();
+  
+  // Get harmonized loan display data
+  const {
+    displayOutstanding,
+    displayInterestRate,
+    displayStatus,
+    daysInArrears,
+    isDataConsistent,
+    totalScheduledAmount,
+    totalPaidAmount
+  } = useLoanDisplayData(loan);
 
   // Loan product config and allowed payment types
   const { data: productConfig } = useQuery({
@@ -285,27 +297,25 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     enabled: !!loan?.id,
   });
 
-  // Calculate comprehensive outstanding balance - use database value as primary source
+  // Calculate comprehensive outstanding balance using harmonized data
   const outstandingBalanceCalculation = useMemo(() => {
-    // Use outstanding_balance from database as primary source
-    const dbOutstanding = Number(loan?.outstanding_balance || 0);
+    // Use harmonized outstanding balance as primary source
+    const harmonizedOutstanding = displayOutstanding;
     
-    if (dbOutstanding > 0) {
-      // If we have a database outstanding balance, use it and break it down proportionally
-      // Use total principal to calculate ratios if schedules exist
+    if (harmonizedOutstanding > 0) {
+      // Break down harmonized outstanding balance proportionally
       const totalPrincipal = Number(loan?.principal_amount || 0);
-      const principalRatio = totalPrincipal > 0 ? (dbOutstanding / totalPrincipal) : 1;
       
       return {
-        unpaidPrincipal: dbOutstanding * 0.8,  // Assume 80% is principal
-        unpaidInterest: dbOutstanding * 0.15,  // Assume 15% is interest
-        unpaidFees: dbOutstanding * 0.05,      // Assume 5% is fees/penalties
+        unpaidPrincipal: harmonizedOutstanding * 0.8,  // Assume 80% is principal
+        unpaidInterest: harmonizedOutstanding * 0.15,  // Assume 15% is interest
+        unpaidFees: harmonizedOutstanding * 0.05,      // Assume 5% is fees/penalties
         unpaidPenalties: 0,
-        totalOutstanding: dbOutstanding
+        totalOutstanding: harmonizedOutstanding
       };
     }
 
-    // Fallback: Calculate from schedules and charges if no database outstanding balance
+    // Fallback: Calculate from schedules and charges if no harmonized outstanding balance
     let unpaidPrincipal = 0;
     let unpaidInterest = 0;
     let unpaidFees = 0;
@@ -331,7 +341,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
       unpaidPenalties,
       totalOutstanding
     };
-  }, [loan?.outstanding_balance, loan?.principal_amount, schedules, loanCharges]);
+  }, [displayOutstanding, loan?.principal_amount, schedules, loanCharges]);
   
   // Enhanced early fee calculation with proper product fee fetching
   const earlyFeeAmount = useMemo(() => {
@@ -384,16 +394,17 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
     const lastPaymentAmount = lastPayment ? Number(lastPayment.payment_amount || 0) : 0;
     const currentOutstanding = Number(loan.outstanding_balance || 0);
     
-    const totalDue = (schedules || []).reduce((acc: number, s: any) => acc + (s.total_amount || 0), 0);
-    const totalPaid = (payments as any[]).reduce((acc, p: any) => acc + (p.payment_amount || 0), 0);
+    // Use harmonized data for consistency
+    const totalDue = totalScheduledAmount || (schedules || []).reduce((acc: number, s: any) => acc + (s.total_amount || 0), 0);
+    const totalPaid = totalPaidAmount || (payments as any[]).reduce((acc, p: any) => acc + (p.payment_amount || 0), 0);
     
-    const overpaidAmount = (lastPayment && lastPaymentAmount > currentOutstanding && currentOutstanding >= 0) 
-      ? lastPaymentAmount - currentOutstanding 
-      : Math.max(0, Math.abs(Math.min(0, currentOutstanding)));
+    const overpaidAmount = (lastPayment && lastPaymentAmount > displayOutstanding && displayOutstanding >= 0) 
+      ? lastPaymentAmount - displayOutstanding 
+      : Math.max(0, Math.abs(Math.min(0, displayOutstanding)));
 
-    let status: string = loan.status;
+    // Use harmonized status
+    let status: string = displayStatus;
     if (overpaidAmount > 0) status = 'overpaid';
-    else if (overdue.length > 0) status = 'in_arrears';
 
     return { status, daysInArrears, overpaidAmount, totalPaid, totalDue };
   }, [schedules, payments, loan.status]);
@@ -1006,10 +1017,10 @@ const getStatusColor = (status: string) => {
                         <span className="text-muted-foreground">Original Amount</span>
                         <div className="font-medium">{formatCurrency(loanDetails.amount)}</div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">Interest Rate</span>
-                        <div className="font-medium">{loanDetails.interestRate}% p.a.</div>
-                      </div>
+                       <div>
+                         <span className="text-muted-foreground">Interest Rate</span>
+                         <div className="font-medium">{displayInterestRate}% p.a.</div>
+                       </div>
                       {loanDetails.disbursementDate && (
                         <div>
                           <span className="text-muted-foreground">Disbursement Date</span>

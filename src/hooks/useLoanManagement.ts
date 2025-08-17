@@ -714,11 +714,12 @@ export const useProcessLoanApproval = () => {
               application_id: approval.loan_application_id, // Link back to application
               loan_number: loanNumber,
               principal_amount: approval.approved_amount || loanApplication.requested_amount,
-              // Normalize interest rate: accept 10 (percent) or 0.10 (fraction)
-              interest_rate: (() => {
-                const r = (approval.approved_interest_rate ?? 10);
-                return r > 1 ? r / 100 : r;
-              })(),
+               // Store interest rate as decimal (0.067 for 6.7%)
+               interest_rate: (() => {
+                 const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+                 // Ensure it's stored as decimal - if it's a percentage, convert it
+                 return r > 1 ? r / 100 : r;
+               })(),
               term_months: approval.approved_term || loanApplication.requested_term,
               outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
               status: 'pending_disbursement',

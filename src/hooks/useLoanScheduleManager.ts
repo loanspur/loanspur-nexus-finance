@@ -84,11 +84,28 @@ export const useLoanScheduleManager = () => {
           .delete()
           .eq('loan_id', loanId);
 
-        // Generate new schedule
+        // Generate new schedule with proper interest rate normalization
+        const loanInterestRate = Number(loan.interest_rate);
+        const productDefaultRate = Number(loan.loan_products.default_nominal_interest_rate || 0);
+        
+        // Normalize interest rate - handle cases where it might be stored incorrectly
+        let normalizedInterestRate = loanInterestRate;
+        
+        // If loan interest rate is vastly different from product rate, likely a data issue
+        if (productDefaultRate > 0 && Math.abs(loanInterestRate - productDefaultRate) > 100) {
+          // If loan rate is way higher, likely stored as basis points or wrong scale
+          if (loanInterestRate > 100) {
+            normalizedInterestRate = loanInterestRate / 100;
+          }
+        }
+        
+        // Ensure we're using decimal format for calculations (e.g., 0.067 for 6.7%)
+        const interestRateDecimal = normalizedInterestRate > 1 ? normalizedInterestRate / 100 : normalizedInterestRate;
+        
         const scheduleParams = {
           loanId,
           principal: Number(loan.principal_amount),
-          interestRate: Number(loan.interest_rate) / 100, // Convert percentage to decimal
+          interestRate: interestRateDecimal, // Already in decimal format
           termMonths: Number(loan.term_months),
           disbursementDate: loan.disbursement_date,
           repaymentFrequency: productFrequency as 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly',

@@ -43,6 +43,15 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
   const schedule: LoanScheduleEntry[] = [];
   const startDate = new Date(disbursementDate);
   
+  // Normalize interest rate - ensure it's a reasonable decimal value
+  let normalizedRate = interestRate;
+  
+  // If interest rate seems too high (likely percentage instead of decimal), convert it
+  if (normalizedRate > 1) {
+    normalizedRate = normalizedRate / 100;
+    console.warn(`Interest rate ${interestRate} seems to be in percentage format, converting to decimal: ${normalizedRate}`);
+  }
+  
   // Calculate number of payments based on frequency and term
   const paymentsPerYear = getPaymentsPerYear(repaymentFrequency);
   let totalPayments;
@@ -54,7 +63,7 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     totalPayments = Math.ceil((termMonths / 12) * paymentsPerYear);
   }
   
-  const periodicRate = interestRate / paymentsPerYear;
+  const periodicRate = normalizedRate / paymentsPerYear;
 
   // Calculate first payment date
   let nextPaymentDate = firstPaymentDate ? new Date(firstPaymentDate) : getNextPaymentDate(startDate, repaymentFrequency);
