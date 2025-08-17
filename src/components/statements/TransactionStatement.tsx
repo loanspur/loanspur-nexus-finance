@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateLoanStatement, generateSavingsStatement } from "@/lib/statement-generator";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
 import { LoanRepaymentUndoDialog } from "@/components/forms/LoanRepaymentUndoDialog";
+import { SavingsTransactionUndoDialog } from "@/components/forms/SavingsTransactionUndoDialog";
 
 interface Transaction {
   date: string;
@@ -27,6 +28,8 @@ interface Transaction {
   feeAmount?: number;
   penaltyAmount?: number;
   paymentId?: string;
+  // Savings transaction fields
+  transactionId?: string;
 }
 
 interface TransactionStatementProps {
@@ -74,6 +77,7 @@ export const TransactionStatement = ({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [selectedPaymentForUndo, setSelectedPaymentForUndo] = useState<any>(null);
+  const [selectedSavingsTransactionForUndo, setSelectedSavingsTransactionForUndo] = useState<any>(null);
   const [loanTotals, setLoanTotals] = useState({
     totalPrincipalPaid: 0,
     totalInterestPaid: 0,
@@ -133,7 +137,8 @@ export const TransactionStatement = ({
           method: item.method || 'N/A',
           reference: item.reference_number || `TXN-${String(item.id).slice(-8)}`,
           description: item.description || '',
-          status: item.status || 'completed'
+          status: item.status || 'completed',
+          transactionId: item.id
         }));
 
         setTransactions(transformedTransactions);
@@ -715,11 +720,52 @@ export const TransactionStatement = ({
                               className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                               title="Undo Payment"
                             >
-                              <Undo2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
+                             <Undo2 className="h-4 w-4" />
+                             </Button>
+                           )}
+                           {accountType === 'savings' && 
+                            (transaction.type === 'deposit' || transaction.type === 'withdrawal') && 
+                            transaction.transactionId &&
+                            !transaction.method?.includes('_REVERSED') && 
+                            transaction.status !== 'reversed' && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={async () => {
+                                 // Fetch full savings transaction details for undo dialog
+                                 try {
+                                   const { data: transactionDetails, error } = await supabase
+                                     .from('savings_transactions')
+                                     .select('*')
+                                     .eq('id', transaction.transactionId)
+                                     .single();
+                                   
+                                   if (error || !transactionDetails) {
+                                     toast({
+                                       title: "Error",
+                                       description: "Could not load transaction details",
+                                       variant: "destructive"
+                                     });
+                                     return;
+                                   }
+
+                                   setSelectedSavingsTransactionForUndo(transactionDetails);
+                                 } catch (err) {
+                                   toast({
+                                     title: "Error", 
+                                     description: "Failed to load transaction details",
+                                     variant: "destructive"
+                                   });
+                                 }
+                               }}
+                               className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                               title="Undo Transaction"
+                             >
+                               <Undo2 className="h-4 w-4" />
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
                    </TableRow>
                  ))}
               </TableBody>
@@ -744,6 +790,15 @@ export const TransactionStatement = ({
           onOpenChange={(open) => !open && setSelectedPaymentForUndo(null)}
           payment={selectedPaymentForUndo}
           loanNumber={accountNumber}
+        />
+      )}
+
+      {/* Savings Transaction Undo Dialog */}
+      {selectedSavingsTransactionForUndo && (
+        <SavingsTransactionUndoDialog
+          open={!!selectedSavingsTransactionForUndo}
+          onOpenChange={(open) => !open && setSelectedSavingsTransactionForUndo(null)}
+          transaction={selectedSavingsTransactionForUndo}
         />
       )}
     </div>
