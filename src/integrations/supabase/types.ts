@@ -4433,6 +4433,60 @@ export type Database = {
           },
         ]
       }
+      loan_payment_reversals: {
+        Row: {
+          created_at: string
+          fee_amount: number
+          id: string
+          interest_amount: number
+          loan_id: string
+          notes: string | null
+          original_payment_id: string
+          penalty_amount: number
+          principal_amount: number
+          reason: string
+          reversal_date: string
+          reversed_amount: number
+          reversed_by: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          interest_amount?: number
+          loan_id: string
+          notes?: string | null
+          original_payment_id: string
+          penalty_amount?: number
+          principal_amount?: number
+          reason: string
+          reversal_date: string
+          reversed_amount: number
+          reversed_by?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          interest_amount?: number
+          loan_id?: string
+          notes?: string | null
+          original_payment_id?: string
+          penalty_amount?: number
+          principal_amount?: number
+          reason?: string
+          reversal_date?: string
+          reversed_amount?: number
+          reversed_by?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_payments: {
         Row: {
           created_at: string
@@ -4443,10 +4497,14 @@ export type Database = {
           payment_amount: number
           payment_date: string
           payment_method: string
+          penalty_amount: number | null
           principal_amount: number
           processed_by: string | null
           reference_number: string | null
+          reversed_at: string | null
+          reversed_by: string | null
           schedule_id: string | null
+          status: string | null
           tenant_id: string
         }
         Insert: {
@@ -4458,10 +4516,14 @@ export type Database = {
           payment_amount: number
           payment_date?: string
           payment_method?: string
+          penalty_amount?: number | null
           principal_amount?: number
           processed_by?: string | null
           reference_number?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           schedule_id?: string | null
+          status?: string | null
           tenant_id: string
         }
         Update: {
@@ -4473,10 +4535,14 @@ export type Database = {
           payment_amount?: number
           payment_date?: string
           payment_method?: string
+          penalty_amount?: number | null
           principal_amount?: number
           processed_by?: string | null
           reference_number?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           schedule_id?: string | null
+          status?: string | null
           tenant_id?: string
         }
         Relationships: [

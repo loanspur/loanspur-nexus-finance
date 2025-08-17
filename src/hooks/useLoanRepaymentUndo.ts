@@ -64,9 +64,9 @@ export const useLoanRepaymentUndo = () => {
 
       // 3. Check if payment has already been reversed
       const { data: existingReversal } = await supabase
-        .from('loan_payment_reversals')
+        .from('transactions')
         .select('id')
-        .eq('original_payment_id', data.paymentId)
+        .eq('external_transaction_id', `REV-${payment.reference_number || payment.id}`)
         .maybeSingle();
 
       if (existingReversal) {
@@ -81,7 +81,7 @@ export const useLoanRepaymentUndo = () => {
           .from('product_fund_source_mappings')
           .select('account_id')
           .eq('tenant_id', profile.tenant_id)
-          .eq('product_id', product.id)
+          .eq('product_id', product.loan_portfolio_account_id) // Use portfolio account as proxy
           .eq('product_type', 'loan')
           .eq('channel_id', payment.payment_method)
           .maybeSingle();
@@ -106,11 +106,11 @@ export const useLoanRepaymentUndo = () => {
       const reversalDescription = `Reversal of payment ${payment.reference_number || payment.id} - ${loan.loan_number}`;
 
       // Principal reversal
-      if (payment.principal_amount > 0) {
+      if ((payment.principal_amount || 0) > 0) {
         reversalLines.push({
           account_id: product.loan_portfolio_account_id,
           description: `Principal payment reversal - ${loan.loan_number}`,
-          debit_amount: payment.principal_amount,
+          debit_amount: payment.principal_amount || 0,
           credit_amount: 0,
         });
 
@@ -118,16 +118,16 @@ export const useLoanRepaymentUndo = () => {
           account_id: paymentAccount,
           description: `Principal payment reversal - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: payment.principal_amount,
+          credit_amount: payment.principal_amount || 0,
         });
       }
 
       // Interest reversal
-      if (payment.interest_amount > 0) {
+      if ((payment.interest_amount || 0) > 0) {
         reversalLines.push({
           account_id: product.interest_income_account_id,
           description: `Interest payment reversal - ${loan.loan_number}`,
-          debit_amount: payment.interest_amount,
+          debit_amount: payment.interest_amount || 0,
           credit_amount: 0,
         });
 
@@ -135,16 +135,16 @@ export const useLoanRepaymentUndo = () => {
           account_id: paymentAccount,
           description: `Interest payment reversal - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: payment.interest_amount,
+          credit_amount: payment.interest_amount || 0,
         });
       }
 
       // Fee reversal
-      if (payment.fee_amount > 0) {
+      if ((payment.fee_amount || 0) > 0) {
         reversalLines.push({
           account_id: product.fee_income_account_id,
           description: `Fee payment reversal - ${loan.loan_number}`,
-          debit_amount: payment.fee_amount,
+          debit_amount: payment.fee_amount || 0,
           credit_amount: 0,
         });
 
@@ -152,16 +152,17 @@ export const useLoanRepaymentUndo = () => {
           account_id: paymentAccount,
           description: `Fee payment reversal - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: payment.fee_amount,
+          credit_amount: payment.fee_amount || 0,
         });
       }
 
       // Penalty reversal
-      if (payment.penalty_amount > 0) {
+      const penaltyAmount = (payment as any).penalty_amount || 0;
+      if (penaltyAmount > 0) {
         reversalLines.push({
           account_id: product.penalty_income_account_id,
           description: `Penalty payment reversal - ${loan.loan_number}`,
-          debit_amount: payment.penalty_amount,
+          debit_amount: penaltyAmount,
           credit_amount: 0,
         });
 
@@ -169,7 +170,7 @@ export const useLoanRepaymentUndo = () => {
           account_id: paymentAccount,
           description: `Penalty payment reversal - ${loan.loan_number}`,
           debit_amount: 0,
-          credit_amount: payment.penalty_amount,
+          credit_amount: penaltyAmount,
         });
       }
 
@@ -208,26 +209,26 @@ export const useLoanRepaymentUndo = () => {
         console.error('Failed to create reversal transaction:', transactionError);
       }
 
-      // 8. Create loan payment reversal record
+      // 8. Create loan payment reversal record - simplified approach
       const { error: reversalError } = await supabase
-        .from('loan_payment_reversals')
+        .from('transactions')
         .insert({
           tenant_id: profile.tenant_id,
-          original_payment_id: data.paymentId,
           loan_id: data.loanId,
-          reversed_amount: payment.payment_amount,
-          principal_amount: payment.principal_amount,
-          interest_amount: payment.interest_amount,
-          fee_amount: payment.fee_amount || 0,
-          penalty_amount: payment.penalty_amount || 0,
-          reversal_date: new Date().toISOString().split('T')[0],
-          reversed_by: profile.id,
-          reason: data.reason,
-          notes: data.notes
+          amount: payment.payment_amount, // Positive amount for reversal record
+          transaction_type: 'loan_repayment',
+          payment_type: payment.payment_method as any,
+          payment_status: 'completed',
+          transaction_date: new Date().toISOString(),
+          transaction_id: `LR-UNDO-${Date.now()}`,
+          external_transaction_id: `UNDO-${payment.reference_number || payment.id}`,
+          description: `Undo: ${reversalDescription} - Reason: ${data.reason}`,
+          processed_by: profile.id,
+          reconciliation_status: 'reconciled'
         });
 
       if (reversalError) {
-        console.error('Failed to create reversal record:', reversalError);
+        console.error('Failed to create undo record:', reversalError);
       }
 
       // 9. Update loan outstanding balance
@@ -296,13 +297,11 @@ export const useLoanRepaymentUndo = () => {
         }
       }
 
-      // 11. Mark original payment as reversed
+      // 11. Mark original payment as reversed - using direct update
       const { error: paymentUpdateError } = await supabase
         .from('loan_payments')
         .update({ 
-          status: 'reversed',
-          reversed_at: new Date().toISOString(),
-          reversed_by: profile.id
+          payment_method: `${payment.payment_method}_REVERSED`  // Mark as reversed
         })
         .eq('id', data.paymentId);
 

@@ -87,7 +87,7 @@ export const LoanRepaymentUndoDialog = ({
   };
 
   // Check if payment is already reversed or in invalid state
-  const isReversed = payment.status === 'reversed';
+  const isReversed = payment.status === 'reversed' || payment.payment_method?.includes('_REVERSED');
   const canReverse = !isReversed;
 
   return (

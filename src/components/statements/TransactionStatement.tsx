@@ -680,6 +680,7 @@ export const TransactionStatement = ({
                           {accountType === 'loan' && 
                            transaction.type === 'Payment' && 
                            transaction.paymentId &&
+                           !transaction.method?.includes('_REVERSED') && 
                            transaction.status !== 'reversed' && (
                             <Button
                               variant="ghost"
