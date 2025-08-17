@@ -5110,9 +5110,12 @@ export type Database = {
           creation_compounding_enabled: boolean | null
           creation_days_in_month_type: string | null
           creation_days_in_year_type: string | null
+          creation_interest_rate: number | null
           creation_interest_recalculation_enabled: boolean | null
           creation_pre_closure_interest_calculation_rule: string | null
+          creation_principal: number | null
           creation_reschedule_strategy_method: string | null
+          creation_term_months: number | null
           disbursement_date: string | null
           expected_maturity_date: string | null
           id: string
@@ -5141,9 +5144,12 @@ export type Database = {
           creation_compounding_enabled?: boolean | null
           creation_days_in_month_type?: string | null
           creation_days_in_year_type?: string | null
+          creation_interest_rate?: number | null
           creation_interest_recalculation_enabled?: boolean | null
           creation_pre_closure_interest_calculation_rule?: string | null
+          creation_principal?: number | null
           creation_reschedule_strategy_method?: string | null
+          creation_term_months?: number | null
           disbursement_date?: string | null
           expected_maturity_date?: string | null
           id?: string
@@ -5172,9 +5178,12 @@ export type Database = {
           creation_compounding_enabled?: boolean | null
           creation_days_in_month_type?: string | null
           creation_days_in_year_type?: string | null
+          creation_interest_rate?: number | null
           creation_interest_recalculation_enabled?: boolean | null
           creation_pre_closure_interest_calculation_rule?: string | null
+          creation_principal?: number | null
           creation_reschedule_strategy_method?: string | null
+          creation_term_months?: number | null
           disbursement_date?: string | null
           expected_maturity_date?: string | null
           id?: string
