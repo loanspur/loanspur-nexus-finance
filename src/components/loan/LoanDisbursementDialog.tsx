@@ -82,25 +82,51 @@ export const LoanDisbursementDialog = ({
     }
   }, [open]);
 
-  // Load payment mappings from product_fund_source_mappings joined with payment_types to get codes
-  const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  // Load payment mappings from product_fund_source_mappings with mapped accounting ledgers
+  const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string; account_id: string; account_name?: string }>>([]);
   useEffect(() => {
     const load = async () => {
       if (!loanData?.loan_product_id) return;
+      
+      // Get mappings with accounting ledger information
       const { data: mappings } = await supabase
         .from('product_fund_source_mappings')
-        .select('channel_id, channel_name')
+        .select(`
+          channel_id, 
+          channel_name, 
+          account_id,
+          chart_of_accounts!inner(account_name, account_code)
+        `)
         .eq('product_id', loanData.loan_product_id)
         .eq('product_type', 'loan');
-      const channelIds = (mappings || []).map(m => m.channel_id);
-      if (channelIds.length === 0) { setPaymentOptions([]); return; }
+        
+      if (!mappings || mappings.length === 0) { 
+        setPaymentOptions([]); 
+        return; 
+      }
+      
+      // Get payment types for the mapped channels
+      const channelIds = mappings.map(m => m.channel_id);
       const { data: pts } = await supabase
         .from('payment_types')
         .select('*')
         .in('id', channelIds);
+        
+      // Combine payment types with accounting ledger information
       const options = (pts || [])
         .filter((pt) => typeof pt.code === 'string' && pt.code.trim().length > 0)
-        .map((pt) => ({ id: pt.id, code: pt.code.toLowerCase(), name: pt.name }));
+        .map((pt) => {
+          const mapping = mappings.find(m => m.channel_id === pt.id);
+          return {
+            id: pt.id,
+            code: pt.code.toLowerCase(),
+            name: pt.name,
+            account_id: mapping?.account_id || '',
+            account_name: mapping?.chart_of_accounts?.account_name
+          };
+        })
+        .filter(opt => opt.account_id); // Only include options with valid accounting mapping
+        
       setPaymentOptions(options);
     };
     load();
@@ -360,7 +386,14 @@ const disbursementData: any = {
                         ) : (
                           paymentOptions.map((opt) => (
                             <SelectItem key={opt.id} value={opt.code}>
-                              {opt.name}
+                              <div className="flex flex-col">
+                                <span className="font-medium">{opt.name}</span>
+                                {opt.account_name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    → {opt.account_name}
+                                  </span>
+                                )}
+                              </div>
                             </SelectItem>
                           ))
                         )}
