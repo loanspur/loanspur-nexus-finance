@@ -7,13 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Receipt, ArrowLeft, Banknote, PiggyBank, Undo2 } from "lucide-react";
-import { useProcessLoanDisbursement, useUndoLoanDisbursement } from "@/hooks/useLoanManagement";
 import { useToast } from "@/hooks/use-toast";
 import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
 import { useQuery } from "@tanstack/react-query";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
 
 
 interface LoanDisbursementDialogProps {
@@ -31,14 +30,17 @@ export const LoanDisbursementDialog = ({
 }: LoanDisbursementDialogProps) => {
   const { toast } = useToast();
   const { formatAmount } = useCurrency();
-  const processDisbursement = useProcessLoanDisbursement();
-  const undoDisbursement = useUndoLoanDisbursement();
+  const transactionManager = useLoanTransactionManager();
   const { data: loanProducts = [] } = useLoanProducts();
-  const accountingDisburse = useLoanDisbursementAccounting();
 
   // Undo disbursement -> back to approval stage
   const handleUndoApproval = async () => {
-    await undoDisbursement.mutateAsync({ loan_application_id: loanData.id });
+    await transactionManager.mutateAsync({
+      type: 'reversal',
+      loan_id: loanData.id,
+      amount: 0,
+      transaction_date: new Date().toISOString().split('T')[0],
+    });
   };
 
   // Early return if no loan data
@@ -246,39 +248,29 @@ const disbursementData: any = {
   ...(disbursementMethod === 'savings' && targetSavingsId ? { savings_account_id: targetSavingsId } : {})
 };
 
-    processDisbursement.mutate(disbursementData, {
-      onSuccess: async (result: any) => {
-        try {
-          // Create accounting entry using selected payment method
-          if (result?.loan) {
-            await accountingDisburse.mutateAsync({
-              loan_id: result.loan.id,
-              client_id: result.loan.client_id,
-              loan_product_id: loanData.loan_product_id,
-              principal_amount: getDisbursementAmount(),
-              disbursement_date: disbursementDate,
-              loan_number: result.loan.loan_number,
-              payment_method: disbursementMethod === 'savings' ? undefined : (selectedPaymentMapping || undefined),
-            });
-          }
-        } catch (e: any) {
-          console.warn('Accounting for disbursement failed:', e);
-        }
-        toast({
-          title: "Success",
-          description: `${disbursementMethod === 'savings' ? 'disbursed to savings account' : 'disbursement processed'} successfully`,
-        });
-        onOpenChange(false);
-        onSuccess?.();
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to process disbursement",
-          variant: "destructive"
-        });
-      }
-    });
+    try {
+      await transactionManager.mutateAsync({
+        type: 'disbursement',
+        loan_id: loanData.id,
+        amount: getDisbursementAmount(),
+        transaction_date: disbursementDate,
+        disbursement_method: disbursementMethod === 'savings' ? 'cash' : 'bank_transfer',
+        reference_number: disbursementMethod === 'direct' ? receiptNumber : undefined,
+      });
+
+      toast({
+        title: "Success",
+        description: `${disbursementMethod === 'savings' ? 'disbursed to savings account' : 'disbursement processed'} successfully`,
+      });
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process disbursement",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -455,10 +447,10 @@ const disbursementData: any = {
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={!isFormValid() || processDisbursement.isPending}
+              disabled={!isFormValid() || transactionManager.isPending}
               className={`flex-1 ${disbursementMethod === 'undo' ? 'bg-destructive hover:bg-destructive/90' : 'bg-gradient-primary'}`}
             >
-              {processDisbursement.isPending ? (
+              {transactionManager.isPending ? (
                 "Processing..."
               ) : disbursementMethod === 'undo' ? (
                 <>

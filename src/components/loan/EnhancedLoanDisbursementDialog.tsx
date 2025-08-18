@@ -238,8 +238,7 @@ export const EnhancedLoanDisbursementDialog = ({
         amount: getDisbursementAmount(),
         transaction_date: disbursementDate,
         disbursement_method: disbursementMethod === 'savings' ? 'cash' : 'bank_transfer',
-        reference_number: disbursementMethod === 'direct' ? receiptNumber : undefined,
-        savings_account_id: disbursementMethod === 'savings' && targetSavingsId ? targetSavingsId : undefined
+        reference_number: disbursementMethod === 'direct' ? receiptNumber : undefined
       });
 
       toast({

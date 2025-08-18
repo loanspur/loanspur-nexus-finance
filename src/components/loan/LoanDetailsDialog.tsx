@@ -36,7 +36,8 @@ import { TransactionStatement } from "@/components/statements/TransactionStateme
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLoanSchedules, useProcessLoanPayment } from "@/hooks/useLoanManagement";
+import { useLoanSchedules } from "@/hooks/useLoanManagement";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -112,7 +113,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [recoveryMethod, setRecoveryMethod] = useState<string>('cash');
 
   // Hooks
-  const processPayment = useProcessLoanPayment();
+  const transactionManager = useLoanTransactionManager();
   const repayAccounting = useLoanRepaymentAccounting();
   const chargeAccounting = useLoanChargeAccounting();
   const createJournal = useCreateJournalEntry();
@@ -711,15 +712,17 @@ const getStatusColor = (status: string) => {
 
     // Payment record (best-effort)
     try {
-      await processPayment.mutateAsync({
+      await transactionManager.mutateAsync({
+        type: 'repayment',
         loan_id: loan.id,
-        payment_amount: amount,
+        amount: amount,
         principal_amount: breakdown.principal,
         interest_amount: breakdown.interest,
         fee_amount: breakdown.fee,
         payment_method: method,
         reference_number: ref,
-      } as any);
+        transaction_date: dateISO,
+      });
     } catch (e) {
       console.warn('Payment recording skipped:', e);
     }

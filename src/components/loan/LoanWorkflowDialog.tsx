@@ -17,7 +17,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, Clock, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval, useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useProcessLoanApproval } from "@/hooks/useLoanManagement";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
 
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes']),
@@ -94,7 +95,7 @@ export const LoanWorkflowDialog = ({
   const [currentTab, setCurrentTab] = useState("details");
   const { toast } = useToast();
   const processApproval = useProcessLoanApproval();
-  const processDisbursement = useProcessLoanDisbursement();
+  const transactionManager = useLoanTransactionManager();
 
   // Guard clause to prevent null reference errors
   if (!loanApplication) {
@@ -190,15 +191,12 @@ export const LoanWorkflowDialog = ({
   const onDisbursementSubmit = async (data: DisbursementData, e?: React.FormEvent) => {
     e?.preventDefault();
     try {
-      await processDisbursement.mutateAsync({
-        loan_application_id: loanApplication.id,
-        disbursed_amount: parseFloat(data.disbursed_amount),
-        disbursement_date: data.disbursement_date,
+      await transactionManager.mutateAsync({
+        type: 'disbursement',
+        loan_id: loanApplication.id,
+        amount: parseFloat(data.disbursed_amount),
+        transaction_date: data.disbursement_date,
         disbursement_method: data.disbursement_method,
-        bank_account_name: data.bank_account_name,
-        bank_account_number: data.bank_account_number,
-        bank_name: data.bank_name,
-        mpesa_phone: data.mpesa_phone,
       });
       
       onOpenChange(false);
@@ -688,10 +686,10 @@ export const LoanWorkflowDialog = ({
                       <div className="flex gap-2 pt-4">
                         <Button 
                           type="submit" 
-                          disabled={processDisbursement.isPending}
-                          className="flex-1"
-                        >
-                          {processDisbursement.isPending ? "Processing..." : "Disburse Loan"}
+          disabled={transactionManager.isPending}
+          className="flex-1"
+        >
+          {transactionManager.isPending ? "Processing..." : "Disburse Loan"}
                         </Button>
                         <Button 
                           type="button" 
