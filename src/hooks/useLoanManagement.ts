@@ -486,7 +486,7 @@ export const useCollectionCases = () => {
   });
 };
 
-// Process Loan Payment
+// Process Loan Payment - DEPRECATED: Use useLoanTransactionManager instead
 export const useProcessLoanPayment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();

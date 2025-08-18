@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useLoanRepaymentAccounting, useLoanChargeAccounting, useLoanDisbursementAccounting } from "@/hooks/useLoanAccounting";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { getDerivedLoanStatus } from "@/lib/loan-status";
@@ -49,10 +49,8 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   const { toast } = useToast();
   const { profile } = useAuth();
   
-  // Accounting hooks
-  const loanRepaymentAccounting = useLoanRepaymentAccounting();
-  const loanChargeAccounting = useLoanChargeAccounting();
-  const loanDisbursementAccounting = useLoanDisbursementAccounting();
+  // Unified transaction manager
+  const transactionManager = useLoanTransactionManager();
 
   // Fee structures for loan fee mapping
   const { data: feeStructures = [] } = useFeeStructures();
@@ -79,76 +77,30 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
       const amount = Number(data.amount);
       const transactionDate = data.transactionDate ? format(data.transactionDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
 
-      // Create accounting entries based on transaction type
-      switch (data.transactionType) {
-        case 'loan_repayment':
-          if (data.loanId) {
-            // Check loan status before processing payment
-            const { data: loanData, error: loanError } = await supabase
-              .from('loans')
-              .select('status, loan_number')
-              .eq('id', data.loanId)
-              .single();
-
-            if (loanError) {
-              throw new Error('Failed to verify loan status');
-            }
-
-            // Use unified status system to check if loan can accept payments
-            const { status: derivedStatus } = getDerivedLoanStatus({ ...loanData, status: loanData.status });
-            if (StatusHelpers.isClosed(derivedStatus)) {
-              throw new Error(`Cannot process payments on ${derivedStatus} loans (${loanData.loan_number})`);
-            }
-
-            await loanRepaymentAccounting.mutateAsync({
-              loan_id: data.loanId,
-              payment_amount: amount,
-              principal_amount: amount, // For now, treating full amount as principal
-              interest_amount: 0,
-              payment_date: transactionDate,
-              payment_reference: data.externalTransactionId,
-              payment_method: data.paymentType,
-            });
-          }
-          break;
-        case 'fee_payment':
-          if (data.loanId) {
-            await loanChargeAccounting.mutateAsync({
-              loan_id: data.loanId,
-              charge_type: 'fee',
-              amount: amount,
-              charge_date: transactionDate,
-              description: data.description || 'Loan fee charge',
-              fee_structure_id: data.loanFeeId,
-            });
-          }
-          break;
-        case 'loan_disbursement':
-          if (data.loanId) {
-            // Fetch loan to get product and number
-            const { data: loan, error } = await supabase
-              .from('loans')
-              .select('id, client_id, loan_product_id, loan_number')
-              .eq('id', data.loanId)
-              .single();
-            if (!error && loan) {
-              await loanDisbursementAccounting.mutateAsync({
-                loan_id: loan.id,
-                client_id: loan.client_id,
-                loan_product_id: loan.loan_product_id,
-                principal_amount: amount,
-                disbursement_date: transactionDate,
-                loan_number: loan.loan_number,
-                payment_method: data.paymentType,
-              });
-            }
-          }
-          break;
-        case 'savings_deposit':
-        case 'savings_withdrawal':
-          // Savings accounting integration will be handled by SavingsTransactionForm
-          break;
+      // Use unified transaction manager for all loan-related transactions
+      if (data.transactionType === 'loan_repayment' && data.loanId) {
+        await transactionManager.mutateAsync({
+          type: 'repayment',
+          loan_id: data.loanId,
+          amount: amount,
+          principal_amount: amount, // For now, treating full amount as principal
+          interest_amount: 0,
+          transaction_date: transactionDate,
+          reference_number: data.externalTransactionId,
+          payment_method: data.paymentType,
+        });
+      } else if (data.transactionType === 'fee_payment' && data.loanId) {
+        await transactionManager.mutateAsync({
+          type: 'charge',
+          loan_id: data.loanId,
+          charge_type: 'fee',
+          amount: amount,
+          transaction_date: transactionDate,
+          description: data.description || 'Loan fee charge',
+          fee_structure_id: data.loanFeeId,
+        });
       }
+      // Note: savings transactions still handled separately
       
       toast({
         title: "Payment Processed",
