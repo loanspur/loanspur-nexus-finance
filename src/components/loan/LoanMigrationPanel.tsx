@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useLoanDataMigration, useLoanMigrationValidation } from '@/hooks/useLoanDataMigration';
+import { LoanHarmonizationManager } from './LoanHarmonizationManager';
 import { 
   Database, 
   CheckCircle, 
@@ -202,6 +203,12 @@ export const LoanMigrationPanel = () => {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Enhanced Harmonization Section */}
+        <div className="mt-6">
+          <Separator className="mb-6" />
+          <LoanHarmonizationManager />
+        </div>
       </CardContent>
     </Card>
   );
