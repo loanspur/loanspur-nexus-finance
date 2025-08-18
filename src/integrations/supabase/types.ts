@@ -4493,6 +4493,48 @@ export type Database = {
           },
         ]
       }
+      loan_harmonization_log: {
+        Row: {
+          harmonization_type: string
+          id: string
+          loan_id: string
+          new_interest_rate: number | null
+          new_outstanding_balance: number | null
+          notes: string | null
+          old_interest_rate: number | null
+          old_outstanding_balance: number | null
+          performed_at: string | null
+          performed_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          harmonization_type?: string
+          id?: string
+          loan_id: string
+          new_interest_rate?: number | null
+          new_outstanding_balance?: number | null
+          notes?: string | null
+          old_interest_rate?: number | null
+          old_outstanding_balance?: number | null
+          performed_at?: string | null
+          performed_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          harmonization_type?: string
+          id?: string
+          loan_id?: string
+          new_interest_rate?: number | null
+          new_outstanding_balance?: number | null
+          notes?: string | null
+          old_interest_rate?: number | null
+          old_outstanding_balance?: number | null
+          performed_at?: string | null
+          performed_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       loan_payment_reversals: {
         Row: {
           created_at: string
@@ -8310,6 +8352,17 @@ export type Database = {
       get_user_tenant_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      harmonize_all_existing_loans: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          loan_id: string
+          new_interest_rate: number
+          new_outstanding: number
+          old_interest_rate: number
+          old_outstanding: number
+          status: string
+        }[]
       }
     }
     Enums: {
