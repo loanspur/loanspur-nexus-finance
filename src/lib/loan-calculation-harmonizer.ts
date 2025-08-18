@@ -130,13 +130,19 @@ function normalizeInterestRate(currentRate: number, productDefaultRate?: number)
   // PRESERVE LOAN TERMS: Never replace loan's original rate with product default
   // The loan should maintain its creation-time interest rate throughout its lifecycle
   
-  // Convert rate to percentage format for display consistency
-  if (currentRate <= 1) {
-    return currentRate * 100; // Convert 0.067 to 6.7% or 1.2 to 120%
+  // Enhanced logic to handle various interest rate formats consistently
+  if (currentRate <= 0.01) {
+    // Very small decimal (0.0067 for 0.67%)
+    return currentRate * 100;
+  } else if (currentRate <= 1) {
+    // Decimal format (0.067 for 6.7% or 0.12 for 12%)
+    return currentRate * 100;
   } else if (currentRate > 100) {
-    return currentRate / 100; // Convert 670 to 6.7% (likely data entry error)
+    // Likely error: 1200 instead of 12%
+    return currentRate / 100;
   } else {
-    return currentRate; // Already in percentage form (6.7%)
+    // Already in percentage form (6.7% or 12%)
+    return currentRate;
   }
 }
 

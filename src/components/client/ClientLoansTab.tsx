@@ -299,12 +299,12 @@ export const ClientLoansTab = ({
                           </p>
                         </div>
                         {item.loan_products && (
-                          <div>
-                            <p className="text-muted-foreground">Interest Rate</p>
-                            <p className="font-medium">
-                              {item.loan_products.default_nominal_interest_rate}%
-                            </p>
-                          </div>
+                            <div>
+                                <p className="text-muted-foreground">Interest Rate</p>
+                                <p className="font-medium">
+                                  {(item.interest_rate ? item.interest_rate * 100 : item.loan_products.default_nominal_interest_rate).toFixed(2)}% p.a.
+                                </p>
+                            </div>
                         )}
                         {/* Show processing info for applications */}
                         {item.type === 'application' && item.reviewed_by_profile && (
