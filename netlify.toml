@@ -16,6 +16,12 @@
   to = "/index.html"
   status = 200
 
+# Handle tenant subdomains for development (*.loanspur.online)
+[[redirects]]
+  from = "/*.loanspur.online/*"
+  to = "/index.html"
+  status = 200
+
 # Headers for security and performance
 [[headers]]
   for = "/*"

@@ -3,13 +3,31 @@ import https from 'https';
 import http from 'http';
 
 const urls = [
-  // Netlify domain (loanspur.online)
+  // Netlify domain (loanspur.online) - Development
   'https://loanspur.online',
   'https://loanspur.online/auth',
   'https://loanspur.online/health',
   'https://loanspur.online/super-admin',
   'https://loanspur.online/tenant',
   'https://loanspur.online/client',
+  
+  // Tenant subdomains - Development
+  'https://tenant1.loanspur.online',
+  'https://tenant1.loanspur.online/auth',
+  'https://acme.loanspur.online',
+  'https://acme.loanspur.online/auth',
+  
+  // Production domain (loanspurcbs.com)
+  'https://loanspurcbs.com',
+  'https://loanspurcbs.com/auth',
+  'https://loanspurcbs.com/health',
+  
+  // Tenant subdomains - Production
+  'https://tenant1.loanspurcbs.com',
+  'https://tenant1.loanspurcbs.com/auth',
+  'https://acme.loanspurcbs.com',
+  'https://acme.loanspurcbs.com/auth',
+  
   // Database
   'https://woqesvsopdgoikpatzxp.supabase.co/rest/v1/'
 ];
@@ -69,24 +87,49 @@ async function checkDeployment() {
   } else {
     console.log(`⚠️  ${working}/${total} endpoints are working`);
     
-    const netlifyWorking = results.find(r => r.url.includes('loanspur.online') && r.working);
+    const netlifyWorking = results.find(r => r.url.includes('loanspur.online') && !r.url.includes('tenant1') && !r.url.includes('acme') && r.working);
+    const netlifySubdomainsWorking = results.find(r => (r.url.includes('tenant1.loanspur.online') || r.url.includes('acme.loanspur.online')) && r.working);
+    const productionWorking = results.find(r => r.url.includes('loanspurcbs.com') && !r.url.includes('tenant1') && !r.url.includes('acme') && r.working);
+    const productionSubdomainsWorking = results.find(r => (r.url.includes('tenant1.loanspurcbs.com') || r.url.includes('acme.loanspurcbs.com')) && r.working);
     
-    if (!netlifyWorking) {
-      console.log('\n🔧 Netlify Deployment Issues Detected:');
-      console.log('1. Netlify domain (loanspur.online) is not responding correctly');
-      console.log('2. Check if the app is deployed to Netlify');
-      console.log('3. Verify the _redirects file is configured correctly');
-      console.log('4. Check Netlify build logs for errors');
-    } else {
-      console.log('\n✅ Netlify Deployment Status:');
-      console.log('1. Main domain is working');
+    console.log('\n📊 Deployment Status Summary:');
+    
+    if (netlifyWorking) {
+      console.log('✅ Development (Netlify): Main domain working');
       
-      const authWorking = results.find(r => r.url.includes('/auth') && r.working);
-      if (!authWorking) {
-        console.log('2. ⚠️  Auth route (/auth) still has issues - check _redirects file');
+      const authWorking = results.find(r => r.url.includes('loanspur.online/auth') && r.working);
+      if (authWorking) {
+        console.log('✅ Development (Netlify): Auth route working');
       } else {
-        console.log('2. ✅ Auth route (/auth) is working correctly');
+        console.log('⚠️  Development (Netlify): Auth route has issues');
       }
+      
+      if (netlifySubdomainsWorking) {
+        console.log('✅ Development (Netlify): Tenant subdomains working');
+      } else {
+        console.log('⚠️  Development (Netlify): Tenant subdomains have issues');
+      }
+    } else {
+      console.log('❌ Development (Netlify): Main domain not working');
+    }
+    
+    if (productionWorking) {
+      console.log('✅ Production (DigitalOcean): Main domain working');
+      
+      const authWorking = results.find(r => r.url.includes('loanspurcbs.com/auth') && r.working);
+      if (authWorking) {
+        console.log('✅ Production (DigitalOcean): Auth route working');
+      } else {
+        console.log('⚠️  Production (DigitalOcean): Auth route has issues');
+      }
+      
+      if (productionSubdomainsWorking) {
+        console.log('✅ Production (DigitalOcean): Tenant subdomains working');
+      } else {
+        console.log('⚠️  Production (DigitalOcean): Tenant subdomains have issues');
+      }
+    } else {
+      console.log('❌ Production (DigitalOcean): Main domain not working');
     }
     
     if (!results.find(r => r.url.includes('supabase.co') && r.working)) {

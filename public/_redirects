@@ -9,3 +9,7 @@
 
 # API proxy to Supabase (if needed)
 /api/*    https://woqesvsopdgoikpatzxp.supabase.co/:splat    200
+
+# Handle tenant subdomains for development (*.loanspur.online)
+# All subdomain requests should also serve the main app
+/*.loanspur.online/*    /index.html   200
