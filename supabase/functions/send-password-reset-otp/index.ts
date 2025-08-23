@@ -50,7 +50,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Initialize Resend
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const resendEmailFrom = Deno.env.get('RESEND_EMAIL_FROM') || 'LoanSpur CBS <noreply@resend.dev>';
+    
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY environment variable is not set");
+      throw new Error('Email service not configured');
+    }
+    
+    const resend = new Resend(resendApiKey);
     
     // Determine the correct domain for reset link
     const baseUrl = tenantSubdomain 
@@ -61,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: Deno.env.get('RESEND_EMAIL_FROM') || 'LoanSpur CBS <noreply@resend.dev>',
+      from: resendEmailFrom,
       to: [email],
       subject: "Reset Your Password - LoanSpur CBS",
       html: `
