@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isDevelopment, seedDatabase } from '@/lib/dev-utils';
+import { DatabaseHealthCheck } from './DatabaseHealthCheck';
 import { 
   Code2, 
   Database, 
@@ -26,7 +27,8 @@ import {
   ChevronUp,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Activity
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -134,6 +136,24 @@ export const DevToolsBar = () => {
                   </div>
                 )}
               </div>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full text-xs h-8">
+                    <Activity className="w-3 h-3 mr-2" />
+                    Database Health
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-base">Database Health Check</DialogTitle>
+                    <DialogDescription className="text-sm">
+                      Check database connection and super admin status
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DatabaseHealthCheck />
+                </DialogContent>
+              </Dialog>
 
               <Dialog>
                 <DialogTrigger asChild>
