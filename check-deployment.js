@@ -3,14 +3,13 @@ import https from 'https';
 import http from 'http';
 
 const urls = [
-  // Production domain
-  'https://loanspurcbs.com',
-  'https://loanspurcbs.com/auth',
-  'https://loanspurcbs.com/health',
-  // Development domain
+  // Netlify domain (loanspur.online)
   'https://loanspur.online',
   'https://loanspur.online/auth',
   'https://loanspur.online/health',
+  'https://loanspur.online/super-admin',
+  'https://loanspur.online/tenant',
+  'https://loanspur.online/client',
   // Database
   'https://woqesvsopdgoikpatzxp.supabase.co/rest/v1/'
 ];
@@ -70,23 +69,24 @@ async function checkDeployment() {
   } else {
     console.log(`⚠️  ${working}/${total} endpoints are working`);
     
-    const prodWorking = results.find(r => r.url.includes('loanspurcbs.com') && r.working);
-    const devWorking = results.find(r => r.url.includes('loanspur.online') && r.working);
+    const netlifyWorking = results.find(r => r.url.includes('loanspur.online') && r.working);
     
-    if (!prodWorking && !devWorking) {
-      console.log('\n🔧 Deployment Issues Detected:');
-      console.log('1. Both production and development domains are not responding');
-      console.log('2. Check if the app is deployed to DigitalOcean');
-      console.log('3. Verify the GitHub Actions workflow completed successfully');
-      console.log('4. Check the DigitalOcean App Platform dashboard');
-    } else if (!prodWorking) {
-      console.log('\n⚠️  Production Domain Issues:');
-      console.log('1. Production domain (loanspurcbs.com) is not responding');
-      console.log('2. Development domain is working correctly');
-    } else if (!devWorking) {
-      console.log('\n⚠️  Development Domain Issues:');
-      console.log('1. Development domain (loanspur.online) is not responding');
-      console.log('2. Production domain is working correctly');
+    if (!netlifyWorking) {
+      console.log('\n🔧 Netlify Deployment Issues Detected:');
+      console.log('1. Netlify domain (loanspur.online) is not responding correctly');
+      console.log('2. Check if the app is deployed to Netlify');
+      console.log('3. Verify the _redirects file is configured correctly');
+      console.log('4. Check Netlify build logs for errors');
+    } else {
+      console.log('\n✅ Netlify Deployment Status:');
+      console.log('1. Main domain is working');
+      
+      const authWorking = results.find(r => r.url.includes('/auth') && r.working);
+      if (!authWorking) {
+        console.log('2. ⚠️  Auth route (/auth) still has issues - check _redirects file');
+      } else {
+        console.log('2. ✅ Auth route (/auth) is working correctly');
+      }
     }
     
     if (!results.find(r => r.url.includes('supabase.co') && r.working)) {
