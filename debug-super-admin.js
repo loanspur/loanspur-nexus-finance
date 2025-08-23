@@ -124,7 +124,7 @@ async function debugSuperAdmin() {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', authData.user!.id)
+      .eq('user_id', authData.user.id)
       .eq('is_active', true)
       .single();
 
