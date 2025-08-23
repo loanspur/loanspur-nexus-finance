@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
 interface DeploymentStatus {
-  mainDomain: boolean;
-  authRoute: boolean;
+  productionDomain: boolean;
+  productionAuth: boolean;
+  developmentDomain: boolean;
+  developmentAuth: boolean;
   apiConnection: boolean;
-  sslStatus: boolean;
   error?: string;
 }
 
@@ -23,32 +24,55 @@ export const DeploymentStatus = () => {
 
     try {
       const deploymentStatus: DeploymentStatus = {
-        mainDomain: false,
-        authRoute: false,
+        productionDomain: false,
+        productionAuth: false,
+        developmentDomain: false,
+        developmentAuth: false,
         apiConnection: false,
-        sslStatus: false,
       };
 
-      // Check main domain
+      // Check production domain
       try {
-        const mainResponse = await fetch('https://loanspur.online/', {
+        const prodResponse = await fetch('https://loanspurcbs.com/', {
           method: 'HEAD',
           mode: 'no-cors',
         });
-        deploymentStatus.mainDomain = true;
+        deploymentStatus.productionDomain = true;
       } catch (error) {
-        console.error('Main domain check failed:', error);
+        console.error('Production domain check failed:', error);
       }
 
-      // Check auth route
+      // Check production auth route
       try {
-        const authResponse = await fetch('https://loanspur.online/auth', {
+        const prodAuthResponse = await fetch('https://loanspurcbs.com/auth', {
           method: 'HEAD',
           mode: 'no-cors',
         });
-        deploymentStatus.authRoute = true;
+        deploymentStatus.productionAuth = true;
       } catch (error) {
-        console.error('Auth route check failed:', error);
+        console.error('Production auth route check failed:', error);
+      }
+
+      // Check development domain
+      try {
+        const devResponse = await fetch('https://loanspur.online/', {
+          method: 'HEAD',
+          mode: 'no-cors',
+        });
+        deploymentStatus.developmentDomain = true;
+      } catch (error) {
+        console.error('Development domain check failed:', error);
+      }
+
+      // Check development auth route
+      try {
+        const devAuthResponse = await fetch('https://loanspur.online/auth', {
+          method: 'HEAD',
+          mode: 'no-cors',
+        });
+        deploymentStatus.developmentAuth = true;
+      } catch (error) {
+        console.error('Development auth route check failed:', error);
       }
 
       // Check API connection
@@ -59,16 +83,6 @@ export const DeploymentStatus = () => {
         deploymentStatus.apiConnection = apiResponse.ok;
       } catch (error) {
         console.error('API connection check failed:', error);
-      }
-
-      // Check SSL status
-      try {
-        const sslResponse = await fetch('https://loanspur.online/health', {
-          method: 'GET',
-        });
-        deploymentStatus.sslStatus = sslResponse.ok;
-      } catch (error) {
-        console.error('SSL check failed:', error);
       }
 
       setStatus(deploymentStatus);
@@ -139,35 +153,42 @@ export const DeploymentStatus = () => {
           <div className="space-y-2">
             <h4 className="font-medium">Status Results:</h4>
             
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>Main Domain:</span>
-                <Badge variant={status.mainDomain ? "default" : "destructive"}>
-                  {status.mainDomain ? "✅ Online" : "❌ Offline"}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span>Auth Route:</span>
-                <Badge variant={status.authRoute ? "default" : "destructive"}>
-                  {status.authRoute ? "✅ Working" : "❌ 404 Error"}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span>API Connection:</span>
-                <Badge variant={status.apiConnection ? "default" : "destructive"}>
-                  {status.apiConnection ? "✅ Connected" : "❌ Failed"}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span>SSL Status:</span>
-                <Badge variant={status.sslStatus ? "default" : "destructive"}>
-                  {status.sslStatus ? "✅ Secure" : "❌ Issues"}
-                </Badge>
-              </div>
-            </div>
+                         <div className="space-y-2 text-sm">
+               <div className="flex items-center justify-between">
+                 <span>Production Domain:</span>
+                 <Badge variant={status.productionDomain ? "default" : "destructive"}>
+                   {status.productionDomain ? "✅ Online" : "❌ Offline"}
+                 </Badge>
+               </div>
+               
+               <div className="flex items-center justify-between">
+                 <span>Production Auth:</span>
+                 <Badge variant={status.productionAuth ? "default" : "destructive"}>
+                   {status.productionAuth ? "✅ Working" : "❌ 404 Error"}
+                 </Badge>
+               </div>
+               
+               <div className="flex items-center justify-between">
+                 <span>Development Domain:</span>
+                 <Badge variant={status.developmentDomain ? "default" : "destructive"}>
+                   {status.developmentDomain ? "✅ Online" : "❌ Offline"}
+                 </Badge>
+               </div>
+               
+               <div className="flex items-center justify-between">
+                 <span>Development Auth:</span>
+                 <Badge variant={status.developmentAuth ? "default" : "destructive"}>
+                   {status.developmentAuth ? "✅ Working" : "❌ 404 Error"}
+                 </Badge>
+               </div>
+               
+               <div className="flex items-center justify-between">
+                 <span>API Connection:</span>
+                 <Badge variant={status.apiConnection ? "default" : "destructive"}>
+                   {status.apiConnection ? "✅ Connected" : "❌ Failed"}
+                 </Badge>
+               </div>
+             </div>
 
             {status.error && (
               <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">

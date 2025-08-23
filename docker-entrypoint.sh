@@ -1,10 +1,16 @@
 #!/bin/sh
 set -e
 
-# Replace placeholder domain in nginx config with actual domain from environment
-if [ -n "$DOMAIN_NAME" ]; then
-    sed -i "s/yourdomain\.com/$DOMAIN_NAME/g" /etc/nginx/nginx.conf
-fi
+# Configure nginx for both production and development domains
+PROD_DOMAIN=${DOMAIN_NAME:-loanspurcbs.com}
+DEV_DOMAIN=${DEV_DOMAIN_NAME:-loanspur.online}
+
+echo "Configuring nginx for:"
+echo "  Production: $PROD_DOMAIN"
+echo "  Development: $DEV_DOMAIN"
+
+# The nginx config is already set up for both domains
+# No need to replace placeholders since we're using explicit domain names
 
 # Create SSL certificate directory if it doesn't exist
 mkdir -p /etc/ssl/certs /etc/ssl/private
