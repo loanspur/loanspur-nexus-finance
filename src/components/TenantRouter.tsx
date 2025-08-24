@@ -53,6 +53,7 @@ export const TenantRouter = () => {
   const { currentTenant, loading, error, isSubdomainTenant } = useTenant();
 
   // Debug logging
+  if (import.meta.env.VITE_IS_DEVELOPMENT === 'true') {
   console.log('TenantRouter - Debug Info:', {
     currentTenant,
     loading,
@@ -60,6 +61,7 @@ export const TenantRouter = () => {
     isSubdomainTenant,
     hostname: typeof window !== 'undefined' ? window.location.hostname : 'undefined'
   });
+}
 
   // Show loading state
   if (loading) {
