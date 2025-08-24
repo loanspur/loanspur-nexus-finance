@@ -14,8 +14,9 @@ export interface Profile {
   role: UserRole;
   tenant_id?: string;
   is_active: boolean;
-  avatar_url?: string;
-  phone?: string;
+  custom_role_id?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthState {
@@ -23,6 +24,7 @@ export interface AuthState {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  error: string | null;
 }
 
 export interface AuthContextType extends AuthState {
@@ -33,6 +35,8 @@ export interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<void>;
   isRole: (role: UserRole) => boolean;
   hasRole: (roles: UserRole[]) => boolean;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -51,6 +55,7 @@ export const useAuthState = () => {
     session: null,
     profile: null,
     loading: true,
+    error: null,
   });
   const { toast } = useToast();
 
@@ -58,27 +63,15 @@ export const useAuthState = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setState(prev => ({ ...prev, session, user: session?.user ?? null }));
+        console.log('Auth state change:', event, session?.user?.id);
+        
+        setState(prev => ({ ...prev, session, user: session?.user ?? null, error: null }));
         
         if (session?.user) {
           // Fetch user profile with timeout to avoid blocking
           setTimeout(async () => {
             try {
-              // Check if current user is super admin and has dev profile set
-              const { data: currentProfile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              // Remove any dev profile switching for strict super admin isolation
-              const devProfile = localStorage.getItem('dev_target_profile');
-              if (devProfile) {
-                localStorage.removeItem('dev_target_profile');
-                console.log('Dev profile switching disabled for strict role separation');
-              }
-              
-              // Normal profile loading - only get active profiles
+              // Get user profile with proper error handling
               const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -87,146 +80,194 @@ export const useAuthState = () => {
                 .maybeSingle();
               
               if (error) {
-                console.error('Error fetching profile:', error);
-                
-                // If it's a 406 error or profile not found, this might be a deleted user
-                // Clear the session to prevent infinite loops
-                if (error.code === 'PGRST116' || error.message?.includes('not found') || error.message?.includes('JSON object requested, multiple (or no) rows returned')) {
-                  console.warn('Profile not found for user, clearing session:', session.user.id);
-                  await supabase.auth.signOut();
-                  toast({
-                    title: "Session Cleared",
-                    description: "Invalid session detected and cleared. Please login again.",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                
-                toast({
-                  title: "Profile Error", 
-                  description: "Could not load user profile",
-                  variant: "destructive",
-                });
-                setState(prev => ({ ...prev, loading: false }));
-              } else if (!profile) {
-                console.warn('No active profile found for user:', session.user.id);
-                // If no profile found, also clear the session
-                await supabase.auth.signOut();
-                toast({
-                  title: "No Profile Found",
-                  description: "No active profile found. Please contact support.",
-                  variant: "destructive",
-                });
-                setState(prev => ({ ...prev, loading: false }));
-              } else {
-                const adjustedProfile = profile.role === 'super_admin' ? { ...profile, tenant_id: undefined } : profile;
-                setState(prev => ({ ...prev, profile: adjustedProfile as any, loading: false }));
+                console.error('Profile fetch error:', error);
+                setState(prev => ({ 
+                  ...prev, 
+                  error: 'Failed to load user profile',
+                  loading: false 
+                }));
+                return;
               }
+              
+              if (!profile) {
+                console.warn('No active profile found for user:', session.user.id);
+                setState(prev => ({ 
+                  ...prev, 
+                  error: 'No active profile found',
+                  loading: false 
+                }));
+                return;
+              }
+              
+              // Ensure proper typing
+              const adjustedProfile = profile.role === 'super_admin' 
+                ? { ...profile, tenant_id: undefined } 
+                : profile;
+              
+              setState(prev => ({ 
+                ...prev, 
+                profile: adjustedProfile as Profile, 
+                loading: false,
+                error: null
+              }));
+              
             } catch (error) {
               console.error('Profile fetch error:', error);
-              setState(prev => ({ ...prev, loading: false }));
+              setState(prev => ({ 
+                ...prev, 
+                error: 'Failed to load user profile',
+                loading: false 
+              }));
             }
-          }, 0);
+          }, 100); // Small delay to ensure auth is fully established
         } else {
-          setState(prev => ({ ...prev, profile: null, loading: false }));
+          setState(prev => ({ 
+            ...prev, 
+            profile: null, 
+            loading: false,
+            error: null
+          }));
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState(prev => ({ ...prev, session, user: session?.user ?? null, loading: false }));
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session check error:', error);
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Failed to check session',
+          loading: false 
+        }));
+        return;
+      }
+      
+      setState(prev => ({ 
+        ...prev, 
+        session, 
+        user: session?.user ?? null, 
+        loading: false 
+      }));
     });
 
     return () => subscription.unsubscribe();
-  }, [toast]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    setState(prev => ({ ...prev, loading: true }));
+    setState(prev => ({ ...prev, loading: true, error: null }));
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setState(prev => ({ ...prev, loading: false }));
+      if (error) {
+        setState(prev => ({ ...prev, loading: false, error: error.message }));
+        toast({
+          title: "Sign In Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
+      // Profile will be loaded by the auth state change listener
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      setState(prev => ({ ...prev, loading: false, error: errorMessage }));
       toast({
         title: "Sign In Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
+      return { error };
     }
-
-    return { error };
   };
 
   const signUp = async (email: string, password: string, userData?: Partial<Profile>) => {
-    setState(prev => ({ ...prev, loading: true }));
+    setState(prev => ({ ...prev, loading: true, error: null }));
     
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData,
-      }
-    });
-
-    if (error) {
-      setState(prev => ({ ...prev, loading: false }));
-      toast({
-        title: "Sign Up Error",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const redirectUrl = `${window.location.origin}/auth/confirm`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: userData,
+        }
       });
-    } else {
+
+      if (error) {
+        setState(prev => ({ ...prev, loading: false, error: error.message }));
+        toast({
+          title: "Sign Up Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
       toast({
         title: "Account Created",
         description: "Please check your email to verify your account.",
       });
+      
+      setState(prev => ({ ...prev, loading: false }));
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = error.message || 'An unexpected error occurred';
+      setState(prev => ({ ...prev, loading: false, error: errorMessage }));
+      toast({
+        title: "Sign Up Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error };
     }
-
-    return { error };
   };
 
   const signOut = async () => {
     setState(prev => ({ ...prev, loading: true }));
-    const { error } = await supabase.auth.signOut();
     
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+        toast({
+          title: "Sign Out Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Signed Out",
+          description: "You have been successfully signed out.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Sign out error:', error);
       toast({
         title: "Sign Out Error",
-        description: error.message,
+        description: "Failed to sign out. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
     }
-    
-    setState({ user: null, session: null, profile: null, loading: false });
   };
 
   const refreshProfile = async () => {
     if (!state.user) return;
     
     setState(prev => ({ ...prev, loading: true }));
+    
     try {
-      // Check if current user is super admin and has dev profile set
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', state.user.id)
-        .single();
-      
-      // Remove any dev profile switching for strict super admin isolation
-      const devProfile = localStorage.getItem('dev_target_profile');
-      if (devProfile) {
-        localStorage.removeItem('dev_target_profile');
-        console.log('Dev profile switching disabled for strict role separation');
-      }
-      
-      // Normal profile loading - only get active profiles
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -236,46 +277,156 @@ export const useAuthState = () => {
       
       if (error) {
         console.error('Error fetching profile:', error);
-        toast({
-          title: "Profile Error",
-          description: "Could not load user profile", 
-          variant: "destructive",
-        });
-        setState(prev => ({ ...prev, loading: false }));
-      } else if (!profile) {
+        setState(prev => ({ 
+          ...prev, 
+          error: 'Could not load user profile',
+          loading: false 
+        }));
+        return;
+      }
+      
+      if (!profile) {
         console.warn('No active profile found for user:', state.user.id);
-        setState(prev => ({ ...prev, loading: false }));
-        } else {
-          const adjustedProfile = profile.role === 'super_admin' ? { ...profile, tenant_id: undefined } : profile;
-          setState(prev => ({ ...prev, profile: adjustedProfile as any, loading: false }));
-        }
+        setState(prev => ({ 
+          ...prev, 
+          error: 'No active profile found',
+          loading: false 
+        }));
+        return;
+      }
+      
+      const adjustedProfile = profile.role === 'super_admin' 
+        ? { ...profile, tenant_id: undefined } 
+        : profile;
+      
+      setState(prev => ({ 
+        ...prev, 
+        profile: adjustedProfile as Profile, 
+        loading: false,
+        error: null
+      }));
     } catch (error) {
       console.error('Profile fetch error:', error);
-      setState(prev => ({ ...prev, loading: false }));
+      setState(prev => ({ 
+        ...prev, 
+        error: 'Failed to refresh profile',
+        loading: false 
+      }));
+    }
+  };
+
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!state.profile?.id) {
+      return { error: { message: 'No profile to update' } };
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', state.profile.id);
+      
+      if (error) {
+        toast({
+          title: "Update Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+      
+      // Refresh profile to get updated data
+      await refreshProfile();
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+      
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: "Update Error",
+        description: error.message || 'Failed to update profile',
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      // First verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: state.user?.email || '',
+        password: currentPassword,
+      });
+      
+      if (signInError) {
+        return { error: { message: 'Current password is incorrect' } };
+      }
+      
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      
+      if (error) {
+        toast({
+          title: "Password Change Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+      
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+      
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: "Password Change Error",
+        description: error.message || 'Failed to change password',
+        variant: "destructive",
+      });
+      return { error };
     }
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/auth`;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-
-    if (error) {
-      toast({
-        title: "Reset Password Error",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const redirectUrl = `${window.location.origin}/auth/reset-password`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
       });
-    } else {
+
+      if (error) {
+        toast({
+          title: "Reset Password Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
       toast({
         title: "Reset Email Sent",
         description: "Check your email for password reset instructions.",
       });
+      
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: "Reset Password Error",
+        description: error.message || 'Failed to send reset email',
+        variant: "destructive",
+      });
+      return { error };
     }
-
-    return { error };
   };
 
   const isRole = (role: UserRole): boolean => {
@@ -293,6 +444,8 @@ export const useAuthState = () => {
     signOut,
     resetPassword,
     refreshProfile,
+    updateProfile,
+    changePassword,
     isRole,
     hasRole,
   };

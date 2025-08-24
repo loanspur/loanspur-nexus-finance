@@ -28,6 +28,16 @@ export interface Notification {
   };
 }
 
+export interface NotificationTemplate {
+  id: string;
+  name: string;
+  type: 'sms' | 'email' | 'whatsapp' | 'in_app';
+  trigger_event: string;
+  subject?: string;
+  message: string;
+  is_active: boolean;
+}
+
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -41,9 +51,13 @@ export const useNotifications = () => {
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select(`
+          *,
+          sender:profiles!sender_id(first_name, last_name, email)
+        `)
         .or(`is_global.eq.true,recipient_id.eq.${profile.id}`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
 
@@ -77,19 +91,17 @@ export const useNotifications = () => {
     try {
       const { error } = await supabase
         .from('notifications')
-        .update({ 
+        .update({
           is_read: true,
-          read_at: new Date().toISOString()
+          read_at: new Date().toISOString(),
         })
         .eq('id', notificationId);
 
       if (error) throw error;
 
-      setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === notificationId 
-            ? { ...notification, is_read: true, read_at: new Date().toISOString() }
-            : notification
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
         )
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
@@ -107,26 +119,26 @@ export const useNotifications = () => {
     if (!profile) return;
 
     try {
-      const unreadNotifications = notifications.filter(n => !n.is_read);
-      
       const { error } = await supabase
         .from('notifications')
-        .update({ 
+        .update({
           is_read: true,
-          read_at: new Date().toISOString()
+          read_at: new Date().toISOString(),
         })
-        .in('id', unreadNotifications.map(n => n.id));
+        .or(`is_global.eq.true,recipient_id.eq.${profile.id}`)
+        .eq('is_read', false);
 
       if (error) throw error;
 
-      setNotifications(prev => 
-        prev.map(notification => ({ 
-          ...notification, 
-          is_read: true,
-          read_at: notification.read_at || new Date().toISOString()
-        }))
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
       );
       setUnreadCount(0);
+
+      toast({
+        title: "Success",
+        description: "All notifications marked as read",
+      });
     } catch (error: any) {
       console.error('Error marking all notifications as read:', error);
       toast({
@@ -147,6 +159,7 @@ export const useNotifications = () => {
     action_url?: string;
     action_label?: string;
     expires_at?: string;
+    metadata?: any;
   }) => {
     if (!profile?.tenant_id) return;
 
@@ -199,13 +212,97 @@ export const useNotifications = () => {
     }
   };
 
+  // Event-driven notification creation
+  const createEventNotification = async (event: {
+    type: 'loan_approved' | 'loan_rejected' | 'loan_disbursed' | 'payment_received' | 'overdue_payment' | 'client_registered' | 'system_alert';
+    title: string;
+    message: string;
+    recipient_id?: string;
+    metadata?: any;
+  }) => {
+    const notificationData = {
+      title: event.title,
+      message: event.message,
+      type: getNotificationTypeForEvent(event.type),
+      priority: getPriorityForEvent(event.type),
+      recipient_id: event.recipient_id,
+      is_global: !event.recipient_id,
+      metadata: event.metadata,
+      action_url: getActionUrlForEvent(event.type, event.metadata),
+      action_label: getActionLabelForEvent(event.type),
+    };
+
+    await createNotification(notificationData);
+  };
+
+  const getNotificationTypeForEvent = (eventType: string): Notification['type'] => {
+    switch (eventType) {
+      case 'loan_approved':
+      case 'loan_disbursed':
+      case 'payment_received':
+      case 'client_registered':
+        return 'success';
+      case 'loan_rejected':
+        return 'error';
+      case 'overdue_payment':
+        return 'warning';
+      case 'system_alert':
+        return 'info';
+      default:
+        return 'info';
+    }
+  };
+
+  const getPriorityForEvent = (eventType: string): Notification['priority'] => {
+    switch (eventType) {
+      case 'overdue_payment':
+      case 'system_alert':
+        return 'high';
+      case 'loan_approved':
+      case 'loan_disbursed':
+        return 'normal';
+      default:
+        return 'normal';
+    }
+  };
+
+  const getActionUrlForEvent = (eventType: string, metadata?: any): string | undefined => {
+    switch (eventType) {
+      case 'loan_approved':
+      case 'loan_rejected':
+      case 'loan_disbursed':
+        return metadata?.loan_id ? `/tenant/loans/${metadata.loan_id}` : undefined;
+      case 'payment_received':
+        return metadata?.transaction_id ? `/tenant/transactions/${metadata.transaction_id}` : undefined;
+      case 'client_registered':
+        return metadata?.client_id ? `/tenant/clients/${metadata.client_id}` : undefined;
+      default:
+        return undefined;
+    }
+  };
+
+  const getActionLabelForEvent = (eventType: string): string | undefined => {
+    switch (eventType) {
+      case 'loan_approved':
+      case 'loan_rejected':
+      case 'loan_disbursed':
+        return 'View Loan';
+      case 'payment_received':
+        return 'View Transaction';
+      case 'client_registered':
+        return 'View Client';
+      default:
+        return undefined;
+    }
+  };
+
   useEffect(() => {
     if (profile) {
       fetchNotifications();
     }
   }, [profile]);
 
-  // Set up real-time subscription
+  // Set up real-time subscription for new notifications
   useEffect(() => {
     if (!profile) return;
 
@@ -214,13 +311,41 @@ export const useNotifications = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'notifications',
+          filter: `recipient_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log('Notification update:', payload);
-          fetchNotifications(); // Refetch to get the latest data
+          const newNotification = payload.new as Notification;
+          setNotifications(prev => [newNotification, ...prev]);
+          setUnreadCount(prev => prev + 1);
+
+          // Show toast for high priority notifications
+          if (newNotification.priority === 'high' || newNotification.priority === 'urgent') {
+            toast({
+              title: newNotification.title,
+              description: newNotification.message,
+              variant: newNotification.type === 'error' ? 'destructive' : 'default',
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          const updatedNotification = payload.new as Notification;
+          setNotifications(prev =>
+            prev.map(n =>
+              n.id === updatedNotification.id ? updatedNotification : n
+            )
+          );
         }
       )
       .subscribe();
@@ -228,7 +353,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile]);
+  }, [profile, toast]);
 
   return {
     notifications,
@@ -237,7 +362,8 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     createNotification,
+    createEventNotification,
     deleteNotification,
-    refetch: fetchNotifications,
+    refresh: fetchNotifications,
   };
 };

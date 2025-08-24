@@ -510,56 +510,28 @@ export const useProcessLoanApproval = () => {
       approval_date?: string;
       conditions?: string;
     }) => {
-      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+      if (!profile?.tenant_id || !profile?.id) {
+        throw new Error('No user context');
+      }
 
-      // Get loan application details with product information
-      const { data: loanApplication, error: fetchError } = await supabase
+      // Get current loan application
+      const { data: loanApp, error: loanError } = await supabase
         .from('loan_applications')
-        .select(`
-          *,
-          loan_products (
-            name,
-            min_principal,
-            max_principal,
-            min_term,
-            max_term,
-            default_nominal_interest_rate
-          )
-        `)
+        .select('*, loan_approvals(*)')
         .eq('id', approval.loan_application_id)
         .single();
-      
-      if (fetchError || !loanApplication) throw new Error('Loan application not found');
 
-      // Validate approval amounts against product limits
-      if (approval.action === 'approve') {
-        const product = loanApplication.loan_products;
-        const approvedAmount = approval.approved_amount || loanApplication.requested_amount;
-        const approvedTerm = approval.approved_term || loanApplication.requested_term;
+      if (loanError || !loanApp) {
+        throw new Error('Loan application not found');
+      }
 
-        console.log('Validating approval against product limits:', {
-          product: product?.name,
-          approvedAmount,
-          limits: { min: product?.min_principal, max: product?.max_principal },
-          approvedTerm,
-          termLimits: { min: product?.min_term, max: product?.max_term }
-        });
+      // Check if user has already approved this loan
+      const existingApproval = loanApp.loan_approvals?.find(
+        (a: any) => a.approver_id === profile.id
+      );
 
-        if (product?.min_principal && approvedAmount < product.min_principal) {
-          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) is below product minimum (${product.min_principal.toLocaleString()})`);
-        }
-
-        if (product?.max_principal && approvedAmount > product.max_principal) {
-          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) exceeds product maximum (${product.max_principal.toLocaleString()})`);
-        }
-
-        if (product?.min_term && approvedTerm < product.min_term) {
-          throw new Error(`Approved term (${approvedTerm} months) is below product minimum (${product.min_term} months)`);
-        }
-
-        if (product?.max_term && approvedTerm > product.max_term) {
-          throw new Error(`Approved term (${approvedTerm} months) exceeds product maximum (${product.max_term} months)`);
-        }
+      if (existingApproval && approval.action !== 'undo_approval') {
+        throw new Error('You have already acted on this loan application');
       }
 
       // Create approval record
@@ -582,18 +554,47 @@ export const useProcessLoanApproval = () => {
       
       if (approvalError) throw approvalError;
 
-      // Update loan application status
+      // Determine new status based on approval action and existing approvals
       let newStatus: string;
+      let finalApprovedAmount = loanApp.final_approved_amount;
+      let finalApprovedTerm = loanApp.final_approved_term;
+      let finalApprovedInterestRate = loanApp.final_approved_interest_rate;
+
       if (approval.action === 'approve') {
-        newStatus = 'pending_disbursement';
+        // Count total approvals
+        const totalApprovals = (loanApp.loan_approvals?.length || 0) + 1;
+        
+        // For now, require 2 approvals for amounts > 100,000, 1 approval otherwise
+        const requiredApprovals = (loanApp.requested_amount || 0) > 100000 ? 2 : 1;
+        
+        if (totalApprovals >= requiredApprovals) {
+          newStatus = 'pending_disbursement';
+          finalApprovedAmount = approval.approved_amount || loanApp.requested_amount;
+          finalApprovedTerm = approval.approved_term || loanApp.requested_term;
+          finalApprovedInterestRate = approval.approved_interest_rate;
+        } else {
+          newStatus = 'under_review';
+        }
       } else if (approval.action === 'reject') {
         newStatus = 'rejected';
       } else if (approval.action === 'undo_approval') {
-        newStatus = 'pending';
+        // Remove the approval record
+        await supabase
+          .from('loan_approvals')
+          .delete()
+          .eq('id', existingApproval.id);
+        
+        // Recalculate status
+        const remainingApprovals = (loanApp.loan_approvals?.length || 0) - 1;
+        newStatus = remainingApprovals > 0 ? 'under_review' : 'pending';
+        finalApprovedAmount = null;
+        finalApprovedTerm = null;
+        finalApprovedInterestRate = null;
       } else {
         newStatus = 'under_review';
       }
 
+      // Update loan application status
       const { error: updateError } = await supabase
         .from('loan_applications')
         .update({
@@ -601,66 +602,57 @@ export const useProcessLoanApproval = () => {
           reviewed_by: profile.id,
           reviewed_at: new Date().toISOString(),
           approval_notes: approval.comments,
-          final_approved_amount: approval.approved_amount,
-          final_approved_term: approval.approved_term,
-          final_approved_interest_rate: approval.approved_interest_rate,
+          final_approved_amount: finalApprovedAmount,
+          final_approved_term: finalApprovedTerm,
+          final_approved_interest_rate: finalApprovedInterestRate,
         })
         .eq('id', approval.loan_application_id);
 
       if (updateError) throw updateError;
 
-      // If approved, create loan record immediately
-      if (approval.action === 'approve') {
-        const loanNumber = `LN-${Date.now()}`;
-        
-        const { data: loanData, error: loanError } = await supabase
+      // If approved and ready for disbursement, create loan record
+      if (newStatus === 'pending_disbursement') {
+        const { error: loanCreateError } = await supabase
           .from('loans')
           .insert([{
             tenant_id: profile.tenant_id,
-            client_id: loanApplication.client_id,
-            loan_product_id: loanApplication.loan_product_id,
-            application_id: approval.loan_application_id, // Link back to application
-            loan_number: loanNumber,
-            principal_amount: approval.approved_amount || loanApplication.requested_amount,
-            interest_rate: approval.approved_interest_rate || 10,
-            term_months: approval.approved_term || loanApplication.requested_term,
-            outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
+            client_id: loanApp.client_id,
+            loan_product_id: loanApp.loan_product_id,
+            loan_number: `LOAN-${Date.now()}`,
+            principal_amount: finalApprovedAmount,
+            term_months: finalApprovedTerm,
+            interest_rate: finalApprovedInterestRate,
             status: 'pending_disbursement',
-            loan_officer_id: profile.id,
-            approved_by: profile.id,
-            approved_at: approval.approval_date || new Date().toISOString(),
-          }])
-          .select()
-          .single();
-        
-        if (loanError) throw loanError;
+            disbursement_date: null,
+            maturity_date: null,
+            created_by: profile.id,
+          }]);
+
+        if (loanCreateError) {
+          console.error('Error creating loan record:', loanCreateError);
+          // Don't throw error here as approval was successful
+        }
       }
 
-      // If undoing approval, delete any pending loan records
-      if (approval.action === 'undo_approval') {
-        const { error: deleteLoanError } = await supabase
-          .from('loans')
-          .delete()
-          .eq('application_id', approval.loan_application_id)
-          .eq('status', 'pending_disbursement');
-        
-        if (deleteLoanError) console.warn('Error deleting pending loan:', deleteLoanError);
-      }
-
-      return approvalData;
+      return { approvalData, newStatus };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
-      queryClient.invalidateQueries({ queryKey: ['loan-approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
+      
+      const actionText = data.newStatus === 'pending_disbursement' ? 'approved and ready for disbursement' : 
+                        data.newStatus === 'rejected' ? 'rejected' : 'updated';
+      
       toast({
         title: "Success",
-        description: "Loan approval processed successfully",
+        description: `Loan application ${actionText}`,
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to process approval",
         variant: "destructive",
       });
     },

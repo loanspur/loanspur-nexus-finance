@@ -6,11 +6,9 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./components/AuthProvider";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { TenantProvider } from "@/contexts/TenantContext";
-import { TenantRouter } from "./components/TenantRouter";
-import { MainSiteRouter } from "./components/MainSiteRouter";
+import { AppRouter } from "./components/AppRouter";
 import { DevToolsBar } from "@/components/dev/DevToolsBar";
 import { useDataOptimization } from "@/hooks/useOptimizedQueries";
-import { getCurrentSubdomain } from "@/utils/tenant";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,15 +24,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Router component that determines which router to use using shared util (no context usage)
-const AppRouter = () => {
-  const subdomain = getCurrentSubdomain();
-  const isSubdomainTenant = !!subdomain;
-
-  useDataOptimization();
-  return isSubdomainTenant ? <TenantRouter /> : <MainSiteRouter />;
-};
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
@@ -42,10 +31,10 @@ const App = () => (
         <TenantProvider>
           <CurrencyProvider>
             <TooltipProvider>
+              <AppRouter />
               <Toaster />
               <Sonner />
-              <AppRouter />
-              <DevToolsBar />
+              {import.meta.env.DEV && <DevToolsBar />}
             </TooltipProvider>
           </CurrencyProvider>
         </TenantProvider>
