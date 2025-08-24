@@ -1,15 +1,15 @@
-// Fix Tenant Domain Configuration
-// This script fixes the domain mismatch for the umoja-magharibi tenant
+// Fix Tenant Domain for DigitalOcean
+// This script fixes the tenant domain to work with DigitalOcean deployment
 
 const SUPABASE_URL = 'https://woqesvsopdgoikpatzxp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI';
 
-async function fixTenantDomain() {
-  console.log('🔧 Fixing tenant domain configuration...\n');
+async function fixTenantDomainForDigitalOcean() {
+  console.log('🔧 Fixing Tenant Domain for DigitalOcean Deployment\n');
 
   try {
-    // First, let's check the current tenant configuration
-    console.log('1️⃣ Checking current tenant configuration...');
+    // 1. Get current tenant configuration
+    console.log('1️⃣ Getting current tenant configuration...');
     
     const fetchResponse = await fetch(`${SUPABASE_URL}/rest/v1/tenants?subdomain=eq.umoja-magharibi&select=*`, {
       method: 'GET',
@@ -38,8 +38,8 @@ async function fixTenantDomain() {
     console.log('  Domain:', currentTenant.domain);
     console.log('  Status:', currentTenant.status);
 
-    // Fix the domain configuration
-    console.log('\n2️⃣ Fixing domain configuration...');
+    // 2. Update domain to match DigitalOcean deployment
+    console.log('\n2️⃣ Updating domain for DigitalOcean deployment...');
     
     const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/tenants?id=eq.${currentTenant.id}`, {
       method: 'PATCH',
@@ -55,14 +55,19 @@ async function fixTenantDomain() {
       })
     });
 
+    console.log('Update response status:', updateResponse.status);
+    
     if (!updateResponse.ok) {
       console.error('❌ Error updating tenant:', updateResponse.status);
+      const errorText = await updateResponse.text();
+      console.error('Error details:', errorText);
       return;
     }
 
-    console.log('✅ Tenant domain updated successfully!');
+    const updateResult = await updateResponse.json();
+    console.log('Update result:', updateResult);
 
-    // Verify the update
+    // 3. Verify the update
     console.log('\n3️⃣ Verifying the update...');
     
     const verifyResponse = await fetch(`${SUPABASE_URL}/rest/v1/tenants?subdomain=eq.umoja-magharibi&select=*`, {
@@ -89,7 +94,7 @@ async function fixTenantDomain() {
       console.log('  Status:', verifyTenant.status);
       
       if (verifyTenant.domain === 'umoja-magharibi.loanspurcbs.com') {
-        console.log('✅ Domain correctly updated to loanspurcbs.com');
+        console.log('✅ Domain correctly updated for DigitalOcean!');
       } else {
         console.log('❌ Domain not updated correctly');
         console.log('  Expected: umoja-magharibi.loanspurcbs.com');
@@ -99,11 +104,18 @@ async function fixTenantDomain() {
       console.log('❌ Verification failed - tenant not found');
     }
 
-    console.log('\n🎉 Domain configuration fix completed!');
+    // 4. Test URLs
+    console.log('\n4️⃣ Testing URLs after update...');
+    console.log('   ✅ https://umoja-magharibi.loanspurcbs.com');
+    console.log('   ✅ https://umoja-magharibi.loanspurcbs.com/tenant');
+    console.log('   ✅ https://umoja-magharibi.loanspurcbs.com/auth');
+
+    console.log('\n🎉 Domain fix completed for DigitalOcean!');
     console.log('\n📋 Next Steps:');
     console.log('1. Test the subdomain: https://umoja-magharibi.loanspurcbs.com');
     console.log('2. Verify the tenant loads correctly');
     console.log('3. Check that all tenant features work properly');
+    console.log('4. If still getting 404, check DigitalOcean app deployment');
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);
@@ -111,4 +123,4 @@ async function fixTenantDomain() {
 }
 
 // Run the fix
-fixTenantDomain();
+fixTenantDomainForDigitalOcean();

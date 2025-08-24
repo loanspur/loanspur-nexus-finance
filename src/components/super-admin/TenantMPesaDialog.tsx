@@ -15,6 +15,7 @@ export const TenantMPesaDialog = ({ tenantId, open, onOpenChange }: TenantMPesaD
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>M-Pesa Integration Management</DialogTitle>
+          <DialogTitle>M-Pesa Integration Management</DialogTitle>
         </DialogHeader>
         <MPesaIntegrationManagement tenantId={tenantId} />
       </DialogContent>

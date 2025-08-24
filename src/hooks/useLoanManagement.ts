@@ -123,8 +123,8 @@ export const useLoanApplications = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients!loan_applications_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loan_applications_loan_product_id_fkey(
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(
             name, 
             short_name, 
             currency_code, 
@@ -164,8 +164,8 @@ export const useAllLoans = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients!loan_applications_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loan_applications_loan_product_id_fkey(
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(
             name, 
             short_name, 
             currency_code, 
@@ -175,8 +175,7 @@ export const useAllLoans = () => {
             default_term,
             min_term,
             max_term
-          ),
-          reviewed_by_profile:profiles!reviewed_by(first_name, last_name)
+          )
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -191,13 +190,9 @@ export const useAllLoans = () => {
         .from('loans')
         .select(`
           *,
-          clients!loans_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loans_loan_product_id_fkey(name, short_name, currency_code),
-          loan_disbursements!loan_disbursements_loan_id_fkey(
-            disbursed_by,
-            disbursement_date,
-            disbursed_by_profile:profiles!disbursed_by(first_name, last_name)
-          )
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(name, short_name, currency_code),
+          loan_disbursements(disbursed_by, disbursement_date)
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });

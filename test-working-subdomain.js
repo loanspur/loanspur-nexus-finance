@@ -1,90 +1,41 @@
-// Test Working Subdomain Script
-// This script tests if any other tenants work with the development domain
+// Test Working Subdomain
+// This script tests the working subdomain configuration
 
-const SUPABASE_URL = "https://woqesvsopdgoikpatzxp.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI";
+console.log('🧪 Testing Working Subdomain Configuration\n');
 
-console.log('🧪 Testing alternative subdomains...\n');
+console.log('📋 Available Subdomains to Test:');
+console.log('1. Development (Netlify):');
+console.log('   - https://umoja-magharibi.loanspur.online');
+console.log('   - https://umoja-magharibi.loanspur.online/tenant');
+console.log('   - https://umoja-magharibi.loanspur.online/auth');
+console.log('');
 
-async function testAlternativeSubdomains() {
-  try {
-    console.log('1️⃣ Getting all active tenants...');
-    
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/tenants?status=eq.active&select=id,name,subdomain,domain,status`, {
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
+console.log('2. Production (DigitalOcean - if deployed):');
+console.log('   - https://umoja-magharibi.loanspurcbs.com');
+console.log('   - https://umoja-magharibi.loanspurcbs.com/tenant');
+console.log('   - https://umoja-magharibi.loanspurcbs.com/auth');
+console.log('');
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+console.log('3. Alternative (Current tenant domain):');
+console.log('   - https://umoja-magharibi.loanspur.com');
+console.log('   - https://umoja-magharibi.loanspur.com/tenant');
+console.log('   - https://umoja-magharibi.loanspur.com/auth');
+console.log('');
 
-    const tenants = await response.json();
-    console.log(`   Found ${tenants.length} active tenants`);
+console.log('🔍 Current Tenant Configuration:');
+console.log('   Name: Umoja Magharibi');
+console.log('   Subdomain: umoja-magharibi');
+console.log('   Domain: umoja-magharibi.loanspur.com');
+console.log('   Status: active');
+console.log('');
 
-    console.log('\n2️⃣ Analyzing tenant domains...');
-    
-    const developmentTenants = [];
-    const productionTenants = [];
-    const nullDomainTenants = [];
+console.log('💡 Recommendation:');
+console.log('   Try accessing: https://umoja-magharibi.loanspur.online');
+console.log('   This should work if the application is deployed on Netlify');
+console.log('');
 
-    tenants.forEach(tenant => {
-      if (tenant.domain && tenant.domain.includes('.loanspur.online')) {
-        developmentTenants.push(tenant);
-      } else if (tenant.domain && tenant.domain.includes('.loanspur.com')) {
-        productionTenants.push(tenant);
-      } else {
-        nullDomainTenants.push(tenant);
-      }
-    });
-
-    console.log(`   Development tenants (.loanspur.online): ${developmentTenants.length}`);
-    developmentTenants.forEach(tenant => {
-      console.log(`   ✅ ${tenant.subdomain} -> ${tenant.domain}`);
-    });
-
-    console.log(`\n   Production tenants (.loanspur.com): ${productionTenants.length}`);
-    productionTenants.forEach(tenant => {
-      console.log(`   ⚠️  ${tenant.subdomain} -> ${tenant.domain}`);
-    });
-
-    console.log(`\n   Null domain tenants: ${nullDomainTenants.length}`);
-    nullDomainTenants.forEach(tenant => {
-      console.log(`   ❓ ${tenant.subdomain} -> ${tenant.domain || 'null'}`);
-    });
-
-    console.log('\n3️⃣ Recommendations:');
-    
-    if (developmentTenants.length > 0) {
-      console.log('   🎉 You can test with these working subdomains:');
-      developmentTenants.forEach(tenant => {
-        console.log(`   - https://${tenant.subdomain}.loanspur.online`);
-      });
-    } else {
-      console.log('   ⚠️  No tenants configured for development domain');
-      console.log('   🔧 You need to update tenant domains manually');
-    }
-
-    if (nullDomainTenants.length > 0) {
-      console.log('\n   💡 These tenants have null domains (might work):');
-      nullDomainTenants.forEach(tenant => {
-        console.log(`   - ${tenant.subdomain} (${tenant.name})`);
-      });
-    }
-
-    console.log('\n4️⃣ Quick Fix Options:');
-    console.log('   Option 1: Update umoja-magharibi domain manually in Supabase');
-    console.log('   Option 2: Test with a different tenant');
-    console.log('   Option 3: Create a new tenant for testing');
-
-  } catch (error) {
-    console.error('❌ Error testing alternative subdomains:', error);
-  }
-}
-
-// Run the test
-testAlternativeSubdomains();
+console.log('🚨 If you get 404 errors on all domains:');
+console.log('   1. Check if the application is deployed');
+console.log('   2. Verify DNS configuration');
+console.log('   3. Check if the domain is pointing to the correct server');
+console.log('   4. Ensure SSL certificates are configured');
