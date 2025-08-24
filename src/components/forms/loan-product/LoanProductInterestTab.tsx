@@ -159,6 +159,94 @@ export const LoanProductInterestTab = ({ form }: LoanProductInterestTabProps) =>
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="days_in_year_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Days in Year for Interest Calculation</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select days in year" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="360">360 days (30/360)</SelectItem>
+                    <SelectItem value="365">365 days (Actual/365)</SelectItem>
+                    <SelectItem value="actual">Actual/Actual</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="days_in_month_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Days in Month for Interest Calculation</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select days in month" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="30">30 days (30/360)</SelectItem>
+                    <SelectItem value="actual">Actual days in month</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="amortization_method"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amortization Method</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select amortization method" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="equal_installments">Equal Installments (PMT)</SelectItem>
+                    <SelectItem value="equal_principal">Equal Principal Installments</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="interest_recalculation_enabled"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Enable Interest Recalculation</FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Recalculate interest on prepayments or arrears
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
         </div>
       </div>
 

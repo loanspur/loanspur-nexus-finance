@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { 
   Edit, 
   CreditCard, 
@@ -38,8 +39,10 @@ import { ClientNotesTab } from "@/components/client/tabs/ClientNotesTab";
 import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
 import { NewSavingsDialog } from "@/components/client/dialogs/NewSavingsDialog";
 // Using enhanced workflow dialog
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { EnhancedLoanWorkflowDialog } from "@/components/loan/EnhancedLoanWorkflowDialog";
 import { LoanDisbursementDialog } from "@/components/loan/LoanDisbursementDialog";
+import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { EditClientForm } from "@/components/forms/EditClientForm";
@@ -76,6 +79,8 @@ interface Client {
   job_title?: string | null;
   business_type?: string | null;
   tenant_id: string;
+  office_id?: string | null;
+  loan_officer_id?: string | null;
 }
 
 // Helper function to determine which tabs to show based on captured data
@@ -96,6 +101,10 @@ const ClientDetailsPageRefactored = () => {
   const [savings, setSavings] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("general");
   const [loading, setLoading] = useState(true);
+  // Header extras
+  const [officeName, setOfficeName] = useState<string | null>(null);
+  const [loanOfficerName, setLoanOfficerName] = useState<string | null>(null);
+  const [clientTRP, setClientTRP] = useState<number | null>(null);
   
   // Dialog states
   const [showNewLoan, setShowNewLoan] = useState(false);
@@ -125,6 +134,8 @@ const ClientDetailsPageRefactored = () => {
   const [showDisbursementModal, setShowDisbursementModal] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedLoanForWorkflow, setSelectedLoanForWorkflow] = useState<any>(null);
+  const [showLoanDetailsModal, setShowLoanDetailsModal] = useState(false);
+  const [selectedLoanForDetails, setSelectedLoanForDetails] = useState<any>(null);
 
   useEffect(() => {
     if (clientId) {
@@ -132,27 +143,102 @@ const ClientDetailsPageRefactored = () => {
     }
   }, [clientId]);
 
+  // Real-time subscription for loan and savings updates
+  useEffect(() => {
+    if (!clientId) return;
+
+    const channel = supabase
+      .channel('client-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'loans',
+          filter: `client_id=eq.${clientId}`
+        },
+        (payload) => {
+          console.log('Loan updated for client:', payload);
+          fetchClientData(); // Refresh all data to get updated loan status
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'savings_accounts',
+          filter: `client_id=eq.${clientId}`
+        },
+        (payload) => {
+          console.log('Savings account updated for client:', payload);
+          fetchClientData(); // Refresh all data to get updated savings
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'savings_transactions',
+          filter: `savings_account_id=in.(${savings.map(s => s.id).join(',')})`
+        },
+        (payload) => {
+          console.log('Savings transaction updated for client:', payload);
+          fetchClientData(); // Refresh to show new transactions/balances
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [clientId, savings]);
+
   const fetchClientData = async () => {
     if (!clientId) return;
 
     setLoading(true);
     try {
-      // Fetch client details
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', clientId)
-        .maybeSingle();
+    // Fetch client details
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .maybeSingle();
 
-      if (clientError) throw clientError;
-      if (!clientData) {
-        toast({
-          title: "Error",
-          description: "Client not found",
-          variant: "destructive"
-        });
-        return;
-      }
+    if (clientError) throw clientError;
+    if (!clientData) {
+      toast({
+        title: "Error",
+        description: "Client not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Enrich: fetch office and loan officer names for header
+    let officeNameLocal: string | null = null;
+    let loanOfficerNameLocal: string | null = null;
+    if (clientData.office_id) {
+      const { data: office } = await supabase
+        .from('offices')
+        .select('office_name')
+        .eq('id', clientData.office_id)
+        .maybeSingle();
+      officeNameLocal = office?.office_name || null;
+    }
+    if (clientData.loan_officer_id) {
+      const { data: officer } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', clientData.loan_officer_id)
+        .maybeSingle();
+      loanOfficerNameLocal = officer ? `${officer.first_name || ''} ${officer.last_name || ''}`.trim() || null : null;
+    }
+
+    setOfficeName(officeNameLocal);
+    setLoanOfficerName(loanOfficerNameLocal);
 
       // Fetch loans with better error handling
       const { data: loansData, error: loansError } = await supabase
@@ -212,6 +298,87 @@ const ClientDetailsPageRefactored = () => {
       setLoans(loansData || []);
       setSavings(savingsData || []);
       setLoanApplications(applicationsData || []);
+
+      // Compute average TRP across all client loans
+      let trpValue: number | null = null;
+      try {
+        if (loansData && loansData.length > 0) {
+          const loanIds = loansData.map((l: any) => l.id);
+          const { data: sch, error: schErr } = await supabase
+            .from('loan_schedules')
+            .select('loan_id, due_date, total_amount, payment_status')
+            .in('loan_id', loanIds);
+          const { data: pays, error: payErr } = await supabase
+            .from('loan_payments')
+            .select('loan_id, payment_date, payment_amount')
+            .in('loan_id', loanIds);
+          if (schErr) throw schErr;
+          if (payErr) throw payErr;
+
+          const schedulesByLoan = new Map<string, any[]>();
+          (sch || []).forEach((s: any) => {
+            const arr = schedulesByLoan.get(s.loan_id) || [];
+            arr.push(s);
+            schedulesByLoan.set(s.loan_id, arr);
+          });
+          const paymentsByLoan = new Map<string, any[]>();
+          (pays || []).forEach((p: any) => {
+            const arr = paymentsByLoan.get(p.loan_id) || [];
+            arr.push(p);
+            paymentsByLoan.set(p.loan_id, arr);
+          });
+
+          const calcTrp = (schedules: any[], payments: any[]) => {
+            try {
+              const today = new Date();
+              const dueSchedules = (schedules || [])
+                .filter((s: any) => s?.due_date && new Date(s.due_date) <= today)
+                .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+              if (dueSchedules.length === 0) return 100;
+
+              const orderedPayments = (payments || [])
+                .filter((p: any) => p?.payment_date)
+                .sort((a: any, b: any) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime())
+                .map((p: any) => ({ date: new Date(p.payment_date), amount: Number(p.payment_amount || 0) }));
+
+              let payIdx = 0;
+              let cumulativePaid = 0;
+              const advanceTo = (upTo: Date) => {
+                while (payIdx < orderedPayments.length && orderedPayments[payIdx].date <= upTo) {
+                  cumulativePaid += orderedPayments[payIdx].amount;
+                  payIdx++;
+                }
+                return cumulativePaid;
+              };
+
+              let timely = 0;
+              let requiredCumulative = 0;
+              for (const s of dueSchedules) {
+                requiredCumulative += Number(s.total_amount || 0);
+                const paidByDue = advanceTo(new Date(s.due_date));
+                if (paidByDue + 0.0001 >= requiredCumulative) timely++;
+              }
+              return Math.round((timely / dueSchedules.length) * 100);
+            } catch {
+              return null;
+            }
+          };
+
+          const trps: number[] = [];
+          for (const l of loansData) {
+            const s = schedulesByLoan.get(l.id) || [];
+            const p = paymentsByLoan.get(l.id) || [];
+            const t = calcTrp(s, p);
+            if (t !== null && !isNaN(t)) trps.push(t);
+          }
+          if (trps.length > 0) {
+            trpValue = Math.round(trps.reduce((a, b) => a + b, 0) / trps.length);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to compute client TRP', e);
+      }
+      setClientTRP(trpValue);
       
     } catch (error) {
       console.error('Error fetching client data:', error);
@@ -225,13 +392,7 @@ const ClientDetailsPageRefactored = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   const calculateSavingsBalance = () => {
     return savings.reduce((sum, account) => sum + (account.account_balance || 0), 0);
@@ -242,14 +403,31 @@ const ClientDetailsPageRefactored = () => {
   };
 
   const activeLoans = loans.filter(loan => {
-    const closedStatuses = ['closed', 'fully_paid', 'written_off', 'rejected'];
-    return !closedStatuses.includes(loan.status?.toLowerCase());
+    const unified = getUnifiedLoanStatus(loan);
+    return !StatusHelpers.isClosed(unified.status);
   });
 
   const activeSavings = savings.filter(account => {
-    const closedStatuses = ['closed', 'inactive', 'dormant'];
-    return !closedStatuses.includes(account.status?.toLowerCase());
+    return !StatusHelpers.isClosed(account.status?.toLowerCase());
   });
+
+  // Unified loans count (dedupe applications vs. approved/pending_disbursement loans)
+  const visibleLoans = showClosedLoans
+    ? loans.filter(l => StatusHelpers.isClosed(l.status?.toLowerCase()))
+    : loans.filter(l => !StatusHelpers.isClosed(l.status?.toLowerCase()));
+  const visibleApplications = showClosedLoans
+    ? loanApplications.filter(a => StatusHelpers.isClosed(a.status?.toLowerCase()))
+    : loanApplications.filter(a => !StatusHelpers.isClosed(a.status?.toLowerCase()));
+  const applicationIds = new Set(visibleApplications.map(a => a.id));
+  const dedupedLoans = visibleLoans.filter((loan) => {
+    const status = (loan.status || '').toLowerCase();
+    if (['approved', 'pending_disbursement'].includes(status) && loan.application_id && applicationIds.has(loan.application_id)) {
+      return false;
+    }
+    return true;
+  });
+  const loansDisplayCount = visibleApplications.length + dedupedLoans.length;
+
 
   if (loading) {
     return (
@@ -283,6 +461,9 @@ const ClientDetailsPageRefactored = () => {
             client={client}
             loanBalance={calculateLoanBalances()}
             savingsBalance={calculateSavingsBalance()}
+            officeName={officeName}
+            loanOfficerName={loanOfficerName}
+            trp={clientTRP ?? undefined}
           />
 
           {/* Action Menu Bar */}
@@ -348,15 +529,11 @@ const ClientDetailsPageRefactored = () => {
                   </TabsTrigger>
                   <TabsTrigger value="loans" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Loans ({loans.length + loanApplications.length})
+                    Loans ({loansDisplayCount})
                   </TabsTrigger>
                   <TabsTrigger value="savings" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <PiggyBank className="h-4 w-4 mr-2" />
                     Savings ({activeSavings.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="offices" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Offices
                   </TabsTrigger>
                   <TabsTrigger value="notes" className="whitespace-nowrap px-4 py-3 text-sm font-medium text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg border border-transparent data-[state=active]:border-primary transition-all">
                     <StickyNote className="h-4 w-4 mr-2" />
@@ -378,7 +555,13 @@ const ClientDetailsPageRefactored = () => {
                     onToggleClosedLoans={() => setShowClosedLoans(!showClosedLoans)}
                     onNewLoan={() => setShowNewLoan(true)}
                     onViewLoanDetails={(loan) => {
-                      setSelectedAccount(loan);
+                      if (loan?.type === 'loan') {
+                        setSelectedLoanForDetails(loan);
+                        setShowLoanDetailsModal(true);
+                      } else {
+                        setSelectedLoanForWorkflow(loan);
+                        setShowLoanWorkflowModal(true);
+                      }
                     }}
                     onProcessDisbursement={(loan) => {
                       setSelectedAccount(loan);
@@ -421,16 +604,6 @@ const ClientDetailsPageRefactored = () => {
                 <TabsContent value="groups" className="mt-0">
                   <ClientGroupsTab client={client} />
                 </TabsContent>
-                <TabsContent value="offices" className="mt-0">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Office Assignment</h3>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Office assignment is now managed during client onboarding and can be updated in the client edit form.
-                    </div>
-                  </div>
-                </TabsContent>
                 <TabsContent value="notes" className="mt-0">
                   <ClientNotesTab clientId={client.id} />
                 </TabsContent>
@@ -445,6 +618,12 @@ const ClientDetailsPageRefactored = () => {
         open={showNewLoan}
         onOpenChange={setShowNewLoan}
         clientId={client.id}
+        onApplicationCreated={(application) => {
+          setShowNewLoan(false);
+          setSelectedLoanForWorkflow(application);
+          setShowLoanWorkflowModal(true);
+          fetchClientData();
+        }}
       />
       <NewSavingsDialog
         open={showNewSavings}
@@ -471,6 +650,17 @@ const ClientDetailsPageRefactored = () => {
           onOpenChange={setShowLoanWorkflowModal}
           loanApplication={selectedLoanForWorkflow}
           onSuccess={fetchClientData}
+        />
+      )}
+      {selectedLoanForDetails && (
+        <LoanDetailsDialog
+          loan={selectedLoanForDetails}
+          clientName={`${client.first_name} ${client.last_name}`}
+          open={showLoanDetailsModal}
+          onOpenChange={(open) => {
+            setShowLoanDetailsModal(open);
+            if (!open) setSelectedLoanForDetails(null);
+          }}
         />
       )}
       {selectedAccount && (

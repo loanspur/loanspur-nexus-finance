@@ -32,6 +32,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format as formatDate } from "date-fns";
 import { DollarSign, ArrowUpRight, ArrowDownRight, ArrowRightLeft, AlertCircle, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
@@ -41,8 +45,12 @@ import {
   useSavingsWithdrawalAccounting, 
   useSavingsFeeChargeAccounting 
 } from "@/hooks/useSavingsAccounting";
-import { supabase } from "@/integrations/supabase/client";
+import { useLoanRepaymentAccounting } from "@/hooks/useLoanAccounting";
+import { useClients } from "@/hooks/useSupabase";
+import { useClientLoans } from "@/hooks/useLoanManagement";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSavingsAccount } from "@/hooks/useSavingsAccount";
 
 const transactionSchema = z.object({
   transactionType: z.enum(["deposit", "withdrawal", "transfer", "fee_charge"]),
@@ -50,7 +58,10 @@ const transactionSchema = z.object({
   method: z.string().optional(),
   reference: z.string().optional(),
   description: z.string().optional(),
-  transferTo: z.string().optional(),
+  transactionDate: z.string().nonempty("Please select a transaction date"),
+  transferClientId: z.string().optional(),
+  transferAccountType: z.enum(["savings", "loan"]).optional(),
+  transferAccountId: z.string().optional(),
   feeStructureId: z.string().optional(),
   customChargeAmount: z.string().optional(),
 });
@@ -68,6 +79,8 @@ interface SavingsTransactionFormProps {
       name: string;
     };
     account_number: string;
+    client_id?: string;
+    activated_date?: string;
   };
   transactionType?: 'deposit' | 'withdrawal' | 'transfer' | 'fee_charge';
   onSuccess?: () => void;
@@ -84,17 +97,61 @@ export const SavingsTransactionForm = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { currency, currencySymbol } = useCurrency();
+  const { data: liveAccount } = useSavingsAccount(savingsAccount.id);
+  const displayBalance = liveAccount?.account_balance ?? savingsAccount.account_balance;
   
   // Accounting hooks
   const depositAccounting = useSavingsDepositAccounting();
   const withdrawalAccounting = useSavingsWithdrawalAccounting();
   const feeChargeAccounting = useSavingsFeeChargeAccounting();
+  const loanRepaymentAccounting = useLoanRepaymentAccounting();
+  // Load product-level payment type mappings for this savings product
+  const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  useEffect(() => {
+    const load = async () => {
+      const productId = savingsAccount.savings_product_id;
+      if (!productId) { setPaymentOptions([]); return; }
+
+      // Fetch allowed payment types from the product's Advanced Accounting mappings
+      const { data: product, error: productError } = await supabase
+        .from('savings_products')
+        .select('payment_type_mappings')
+        .eq('id', productId)
+        .maybeSingle();
+
+      if (productError) { setPaymentOptions([]); return; }
+
+      const mappings = (product?.payment_type_mappings as any[]) || [];
+      const rawVals: string[] = mappings
+        .map((m: any) => (m && typeof m.payment_type === 'string' ? m.payment_type : ''))
+        .filter((v: string) => !!v);
+
+      if (rawVals.length === 0) { setPaymentOptions([]); return; }
+
+      // Load all ACTIVE payment types and filter by codes OR names present in mappings (case-insensitive)
+      const { data: pts, error: ptsErr } = await supabase
+        .from('payment_types')
+        .select('id, code, name, is_active')
+        .eq('is_active', true);
+
+      if (ptsErr || !pts) { setPaymentOptions([]); return; }
+
+      const needleSet = new Set(rawVals.map(v => v.toLowerCase()));
+      const options = pts
+        .filter((pt: any) => needleSet.has((pt.code || '').toLowerCase()) || needleSet.has((pt.name || '').toLowerCase()))
+        .map((pt: any) => ({ id: pt.id, code: pt.code, name: pt.name }));
+
+      setPaymentOptions(options);
+    };
+    load();
+  }, [savingsAccount.savings_product_id]);
   
   // Fetch all fee structures and filter for savings-related charges
   const { data: allFeeStructures } = useFeeStructures();
   const feeStructures = allFeeStructures?.filter(fee => 
     fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
   ) || [];
+  const { data: clients = [] } = useClients();
 
   const form = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -104,19 +161,39 @@ export const SavingsTransactionForm = ({
       method: "",
       reference: "",
       description: "",
-      transferTo: "",
+      transactionDate: new Date().toISOString().split('T')[0],
+      transferClientId: savingsAccount.client_id || undefined,
+      transferAccountType: undefined,
+      transferAccountId: undefined,
       feeStructureId: "",
       customChargeAmount: "",
     },
   });
 
-
   const watchedTransactionType = form.watch("transactionType");
   const watchedAmount = form.watch("amount");
   const watchedFeeStructureId = form.watch("feeStructureId");
-
   const watchedCustomChargeAmount = form.watch("customChargeAmount");
+  const watchedTransferClientId = form.watch("transferClientId");
+  const watchedTransferAccountType = form.watch("transferAccountType");
+  const { data: clientLoans = [] } = useClientLoans(watchedTransferClientId);
 
+  const selectedClient = clients.find((c: any) => c.id === watchedTransferClientId);
+  const destinationSavingsAccounts = (selectedClient as any)?.savings_accounts || [];
+  const destinationLoanAccounts = clientLoans || [];
+
+  useEffect(() => {
+    if (
+      watchedTransactionType === 'transfer' &&
+      watchedTransferAccountType &&
+      !form.getValues('transferAccountId')
+    ) {
+      const options = watchedTransferAccountType === 'savings' ? destinationSavingsAccounts : destinationLoanAccounts;
+      if (options && options.length === 1) {
+        form.setValue('transferAccountId', options[0].id);
+      }
+    }
+  }, [watchedTransactionType, watchedTransferAccountType, watchedTransferClientId, destinationSavingsAccounts, destinationLoanAccounts]);
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -154,7 +231,7 @@ export const SavingsTransactionForm = ({
     if (selectedFee.calculation_type === 'fixed') {
       return selectedFee.amount;
     } else if (selectedFee.calculation_type === 'percentage') {
-      const baseAmount = savingsAccount.account_balance;
+      const baseAmount = displayBalance;
       let calculatedAmount = (baseAmount * selectedFee.amount) / 100;
       
       // Apply min/max limits
@@ -202,7 +279,7 @@ export const SavingsTransactionForm = ({
     }
 
     if (data.transactionType === "withdrawal" || data.transactionType === "transfer" || data.transactionType === "fee_charge") {
-      const newBalance = savingsAccount.account_balance - amount;
+      const newBalance = displayBalance - amount;
       if (newBalance < minBalance) {
         return {
           isValid: false,
@@ -211,11 +288,13 @@ export const SavingsTransactionForm = ({
       }
     }
 
-    if (data.transactionType === "transfer" && !data.transferTo) {
-      return {
-        isValid: false,
-        message: "Please specify the account to transfer to"
-      };
+    if (data.transactionType === "transfer") {
+      if (!data.transferClientId || !data.transferAccountType || !data.transferAccountId) {
+        return {
+          isValid: false,
+          message: "Please select client, account type, and destination account for the transfer"
+        };
+      }
     }
 
     if (data.transactionType === "fee_charge" && !data.feeStructureId) {
@@ -225,11 +304,22 @@ export const SavingsTransactionForm = ({
       };
     }
 
-    if (data.transactionType !== 'fee_charge' && !data.method) {
+    if (data.transactionType !== 'fee_charge' && data.transactionType !== 'transfer' && !data.method) {
       return {
         isValid: false,
         message: "Please select a payment method"
       };
+    }
+
+    // Prevent future dates
+    if (data.transactionDate) {
+      const selected = new Date(data.transactionDate);
+      const today = new Date();
+      selected.setHours(0,0,0,0);
+      today.setHours(0,0,0,0);
+      if (selected > today) {
+        return { isValid: false, message: "Future dates are not allowed" };
+      }
     }
 
     return { isValid: true, message: "" };
@@ -250,13 +340,13 @@ export const SavingsTransactionForm = ({
       }
 
       const amount = data.transactionType === 'fee_charge' ? getChargeAmount() : parseFloat(data.amount || "0");
-      let newBalance = savingsAccount.account_balance;
+      let newBalance = displayBalance;
       
       // Calculate new balance based on transaction type
       if (data.transactionType === 'deposit') {
-        newBalance = savingsAccount.account_balance + amount;
+        newBalance = displayBalance + amount;
       } else if (data.transactionType === 'withdrawal' || data.transactionType === 'transfer' || data.transactionType === 'fee_charge') {
-        newBalance = savingsAccount.account_balance - amount;
+        newBalance = displayBalance - amount;
       }
 
       // Get current user's tenant_id and profile_id
@@ -288,12 +378,14 @@ export const SavingsTransactionForm = ({
       const transactionData: any = {
         tenant_id: profile.tenant_id,
         savings_account_id: savingsAccount.id,
-        transaction_type: data.transactionType,
+        transaction_type: data.transactionType === 'transfer' ? 'withdrawal' : data.transactionType,
         amount: amount,
         balance_after: newBalance,
-        description: data.description || `${data.transactionType} transaction`,
+        description: data.description || `${data.transactionType === 'transfer' ? 'Transfer out' : data.transactionType + ' transaction'}`,
         reference_number: data.reference,
-        processed_by: profile.id
+        processed_by: profile.id,
+        method: data.transactionType === 'transfer' ? 'internal_transfer' : data.method,
+        transaction_date: data.transactionDate,
       };
 
       // Add fee structure reference for charges
@@ -301,6 +393,8 @@ export const SavingsTransactionForm = ({
         const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
         if (selectedFee) {
           transactionData.description = `${selectedFee.name} - ${selectedFee.description || 'Account charge'}`;
+          // Record fee name as method for transaction history display
+          transactionData.method = selectedFee.name;
         }
       }
 
@@ -321,22 +415,119 @@ export const SavingsTransactionForm = ({
 
       if (updateError) throw updateError;
 
+      // If transfer to another savings account, create destination deposit and update its balance
+      if (data.transactionType === 'transfer' && data.transferAccountType === 'savings' && data.transferAccountId) {
+        const { data: destAcc, error: destFetchError } = await supabase
+          .from('savings_accounts')
+          .select('id, account_balance, account_number')
+          .eq('id', data.transferAccountId)
+          .maybeSingle();
+
+        if (destFetchError || !destAcc) {
+          throw new Error('Destination savings account not found');
+        }
+
+        const destNewBalance = (destAcc.account_balance || 0) + amount;
+
+        const { error: destTxnError } = await supabase
+          .from('savings_transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            savings_account_id: destAcc.id,
+            transaction_type: 'deposit',
+            amount: amount,
+            balance_after: destNewBalance,
+            description: `Transfer from ${savingsAccount.account_number}`,
+            reference_number: data.reference,
+            processed_by: profile.id,
+            method: 'internal_transfer',
+            transaction_date: data.transactionDate,
+          });
+
+        if (destTxnError) throw destTxnError;
+
+        const { error: destUpdateError } = await supabase
+          .from('savings_accounts')
+          .update({ account_balance: destNewBalance, updated_at: new Date().toISOString() })
+          .eq('id', destAcc.id);
+
+        if (destUpdateError) throw destUpdateError;
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['savings-account', destAcc.id] }),
+          queryClient.invalidateQueries({ queryKey: ['savings-transactions', destAcc.id] }),
+        ]);
+      } else if (data.transactionType === 'transfer' && data.transferAccountType === 'loan' && data.transferAccountId) {
+        const loanId = data.transferAccountId;
+
+        const { error: loanPayErr } = await supabase
+          .from('loan_payments')
+          .insert({
+            tenant_id: profile.tenant_id,
+            loan_id: loanId,
+            payment_amount: amount,
+            principal_amount: amount,
+            interest_amount: 0,
+            fee_amount: 0,
+            payment_date: data.transactionDate,
+            payment_method: 'internal_transfer',
+            reference_number: data.reference,
+            processed_by: profile.id,
+          });
+        if (loanPayErr) throw loanPayErr;
+
+        // Create loan repayment accounting entry (best-effort)
+        try {
+          await loanRepaymentAccounting.mutateAsync({
+            loan_id: loanId,
+            payment_amount: amount,
+            principal_amount: amount,
+            interest_amount: 0,
+            fee_amount: 0,
+            payment_date: data.transactionDate,
+            payment_method: 'internal_transfer',
+            payment_reference: data.reference || undefined,
+          } as any);
+        } catch (e) {
+          console.warn('Loan repayment accounting failed:', e);
+        }
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['loan-payments', loanId] }),
+          queryClient.invalidateQueries({ queryKey: ['loan-schedules', loanId] }),
+          queryClient.invalidateQueries({ queryKey: ['loans'] }),
+        ]);
+      }
+
+      // Refresh queries so all open modals update
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['savings-accounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['savings-account', savingsAccount.id] }),
+        queryClient.invalidateQueries({ queryKey: ['savings-transactions', savingsAccount.id] }),
+      ]);
+
       // Create accounting entries based on transaction type
       const accountingData = {
         savings_account_id: savingsAccount.id,
         savings_product_id: savingsAccount.savings_product_id,
         amount: amount,
-        transaction_date: new Date().toISOString().split('T')[0],
+        transaction_date: data.transactionDate,
         account_number: savingsAccount.account_number,
-        payment_method: data.method,
+        payment_method: data.transactionType === 'transfer' ? 'internal_transfer' : data.method,
       };
 
       // Create journal entries for accounting integration
       try {
         if (data.transactionType === 'deposit') {
-          await depositAccounting.mutateAsync(accountingData);
+          await depositAccounting.mutateAsync({
+            ...accountingData,
+            payment_method: data.method,
+          });
         } else if (data.transactionType === 'withdrawal') {
-          await withdrawalAccounting.mutateAsync(accountingData);
+          await withdrawalAccounting.mutateAsync({
+            ...accountingData,
+            payment_method: data.method,
+          });
         } else if (data.transactionType === 'fee_charge') {
           const selectedFee = feeStructures.find(f => f.id === data.feeStructureId);
           await feeChargeAccounting.mutateAsync({
@@ -357,7 +548,6 @@ export const SavingsTransactionForm = ({
       });
 
       form.reset();
-      onOpenChange(false);
       onSuccess?.();
 
     } catch (error: any) {
@@ -376,13 +566,13 @@ export const SavingsTransactionForm = ({
     const amount = watchedTransactionType === 'fee_charge' ? getChargeAmount() : (parseFloat(watchedAmount || "0") || 0);
     switch (watchedTransactionType) {
       case "deposit":
-        return savingsAccount.account_balance + amount;
+        return displayBalance + amount;
       case "withdrawal":
       case "transfer":
       case "fee_charge":
-        return savingsAccount.account_balance - amount;
+        return displayBalance - amount;
       default:
-        return savingsAccount.account_balance;
+        return displayBalance;
     }
   };
 
@@ -419,7 +609,7 @@ export const SavingsTransactionForm = ({
                   <div>
                     <span className="text-muted-foreground">Current Balance</span>
                     <div className="font-bold text-green-600">
-                      {formatCurrency(savingsAccount.account_balance)}
+                      {formatCurrency(displayBalance)}
                     </div>
                   </div>
                   <div>
@@ -601,7 +791,7 @@ export const SavingsTransactionForm = ({
                 )}
 
                 {/* Payment Method (not applicable for charges) */}
-                {watchedTransactionType !== 'fee_charge' && (
+                {['deposit', 'withdrawal'].includes(watchedTransactionType) && (
                   <FormField
                     control={form.control}
                     name="method"
@@ -615,11 +805,13 @@ export const SavingsTransactionForm = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="mpesa">M-Pesa</SelectItem>
-                            <SelectItem value="cheque">Cheque</SelectItem>
-                            <SelectItem value="card">Card Payment</SelectItem>
+                            {paymentOptions.length > 0 ? (
+                              paymentOptions.map((opt) => (
+                                <SelectItem key={opt.id} value={opt.code}>{opt.name || opt.code}</SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem disabled value="no_methods">No payment methods configured</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -628,24 +820,127 @@ export const SavingsTransactionForm = ({
                   />
                 )}
 
-                {/* Transfer To (only for transfers) */}
-                {watchedTransactionType === "transfer" && (
-                  <FormField
-                    control={form.control}
-                    name="transferTo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Transfer To Account</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter destination account number"
-                            {...field}
+                {/* Transaction Date */}
+                <FormField
+                  control={form.control}
+                  name="transactionDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Transaction Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                formatDate(new Date(field.value), "PPP")
+                              ) : (
+                                <span>Select date</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={(date) => field.onChange(date ? date.toISOString().split('T')[0] : "")}
+                            disabled={(date) => date > new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
                           />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Transfer Details (only for transfers) */}
+                {watchedTransactionType === "transfer" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="transferClientId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination Client</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select client" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {clients.map((c: any) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {`${c.first_name || ''} ${c.last_name || ''}`.trim() || c.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="transferAccountType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination Account Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select account type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="savings">Savings</SelectItem>
+                              <SelectItem value="loan">Loan</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="transferAccountId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Destination Account</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={watchedTransferAccountType === 'loan' ? "Select loan account" : "Select savings account"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {watchedTransferAccountType === 'savings' && destinationSavingsAccounts.map((acc: any) => (
+                                <SelectItem key={acc.id} value={acc.id}>
+                                  {acc.account_number}
+                                </SelectItem>
+                              ))}
+                              {watchedTransferAccountType === 'loan' && (clientLoans || []).map((ln: any) => (
+                                <SelectItem key={ln.id} value={ln.id}>
+                                  {ln.loan_number}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
               </div>
 
@@ -661,7 +956,7 @@ export const SavingsTransactionForm = ({
                   <CardContent className="pt-0 space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Current Balance:</span>
-                      <span className="font-medium">{formatCurrency(savingsAccount.account_balance)}</span>
+                      <span className="font-medium">{formatCurrency(displayBalance)}</span>
                     </div>
                      
                      {((watchedAmount && parseFloat(watchedAmount) > 0) || watchedTransactionType === 'fee_charge') && (

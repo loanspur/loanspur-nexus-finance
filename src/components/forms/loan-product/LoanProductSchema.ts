@@ -23,11 +23,22 @@ export const loanProductSchema = z.object({
   max_nominal_interest_rate: z.string().min(1, "Maximum interest rate is required"),
   default_nominal_interest_rate: z.string().optional(),
   
-  // Interest Calculation Settings
+  // Interest Calculation Settings (MiFos X compatible)
   interest_calculation_method: z.string().default("declining_balance"),
   interest_calculation_period: z.string().default("monthly"),
   compounding_frequency: z.string().default("monthly"),
   allow_partial_period_interest: z.boolean().default(true),
+  
+  // Days calculation for interest (MiFos X standard)
+  days_in_year_type: z.enum(['360', '365', 'actual']).default('365'),
+  days_in_month_type: z.enum(['30', 'actual']).default('actual'),
+  
+  // Amortization method
+  amortization_method: z.enum(['equal_installments', 'equal_principal']).default('equal_installments'),
+  
+  // Enhanced calculation settings
+  interest_recalculation_enabled: z.boolean().default(false),
+  compounding_enabled: z.boolean().default(false),
   
   // Grace Period & Tolerance
   grace_period_type: z.string().default("none"),
@@ -36,10 +47,18 @@ export const loanProductSchema = z.object({
   arrears_tolerance_days: z.string().default("0"),
   moratorium_period: z.string().default("0"),
   
-  // Prepayment & Reschedule Settings
-  pre_closure_interest_calculation_rule: z.string().default("till_pre_close_date"),
-  advance_payments_adjustment_type: z.string().default("reduce_emi"),
-  reschedule_strategy: z.string().default("reduce_emi"),
+// Prepayment & Reschedule Settings (MiFos X compatible)
+pre_closure_interest_calculation_rule: z.enum(['till_pre_close_date', 'till_rest_frequency_date']).default("till_pre_close_date"),
+advance_payments_adjustment_type: z.enum(['reduce_emi', 'reduce_term', 'reduce_principal']).default("reduce_emi"),
+reschedule_strategy_method: z.enum(['reduce_emi', 'reduce_term', 'reschedule_next_repayments']).default("reduce_emi"),
+
+// Repayment allocation strategy (Mifos X)
+repayment_strategy: z.enum([
+  'penalties_fees_interest_principal',
+  'interest_principal_penalties_fees',
+  'interest_penalties_fees_principal',
+  'principal_interest_fees_penalties',
+]).default('penalties_fees_interest_principal'),
   
   // Fees & Charges
   processing_fee_amount: z.string().default("0"),
@@ -160,6 +179,17 @@ export const defaultValues: LoanProductFormData = {
   compounding_frequency: "monthly",
   allow_partial_period_interest: true,
   
+  // Days calculation for interest
+  days_in_year_type: '365' as const,
+  days_in_month_type: 'actual' as const,
+  
+  // Amortization method
+  amortization_method: 'equal_installments' as const,
+  
+  // Enhanced calculation settings
+  interest_recalculation_enabled: false,
+  compounding_enabled: false,
+  
   // Grace Period & Tolerance
   grace_period_type: "none",
   grace_period_duration: "0",
@@ -167,10 +197,13 @@ export const defaultValues: LoanProductFormData = {
   arrears_tolerance_days: "0",
   moratorium_period: "0",
   
-  // Prepayment & Reschedule Settings
-  pre_closure_interest_calculation_rule: "till_pre_close_date",
-  advance_payments_adjustment_type: "reduce_emi",
-  reschedule_strategy: "reduce_emi",
+// Prepayment & Reschedule Settings
+pre_closure_interest_calculation_rule: "till_pre_close_date" as const,
+advance_payments_adjustment_type: "reduce_emi" as const,
+reschedule_strategy_method: "reduce_emi" as const,
+
+// Repayment allocation strategy (Mifos X)
+repayment_strategy: 'penalties_fees_interest_principal',
   
   // Fees & Charges
   processing_fee_amount: "0",

@@ -2,6 +2,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest, calculateFlatRateInterest } from "@/lib/interest-calculation";
 import {
   FormControl,
   FormField,
@@ -24,7 +25,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, addDays, addWeeks, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { CalendarIcon, Calculator, DollarSign, Info, Target } from "lucide-react";
@@ -103,6 +104,49 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
   const interestRate = form.watch('interest_rate');
   const calculationMethod = form.watch('calculation_method');
   const repaymentFrequency = form.watch('repayment_frequency');
+  const firstRepaymentDate = form.watch('first_repayment_date');
+  const selectedCharges = form.watch('selected_charges') || [];
+  const loanProductId = form.watch('loan_product_id');
+  const fundSourceId = form.watch('fund_source_id');
+
+  // Get selected loan product details
+  const { data: selectedLoanProduct } = useQuery({
+    queryKey: ['loan-product-details', loanProductId],
+    queryFn: async () => {
+      if (!loanProductId) return null;
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('id', loanProductId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loanProductId,
+  });
+
+  // Auto-populate form fields when loan product is selected
+  useEffect(() => {
+    if (selectedLoanProduct && loanProductId) {
+      // Only update if fields are empty to avoid overriding user input
+      if (!form.getValues('requested_amount') && selectedLoanProduct.default_principal) {
+        form.setValue('requested_amount', selectedLoanProduct.default_principal);
+      }
+      if (!form.getValues('requested_term') && selectedLoanProduct.default_term) {
+        form.setValue('requested_term', selectedLoanProduct.default_term);
+        form.setValue('number_of_installments', selectedLoanProduct.default_term);
+      }
+      if (!form.getValues('interest_rate') && selectedLoanProduct.default_nominal_interest_rate) {
+        form.setValue('interest_rate', selectedLoanProduct.default_nominal_interest_rate);
+      }
+      if (!form.getValues('calculation_method') && selectedLoanProduct.interest_calculation_method) {
+        form.setValue('calculation_method', selectedLoanProduct.interest_calculation_method);
+      }
+      if (!form.getValues('repayment_frequency') && selectedLoanProduct.repayment_frequency) {
+        form.setValue('repayment_frequency', selectedLoanProduct.repayment_frequency);
+      }
+    }
+  }, [selectedLoanProduct, loanProductId, form]);
 
   const { currency } = useCurrency();
   
@@ -117,13 +161,23 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      const totalInterest = (requestedAmount * interestRate * requestedTerm) / 100;
-      return (requestedAmount + totalInterest) / numberOfInstallments;
+      // Use unified interest calculation library
+      const interestResult = calculateFlatRateInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: requestedTerm,
+        calculationMethod: 'flat_rate'
+      });
+      return interestResult.monthlyPayment;
     } else if (calculationMethod === 'declining_balance') {
-      const monthlyRate = interestRate / 100 / 12;
-      const payment = (requestedAmount * monthlyRate * Math.pow(1 + monthlyRate, numberOfInstallments)) / 
-                     (Math.pow(1 + monthlyRate, numberOfInstallments) - 1);
-      return payment;
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: numberOfInstallments,
+        calculationMethod: 'reducing_balance'
+      });
+      return interestResult.monthlyPayment;
     }
     
     return 0;
@@ -133,7 +187,14 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      return (requestedAmount * interestRate * requestedTerm) / 100;
+      // Use unified interest calculation library
+      const interestResult = calculateFlatRateInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: requestedTerm,
+        calculationMethod: 'flat_rate'
+      });
+      return interestResult.totalInterest;
     } else if (calculationMethod === 'declining_balance') {
       const monthlyPayment = calculateMonthlyPayment();
       return (monthlyPayment * numberOfInstallments) - requestedAmount;
@@ -149,28 +210,48 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
   const generateRepaymentSchedule = () => {
     if (!requestedAmount || !numberOfInstallments || !interestRate) return [];
     
-    const schedule = [];
+    const schedule: any[] = [];
     const monthlyPayment = calculateMonthlyPayment();
     let outstandingPrincipal = requestedAmount;
+
+    // Determine starting date
+    const startDate = firstRepaymentDate ? new Date(firstRepaymentDate) : new Date();
+
+    // Total selected charges (applied at first installment by default)
+    const totalSelectedCharges = (selectedCharges || []).reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
     
     for (let i = 1; i <= numberOfInstallments; i++) {
       let interestPayment = 0;
       let principalPayment = 0;
       
       if (calculationMethod === 'flat') {
-        interestPayment = (requestedAmount * interestRate) / 100 / 12;
+        interestPayment = calculateMonthlyInterest(requestedAmount, interestRate);
         principalPayment = monthlyPayment - interestPayment;
       } else if (calculationMethod === 'declining_balance') {
-        interestPayment = (outstandingPrincipal * interestRate) / 100 / 12;
+        interestPayment = calculateMonthlyInterest(outstandingPrincipal, interestRate);
         principalPayment = monthlyPayment - interestPayment;
       }
       
       outstandingPrincipal -= principalPayment;
-      
+
+      // Compute repayment date based on frequency
+      let date: Date = new Date(startDate);
+      if (repaymentFrequency === 'daily') {
+        date = addDays(startDate, i - 1);
+      } else if (repaymentFrequency === 'weekly') {
+        date = addWeeks(startDate, i - 1);
+      } else if (repaymentFrequency === 'monthly') {
+        date = addMonths(startDate, i - 1);
+      } else if (repaymentFrequency === 'quarterly') {
+        date = addMonths(startDate, (i - 1) * 3);
+      }
+
       schedule.push({
         installment: i,
-        principalPayment: principalPayment,
-        interestPayment: interestPayment,
+        principalPayment,
+        interestPayment,
+        chargesPayment: i === 1 ? totalSelectedCharges : 0,
+        repaymentDate: date,
         totalPayment: monthlyPayment,
         outstandingPrincipal: Math.max(0, outstandingPrincipal),
       });
@@ -184,7 +265,7 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
       const schedule = generateRepaymentSchedule();
       setRepaymentSchedule(schedule);
     }
-  }, [requestedAmount, numberOfInstallments, interestRate, calculationMethod]);
+  }, [requestedAmount, numberOfInstallments, interestRate, calculationMethod, repaymentFrequency, firstRepaymentDate, selectedCharges]);
 
   return (
     <div className="space-y-6">
@@ -491,8 +572,10 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
                       <thead>
                         <tr className="border-b">
                           <th className="text-left p-2">#</th>
+                          <th className="text-left p-2">Repayment Date</th>
                           <th className="text-left p-2">Principal</th>
                           <th className="text-left p-2">Interest</th>
+                          <th className="text-left p-2">Charges</th>
                           <th className="text-left p-2">Total</th>
                           <th className="text-left p-2">Balance</th>
                         </tr>
@@ -501,8 +584,10 @@ export function LoanDetailsStep({ form }: LoanDetailsStepProps) {
                         {repaymentSchedule.slice(0, 5).map((payment, index) => (
                           <tr key={index} className="border-b">
                             <td className="p-2">{payment.installment}</td>
+                            <td className="p-2">{format(payment.repaymentDate, 'PPP')}</td>
                             <td className="p-2">{formatCurrency(payment.principalPayment)}</td>
                             <td className="p-2">{formatCurrency(payment.interestPayment)}</td>
+                            <td className="p-2">{formatCurrency(payment.chargesPayment || 0)}</td>
                             <td className="p-2">{formatCurrency(payment.totalPayment)}</td>
                             <td className="p-2">{formatCurrency(payment.outstandingPrincipal)}</td>
                           </tr>

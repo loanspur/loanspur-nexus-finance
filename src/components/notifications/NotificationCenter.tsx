@@ -1,203 +1,203 @@
-import { format } from "date-fns";
-import { X, CheckCheck, Trash2, ExternalLink, Bell, AlertTriangle, CheckCircle, Info, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { useNotifications, type Notification } from "@/hooks/useNotifications";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Bell, Mail, MessageSquare, Settings } from 'lucide-react';
+import { Notification, NotificationTemplate } from '@/types/notifications';
 
-interface NotificationCenterProps {
-  onClose?: () => void;
-}
+export function NotificationCenter() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const getNotificationIcon = (type: Notification['type']) => {
-  switch (type) {
-    case 'success':
-      return <CheckCircle className="h-4 w-4 text-success" />;
-    case 'warning':
-      return <AlertTriangle className="h-4 w-4 text-warning" />;
-    case 'error':
-      return <AlertCircle className="h-4 w-4 text-destructive" />;
-    case 'announcement':
-      return <Bell className="h-4 w-4 text-primary" />;
-    default:
-      return <Info className="h-4 w-4 text-muted-foreground" />;
-  }
-};
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
-const getNotificationBadgeVariant = (type: Notification['type']) => {
-  switch (type) {
-    case 'success':
-      return 'default';
-    case 'warning':
-      return 'secondary';
-    case 'error':
-      return 'destructive';
-    case 'announcement':
-      return 'default';
-    default:
-      return 'outline';
-  }
-};
-
-const getPriorityBadgeVariant = (priority: Notification['priority']) => {
-  switch (priority) {
-    case 'urgent':
-      return 'destructive';
-    case 'high':
-      return 'secondary';
-    default:
-      return 'outline';
-  }
-};
-
-export const NotificationCenter = ({ onClose }: NotificationCenterProps) => {
-  const { 
-    notifications, 
-    unreadCount, 
-    loading, 
-    markAsRead, 
-    markAllAsRead, 
-    deleteNotification 
-  } = useNotifications();
-
-  const handleNotificationClick = (notification: Notification) => {
-    if (!notification.is_read) {
-      markAsRead(notification.id);
-    }
-    
-    if (notification.action_url) {
-      window.open(notification.action_url, '_blank');
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      // TODO: Implement API calls to load notifications
+      
+      // Mock data for demonstration
+      const mockNotifications: Notification[] = [
+        {
+          id: '1',
+          tenant_id: 'tenant-1',
+          template_id: 'template-1',
+          recipient_type: 'client',
+          recipient_id: 'client-1',
+          recipient_email: 'client@example.com',
+          subject: 'Loan Application Approved',
+          body: 'Congratulations! Your loan application has been approved.',
+          notification_type: 'email',
+          status: 'sent',
+          priority: 'high',
+          retry_count: 0,
+          sent_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: '2',
+          tenant_id: 'tenant-1',
+          template_id: 'template-2',
+          recipient_type: 'client',
+          recipient_id: 'client-2',
+          recipient_phone: '+254700000000',
+          body: 'Your loan payment is due in 3 days. Amount: KES 15,000',
+          notification_type: 'sms',
+          status: 'delivered',
+          priority: 'medium',
+          retry_count: 0,
+          delivered_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      ];
+      
+      const mockTemplates: NotificationTemplate[] = [
+        {
+          id: 'template-1',
+          tenant_id: 'tenant-1',
+          name: 'Loan Approval Notification',
+          description: 'Sent when a loan application is approved',
+          notification_type: 'email',
+          category: 'loan',
+          subject: 'Loan Application Approved',
+          body: 'Dear {{client_name}}, your loan application for {{loan_amount}} has been approved.',
+          variables: ['client_name', 'loan_amount'],
+          is_active: true,
+          priority: 'high',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+      ];
+      
+      setNotifications(mockNotifications);
+      setTemplates(mockTemplates);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const getNotificationTypeIcon = (type: string) => {
+    switch (type) {
+      case 'email':
+        return <Mail className="h-4 w-4" />;
+      case 'sms':
+        return <MessageSquare className="h-4 w-4" />;
+      case 'push':
+        return <Bell className="h-4 w-4" />;
+      default:
+        return <Bell className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      pending: 'outline',
+      sent: 'default',
+      delivered: 'secondary',
+      failed: 'destructive',
+      read: 'outline',
+    };
+    return <Badge variant={variants[status as keyof typeof variants]}>{status}</Badge>;
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const variants = {
+      low: 'outline',
+      medium: 'default',
+      high: 'secondary',
+      urgent: 'destructive',
+    };
+    return <Badge variant={variants[priority as keyof typeof variants]}>{priority}</Badge>;
+  };
+
+  if (loading) {
+    return <div>Loading notifications...</div>;
+  }
+
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold">Notifications</h3>
-          {unreadCount > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {unreadCount} new
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-xs"
-            >
-              <CheckCheck className="h-3 w-3 mr-1" />
-              Mark all read
-            </Button>
-          )}
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold tracking-tight">Notification Center</h2>
+        <div className="space-x-2">
+          <Button variant="outline">
+            <Settings className="h-4 w-4 mr-2" />
+            Preferences
+          </Button>
+          <Button>Create Template</Button>
         </div>
       </div>
 
-      <ScrollArea className="h-96">
-        {loading ? (
-          <div className="flex items-center justify-center p-8">
-            <div className="text-sm text-muted-foreground">Loading notifications...</div>
-          </div>
-        ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center">
-            <Bell className="h-12 w-12 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No notifications yet</p>
-          </div>
-        ) : (
-          <div className="divide-y">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={cn(
-                  "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                  !notification.is_read && "bg-muted/20"
-                )}
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className={cn(
-                            "text-sm font-medium",
-                            !notification.is_read && "font-semibold"
-                          )}>
-                            {notification.title}
-                          </h4>
-                          <Badge 
-                            variant={getNotificationBadgeVariant(notification.type)}
-                            className="text-xs"
-                          >
-                            {notification.type}
-                          </Badge>
-                          {notification.priority !== 'normal' && (
-                            <Badge 
-                              variant={getPriorityBadgeVariant(notification.priority)}
-                              className="text-xs"
-                            >
-                              {notification.priority}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {notification.message}
+      <Tabs defaultValue="notifications" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="schedules">Schedules</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="notifications" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Notifications</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {notifications.map((notification) => (
+                  <div key={notification.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-4">
+                      {getNotificationTypeIcon(notification.notification_type)}
+                      <div>
+                        <p className="font-medium">{notification.subject || notification.body}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {notification.recipient_type}: {notification.recipient_email || notification.recipient_phone}
                         </p>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(notification.created_at), 'MMM dd, yyyy HH:mm')}
-                          </span>
-                          
-                          {notification.action_url && (
-                            <div className="flex items-center gap-1 text-xs text-primary">
-                              <ExternalLink className="h-3 w-3" />
-                              {notification.action_label || 'View'}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        {!notification.is_read && (
-                          <div className="w-2 h-2 bg-primary rounded-full" />
-                        )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification(notification.id);
-                          }}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
                       </div>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(notification.status)}
+                      {getPriorityBadge(notification.priority)}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Templates</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {templates.map((template) => (
+                  <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{template.name}</p>
+                      <p className="text-sm text-muted-foreground">{template.description}</p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Badge variant="outline">{template.notification_type}</Badge>
+                        <Badge variant="outline">{template.category}</Badge>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-};
+}

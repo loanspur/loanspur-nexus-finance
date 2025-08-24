@@ -54,7 +54,7 @@ export const ActivityTracker = () => {
         document.removeEventListener(event, updateActivity);
       });
     };
-  }, [location, logUserActivity]);
+  }, [location.pathname]); // Fixed: Only depend on pathname, not the entire location object or logUserActivity function
 
   return null; // This is a tracking component, no visual output
 };

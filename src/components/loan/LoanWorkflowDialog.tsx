@@ -6,9 +6,6 @@ import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,9 +15,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Clock, CreditCard, Banknote } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval, useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useProcessLoanApproval } from "@/hooks/useLoanManagement";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
 
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes']),
@@ -58,6 +56,10 @@ interface LoanWorkflowDialogProps {
     final_approved_amount?: number;
     final_approved_term?: number;
     final_approved_interest_rate?: number;
+    // Optional frequency fields present on some records
+    term_frequency?: string;
+    repayment_frequency?: string;
+    // Related client and product info
     clients?: {
       first_name: string;
       last_name: string;
@@ -75,6 +77,8 @@ interface LoanWorkflowDialogProps {
       default_term?: number;
       min_term?: number;
       max_term?: number;
+      // Include optional repayment frequency from product
+      repayment_frequency?: string;
     };
   };
   open: boolean;
@@ -91,7 +95,7 @@ export const LoanWorkflowDialog = ({
   const [currentTab, setCurrentTab] = useState("details");
   const { toast } = useToast();
   const processApproval = useProcessLoanApproval();
-  const processDisbursement = useProcessLoanDisbursement();
+  const transactionManager = useLoanTransactionManager();
 
   // Guard clause to prevent null reference errors
   if (!loanApplication) {
@@ -117,6 +121,21 @@ export const LoanWorkflowDialog = ({
       disbursement_date: format(new Date(), 'yyyy-MM-dd'),
     },
   });
+
+  const getTermUnit = (frequency?: string) => {
+    const f = (frequency || '').toLowerCase();
+    if (f.includes('day')) return 'days';
+    if (f.includes('week')) return 'weeks';
+    if (f.includes('month')) return 'months';
+    if (f.includes('year') || f.includes('ann')) return 'years';
+    return 'months';
+  };
+
+  const productFrequency = loanApplication.loan_products?.repayment_frequency;
+  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || productFrequency || 'monthly') as string;
+  const termUnit = getTermUnit(frequency);
+  const productTermUnit = getTermUnit(productFrequency);
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -172,15 +191,12 @@ export const LoanWorkflowDialog = ({
   const onDisbursementSubmit = async (data: DisbursementData, e?: React.FormEvent) => {
     e?.preventDefault();
     try {
-      await processDisbursement.mutateAsync({
-        loan_application_id: loanApplication.id,
-        disbursed_amount: parseFloat(data.disbursed_amount),
-        disbursement_date: data.disbursement_date,
+      await transactionManager.mutateAsync({
+        type: 'disbursement',
+        loan_id: loanApplication.id,
+        amount: parseFloat(data.disbursed_amount),
+        transaction_date: data.disbursement_date,
         disbursement_method: data.disbursement_method,
-        bank_account_name: data.bank_account_name,
-        bank_account_number: data.bank_account_number,
-        bank_name: data.bank_name,
-        mpesa_phone: data.mpesa_phone,
       });
       
       onOpenChange(false);
@@ -197,6 +213,7 @@ export const LoanWorkflowDialog = ({
     }).format(amount);
   };
 
+  // Use consistent status checking logic
   const canApprove = loanApplication.status === 'pending' || loanApplication.status === 'under_review';
   const canDisburse = loanApplication.status === 'pending_disbursement' || loanApplication.status === 'approved';
   const isCompleted = loanApplication.status === 'disbursed';
@@ -204,15 +221,6 @@ export const LoanWorkflowDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-blue-600" />
-            Loan Application Workflow
-          </DialogTitle>
-          <DialogDescription>
-            {loanApplication.application_number} - {loanApplication.clients?.first_name} {loanApplication.clients?.last_name}
-          </DialogDescription>
-        </DialogHeader>
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
@@ -292,7 +300,7 @@ export const LoanWorkflowDialog = ({
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Requested Term</span>
-                      <div className="font-medium text-lg">{loanApplication.requested_term} months</div>
+                      <div className="font-medium text-lg">{loanApplication.requested_term}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground text-sm">Interest Rate</span>
@@ -323,7 +331,7 @@ export const LoanWorkflowDialog = ({
                       {loanApplication.loan_products.default_term && (
                         <div>
                           <span className="text-muted-foreground">Default Term</span>
-                          <div className="font-medium">{loanApplication.loan_products.default_term} months</div>
+                          <div className="font-medium">{loanApplication.loan_products.default_term}</div>
                         </div>
                       )}
                     </div>
@@ -353,30 +361,6 @@ export const LoanWorkflowDialog = ({
                   </div>
                 )}
 
-                {/* Approved Details (if exists) */}
-                {loanApplication.final_approved_amount && (
-                  <div>
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Approved Terms</h4>
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-green-50 rounded-lg">
-                      <div>
-                        <span className="text-muted-foreground text-sm">Approved Amount</span>
-                        <div className="font-medium text-lg text-green-600">
-                          {formatCurrency(loanApplication.final_approved_amount)}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground text-sm">Approved Term</span>
-                        <div className="font-medium text-lg">{loanApplication.final_approved_term} months</div>
-                      </div>
-                      {loanApplication.final_approved_interest_rate && (
-                        <div>
-                          <span className="text-muted-foreground text-sm">Approved Rate</span>
-                          <div className="font-medium text-lg">{loanApplication.final_approved_interest_rate}%</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -471,7 +455,7 @@ export const LoanWorkflowDialog = ({
                               name="approved_term"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Approved Term (months)</FormLabel>
+                                  <FormLabel>Approved Term ({termUnit})</FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -702,10 +686,10 @@ export const LoanWorkflowDialog = ({
                       <div className="flex gap-2 pt-4">
                         <Button 
                           type="submit" 
-                          disabled={processDisbursement.isPending}
-                          className="flex-1"
-                        >
-                          {processDisbursement.isPending ? "Processing..." : "Disburse Loan"}
+          disabled={transactionManager.isPending}
+          className="flex-1"
+        >
+          {transactionManager.isPending ? "Processing..." : "Disburse Loan"}
                         </Button>
                         <Button 
                           type="button" 

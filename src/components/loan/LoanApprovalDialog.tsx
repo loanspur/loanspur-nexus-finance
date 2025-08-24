@@ -50,15 +50,29 @@ export const LoanApprovalDialog = ({
   const [selectedAction, setSelectedAction] = useState<'approved' | 'rejected' | null>(null);
   const processApproval = useProcessApprovalAction();
 
+  const loanData = approvalRequest?.record_data;
+  const requester = approvalRequest?.requester;
+
   const form = useForm<ApprovalFormData>({
     resolver: zodResolver(approvalSchema),
     defaultValues: {
       comments: "",
+      approved_amount: (loanData?.requested_amount as number | undefined),
+      approved_term: (loanData?.requested_term as number | undefined),
+      approved_interest_rate: ((loanData?.requested_interest_rate ?? loanData?.interest_rate) as number | undefined),
     },
   });
 
-  const loanData = approvalRequest?.record_data;
-  const requester = approvalRequest?.requester;
+  const getTermUnit = (frequency?: string) => {
+    const f = (frequency || '').toLowerCase();
+    if (f.includes('day')) return 'days';
+    if (f.includes('week')) return 'weeks';
+    if (f.includes('month')) return 'months';
+    if (f.includes('year') || f.includes('ann')) return 'years';
+    return 'months';
+  };
+  const frequency = (loanData?.term_frequency || loanData?.repayment_frequency || loanData?.loan_products?.repayment_frequency || 'monthly') as string;
+  const termUnit = getTermUnit(frequency);
 
   const onSubmit = async (data: ApprovalFormData) => {
     if (!selectedAction) return;
@@ -123,7 +137,7 @@ export const LoanApprovalDialog = ({
                   <div>
                     <p className="text-sm font-medium">Term</p>
                     <p className="text-sm text-muted-foreground">
-                      {loanData?.requested_term} months
+                      {loanData?.requested_term} {termUnit}
                     </p>
                   </div>
                 </div>
@@ -193,7 +207,8 @@ export const LoanApprovalDialog = ({
                               type="number"
                               placeholder={loanData?.requested_amount?.toString()}
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              readOnly
+                              disabled
                             />
                           </FormControl>
                           <FormMessage />
@@ -205,13 +220,14 @@ export const LoanApprovalDialog = ({
                       name="approved_term"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Approved Term (months)</FormLabel>
+                          <FormLabel>Approved Term ({termUnit})</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               placeholder={loanData?.requested_term?.toString()}
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                              readOnly
+                              disabled
                             />
                           </FormControl>
                           <FormMessage />
@@ -230,7 +246,8 @@ export const LoanApprovalDialog = ({
                               step="0.01"
                               placeholder="12.5"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
+                              readOnly
+                              disabled
                             />
                           </FormControl>
                           <FormMessage />

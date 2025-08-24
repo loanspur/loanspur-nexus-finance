@@ -61,6 +61,8 @@ import { useLoanPurposes } from "@/hooks/useLoanPurposes";
 import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Client is required"),
@@ -237,13 +239,19 @@ export const FullLoanApplicationDialog = ({
     if (!requestedAmount || !requestedTerm || !interestRate) return 0;
     
     if (calculationMethod === 'flat') {
-      const totalInterest = (requestedAmount * interestRate * requestedTerm) / 100;
-      return (requestedAmount + totalInterest) / requestedTerm;
+      // Use unified interest calculation library
+      const monthlyInterest = calculateMonthlyInterest(requestedAmount, interestRate);
+      const monthlyPrincipal = requestedAmount / requestedTerm;
+      return monthlyPrincipal + monthlyInterest;
     } else if (calculationMethod === 'reducing_balance') {
-      const monthlyRate = interestRate / 100 / 12;
-      const numberOfPayments = requestedTerm;
-      if (monthlyRate === 0) return requestedAmount / numberOfPayments;
-      return requestedAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal: requestedAmount,
+        annualRate: interestRate,
+        termInMonths: requestedTerm,
+        calculationMethod: 'reducing_balance'
+      });
+      return interestResult.monthlyPayment;
     }
     return 0;
   };
@@ -302,12 +310,7 @@ export const FullLoanApplicationDialog = ({
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   const generateRepaymentSchedulePDF = async () => {
     // Dynamic import to avoid bundle size issues
@@ -335,8 +338,8 @@ export const FullLoanApplicationDialog = ({
     for (let i = 1; i <= numberOfInstallments; i++) {
       const monthlyPayment = calculateMonthlyPayment();
       const interestPayment = calculationMethod === 'reducing_balance' 
-        ? (remainingBalance * (interestRate / 100 / 12))
-        : ((requestedAmount * interestRate * requestedTerm) / 100) / requestedTerm;
+        ? calculateMonthlyInterest(remainingBalance, interestRate)
+        : calculateMonthlyInterest(requestedAmount, interestRate);
       const principalPayment = monthlyPayment - interestPayment;
       
       const dueDate = firstRepaymentDate ? 
@@ -1175,7 +1178,7 @@ export const FullLoanApplicationDialog = ({
                               {Array.from({ length: Math.min(5, numberOfInstallments) }, (_, i) => {
                                 const paymentNumber = i + 1;
                                 const monthlyPayment = calculateMonthlyPayment();
-                                const interestPayment = (requestedAmount * (interestRate / 100)) / 12;
+                                const interestPayment = calculateMonthlyInterest(requestedAmount, interestRate);
                                 const principalPayment = monthlyPayment - interestPayment;
                                 const remainingBalance = requestedAmount - (principalPayment * paymentNumber);
                                 const dueDate = firstRepaymentDate ? 

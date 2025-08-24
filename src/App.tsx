@@ -11,17 +11,23 @@ import { MainSiteRouter } from "./components/MainSiteRouter";
 import { DevToolsBar } from "@/components/dev/DevToolsBar";
 import { useDataOptimization } from "@/hooks/useOptimizedQueries";
 import { getCurrentSubdomain } from "@/utils/tenant";
+import { LoanClosureNotification } from "@/components/notifications/LoanClosureNotification";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 10 * 60 * 1000, // 10 minutes - increased for better performance
+      gcTime: 30 * 60 * 1000, // 30 minutes - increased cache time
       retry: (failureCount: number, error: any) => {
         if (error?.status === 401 || error?.status === 403) return false;
         return failureCount < 2;
       },
       refetchOnWindowFocus: false,
+      refetchOnMount: false, // Prevent unnecessary refetches
+      networkMode: 'online', // Only fetch when online
+    },
+    mutations: {
+      networkMode: 'online',
     },
   },
 });
@@ -46,6 +52,7 @@ const App = () => (
               <Sonner />
               <AppRouter />
               <DevToolsBar />
+              <LoanClosureNotification />
             </TooltipProvider>
           </CurrencyProvider>
         </TenantProvider>

@@ -9,6 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
 import { 
   Plus, 
   Search, 
@@ -49,10 +51,13 @@ const LoansPage = () => {
     enabled: !!profile?.tenant_id,
   });
 
-  // Calculate summary statistics
+  // Calculate summary statistics with derived status
   const totalLoans = loans.length;
   const totalOutstanding = loans.reduce((sum, loan) => sum + (loan.outstanding_balance || 0), 0);
-  const overdueLoans = loans.filter(loan => loan.status === 'overdue').length;
+  const overdueLoans = loans.filter(loan => {
+    const derivedStatus = getDerivedLoanStatus(loan);
+    return derivedStatus.status === 'in_arrears' || loan.status === 'overdue';
+  }).length;
   const collectionRate = totalLoans > 0 ? ((totalLoans - overdueLoans) / totalLoans * 100).toFixed(1) : 0;
 
   // Filter loans based on search term
@@ -209,15 +214,16 @@ const LoansPage = () => {
                       </div>
                     </div>
                     
-                    <div>
-                      <Badge 
-                        variant={
-                          loan.status === 'active' ? 'default' : 
-                          loan.status === 'overdue' ? 'destructive' : 'secondary'
-                        }
-                      >
-                        {loan.status}
-                      </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <LoanStatusBadge 
+                        status={getDerivedLoanStatus(loan).status} 
+                        size="sm" 
+                      />
+                      {getDerivedLoanStatus(loan).daysInArrears && (
+                        <span className="text-xs text-destructive font-medium">
+                          {getDerivedLoanStatus(loan).daysInArrears} days overdue
+                        </span>
+                      )}
                     </div>
                     
                     <div className="flex gap-2">

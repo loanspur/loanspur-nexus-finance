@@ -4,7 +4,10 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useMifosIntegration } from './useMifosIntegration';
 import { defaultQueryOptions } from './useOptimizedQueries';
-
+import { useLoanDisbursementAccounting, useLoanChargeAccounting } from './useLoanAccounting';
+import { calculateFeeAmount } from '@/lib/fee-calculation';
+import { generateLoanSchedule } from '@/lib/loan-schedule-generator';
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
 export interface LoanApplication {
   id: string;
   tenant_id: string;
@@ -120,8 +123,8 @@ export const useLoanApplications = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients!loan_applications_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loan_applications_loan_product_id_fkey(
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(
             name, 
             short_name, 
             currency_code, 
@@ -161,8 +164,8 @@ export const useAllLoans = () => {
         .from('loan_applications')
         .select(`
           *,
-          clients!loan_applications_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loan_applications_loan_product_id_fkey(
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(
             name, 
             short_name, 
             currency_code, 
@@ -172,8 +175,7 @@ export const useAllLoans = () => {
             default_term,
             min_term,
             max_term
-          ),
-          reviewed_by_profile:profiles!reviewed_by(first_name, last_name)
+          )
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -188,14 +190,9 @@ export const useAllLoans = () => {
         .from('loans')
         .select(`
           *,
-          clients!loans_client_id_fkey(first_name, last_name, client_number, phone, email),
-          loan_products!loans_loan_product_id_fkey(name, short_name, currency_code),
-          approved_by_profile:profiles!approved_by(first_name, last_name),
-          loan_disbursements!loan_disbursements_loan_id_fkey(
-            disbursed_by,
-            disbursement_date,
-            disbursed_by_profile:profiles!disbursed_by(first_name, last_name)
-          )
+          clients(first_name, last_name, client_number, phone, email),
+          loan_products(name, short_name, currency_code),
+          loan_disbursements(disbursed_by, disbursement_date)
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false });
@@ -284,21 +281,96 @@ export const useCreateLoanApplication = () => {
   });
 };
 
-// Loan Schedules Hook
+// Loan Schedules Hook with Payment Data
 export const useLoanSchedules = (loanId?: string) => {
   return useQuery({
     queryKey: ['loan-schedules', loanId],
     queryFn: async () => {
       if (!loanId) throw new Error('No loan ID provided');
 
-      const { data, error } = await supabase
+      // Get loan schedules
+      const { data: schedules, error: scheduleError } = await supabase
         .from('loan_schedules')
         .select('*')
         .eq('loan_id', loanId)
         .order('installment_number', { ascending: true });
       
-      if (error) throw error;
-      return data as LoanSchedule[];
+      if (scheduleError) throw scheduleError;
+
+      // Get actual payments for this loan
+      const { data: payments, error: paymentsError } = await supabase
+        .from('transactions')
+        .select(`
+          id,
+          amount,
+          transaction_date,
+          payment_status,
+          description,
+          external_transaction_id,
+          mpesa_receipt_number
+        `)
+        .eq('loan_id', loanId)
+        .eq('transaction_type', 'loan_repayment')
+        .eq('payment_status', 'completed')
+        .order('transaction_date', { ascending: true });
+      
+      if (paymentsError) throw paymentsError;
+
+      // Calculate actual paid amounts for each schedule installment
+      const enhancedSchedules = (schedules || []).map(schedule => {
+        // Calculate payments that apply to this schedule installment
+        const schedulePayments = (payments || []).filter(payment => {
+          const paymentDate = new Date(payment.transaction_date);
+          const scheduleDate = new Date(schedule.due_date);
+          
+          // Consider payments made up to this schedule's due date
+          return paymentDate <= scheduleDate;
+        });
+
+        // Calculate total payments allocated to this and previous installments
+        let totalPaid = 0;
+        let remainingToPay = Number(schedule.total_amount);
+        
+        // Allocate payments chronologically across installments
+        for (const payment of schedulePayments) {
+          const paymentAmount = Number(payment.amount);
+          if (totalPaid < Number(schedule.total_amount)) {
+            const allocationToThisSchedule = Math.min(paymentAmount, remainingToPay);
+            totalPaid += allocationToThisSchedule;
+            remainingToPay -= allocationToThisSchedule;
+          }
+        }
+
+        const actualPaidAmount = Math.min(totalPaid, Number(schedule.total_amount));
+        const actualOutstanding = Math.max(0, Number(schedule.total_amount) - actualPaidAmount);
+        
+        let paymentStatus: 'paid' | 'partial' | 'unpaid' = 'unpaid';
+        if (actualPaidAmount >= Number(schedule.total_amount)) {
+          paymentStatus = 'paid';
+        } else if (actualPaidAmount > 0) {
+          paymentStatus = 'partial';
+        }
+
+        return {
+          ...schedule,
+          paid_amount: actualPaidAmount,
+          outstanding_amount: actualOutstanding,
+          payment_status: paymentStatus,
+          actual_payments: schedulePayments
+        };
+      });
+      
+      return enhancedSchedules as (LoanSchedule & { 
+        actual_payments: Array<{
+          id: string;
+          amount: number;
+          transaction_date: string;
+          payment_status: string;
+          description?: string;
+          external_transaction_id?: string;
+          mpesa_receipt_number?: string;
+        }>;
+      })[];
     },
     enabled: !!loanId,
   });
@@ -323,15 +395,20 @@ export const useGenerateLoanSchedule = () => {
       termMonths: number; 
       startDate: string;
     }) => {
-      // Calculate monthly payment using standard loan formula
-      const monthlyRate = interestRate / 100 / 12;
-      const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / (Math.pow(1 + monthlyRate, termMonths) - 1);
+      // Use unified interest calculation library
+      const interestResult = calculateReducingBalanceInterest({
+        principal,
+        annualRate: interestRate,
+        termInMonths: termMonths,
+        calculationMethod: 'reducing_balance'
+      });
+      const monthlyPayment = interestResult.monthlyPayment;
 
       const schedules: Omit<LoanSchedule, 'id' | 'created_at'>[] = [];
       let remainingBalance = principal;
 
       for (let i = 1; i <= termMonths; i++) {
-        const interestAmount = remainingBalance * monthlyRate;
+        const interestAmount = calculateMonthlyInterest(remainingBalance, interestRate);
         const principalAmount = monthlyPayment - interestAmount;
         const dueDate = new Date(startDate);
         dueDate.setMonth(dueDate.getMonth() + i);
@@ -404,7 +481,7 @@ export const useCollectionCases = () => {
   });
 };
 
-// Process Loan Payment
+// Process Loan Payment - DEPRECATED: Use useLoanTransactionManager instead
 export const useProcessLoanPayment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -426,23 +503,16 @@ export const useProcessLoanPayment = () => {
       
       if (error) throw error;
 
-      // Update loan schedule if schedule_id is provided
-      if (payment.schedule_id) {
-        const { error: updateError } = await supabase
-          .from('loan_schedules')
-          .update({
-            paid_amount: payment.payment_amount,
-            outstanding_amount: 0,
-            payment_status: 'paid'
-          })
-          .eq('id', payment.schedule_id);
-
-        if (updateError) throw updateError;
-      }
+      // The database trigger will automatically:
+      // 1. Calculate if overpayment occurred
+      // 2. Transfer overpaid amount to savings account
+      // 3. Auto-close loan if fully paid
+      // 4. Update loan schedules
+      // Real-time updates will handle UI refresh automatically
 
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (result, variables) => {
       // Invalidate all related queries for better data consistency
       queryClient.invalidateQueries({ queryKey: ['loan-schedules', variables.loan_id] });
       queryClient.invalidateQueries({ queryKey: ['collection-cases'] });
@@ -452,9 +522,12 @@ export const useProcessLoanPayment = () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-data'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['savings-transactions'] });
+      
       toast({
-        title: "Success",
-        description: "Payment processed successfully",
+        title: "Payment Processed",
+        description: "Payment processed successfully. If overpayment occurred, excess amount has been transferred to savings account and loan has been auto-closed.",
       });
     },
     onError: (error: any) => {
@@ -609,31 +682,72 @@ export const useProcessLoanApproval = () => {
 
       if (updateError) throw updateError;
 
-      // If approved, create loan record immediately
+      // If approved, create loan record immediately (idempotent - skip if already exists)
       if (approval.action === 'approve') {
-        const loanNumber = `LN-${Date.now()}`;
-        
-        const { data: loanData, error: loanError } = await supabase
+        // Check if loan already exists for this application
+        const { data: existingLoan, error: checkError } = await supabase
           .from('loans')
-          .insert([{
-            tenant_id: profile.tenant_id,
-            client_id: loanApplication.client_id,
-            loan_product_id: loanApplication.loan_product_id,
-            application_id: approval.loan_application_id, // Link back to application
-            loan_number: loanNumber,
-            principal_amount: approval.approved_amount || loanApplication.requested_amount,
-            interest_rate: approval.approved_interest_rate || 10,
-            term_months: approval.approved_term || loanApplication.requested_term,
-            outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
-            status: 'pending_disbursement',
-            loan_officer_id: profile.id,
-            approved_by: profile.id,
-            approved_at: approval.approval_date || new Date().toISOString(),
-          }])
-          .select()
-          .single();
+          .select('id, status')
+          .eq('application_id', approval.loan_application_id)
+          .maybeSingle();
         
-        if (loanError) throw loanError;
+        if (checkError && checkError.code !== 'PGRST116') throw checkError;
+        
+        // Only create loan if none exists
+        if (!existingLoan) {
+          const loanNumber = `LN-${Date.now()}`;
+          
+          // Get full loan product details for snapshot preservation
+          const { data: productSnapshot, error: productError } = await supabase
+            .from('loan_products')
+            .select('*')
+            .eq('id', loanApplication.loan_product_id)
+            .single();
+
+          if (productError) throw new Error('Failed to fetch loan product details for snapshot');
+          
+          const { data: loanData, error: loanError } = await supabase
+            .from('loans')
+            .insert([{
+              tenant_id: profile.tenant_id,
+              client_id: loanApplication.client_id,
+              loan_product_id: loanApplication.loan_product_id,
+              application_id: approval.loan_application_id, // Link back to application
+              loan_number: loanNumber,
+              principal_amount: approval.approved_amount || loanApplication.requested_amount,
+               // Store interest rate as decimal (0.067 for 6.7%)
+               interest_rate: (() => {
+                 const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+                 // Ensure it's stored as decimal - if it's a percentage, convert it
+                 return r > 1 ? r / 100 : r;
+               })(),
+              term_months: approval.approved_term || loanApplication.requested_term,
+              outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
+              status: 'pending_disbursement',
+              loan_officer_id: profile.id,
+              loan_product_snapshot: productSnapshot, // Preserve product details at loan creation
+               // CRITICAL: Store original creation terms to prevent product updates from affecting loans
+               creation_interest_rate: (() => {
+                 const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+                 return r > 1 ? r / 100 : r; // Store as decimal
+               })(),
+               creation_term_months: approval.approved_term || loanApplication.requested_term,
+               creation_principal: approval.approved_amount || loanApplication.requested_amount,
+               // Enhanced MiFos X settings persistence
+               creation_days_in_year_type: productSnapshot?.days_in_year_type || '365',
+               creation_days_in_month_type: productSnapshot?.days_in_month_type || 'actual',
+               creation_amortization_method: productSnapshot?.amortization_method || 'equal_installments',
+               creation_interest_recalculation_enabled: productSnapshot?.interest_recalculation_enabled || false,
+               creation_compounding_enabled: productSnapshot?.compounding_enabled || false,
+               creation_reschedule_strategy_method: productSnapshot?.reschedule_strategy_method || 'reduce_emi',
+               creation_pre_closure_interest_calculation_rule: productSnapshot?.pre_closure_interest_calculation_rule || 'till_pre_close_date',
+               creation_advance_payments_adjustment_type: productSnapshot?.advance_payments_adjustment_type || 'reduce_emi',
+            }])
+            .select()
+            .single();
+          
+          if (loanError) throw loanError;
+        }
       }
 
       // If undoing approval, delete any pending loan records
@@ -699,6 +813,8 @@ export const useProcessLoanDisbursement = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
   const { disburseMifosLoan, isConfigured: isMifosConfigured } = useMifosIntegration();
+  const accountingDisburse = useLoanDisbursementAccounting();
+  const chargeAccounting = useLoanChargeAccounting();
 
   return useMutation({
     mutationFn: async (disbursement: {
@@ -716,10 +832,10 @@ export const useProcessLoanDisbursement = () => {
     }) => {
       if (!profile?.tenant_id) throw new Error('No tenant ID available');
 
-      // Fetch loan application to validate client context
+      // Fetch loan application to validate client context and gather product info
       const { data: application, error: appFetchError } = await supabase
         .from('loan_applications')
-        .select('id, client_id')
+        .select('id, client_id, loan_product_id, final_approved_amount, requested_amount, linked_savings_account_id, selected_charges')
         .eq('id', disbursement.loan_application_id)
         .single();
 
@@ -728,25 +844,112 @@ export const useProcessLoanDisbursement = () => {
         throw new Error('Loan application not found');
       }
 
-      // Enforce: disbursement to savings requires a valid client-owned, active savings account selection
-      if (disbursement.disbursement_method === 'transfer_to_savings') {
-        if (!disbursement.savings_account_id) {
-          throw new Error('Please select a savings account to complete disbursement to savings.');
-        }
-        // Validate savings account exists, is active, and belongs to the same client
-        const { data: savingsAcct, error: saErr } = await supabase
-          .from('savings_accounts')
-          .select('id, client_id, is_active')
-          .eq('id', disbursement.savings_account_id)
-          .single();
-        if (saErr || !savingsAcct) {
-          throw new Error('Savings account not found.');
-        }
-        if (savingsAcct.client_id !== application.client_id) {
-          throw new Error('Selected savings account does not belong to the loan\'s client.');
-        }
-        if (!savingsAcct.is_active) {
-          throw new Error('Selected savings account is not active.');
+      // Determine disbursement-time fees that must be collected via account transfer
+      let totalTransferFees = 0;
+      let feeNamesForTransfer: string[] = [];
+      let savingsAccountIdForFees: string | undefined = undefined;
+
+      // Load product fee mappings (if any)
+      const { data: product, error: prodErr } = await supabase
+        .from('loan_products')
+        .select('fee_mappings')
+        .eq('id', application.loan_product_id)
+        .maybeSingle();
+      if (prodErr) console.warn('Could not load loan product fee mappings', prodErr);
+      const mappedFeeIds = new Set(
+        Array.isArray(product?.fee_mappings)
+          ? product!.fee_mappings.map((m: any) => m.fee_id || m.feeType).filter(Boolean)
+          : []
+      );
+
+      // Load active fee structures for this tenant
+      const { data: feeStructs, error: fsErr } = await supabase
+        .from('fee_structures')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true);
+      if (fsErr) console.warn('Could not fetch fee structures', fsErr);
+      const baseAmount = Number(
+        disbursement.disbursed_amount || (application as any).final_approved_amount || (application as any).requested_amount || 0
+      );
+
+      const disbursementTransferFees = (feeStructs || []).filter((f: any) => {
+        const chargeTime = (f.charge_time_type || '').toLowerCase();
+        const payBy = (f.charge_payment_by || '').toLowerCase();
+        const timeMatch = ['on_disbursement', 'disbursement', 'upfront'].includes(chargeTime);
+        const paymentMatch = payBy.includes('transfer');
+        const mappingMatch = mappedFeeIds.size === 0 || mappedFeeIds.has(f.id);
+        const typeMatch = (f.fee_type || '').toLowerCase().includes('loan');
+        return timeMatch && paymentMatch && mappingMatch && typeMatch;
+      });
+
+      for (const f of disbursementTransferFees) {
+        const calc = calculateFeeAmount({
+          id: f.id,
+          name: f.name,
+          calculation_type: (f.calculation_type === 'percentage' ? 'percentage' : (f.calculation_type === 'flat' ? 'flat' : 'fixed')),
+          amount: Number(f.amount),
+          min_amount: f.min_amount ?? null,
+          max_amount: f.max_amount ?? null,
+          fee_type: f.fee_type,
+          charge_time_type: f.charge_time_type,
+        } as any, baseAmount);
+        totalTransferFees += calc.calculated_amount;
+        feeNamesForTransfer.push(f.name);
+      }
+
+      // If fees must be collected via transfer, ensure a valid savings account is available
+      if (totalTransferFees > 0) {
+        if (disbursement.disbursement_method === 'transfer_to_savings') {
+          savingsAccountIdForFees = disbursement.savings_account_id;
+          if (!savingsAccountIdForFees) {
+            throw new Error('Please select a savings account to complete disbursement to savings.');
+          }
+          // Validate ownership/active
+          const { data: sa, error: saErr } = await supabase
+            .from('savings_accounts')
+            .select('id, client_id, is_active')
+            .eq('id', savingsAccountIdForFees)
+            .single();
+          if (saErr || !sa) throw new Error('Savings account not found.');
+          if (sa.client_id !== application.client_id) throw new Error('Selected savings account does not belong to the loan\'s client.');
+          if (!sa.is_active) throw new Error('Selected savings account is not active.');
+        } else {
+          // Prefer linked savings account if set on application; otherwise use client's first active
+          const preferredId = (application as any).linked_savings_account_id as string | null;
+          let sa: any = null;
+
+          if (preferredId) {
+            const { data, error } = await supabase
+              .from('savings_accounts')
+              .select('id, client_id, is_active, account_balance')
+              .eq('id', preferredId)
+              .single();
+            if (!error) sa = data;
+          }
+
+          if (!sa) {
+            const { data, error } = await supabase
+              .from('savings_accounts')
+              .select('id, client_id, is_active, account_balance')
+              .eq('client_id', application.client_id)
+              .eq('is_active', true)
+              .order('opened_date', { ascending: true })
+              .maybeSingle();
+            if (error || !data) {
+              throw new Error('No active savings account found for this client. Link a savings account or use "Disburse to savings".');
+            }
+            sa = data;
+          }
+
+          if (sa.client_id !== application.client_id || !sa.is_active) {
+            throw new Error('Linked savings account is invalid for this client.');
+          }
+
+          savingsAccountIdForFees = sa.id;
+          if (Number(sa.account_balance || 0) < totalTransferFees) {
+            throw new Error(`Insufficient savings balance (KES ${(sa.account_balance || 0).toLocaleString()}) to cover disbursement-time fees (KES ${totalTransferFees.toLocaleString()}). Link a different account, top up, or use "Disburse to savings".`);
+          }
         }
       }
 
@@ -787,54 +990,20 @@ export const useProcessLoanDisbursement = () => {
         }
       }
 
-      // Get approved loan record created during approval
+      // Get approved loan record created during approval (prefer latest if multiple)
       let existingLoan: any;
       const { data: loanData, error: loanFetchError } = await supabase
         .from('loans')
-        .select('id, loan_number, status, client_id, mifos_loan_id')
+        .select('id, loan_number, status, client_id, mifos_loan_id, loan_product_id')
         .eq('application_id', disbursement.loan_application_id)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       
-      if (loanFetchError) {
-        // If no pending loan found, we need to create one from the approved application
-        console.log('No existing loan found, fetching approved loan application');
-        const { data: loanApplication, error: appError } = await supabase
-          .from('loan_applications')
-          .select('*')
-          .eq('id', disbursement.loan_application_id)
-          .in('status', ['pending_disbursement', 'approved']) // Accept both statuses
-          .single();
-          
-        if (appError || !loanApplication) throw new Error('Approved loan application not found');
-        
-        // Create loan record for disbursement
-        const loanNumber = `LN-${Date.now()}`;
-        console.log('Creating loan record and setting status to active for application ID:', disbursement.loan_application_id);
-        const { data: newLoan, error: createError } = await supabase
-          .from('loans')
-          .insert({
-            tenant_id: profile.tenant_id,
-            client_id: loanApplication.client_id,
-            loan_product_id: loanApplication.loan_product_id,
-            application_id: disbursement.loan_application_id, // Link to application
-            loan_number: loanNumber,
-            principal_amount: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            interest_rate: loanApplication.final_approved_interest_rate || 0,
-            term_months: loanApplication.final_approved_term || loanApplication.requested_term,
-            disbursement_date: disbursement.disbursement_date,
-            outstanding_balance: loanApplication.final_approved_amount || loanApplication.requested_amount,
-            status: 'active', // Set directly to active during disbursement
-            loan_officer_id: profile.id,
-          })
-          .select('id, loan_number, status, client_id, mifos_loan_id')
-          .single();
-          
-        if (createError || !newLoan) {
-          console.error('Error creating loan:', createError);
-          throw createError;
-        }
-        console.log('Loan created successfully with active status:', newLoan);
-        existingLoan = newLoan;
+      if (!loanData) {
+        // Enforce one-loan-per-application: do not create loans during disbursement
+        // Require the loan to be created at approval stage
+        throw new Error('No approved loan found for this application. Please approve the application before disbursement.');
       } else {
         // Update existing loan to active status
         const { error: statusUpdateError } = await supabase
@@ -850,6 +1019,27 @@ export const useProcessLoanDisbursement = () => {
           throw statusUpdateError;
         }
         existingLoan = loanData;
+      }
+
+      // After we have the loan, recalculate outstanding as principal + interest + unpaid fees (+ penalties if modeled)
+      try {
+        const { data: scheds } = await supabase
+          .from('loan_schedules')
+          .select('principal_amount, interest_amount, fee_amount, payment_status')
+          .eq('loan_id', existingLoan.id);
+        let outstandingTotal = Number(
+          (application as any).final_approved_amount || (application as any).requested_amount || disbursement.disbursed_amount || 0
+        );
+        if (Array.isArray(scheds) && scheds.length > 0) {
+          const unpaid = scheds.filter((s: any) => (s.payment_status || '').toLowerCase() !== 'paid');
+          outstandingTotal = unpaid.reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0) + Number(s.interest_amount || 0) + Number(s.fee_amount || 0), 0);
+        }
+        await supabase
+          .from('loans')
+          .update({ outstanding_balance: outstandingTotal })
+          .eq('id', existingLoan.id);
+      } catch (e) {
+        console.warn('Could not recalculate outstanding at disbursement time:', e);
       }
 
       // If disbursing to savings account, transfer the funds
@@ -869,7 +1059,8 @@ export const useProcessLoanDisbursement = () => {
         const { error: savingsError } = await supabase
           .from('savings_accounts')
           .update({
-            account_balance: newBalance
+            account_balance: newBalance,
+            available_balance: newBalance
           })
           .eq('id', disbursement.savings_account_id);
 
@@ -920,6 +1111,73 @@ export const useProcessLoanDisbursement = () => {
       
       if (disbursementError) throw disbursementError;
 
+      // Collect disbursement-time fees via account transfer from savings (if any)
+      if (totalTransferFees > 0) {
+        const targetSavingsId = disbursement.disbursement_method === 'transfer_to_savings'
+          ? disbursement.savings_account_id
+          : savingsAccountIdForFees;
+
+        if (!targetSavingsId) {
+          throw new Error('A savings account is required to collect disbursement-time fees.');
+        }
+
+        // Fetch latest balance (after deposit if we disbursed to savings)
+        const { data: saNow, error: saNowErr } = await supabase
+          .from('savings_accounts')
+          .select('id, account_balance')
+          .eq('id', targetSavingsId)
+          .single();
+        if (saNowErr || !saNow) throw new Error('Failed to read savings account balance.');
+
+        const balanceAfterFees = Number(saNow.account_balance || 0) - totalTransferFees;
+        if (balanceAfterFees < 0) {
+          throw new Error('Savings balance is insufficient to collect fees at disbursement.');
+        }
+
+        // Update balance
+        const { error: saUpdErr } = await supabase
+          .from('savings_accounts')
+          .update({ account_balance: balanceAfterFees, available_balance: balanceAfterFees })
+          .eq('id', targetSavingsId);
+        if (saUpdErr) throw saUpdErr;
+
+        // Record savings fee transaction (single aggregated entry)
+        const feeDesc = `Loan fees on disbursement - ${existingLoan.loan_number || existingLoan.id}` + (feeNamesForTransfer.length ? ` [${feeNamesForTransfer.join(', ')}]` : '');
+        const { error: savTxnErr } = await supabase
+          .from('savings_transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            savings_account_id: targetSavingsId,
+            transaction_type: 'fee_charge',
+            amount: totalTransferFees,
+            balance_after: balanceAfterFees,
+            transaction_date: disbursement.disbursement_date,
+            description: feeDesc,
+            processed_by: profile.id,
+          });
+        if (savTxnErr) throw savTxnErr;
+
+        // Record unified transaction log linking loan and savings
+        const feeTxId = `TRX-FEE-${Date.now()}`;
+        const { error: txErr } = await supabase
+          .from('transactions')
+          .insert({
+            tenant_id: profile.tenant_id,
+            client_id: application.client_id,
+            loan_id: existingLoan.id,
+            savings_account_id: targetSavingsId,
+            amount: totalTransferFees,
+            transaction_type: 'fee_payment',
+            payment_type: 'bank_transfer',
+            payment_status: 'completed',
+            transaction_date: new Date(disbursement.disbursement_date).toISOString(),
+            transaction_id: feeTxId,
+            description: feeDesc,
+            processed_by: profile.id,
+          });
+        if (txErr) throw txErr;
+      }
+
       // If Mifos is configured and loan has Mifos ID, disburse in Mifos X first
       if (false && isMifosConfigured && existingLoan.mifos_loan_id) {
         console.log('Disbursing loan in Mifos X with ID:', existingLoan.mifos_loan_id);
@@ -939,35 +1197,85 @@ export const useProcessLoanDisbursement = () => {
         }
       }
 
-      // Ensure loan status is active (in case it wasn't set during creation)
-      const { error: loanUpdateError } = await supabase
-        .from('loans')
-        .update({
-          status: 'active',
-          disbursement_date: disbursement.disbursement_date,
-        })
-        .eq('id', existingLoan.id);
+      // Generate loan repayment schedule after successful disbursement
+      try {
+        // First check if schedule already exists to avoid duplicates
+        const { data: existingSchedule, error: scheduleCheckError } = await supabase
+          .from('loan_schedules')
+          .select('id')
+          .eq('loan_id', existingLoan.id)
+          .limit(1)
+          .maybeSingle();
 
-      if (loanUpdateError) {
-        console.error('Error updating loan to active status:', loanUpdateError);
-        throw loanUpdateError;
+        if (scheduleCheckError && scheduleCheckError.code !== 'PGRST116') {
+          console.warn('Error checking existing schedule:', scheduleCheckError);
+        }
+
+        if (!existingSchedule) {
+          // Fetch loan product details for schedule calculation
+          const { data: loanProduct, error: productError } = await supabase
+            .from('loan_products')
+            .select('default_nominal_interest_rate, repayment_frequency, interest_calculation_method')
+            .eq('id', existingLoan.loan_product_id)
+            .single();
+
+          if (productError) {
+            console.warn('Could not fetch loan product for schedule generation:', productError);
+          } else {
+            // Get loan details for schedule generation
+            const { data: loanDetails, error: loanError } = await supabase
+              .from('loans')
+              .select('principal_amount, interest_rate, term_months')
+              .eq('id', existingLoan.id)
+              .single();
+
+            if (!loanError && loanDetails) {
+              const scheduleParams = {
+                loanId: existingLoan.id,
+                principal: Number(loanDetails.principal_amount || disbursement.disbursed_amount),
+                interestRate: Number(loanDetails.interest_rate || loanProduct.default_nominal_interest_rate || 0) / 100, // Convert percentage to decimal
+                termMonths: Number(loanDetails.term_months || 12),
+                disbursementDate: disbursement.disbursement_date,
+                repaymentFrequency: (loanProduct.repayment_frequency || 'monthly') as 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly',
+                calculationMethod: (loanProduct.interest_calculation_method || 'reducing_balance') as 'reducing_balance' | 'flat_rate' | 'declining_balance',
+              };
+
+              const schedule = generateLoanSchedule(scheduleParams);
+
+              // Insert the schedule into the database
+              const { error: scheduleInsertError } = await supabase
+                .from('loan_schedules')
+                .insert(schedule);
+
+              if (scheduleInsertError) {
+                console.error('Error inserting loan schedule:', scheduleInsertError);
+                // Don't throw error - disbursement should still succeed even if schedule generation fails
+              } else {
+                console.log(`Generated ${schedule.length} schedule entries for loan ${existingLoan.id}`);
+              }
+            }
+          }
+        } else {
+          console.log('Loan schedule already exists, skipping generation');
+        }
+      } catch (scheduleError) {
+        console.error('Error during schedule generation:', scheduleError);
+        // Don't throw - disbursement should succeed even if schedule generation fails
       }
 
-      // Update the loan application status to 'disbursed'
-      const { error: applicationUpdateError } = await supabase
-        .from('loan_applications')
-        .update({
-          status: 'disbursed'
-        })
-        .eq('id', disbursement.loan_application_id);
-
-      if (applicationUpdateError) {
-        console.error('Error updating loan application to disbursed status:', applicationUpdateError);
-        throw applicationUpdateError;
-      }
-      // The application stays as 'approved', and disbursement is tracked
-      // in the loan_disbursements table and loan status is 'active'
-      console.log('Disbursement completed successfully, keeping loan application as approved');
+      // Mark application as disbursed after successful loan activation
+       const { error: applicationUpdateError } = await supabase
+         .from('loan_applications')
+         .update({
+           status: 'disbursed'
+         })
+         .eq('id', disbursement.loan_application_id);
+ 
+       if (applicationUpdateError) {
+         console.error('Error updating loan application to disbursed status:', applicationUpdateError);
+         throw applicationUpdateError;
+       }
+       console.log('Disbursement completed successfully, loan is active and application marked disbursed');
 
       return { loan: existingLoan, disbursement: disbursementData };
     },
@@ -977,6 +1285,7 @@ export const useProcessLoanDisbursement = () => {
       queryClient.invalidateQueries({ queryKey: ['client-loans'] });
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-schedules'] }); // Refresh schedules
       
       const message = result?.message || "Loan disbursed successfully";
       toast({
@@ -993,6 +1302,106 @@ export const useProcessLoanDisbursement = () => {
         description: error.message || "Failed to disburse loan. Please try again.",
         variant: "destructive",
       });
+    },
+  });
+};
+
+// Update Loan Application details (term, linked savings, selected charges)
+export const useUpdateLoanApplicationDetails = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      loan_application_id: string;
+      requested_term?: number;
+      linked_savings_account_id?: string | null;
+      selected_charges?: any[];
+    }) => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      const updates: Record<string, any> = {};
+      if (typeof payload.requested_term === 'number') updates.requested_term = payload.requested_term;
+      if (payload.linked_savings_account_id !== undefined) updates.linked_savings_account_id = payload.linked_savings_account_id || null;
+      if (payload.selected_charges !== undefined) updates.selected_charges = payload.selected_charges;
+
+      if (Object.keys(updates).length === 0) return true;
+
+      const { error } = await supabase
+        .from('loan_applications')
+        .update(updates)
+        .eq('id', payload.loan_application_id);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['all-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['client-loans-dialog'] });
+      toast({ title: 'Success', description: 'Loan details updated.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to update loan details', variant: 'destructive' });
+    }
+  });
+};
+
+// Undo Loan Disbursement - return application to approval stage
+export const useUndoLoanDisbursement = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { profile } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ loan_application_id }: { loan_application_id: string }) => {
+      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+
+      // Find most recent disbursement for this application
+      const { data: disb, error: disbErr } = await supabase
+        .from('loan_disbursements')
+        .select('id, loan_id')
+        .eq('loan_application_id', loan_application_id)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      if (disbErr) throw disbErr;
+
+      // If a loan exists, remove schedules then the loan
+      let loanId = disb?.loan_id as string | undefined;
+      if (!loanId) {
+        const { data: loan } = await supabase
+          .from('loans')
+          .select('id')
+          .eq('application_id', loan_application_id)
+          .maybeSingle();
+        loanId = loan?.id;
+      }
+      if (loanId) {
+        await supabase.from('loan_schedules').delete().eq('loan_id', loanId);
+        await supabase.from('loans').delete().eq('id', loanId);
+      }
+
+      // Remove disbursement record(s)
+      await supabase.from('loan_disbursements').delete().eq('loan_application_id', loan_application_id);
+
+      // Send application back to approval stage
+      const { error: appErr } = await supabase
+        .from('loan_applications')
+        .update({ status: 'pending' })
+        .eq('id', loan_application_id);
+      if (appErr) throw appErr;
+
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['loan-disbursements'] });
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      toast({ title: 'Success', description: 'Disbursement undone. Application returned to approval.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message || 'Failed to undo disbursement', variant: 'destructive' });
     },
   });
 };

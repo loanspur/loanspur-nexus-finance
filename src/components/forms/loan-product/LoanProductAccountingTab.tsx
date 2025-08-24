@@ -223,11 +223,8 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {assetAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
+                      <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Receivable Accounts</div>
+                      {renderAccountOptions(receivableAccounts.length > 0 ? receivableAccounts : assetAccounts, true)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -250,11 +247,8 @@ export const LoanProductAccountingTab = ({ form, tenantId }: LoanProductAccounti
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {assetAccounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
+                      <div className="px-2 py-1 text-sm font-medium text-muted-foreground">Receivable Accounts</div>
+                      {renderAccountOptions(receivableAccounts.length > 0 ? receivableAccounts : assetAccounts, true)}
                     </SelectContent>
                   </Select>
                   <FormMessage />

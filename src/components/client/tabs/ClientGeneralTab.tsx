@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface Client {
   id: string;
@@ -29,13 +30,7 @@ interface ClientGeneralTabProps {
 }
 
 export const ClientGeneralTab = ({ client }: ClientGeneralTabProps) => {
-  const formatCurrency = (amount: number | null) => {
-    if (!amount) return "KES 0";
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
+  const { formatAmount: formatCurrency } = useCurrency();
 
   return (
     <div className="space-y-6">

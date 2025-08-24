@@ -149,7 +149,8 @@ export const ForgotPasswordDialog = ({ onClose, onSuccess }: ForgotPasswordDialo
                         <FormControl>
                           <InputOTP 
                             maxLength={6} 
-                            {...field}
+                            value={field.value}
+                            onChange={(value) => field.onChange(value)}
                             className="w-full justify-center"
                           >
                             <InputOTPGroup>

@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1121,6 +1121,27 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_client_documents_client_id"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_documents_uploaded_by"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_client_documents_verified_by"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       client_identifiers: {
@@ -1259,6 +1280,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          account_opening_date: string | null
           activated_by: string | null
           activation_date: string | null
           address: Json | null
@@ -1310,6 +1332,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_opening_date?: string | null
           activated_by?: string | null
           activation_date?: string | null
           address?: Json | null
@@ -1361,6 +1384,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_opening_date?: string | null
           activated_by?: string | null
           activation_date?: string | null
           address?: Json | null
@@ -2694,6 +2718,53 @@ export type Database = {
           },
         ]
       }
+      financial_activity_mappings: {
+        Row: {
+          account_id: string
+          activity_code: string
+          activity_name: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          mapping_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          activity_code: string
+          activity_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mapping_type?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          activity_code?: string
+          activity_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mapping_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_activity_mappings_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_reports: {
         Row: {
           created_at: string
@@ -3869,6 +3940,7 @@ export type Database = {
           description: string
           entry_number: string
           id: string
+          office_id: string | null
           reference_id: string | null
           reference_type: string | null
           status: string
@@ -3883,8 +3955,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description: string
-          entry_number: string
+          entry_number?: string
           id?: string
+          office_id?: string | null
           reference_id?: string | null
           reference_type?: string | null
           status?: string
@@ -3901,6 +3974,7 @@ export type Database = {
           description?: string
           entry_number?: string
           id?: string
+          office_id?: string | null
           reference_id?: string | null
           reference_type?: string | null
           status?: string
@@ -3925,6 +3999,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "journal_entries_office_id_fkey"
+            columns: ["office_id"]
+            isOneToOne: false
+            referencedRelation: "offices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "journal_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -3942,6 +4023,7 @@ export type Database = {
           description: string | null
           id: string
           journal_entry_id: string
+          tenant_id: string
         }
         Insert: {
           account_id: string
@@ -3951,6 +4033,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_entry_id: string
+          tenant_id: string
         }
         Update: {
           account_id?: string
@@ -3960,6 +4043,7 @@ export type Database = {
           description?: string | null
           id?: string
           journal_entry_id?: string
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -3998,6 +4082,7 @@ export type Database = {
           fund_id: string | null
           id: string
           is_joint_application: boolean | null
+          linked_savings_account_id: string | null
           loan_product_id: string
           purpose: string | null
           repayment_schedule: Json | null
@@ -4007,6 +4092,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           risk_assessment: Json | null
+          selected_charges: Json
           status: string
           submitted_at: string
           tenant_id: string
@@ -4031,6 +4117,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           is_joint_application?: boolean | null
+          linked_savings_account_id?: string | null
           loan_product_id: string
           purpose?: string | null
           repayment_schedule?: Json | null
@@ -4040,6 +4127,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           risk_assessment?: Json | null
+          selected_charges?: Json
           status?: string
           submitted_at?: string
           tenant_id: string
@@ -4064,6 +4152,7 @@ export type Database = {
           fund_id?: string | null
           id?: string
           is_joint_application?: boolean | null
+          linked_savings_account_id?: string | null
           loan_product_id?: string
           purpose?: string | null
           repayment_schedule?: Json | null
@@ -4073,6 +4162,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           risk_assessment?: Json | null
+          selected_charges?: Json
           status?: string
           submitted_at?: string
           tenant_id?: string
@@ -4098,6 +4188,13 @@ export type Database = {
             columns: ["fund_id"]
             isOneToOne: false
             referencedRelation: "funds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_applications_linked_savings_account_id_fkey"
+            columns: ["linked_savings_account_id"]
+            isOneToOne: false
+            referencedRelation: "savings_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -4396,6 +4493,102 @@ export type Database = {
           },
         ]
       }
+      loan_harmonization_log: {
+        Row: {
+          harmonization_type: string
+          id: string
+          loan_id: string
+          new_interest_rate: number | null
+          new_outstanding_balance: number | null
+          notes: string | null
+          old_interest_rate: number | null
+          old_outstanding_balance: number | null
+          performed_at: string | null
+          performed_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          harmonization_type?: string
+          id?: string
+          loan_id: string
+          new_interest_rate?: number | null
+          new_outstanding_balance?: number | null
+          notes?: string | null
+          old_interest_rate?: number | null
+          old_outstanding_balance?: number | null
+          performed_at?: string | null
+          performed_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          harmonization_type?: string
+          id?: string
+          loan_id?: string
+          new_interest_rate?: number | null
+          new_outstanding_balance?: number | null
+          notes?: string | null
+          old_interest_rate?: number | null
+          old_outstanding_balance?: number | null
+          performed_at?: string | null
+          performed_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      loan_payment_reversals: {
+        Row: {
+          created_at: string
+          fee_amount: number
+          id: string
+          interest_amount: number
+          loan_id: string
+          notes: string | null
+          original_payment_id: string
+          penalty_amount: number
+          principal_amount: number
+          reason: string
+          reversal_date: string
+          reversed_amount: number
+          reversed_by: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          interest_amount?: number
+          loan_id: string
+          notes?: string | null
+          original_payment_id: string
+          penalty_amount?: number
+          principal_amount?: number
+          reason: string
+          reversal_date: string
+          reversed_amount: number
+          reversed_by?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          interest_amount?: number
+          loan_id?: string
+          notes?: string | null
+          original_payment_id?: string
+          penalty_amount?: number
+          principal_amount?: number
+          reason?: string
+          reversal_date?: string
+          reversed_amount?: number
+          reversed_by?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_payments: {
         Row: {
           created_at: string
@@ -4406,10 +4599,14 @@ export type Database = {
           payment_amount: number
           payment_date: string
           payment_method: string
+          penalty_amount: number | null
           principal_amount: number
           processed_by: string | null
           reference_number: string | null
+          reversed_at: string | null
+          reversed_by: string | null
           schedule_id: string | null
+          status: string | null
           tenant_id: string
         }
         Insert: {
@@ -4421,10 +4618,14 @@ export type Database = {
           payment_amount: number
           payment_date?: string
           payment_method?: string
+          penalty_amount?: number | null
           principal_amount?: number
           processed_by?: string | null
           reference_number?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           schedule_id?: string | null
+          status?: string | null
           tenant_id: string
         }
         Update: {
@@ -4436,10 +4637,14 @@ export type Database = {
           payment_amount?: number
           payment_date?: string
           payment_method?: string
+          penalty_amount?: number | null
           principal_amount?: number
           processed_by?: string | null
           reference_number?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           schedule_id?: string | null
+          status?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -4479,13 +4684,17 @@ export type Database = {
           advance_payments_adjustment_type: string | null
           allow_joint_applications: boolean | null
           allow_partial_period_interest: boolean | null
+          amortization_method: string | null
           application_steps: Json | null
           arrears_tolerance_amount: number | null
           arrears_tolerance_days: number | null
           auto_calculate_repayment: boolean | null
+          compounding_enabled: boolean | null
           compounding_frequency: string | null
           created_at: string
           currency_code: string
+          days_in_month_type: string | null
+          days_in_year_type: string | null
           default_nominal_interest_rate: number | null
           default_principal: number | null
           default_term: number | null
@@ -4493,6 +4702,7 @@ export type Database = {
           early_repayment_penalty_amount: number | null
           early_repayment_penalty_percentage: number | null
           fee_income_account_id: string | null
+          fee_mappings: Json | null
           fee_payment_account_id: string | null
           fee_receivable_account_id: string | null
           fund_id: string | null
@@ -4504,6 +4714,7 @@ export type Database = {
           interest_calculation_period: string | null
           interest_income_account_id: string | null
           interest_payment_account_id: string | null
+          interest_recalculation_enabled: boolean | null
           interest_receivable_account_id: string | null
           is_active: boolean
           late_payment_penalty_amount: number | null
@@ -4532,6 +4743,7 @@ export type Database = {
           processing_fee_percentage: number | null
           provision_account_id: string | null
           repayment_frequency: string
+          repayment_strategy: string
           require_bank_statements: boolean | null
           require_business_plan: boolean | null
           require_collateral: boolean | null
@@ -4541,6 +4753,7 @@ export type Database = {
           require_insurance: boolean | null
           required_documents: Json | null
           reschedule_strategy: string | null
+          reschedule_strategy_method: string | null
           short_name: string
           suspended_income_account_id: string | null
           tenant_id: string
@@ -4552,13 +4765,17 @@ export type Database = {
           advance_payments_adjustment_type?: string | null
           allow_joint_applications?: boolean | null
           allow_partial_period_interest?: boolean | null
+          amortization_method?: string | null
           application_steps?: Json | null
           arrears_tolerance_amount?: number | null
           arrears_tolerance_days?: number | null
           auto_calculate_repayment?: boolean | null
+          compounding_enabled?: boolean | null
           compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
+          days_in_month_type?: string | null
+          days_in_year_type?: string | null
           default_nominal_interest_rate?: number | null
           default_principal?: number | null
           default_term?: number | null
@@ -4566,6 +4783,7 @@ export type Database = {
           early_repayment_penalty_amount?: number | null
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
+          fee_mappings?: Json | null
           fee_payment_account_id?: string | null
           fee_receivable_account_id?: string | null
           fund_id?: string | null
@@ -4577,6 +4795,7 @@ export type Database = {
           interest_calculation_period?: string | null
           interest_income_account_id?: string | null
           interest_payment_account_id?: string | null
+          interest_recalculation_enabled?: boolean | null
           interest_receivable_account_id?: string | null
           is_active?: boolean
           late_payment_penalty_amount?: number | null
@@ -4605,6 +4824,7 @@ export type Database = {
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
           repayment_frequency?: string
+          repayment_strategy?: string
           require_bank_statements?: boolean | null
           require_business_plan?: boolean | null
           require_collateral?: boolean | null
@@ -4614,6 +4834,7 @@ export type Database = {
           require_insurance?: boolean | null
           required_documents?: Json | null
           reschedule_strategy?: string | null
+          reschedule_strategy_method?: string | null
           short_name: string
           suspended_income_account_id?: string | null
           tenant_id: string
@@ -4625,13 +4846,17 @@ export type Database = {
           advance_payments_adjustment_type?: string | null
           allow_joint_applications?: boolean | null
           allow_partial_period_interest?: boolean | null
+          amortization_method?: string | null
           application_steps?: Json | null
           arrears_tolerance_amount?: number | null
           arrears_tolerance_days?: number | null
           auto_calculate_repayment?: boolean | null
+          compounding_enabled?: boolean | null
           compounding_frequency?: string | null
           created_at?: string
           currency_code?: string
+          days_in_month_type?: string | null
+          days_in_year_type?: string | null
           default_nominal_interest_rate?: number | null
           default_principal?: number | null
           default_term?: number | null
@@ -4639,6 +4864,7 @@ export type Database = {
           early_repayment_penalty_amount?: number | null
           early_repayment_penalty_percentage?: number | null
           fee_income_account_id?: string | null
+          fee_mappings?: Json | null
           fee_payment_account_id?: string | null
           fee_receivable_account_id?: string | null
           fund_id?: string | null
@@ -4650,6 +4876,7 @@ export type Database = {
           interest_calculation_period?: string | null
           interest_income_account_id?: string | null
           interest_payment_account_id?: string | null
+          interest_recalculation_enabled?: boolean | null
           interest_receivable_account_id?: string | null
           is_active?: boolean
           late_payment_penalty_amount?: number | null
@@ -4678,6 +4905,7 @@ export type Database = {
           processing_fee_percentage?: number | null
           provision_account_id?: string | null
           repayment_frequency?: string
+          repayment_strategy?: string
           require_bank_statements?: boolean | null
           require_business_plan?: boolean | null
           require_collateral?: boolean | null
@@ -4687,6 +4915,7 @@ export type Database = {
           require_insurance?: boolean | null
           required_documents?: Json | null
           reschedule_strategy?: string | null
+          reschedule_strategy_method?: string | null
           short_name?: string
           suspended_income_account_id?: string | null
           tenant_id?: string
@@ -4921,6 +5150,17 @@ export type Database = {
           application_id: string | null
           client_id: string
           created_at: string
+          creation_advance_payments_adjustment_type: string | null
+          creation_amortization_method: string | null
+          creation_compounding_enabled: boolean | null
+          creation_days_in_month_type: string | null
+          creation_days_in_year_type: string | null
+          creation_interest_rate: number | null
+          creation_interest_recalculation_enabled: boolean | null
+          creation_pre_closure_interest_calculation_rule: string | null
+          creation_principal: number | null
+          creation_reschedule_strategy_method: string | null
+          creation_term_months: number | null
           disbursement_date: string | null
           expected_maturity_date: string | null
           id: string
@@ -4928,6 +5168,7 @@ export type Database = {
           loan_number: string
           loan_officer_id: string | null
           loan_product_id: string
+          loan_product_snapshot: Json | null
           mifos_loan_id: number | null
           next_repayment_amount: number | null
           next_repayment_date: string | null
@@ -4943,6 +5184,17 @@ export type Database = {
           application_id?: string | null
           client_id: string
           created_at?: string
+          creation_advance_payments_adjustment_type?: string | null
+          creation_amortization_method?: string | null
+          creation_compounding_enabled?: boolean | null
+          creation_days_in_month_type?: string | null
+          creation_days_in_year_type?: string | null
+          creation_interest_rate?: number | null
+          creation_interest_recalculation_enabled?: boolean | null
+          creation_pre_closure_interest_calculation_rule?: string | null
+          creation_principal?: number | null
+          creation_reschedule_strategy_method?: string | null
+          creation_term_months?: number | null
           disbursement_date?: string | null
           expected_maturity_date?: string | null
           id?: string
@@ -4950,6 +5202,7 @@ export type Database = {
           loan_number: string
           loan_officer_id?: string | null
           loan_product_id: string
+          loan_product_snapshot?: Json | null
           mifos_loan_id?: number | null
           next_repayment_amount?: number | null
           next_repayment_date?: string | null
@@ -4965,6 +5218,17 @@ export type Database = {
           application_id?: string | null
           client_id?: string
           created_at?: string
+          creation_advance_payments_adjustment_type?: string | null
+          creation_amortization_method?: string | null
+          creation_compounding_enabled?: boolean | null
+          creation_days_in_month_type?: string | null
+          creation_days_in_year_type?: string | null
+          creation_interest_rate?: number | null
+          creation_interest_recalculation_enabled?: boolean | null
+          creation_pre_closure_interest_calculation_rule?: string | null
+          creation_principal?: number | null
+          creation_reschedule_strategy_method?: string | null
+          creation_term_months?: number | null
           disbursement_date?: string | null
           expected_maturity_date?: string | null
           id?: string
@@ -4972,6 +5236,7 @@ export type Database = {
           loan_number?: string
           loan_officer_id?: string | null
           loan_product_id?: string
+          loan_product_snapshot?: Json | null
           mifos_loan_id?: number | null
           next_repayment_amount?: number | null
           next_repayment_date?: string | null
@@ -5922,6 +6187,50 @@ export type Database = {
           },
         ]
       }
+      product_fund_source_mappings: {
+        Row: {
+          account_id: string
+          channel_id: string
+          channel_name: string
+          created_at: string
+          id: string
+          product_id: string
+          product_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          channel_id: string
+          channel_name: string
+          created_at?: string
+          id?: string
+          product_id: string
+          product_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          channel_id?: string
+          channel_name?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          product_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_account_id"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -6370,45 +6679,63 @@ export type Database = {
         Row: {
           account_balance: number | null
           account_number: string
+          activated_date: string | null
+          approved_date: string | null
           available_balance: number | null
           client_id: string
+          close_reason: string | null
+          closed_date: string | null
           created_at: string
+          created_date: string | null
           id: string
           interest_earned: number | null
           is_active: boolean
           mifos_account_id: number | null
           opened_date: string
           savings_product_id: string
+          status: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
           account_balance?: number | null
           account_number: string
+          activated_date?: string | null
+          approved_date?: string | null
           available_balance?: number | null
           client_id: string
+          close_reason?: string | null
+          closed_date?: string | null
           created_at?: string
+          created_date?: string | null
           id?: string
           interest_earned?: number | null
           is_active?: boolean
           mifos_account_id?: number | null
           opened_date?: string
           savings_product_id: string
+          status?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
           account_balance?: number | null
           account_number?: string
+          activated_date?: string | null
+          approved_date?: string | null
           available_balance?: number | null
           client_id?: string
+          close_reason?: string | null
+          closed_date?: string | null
           created_at?: string
+          created_date?: string | null
           id?: string
           interest_earned?: number | null
           is_active?: boolean
           mifos_account_id?: number | null
           opened_date?: string
           savings_product_id?: string
+          status?: string
           tenant_id?: string
           updated_at?: string
         }
@@ -6628,6 +6955,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          method: string | null
           processed_by: string | null
           reference_number: string | null
           savings_account_id: string
@@ -6641,6 +6969,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          method?: string | null
           processed_by?: string | null
           reference_number?: string | null
           savings_account_id: string
@@ -6654,6 +6983,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          method?: string | null
           processed_by?: string | null
           reference_number?: string | null
           savings_account_id?: string
@@ -7455,6 +7785,7 @@ export type Database = {
           country: string | null
           created_at: string
           currency_code: string | null
+          currency_decimal_places: number
           custom_domain_verified: boolean | null
           dns_settings: Json | null
           domain: string | null
@@ -7497,6 +7828,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency_code?: string | null
+          currency_decimal_places?: number
           custom_domain_verified?: boolean | null
           dns_settings?: Json | null
           domain?: string | null
@@ -7539,6 +7871,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency_code?: string | null
+          currency_decimal_places?: number
           custom_domain_verified?: boolean | null
           dns_settings?: Json | null
           domain?: string | null
@@ -7954,16 +8287,29 @@ export type Database = {
     }
     Functions: {
       activate_client: {
-        Args: { client_id: string; activated_by_id: string }
+        Args: { activated_by_id: string; client_id: string }
         Returns: boolean
       }
       calculate_account_balance: {
         Args: { p_account_id: string; p_date?: string }
         Returns: number
       }
+      calculate_account_balance_with_periods: {
+        Args: { p_account_id: string; p_date?: string; p_period_start?: string }
+        Returns: {
+          closing_balance: number
+          opening_balance: number
+          period_credits: number
+          period_debits: number
+        }[]
+      }
       check_client_activation_eligibility: {
         Args: { client_id: string }
         Returns: boolean
+      }
+      generate_journal_entry_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_current_account_balance: {
         Args: { p_account_id: string }
@@ -8006,6 +8352,17 @@ export type Database = {
       get_user_tenant_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      harmonize_all_existing_loans: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          loan_id: string
+          new_interest_rate: number
+          new_outstanding: number
+          old_interest_rate: number
+          old_outstanding: number
+          status: string
+        }[]
       }
     }
     Enums: {

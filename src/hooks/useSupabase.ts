@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './useAuth';
 import { defaultQueryOptions, rareUpdateOptions } from './useOptimizedQueries';
-
+import { useEffect } from 'react';
 // Types
 export interface Tenant {
   id: string;
@@ -109,6 +109,7 @@ export interface LoanProduct {
   max_term: number;
   default_term?: number | null;
   repayment_frequency: string;
+  repayment_strategy?: string;
   is_active: boolean;
   mifos_product_id?: number | null;
   created_at: string;
@@ -179,6 +180,10 @@ export interface SavingsAccount {
   interest_earned: number;
   is_active: boolean;
   opened_date: string;
+  created_date?: string; // added for richer lifecycle tracking
+  approved_date?: string | null; // optional
+  activated_date?: string | null; // optional
+  status?: string; // optional status field
   mifos_account_id?: number | null;
   created_at: string;
   updated_at: string;
@@ -607,9 +612,12 @@ export const useCreateSavingsProduct = () => {
       });
     },
     onError: (error: any) => {
+      const message = error?.code === '23505'
+        ? 'A savings product with this short name already exists in your tenant'
+        : (error?.message || 'Failed to create savings product');
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
@@ -640,9 +648,12 @@ export const useUpdateSavingsProduct = () => {
       });
     },
     onError: (error: any) => {
+      const message = error?.code === '23505'
+        ? 'A savings product with this short name already exists in your tenant'
+        : (error?.message || 'Failed to update savings product');
       toast({
         title: "Error",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     },
@@ -651,6 +662,33 @@ export const useUpdateSavingsProduct = () => {
 
 // Savings Account hooks
 export const useSavingsAccounts = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_accounts' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_transactions' },
+        () => {
+          // Transactions can change balances; refresh accounts
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['savings-accounts'],
     queryFn: async () => {

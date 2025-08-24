@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CreditCard, Search, AlertCircle } from "lucide-react";
+import { Plus, Trash2, CreditCard, AlertCircle } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -47,21 +47,37 @@ export function EnhancedChargesAndFeesStep({ form }: EnhancedChargesAndFeesStepP
   const [customAmount, setCustomAmount] = useState<number | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: availableCharges = [] } = useQuery({
-    queryKey: ['fee-structures', profile?.tenant_id],
+  // Selected product to filter charges
+  const loanProductId = form.watch('loan_product_id');
+  const { data: loanProduct } = useQuery({
+    queryKey: ['loan-product', loanProductId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('fee_structures')
+        .from('loan_products')
         .select('*')
-        .eq('tenant_id', profile?.tenant_id)
-        .eq('is_active', true)
-        .eq('fee_type', 'loan') // Only loan-related fees
-        .order('fee_name');
-
+        .eq('id', loanProductId)
+        .single();
       if (error) throw error;
       return data;
     },
-    enabled: !!profile?.tenant_id,
+    enabled: !!loanProductId,
+  });
+
+  const { data: availableCharges = [] } = useQuery({
+    queryKey: ['loan-product-fees', profile?.tenant_id, loanProduct?.linked_fee_ids],
+    queryFn: async () => {
+      if (!profile?.tenant_id || !loanProduct?.linked_fee_ids || loanProduct.linked_fee_ids.length === 0) return [];
+      const { data, error } = await supabase
+        .from('fee_structures')
+        .select('*')
+        .in('id', loanProduct.linked_fee_ids)
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.tenant_id && !!loanProduct?.linked_fee_ids,
   });
 
   const { data: linkedSavingsAccounts = [] } = useQuery({
@@ -162,13 +178,7 @@ export function EnhancedChargesAndFeesStep({ form }: EnhancedChargesAndFeesStepP
           <CardContent className="space-y-4">
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search charges..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+              
             </div>
 
             {/* Charge Selection */}
@@ -178,7 +188,7 @@ export function EnhancedChargesAndFeesStep({ form }: EnhancedChargesAndFeesStepP
                 name="charge_selection"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Available Charges</FormLabel>
+                    {/* Removed label per requirements */}
                     <Select 
                       value={selectedChargeId} 
                       onValueChange={setSelectedChargeId}

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanApproval, useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { LoanStatusBadge } from "./LoanStatusBadge";
+import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
 
 interface BulkLoanActionsProps {
   loans: any[];
@@ -216,7 +216,7 @@ export const BulkLoanActions = ({ loans, actionType, onSuccess }: BulkLoanAction
                   <p className="font-medium">{formatCurrency(loan.requested_amount)}</p>
                   <p className="text-sm text-muted-foreground">{loan.requested_term} months</p>
                 </div>
-                <LoanStatusBadge status={loan.status} size="sm" />
+                <UnifiedStatusBadge entity={loan} entityType="loan" size="sm" />
               </div>
             </div>
           ))}

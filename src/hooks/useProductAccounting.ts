@@ -194,7 +194,7 @@ export const useCreateProductJournalEntry = () => {
       return createJournalEntry.mutateAsync({
         transaction_date: new Date().toISOString().split('T')[0],
         description: transaction.description,
-        reference_type: transaction.product_type,
+        reference_type: 'manual',
         reference_id: transaction.reference_id,
         lines,
       });

@@ -240,31 +240,6 @@ export const ReviewStep = ({ formData, onSubmit, isSubmitting }: ReviewStepProps
         </Card>
       )}
 
-      {/* Savings Account */}
-      {formData.create_savings_account && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Save className="h-5 w-5" />
-              Savings Account
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm">Savings account will be created</span>
-              </div>
-              {formData.initial_deposit && (
-                <div>
-                  <span className="text-sm font-medium">Initial Deposit:</span>
-                  <p className="text-sm text-muted-foreground">{formatCurrency(formData.initial_deposit)}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Review Information Only */}
       <Card>

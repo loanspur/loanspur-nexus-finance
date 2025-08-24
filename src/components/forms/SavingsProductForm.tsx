@@ -13,11 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateSavingsProduct, useUpdateSavingsProduct, SavingsProduct } from "@/hooks/useSupabase";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { usePaymentTypes } from "@/hooks/usePaymentTypes";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { Loader2, Plus, X } from "lucide-react";
 import { SampleDataButton } from "@/components/dev/SampleDataButton";
 import { generateSampleSavingsProductData } from "@/lib/dev-utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-
 const savingsProductSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   short_name: z.string().min(1, "Short name is required"),
@@ -56,7 +56,6 @@ const savingsProductSchema = z.object({
   
   // Advanced Accounting - Fee Mappings
   fee_mappings: z.array(z.object({
-    fee_name: z.string(),
     fee_type: z.string(),
     income_account_id: z.string(),
   })).optional(),
@@ -77,6 +76,10 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
   const updateSavingsProduct = useUpdateSavingsProduct();
   const { data: accounts } = useChartOfAccounts();
   const { data: paymentTypes } = usePaymentTypes();
+  const { data: allFeeStructures } = useFeeStructures();
+  const savingsFees = allFeeStructures?.filter(fee => 
+    fee.is_active && ['savings', 'savings_maintenance', 'savings_charge', 'account_charge'].includes(fee.fee_type)
+  ) || [];
   const { currency, currencySymbol } = useCurrency();
 
   const assetAccounts = accounts?.filter(acc => acc.account_type === 'asset') || [];
@@ -84,8 +87,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
   const incomeAccounts = accounts?.filter(acc => acc.account_type === 'income') || [];
   const expenseAccounts = accounts?.filter(acc => acc.account_type === 'expense') || [];
 
+  const [currentTab, setCurrentTab] = useState<'basic' | 'accounting' | 'linked_fees'>('basic');
+
   const form = useForm<SavingsProductFormValues>({
     resolver: zodResolver(savingsProductSchema),
+    mode: 'onChange',
     defaultValues: {
       name: "",
       short_name: "",
@@ -201,7 +207,8 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
     setIsSubmitting(true);
     try {
       if (editingProduct) {
-        await updateSavingsProduct.mutateAsync({
+        // Build update payload properly to avoid spread issues
+        const updatePayload: any = {
           id: editingProduct.id,
           name: values.name,
           short_name: values.short_name,
@@ -211,20 +218,44 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
           min_required_opening_balance: values.min_required_opening_balance,
           min_balance_for_interest_calculation: values.min_balance_for_interest_calculation,
           is_active: values.is_active,
-          // Accounting configuration (using any to bypass type checking for new fields)
-          ...values.max_overdraft_amount !== undefined && { max_overdraft_amount: values.max_overdraft_amount },
-          ...values.accounting_method && { accounting_method: values.accounting_method },
-          ...values.savings_reference_account_id && { savings_reference_account_id: values.savings_reference_account_id },
-          ...values.savings_control_account_id && { savings_control_account_id: values.savings_control_account_id },
-          ...values.interest_on_savings_account_id && { interest_on_savings_account_id: values.interest_on_savings_account_id },
-          ...values.income_from_fees_account_id && { income_from_fees_account_id: values.income_from_fees_account_id },
-          ...values.income_from_penalties_account_id && { income_from_penalties_account_id: values.income_from_penalties_account_id },
-          ...values.overdraft_portfolio_control_id && { overdraft_portfolio_control_id: values.overdraft_portfolio_control_id },
-          ...values.payment_type_mappings && { payment_type_mappings: values.payment_type_mappings },
-          ...values.fee_mappings && { fee_mappings: values.fee_mappings },
-        } as any);
+        };
+
+        // Add optional fields only if they have values
+        if (values.max_overdraft_amount !== undefined) {
+          updatePayload.max_overdraft_amount = values.max_overdraft_amount;
+        }
+        if (values.accounting_method) {
+          updatePayload.accounting_method = values.accounting_method;
+        }
+        if (values.savings_reference_account_id) {
+          updatePayload.savings_reference_account_id = values.savings_reference_account_id;
+        }
+        if (values.savings_control_account_id) {
+          updatePayload.savings_control_account_id = values.savings_control_account_id;
+        }
+        if (values.interest_on_savings_account_id) {
+          updatePayload.interest_on_savings_account_id = values.interest_on_savings_account_id;
+        }
+        if (values.income_from_fees_account_id) {
+          updatePayload.income_from_fees_account_id = values.income_from_fees_account_id;
+        }
+        if (values.income_from_penalties_account_id) {
+          updatePayload.income_from_penalties_account_id = values.income_from_penalties_account_id;
+        }
+        if (values.overdraft_portfolio_control_id) {
+          updatePayload.overdraft_portfolio_control_id = values.overdraft_portfolio_control_id;
+        }
+        if (values.payment_type_mappings) {
+          updatePayload.payment_type_mappings = values.payment_type_mappings;
+        }
+        if (values.fee_mappings) {
+          updatePayload.fee_mappings = values.fee_mappings;
+        }
+
+        await updateSavingsProduct.mutateAsync(updatePayload);
       } else {
-        await createSavingsProduct.mutateAsync({
+        // Build create payload properly to avoid spread issues
+        const createPayload: any = {
           tenant_id: tenantId,
           name: values.name,
           short_name: values.short_name,
@@ -235,18 +266,41 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
           min_balance_for_interest_calculation: values.min_balance_for_interest_calculation,
           is_active: values.is_active,
           mifos_product_id: null,
-          // Accounting configuration (using any to bypass type checking for new fields)
-          ...values.max_overdraft_amount !== undefined && { max_overdraft_amount: values.max_overdraft_amount },
-          ...values.accounting_method && { accounting_method: values.accounting_method },
-          ...values.savings_reference_account_id && { savings_reference_account_id: values.savings_reference_account_id },
-          ...values.savings_control_account_id && { savings_control_account_id: values.savings_control_account_id },
-          ...values.interest_on_savings_account_id && { interest_on_savings_account_id: values.interest_on_savings_account_id },
-          ...values.income_from_fees_account_id && { income_from_fees_account_id: values.income_from_fees_account_id },
-          ...values.income_from_penalties_account_id && { income_from_penalties_account_id: values.income_from_penalties_account_id },
-          ...values.overdraft_portfolio_control_id && { overdraft_portfolio_control_id: values.overdraft_portfolio_control_id },
-          ...values.payment_type_mappings && { payment_type_mappings: values.payment_type_mappings },
-          ...values.fee_mappings && { fee_mappings: values.fee_mappings },
-        } as any);
+        };
+
+        // Add optional fields only if they have values
+        if (values.max_overdraft_amount !== undefined) {
+          createPayload.max_overdraft_amount = values.max_overdraft_amount;
+        }
+        if (values.accounting_method) {
+          createPayload.accounting_method = values.accounting_method;
+        }
+        if (values.savings_reference_account_id) {
+          createPayload.savings_reference_account_id = values.savings_reference_account_id;
+        }
+        if (values.savings_control_account_id) {
+          createPayload.savings_control_account_id = values.savings_control_account_id;
+        }
+        if (values.interest_on_savings_account_id) {
+          createPayload.interest_on_savings_account_id = values.interest_on_savings_account_id;
+        }
+        if (values.income_from_fees_account_id) {
+          createPayload.income_from_fees_account_id = values.income_from_fees_account_id;
+        }
+        if (values.income_from_penalties_account_id) {
+          createPayload.income_from_penalties_account_id = values.income_from_penalties_account_id;
+        }
+        if (values.overdraft_portfolio_control_id) {
+          createPayload.overdraft_portfolio_control_id = values.overdraft_portfolio_control_id;
+        }
+        if (values.payment_type_mappings) {
+          createPayload.payment_type_mappings = values.payment_type_mappings;
+        }
+        if (values.fee_mappings) {
+          createPayload.fee_mappings = values.fee_mappings;
+        }
+
+        await createSavingsProduct.mutateAsync(createPayload);
       }
       form.reset();
       onOpenChange(false);
@@ -280,12 +334,18 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
 
   const addFeeMapping = () => {
     const current = form.getValues('fee_mappings') || [];
-    form.setValue('fee_mappings', [...current, { fee_name: '', fee_type: '', income_account_id: '' }]);
+    form.setValue('fee_mappings', [...current, { fee_type: '', income_account_id: '' }]);
   };
 
   const removeFeeMapping = (index: number) => {
     const current = form.getValues('fee_mappings') || [];
     form.setValue('fee_mappings', current.filter((_, i) => i !== index));
+  };
+
+  const goToTab = async (tab: 'basic' | 'accounting' | 'linked_fees') => {
+    // Trigger validation so isValid reflects the latest state across tabs
+    await form.trigger();
+    setCurrentTab(tab);
   };
 
   return (
@@ -304,10 +364,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs value={currentTab} onValueChange={(v) => setCurrentTab(v as any)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basic">Basic Information</TabsTrigger>
                 <TabsTrigger value="accounting">Advanced Accounting</TabsTrigger>
+                <TabsTrigger value="linked_fees">Linked Fees</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-6">
@@ -605,6 +666,19 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     </FormItem>
                   )}
                 />
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="button" onClick={() => goToTab('accounting')}>
+                  Next
+                </Button>
+              </div>
               </TabsContent>
 
 
@@ -615,6 +689,9 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     <h3 className="text-lg font-medium">Basic Accounting Configuration</h3>
                     <p className="text-sm text-muted-foreground">
                       Configure general ledger accounts and accounting method for this savings product
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Note: Dropdowns filter by account type — Assets, Liabilities, Expenses, or Income as appropriate.
                     </p>
                   </div>
 
@@ -661,6 +738,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Asset accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -686,6 +764,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Liability accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -711,6 +790,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Expense accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -736,6 +816,33 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>Only Income accounts are listed.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="income_from_penalties_account_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Income from Penalties Account</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select penalties income account" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {incomeAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.account_code} - {account.account_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Only Income accounts are listed.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -773,8 +880,8 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {paymentTypes?.map((type) => (
-                                  <SelectItem key={type.id} value={type.name}>
+                                {paymentTypes?.filter((t) => t.is_active).map((type) => (
+                                  <SelectItem key={type.id} value={type.code}>
                                     {type.name}
                                   </SelectItem>
                                 ))}
@@ -825,11 +932,29 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                   ))}
                 </div>
 
+                {/* Fee Mappings moved to Linked Fees tab */}
+                <div className="flex justify-between pt-2">
+                  <Button type="button" variant="outline" onClick={() => setCurrentTab('basic')}>Back</Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={() => goToTab('linked_fees')}>Next</Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="linked_fees" className="space-y-6">
                 {/* Fee Mappings */}
                 <div className="space-y-4 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-medium">Fee Mappings</h3>
+                      <h3 className="text-lg font-medium">Linked Fees</h3>
                       <p className="text-sm text-muted-foreground">
                         Map savings fees to income accounts
                       </p>
@@ -841,21 +966,7 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                   </div>
 
                   {(form.watch('fee_mappings') || []).map((mapping, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
-                      <FormField
-                        control={form.control}
-                        name={`fee_mappings.${index}.fee_name`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Fee Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Monthly Fee" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
                       <FormField
                         control={form.control}
                         name={`fee_mappings.${index}.fee_type`}
@@ -869,15 +980,11 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="account_opening">Account Opening Fee</SelectItem>
-                                <SelectItem value="monthly_maintenance">Monthly Maintenance Fee</SelectItem>
-                                <SelectItem value="quarterly_maintenance">Quarterly Maintenance Fee</SelectItem>
-                                <SelectItem value="annual_service">Annual Service Fee</SelectItem>
-                                <SelectItem value="withdrawal">Withdrawal Fee</SelectItem>
-                                <SelectItem value="deposit">Deposit Fee</SelectItem>
-                                <SelectItem value="transaction">Transaction Fee</SelectItem>
-                                <SelectItem value="overdraft">Overdraft Fee</SelectItem>
-                                <SelectItem value="closure">Account Closure Fee</SelectItem>
+                                {savingsFees.map((fee) => (
+                                  <SelectItem key={fee.id} value={fee.fee_type}>
+                                    {fee.name} ({fee.fee_type})
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -924,23 +1031,26 @@ export const SavingsProductForm = ({ open, onOpenChange, tenantId, editingProduc
                     </div>
                   ))}
                 </div>
+                <div className="flex justify-between pt-2">
+                  <Button type="button" variant="outline" onClick={() => setCurrentTab('accounting')}>Back</Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => onOpenChange(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {editingProduct ? 'Update Product' : 'Create Product'}
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editingProduct ? 'Update Product' : 'Create Product'}
-              </Button>
-            </div>
           </form>
         </Form>
       </CardContent>

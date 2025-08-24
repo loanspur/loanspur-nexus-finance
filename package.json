@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "npx serve dist -s -l 8080"
+    "start": "npx serve dist -s -l 8080",
+    "docker:build": "docker build -t loanspur-app .",
+    "docker:run": "docker run -p 8080:8080 loanspur-app",
+    "docker:build:run": "npm run docker:build && npm run docker:run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",

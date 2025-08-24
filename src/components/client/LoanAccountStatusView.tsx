@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -15,6 +14,10 @@ import {
   DollarSign
 } from "lucide-react";
 import { format } from "date-fns";
+import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { useLoanDisplayData } from "@/hooks/useHarmonizedLoanData";
 
 interface LoanAccount {
   id: string;
@@ -30,6 +33,11 @@ interface LoanAccount {
     name: string;
     interest_rate: number;
   };
+  // Enhanced loan data fields
+  interest_rate?: number;
+  principal_amount?: number;
+  term_months?: number;
+  disbursement_date?: string;
 }
 
 interface LoanAccountStatusViewProps {
@@ -52,64 +60,93 @@ export const LoanAccountStatusView = ({
   onToggleClosedAccounts
 }: LoanAccountStatusViewProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const { formatAmount: formatCurrency } = useCurrency();
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
-
-  const getStatusBadge = (status: string, type: 'loan' | 'application') => {
-    const statusLower = status.toLowerCase();
+  // Enhanced account item component with harmonized data
+  const AccountItem = ({ account }: { account: LoanAccount }) => {
+    const loanDisplayData = useLoanDisplayData(account.type === 'loan' ? account : null);
     
-    if (type === 'application') {
-      switch (statusLower) {
-        case 'pending':
-          return <Badge variant="outline" className="border-yellow-500 text-yellow-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-        case 'pending_approval':
-          return <Badge variant="outline" className="border-blue-500 text-blue-600"><Clock className="w-3 h-3 mr-1" />Under Review</Badge>;
-        case 'pending_disbursement':
-          return <Badge variant="outline" className="border-green-500 text-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-        case 'approved':
-          return <Badge variant="outline" className="border-green-500 text-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-        case 'rejected':
-          return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
-        case 'withdrawn':
-          return <Badge variant="outline" className="border-gray-500 text-gray-600"><XCircle className="w-3 h-3 mr-1" />Withdrawn</Badge>;
-        default:
-          return <Badge variant="outline" className="capitalize">{status}</Badge>;
-      }
-    } else {
-      switch (statusLower) {
-        case 'active':
-          return <Badge variant="outline" className="border-green-500 text-green-600"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
-        case 'pending_approval':
-          return <Badge variant="outline" className="border-blue-500 text-blue-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
-        case 'overdue':
-          return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Overdue</Badge>;
-        case 'closed':
-        case 'fully_paid':
-          return <Badge variant="outline" className="border-gray-500 text-gray-600"><CheckCircle className="w-3 h-3 mr-1" />Closed</Badge>;
-        case 'written_off':
-          return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Written Off</Badge>;
-        default:
-          return <Badge variant="outline" className="capitalize">{status}</Badge>;
-      }
-    }
+    // Use harmonized interest rate for loans, fallback to product rate for applications
+    const displayInterestRate = account.type === 'loan' 
+      ? loanDisplayData.displayInterestRate 
+      : account.loan_products?.interest_rate || 0;
+    
+    // Use harmonized outstanding balance for loans
+    const displayOutstanding = account.type === 'loan'
+      ? loanDisplayData.displayOutstanding
+      : account.outstanding;
+
+    return (
+      <div 
+        key={`${account.type}-${account.id}`} 
+        className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <div>
+                <h4 className="font-medium">{account.display_name}</h4>
+                <p className="text-sm text-muted-foreground font-mono">{account.identifier}</p>
+              </div>
+              <UnifiedStatusBadge entity={account} entityType="loan" size="sm" />
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Amount</p>
+                <p className="font-medium">{formatCurrency(account.amount)}</p>
+              </div>
+              {displayOutstanding !== null && displayOutstanding !== undefined && (
+                <div>
+                  <p className="text-muted-foreground">Outstanding</p>
+                  <p className="font-medium text-destructive">{formatCurrency(displayOutstanding)}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-muted-foreground">{account.date_label}</p>
+                <p className="font-medium">{format(new Date(account.date), 'MMM dd, yyyy')}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Interest Rate</p>
+                <p className="font-medium">{displayInterestRate.toFixed(2)}% p.a.</p>
+                {account.type === 'loan' && !loanDisplayData.isDataConsistent && (
+                  <p className="text-xs text-amber-600">Rate harmonized</p>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewDetails(account)}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const filteredAccounts = accounts.filter(account => {
+  // Removed getStatusBadge - now using UnifiedStatusBadge
+
+  const accountsWithDerived = accounts.map((a) => ({ 
+    ...a, 
+    __unified: getUnifiedLoanStatus(a)
+  }));
+
+  const filteredAccounts = accountsWithDerived.filter(account => {
     if (filterStatus === 'all') return true;
-    return account.status.toLowerCase() === filterStatus;
+    return account.__unified.status === filterStatus;
   });
 
   const statusCounts = {
-    active: accounts.filter(a => a.status.toLowerCase() === 'active').length,
-    pending: accounts.filter(a => ['pending', 'pending_approval'].includes(a.status.toLowerCase())).length,
-    overdue: accounts.filter(a => a.status.toLowerCase() === 'overdue').length,
-    closed: accounts.filter(a => ['closed', 'fully_paid', 'rejected'].includes(a.status.toLowerCase())).length,
+    active: accountsWithDerived.filter(a => StatusHelpers.isActive(a.__unified.status)).length,
+    pending: accountsWithDerived.filter(a => StatusHelpers.isPending(a.__unified.status) || StatusHelpers.isApproved(a.__unified.status)).length,
+    overdue: accountsWithDerived.filter(a => StatusHelpers.isProblem(a.__unified.status)).length,
+    closed: accountsWithDerived.filter(a => StatusHelpers.isClosed(a.__unified.status)).length,
   };
 
   return (
@@ -219,55 +256,7 @@ export const LoanAccountStatusView = ({
           ) : (
             <div className="space-y-4">
               {filteredAccounts.map((account) => (
-                <div 
-                  key={`${account.type}-${account.id}`} 
-                  className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div>
-                          <h4 className="font-medium">{account.display_name}</h4>
-                          <p className="text-sm text-muted-foreground font-mono">{account.identifier}</p>
-                        </div>
-                        {getStatusBadge(account.status, account.type)}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Amount</p>
-                          <p className="font-medium">{formatCurrency(account.amount)}</p>
-                        </div>
-                        {account.outstanding !== null && (
-                          <div>
-                            <p className="text-muted-foreground">Outstanding</p>
-                            <p className="font-medium text-destructive">{formatCurrency(account.outstanding || 0)}</p>
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-muted-foreground">{account.date_label}</p>
-                          <p className="font-medium">{format(new Date(account.date), 'MMM dd, yyyy')}</p>
-                        </div>
-                        {account.loan_products && (
-                          <div>
-                            <p className="text-muted-foreground">Interest Rate</p>
-                            <p className="font-medium">{account.loan_products.interest_rate}%</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onViewDetails(account)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <AccountItem key={`${account.type}-${account.id}`} account={account} />
               ))}
             </div>
           )}

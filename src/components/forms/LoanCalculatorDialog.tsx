@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
 
 const calculatorSchema = z.object({
   principal: z.number().min(1, "Principal amount must be greater than 0"),
@@ -62,25 +64,25 @@ export const LoanCalculatorDialog = ({
 
   const calculateLoan = (data: CalculatorFormData) => {
     const { principal, interestRate, termMonths } = data;
-    const monthlyRate = interestRate / 100 / 12;
     
-    let monthlyPayment;
-    if (monthlyRate === 0) {
-      monthlyPayment = principal / termMonths;
-    } else {
-      monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
-                      (Math.pow(1 + monthlyRate, termMonths) - 1);
-    }
+    // Use unified interest calculation
+    const interestResult = calculateReducingBalanceInterest({
+      principal,
+      annualRate: interestRate,
+      termInMonths: termMonths,
+      calculationMethod: 'reducing_balance'
+    });
     
+    const monthlyPayment = interestResult.monthlyPayment;
     const totalPayment = monthlyPayment * termMonths;
-    const totalInterest = totalPayment - principal;
+    const totalInterest = interestResult.totalInterest;
 
-    // Calculate amortization schedule
+    // Calculate amortization schedule using unified calculation
     const schedule = [];
     let remainingBalance = principal;
     
     for (let month = 1; month <= termMonths; month++) {
-      const interestPayment = remainingBalance * monthlyRate;
+      const interestPayment = calculateMonthlyInterest(remainingBalance, interestRate);
       const principalPayment = monthlyPayment - interestPayment;
       remainingBalance -= principalPayment;
       
@@ -101,12 +103,7 @@ export const LoanCalculatorDialog = ({
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(amount);
-  };
+const { formatAmount: formatCurrency } = useCurrency();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

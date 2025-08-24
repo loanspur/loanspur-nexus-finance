@@ -14,6 +14,7 @@ import {
   Plus,
   Eye
 } from "lucide-react";
+import { SavingsTransactionForm } from "@/components/forms/SavingsTransactionForm";
 import { format } from "date-fns";
 
 interface SavingsAccount {
@@ -24,6 +25,7 @@ interface SavingsAccount {
   interest_earned: number;
   opened_date: string;
   is_active: boolean;
+  savings_product_id?: string;
   savings_products?: {
     name: string;
     short_name: string;
@@ -48,6 +50,9 @@ export const ClientSavingsTab = ({
   onNewSavingsAccount, 
   onViewAccountDetails 
 }: ClientSavingsTabProps) => {
+  const [txnOpen, setTxnOpen] = useState(false);
+  const [txnType, setTxnType] = useState<'deposit' | 'withdrawal'>('deposit');
+  const [selectedAccount, setSelectedAccount] = useState<SavingsAccount | null>(null);
   
   const getVisibleAccounts = () => {
     if (showClosedAccounts) {
@@ -153,11 +158,11 @@ export const ClientSavingsTab = ({
                     <div className="flex items-center gap-2">
                       {account.is_active && (
                         <>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => { setSelectedAccount(account); setTxnType('deposit'); setTxnOpen(true); }}>
                             <ArrowDownRight className="h-4 w-4 mr-1" />
                             Deposit
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => { setSelectedAccount(account); setTxnType('withdrawal'); setTxnOpen(true); }}>
                             <ArrowUpRight className="h-4 w-4 mr-1" />
                             Withdraw
                           </Button>
@@ -178,6 +183,21 @@ export const ClientSavingsTab = ({
           )}
         </CardContent>
       </Card>
+      {selectedAccount && (
+        <SavingsTransactionForm
+          open={txnOpen}
+          onOpenChange={setTxnOpen}
+          savingsAccount={{
+            id: selectedAccount.id,
+            account_balance: selectedAccount.account_balance,
+            savings_product_id: (selectedAccount as any).savings_product_id as string,
+            savings_products: { name: selectedAccount.savings_products?.name || '' },
+            account_number: selectedAccount.account_number,
+          }}
+          transactionType={txnType}
+          onSuccess={() => setTxnOpen(false)}
+        />
+      )}
     </div>
   );
 };

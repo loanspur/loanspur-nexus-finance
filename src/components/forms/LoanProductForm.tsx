@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -28,6 +28,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
   const [currentTab, setCurrentTab] = useState("basic");
   const createLoanProductMutation = useCreateLoanProduct();
   const updateLoanProductMutation = useUpdateLoanProduct();
+  const saveAdvancedRef = useRef<null | ((productId: string) => Promise<void>)>(null);
 
   console.log("=== LOAN PRODUCT FORM RENDER ===");
   console.log("Open:", open);
@@ -128,7 +129,15 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
         // Prepayment & Reschedule Settings
         pre_closure_interest_calculation_rule: (editingProduct as any).pre_closure_interest_calculation_rule || "till_pre_close_date",
         advance_payments_adjustment_type: (editingProduct as any).advance_payments_adjustment_type || "reduce_emi",
-        reschedule_strategy: (editingProduct as any).reschedule_strategy || "reduce_emi",
+        reschedule_strategy_method: (editingProduct as any).reschedule_strategy_method || "reduce_emi",
+        
+        // Enhanced calculation settings
+        days_in_year_type: (editingProduct as any).days_in_year_type || '365',
+        days_in_month_type: (editingProduct as any).days_in_month_type || 'actual',
+        amortization_method: (editingProduct as any).amortization_method || 'equal_installments',
+        interest_recalculation_enabled: (editingProduct as any).interest_recalculation_enabled || false,
+        compounding_enabled: (editingProduct as any).compounding_enabled || false,
+        repayment_strategy: (editingProduct as any).repayment_strategy || 'penalties_fees_interest_principal',
         
         // Fees & Charges
         processing_fee_amount: (editingProduct as any).processing_fee_amount?.toString() || "0",
@@ -173,13 +182,12 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
     console.log("Form submission started", { editingProduct: !!editingProduct, data });
     setIsSubmitting(true);
     
-    const productData = {
+    const productData: Omit<LoanProduct, 'id' | 'created_at' | 'updated_at'> = {
       tenant_id: tenantId,
       name: data.name,
       short_name: data.short_name,
       description: data.description || null,
       currency_code: data.currency_code,
-      repayment_frequency: data.repayment_frequency,
       
       // Principal amounts
       min_principal: parseFloat(data.min_principal),
@@ -196,71 +204,149 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
       max_nominal_interest_rate: parseFloat(data.max_nominal_interest_rate),
       default_nominal_interest_rate: data.default_nominal_interest_rate ? parseFloat(data.default_nominal_interest_rate) : null,
       
-      // Interest calculation settings
-      interest_calculation_method: data.interest_calculation_method,
-      interest_calculation_period: data.interest_calculation_period,
-      compounding_frequency: data.compounding_frequency,
-      allow_partial_period_interest: data.allow_partial_period_interest,
-      
-      // Grace period and tolerance
-      grace_period_type: data.grace_period_type,
-      grace_period_duration: parseInt(data.grace_period_duration),
-      arrears_tolerance_amount: parseFloat(data.arrears_tolerance_amount),
-      arrears_tolerance_days: parseInt(data.arrears_tolerance_days),
-      moratorium_period: parseInt(data.moratorium_period),
-      
-      // Prepayment and reschedule settings
-      pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
-      advance_payments_adjustment_type: data.advance_payments_adjustment_type,
-      reschedule_strategy: data.reschedule_strategy,
-      
-      // Fees and charges
-      processing_fee_amount: parseFloat(data.processing_fee_amount),
-      processing_fee_percentage: parseFloat(data.processing_fee_percentage),
-      late_payment_penalty_amount: parseFloat(data.late_payment_penalty_amount),
-      late_payment_penalty_percentage: parseFloat(data.late_payment_penalty_percentage),
-      early_repayment_penalty_amount: parseFloat(data.early_repayment_penalty_amount),
-      early_repayment_penalty_percentage: parseFloat(data.early_repayment_penalty_percentage),
-      
-      // Fee mappings
-      linked_fee_ids: data.linked_fee_ids,
-      accounting_type: data.accounting_type,
-      
-      // Accounting journal mappings
-      loan_portfolio_account_id: data.loan_portfolio_account_id || null,
-      interest_receivable_account_id: data.interest_receivable_account_id || null,
-      interest_income_account_id: data.interest_income_account_id || null,
-      fee_income_account_id: data.fee_income_account_id || null,
-      penalty_income_account_id: data.penalty_income_account_id || null,
-      provision_account_id: data.provision_account_id || null,
-      writeoff_expense_account_id: data.writeoff_expense_account_id || null,
-      overpayment_liability_account_id: data.overpayment_liability_account_id || null,
-      suspended_income_account_id: data.suspended_income_account_id || null,
-      fund_source_account_id: data.fund_source_account_id || null,
-      
-      // Advanced payment account mappings
-      principal_payment_account_id: data.principal_payment_account_id || null,
-      interest_payment_account_id: data.interest_payment_account_id || null,
-      fee_payment_account_id: data.fee_payment_account_id || null,
-      penalty_payment_account_id: data.penalty_payment_account_id || null,
-      
-      // Fund mapping
-      fund_id: data.fund_id || null,
-      
-      is_active: true,
-      mifos_product_id: null,
+      // Required fields
+      repayment_frequency: data.repayment_frequency,
+      repayment_strategy: data.repayment_strategy,
+      // Preserve current flags if editing, else default to active
+      is_active: editingProduct ? editingProduct.is_active : true,
+      mifos_product_id: editingProduct ? (editingProduct.mifos_product_id ?? null) : null,
     };
+
 
     try {
       if (editingProduct) {
-        console.log("Updating loan product", { id: editingProduct.id });
-        await updateLoanProductMutation.mutateAsync({
-          id: editingProduct.id,
+        console.log("Updating loan product", { id: editingProduct.id, productData });
+        
+        // Build update payload properly to ensure all fields are included
+        const updatePayload: any = {
           ...productData,
+          linked_fee_ids: data.linked_fee_ids || [],
+          
+          // Interest calculation settings (MiFos X compatible)
+          interest_calculation_method: data.interest_calculation_method,
+          interest_calculation_period: data.interest_calculation_period,
+          compounding_frequency: data.compounding_frequency,
+          allow_partial_period_interest: data.allow_partial_period_interest,
+          
+          // Enhanced calculation settings - critical for persistence
+          days_in_year_type: data.days_in_year_type,
+          days_in_month_type: data.days_in_month_type,
+          amortization_method: data.amortization_method,
+          interest_recalculation_enabled: data.interest_recalculation_enabled,
+          compounding_enabled: data.compounding_enabled,
+          
+          // Grace period and tolerance settings
+          grace_period_type: data.grace_period_type,
+          grace_period_duration: data.grace_period_duration ? parseFloat(data.grace_period_duration) : 0,
+          arrears_tolerance_amount: data.arrears_tolerance_amount ? parseFloat(data.arrears_tolerance_amount) : 0,
+          arrears_tolerance_days: data.arrears_tolerance_days ? parseInt(data.arrears_tolerance_days) : 0,
+          moratorium_period: data.moratorium_period ? parseInt(data.moratorium_period) : 0,
+          
+          // Prepayment and reschedule settings
+          pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
+          advance_payments_adjustment_type: data.advance_payments_adjustment_type,
+          reschedule_strategy_method: data.reschedule_strategy_method,
+          
+          // Fee amounts
+          processing_fee_amount: data.processing_fee_amount ? parseFloat(data.processing_fee_amount) : 0,
+          processing_fee_percentage: data.processing_fee_percentage ? parseFloat(data.processing_fee_percentage) : 0,
+          late_payment_penalty_amount: data.late_payment_penalty_amount ? parseFloat(data.late_payment_penalty_amount) : 0,
+          late_payment_penalty_percentage: data.late_payment_penalty_percentage ? parseFloat(data.late_payment_penalty_percentage) : 0,
+          early_repayment_penalty_amount: data.early_repayment_penalty_amount ? parseFloat(data.early_repayment_penalty_amount) : 0,
+          early_repayment_penalty_percentage: data.early_repayment_penalty_percentage ? parseFloat(data.early_repayment_penalty_percentage) : 0,
+          
+          // Explicitly include all accounting fields
+          accounting_type: data.accounting_type,
+          loan_portfolio_account_id: data.loan_portfolio_account_id || null,
+          interest_receivable_account_id: data.interest_receivable_account_id || null,
+          fee_receivable_account_id: data.fee_receivable_account_id || null,
+          penalty_receivable_account_id: data.penalty_receivable_account_id || null,
+          interest_income_account_id: data.interest_income_account_id || null,
+          fee_income_account_id: data.fee_income_account_id || null,
+          penalty_income_account_id: data.penalty_income_account_id || null,
+          provision_account_id: data.provision_account_id || null,
+          writeoff_expense_account_id: data.writeoff_expense_account_id || null,
+          overpayment_liability_account_id: data.overpayment_liability_account_id || null,
+          suspended_income_account_id: data.suspended_income_account_id || null,
+          fund_source_account_id: data.fund_source_account_id || null,
+          principal_payment_account_id: data.principal_payment_account_id || null,
+          interest_payment_account_id: data.interest_payment_account_id || null,
+          fee_payment_account_id: data.fee_payment_account_id || null,
+          penalty_payment_account_id: data.penalty_payment_account_id || null,
+        };
+        
+        const updated = await updateLoanProductMutation.mutateAsync({
+          id: editingProduct.id,
+          ...updatePayload
         });
+        
+        // Save advanced configurations
+        await saveAdvancedRef.current?.(editingProduct.id);
       } else {
-        console.log("Creating new loan product");
-        await createLoanProductMutation.mutateAsync(productData);
+        console.log("Creating new loan product", { productData });
+        
+        // Build create payload properly
+        const createPayload = {
+          ...productData,
+          linked_fee_ids: data.linked_fee_ids || [],
+          
+          // Interest calculation settings (MiFos X compatible)
+          interest_calculation_method: data.interest_calculation_method,
+          interest_calculation_period: data.interest_calculation_period,
+          compounding_frequency: data.compounding_frequency,
+          allow_partial_period_interest: data.allow_partial_period_interest,
+          
+          // Enhanced calculation settings - critical for persistence
+          days_in_year_type: data.days_in_year_type,
+          days_in_month_type: data.days_in_month_type,
+          amortization_method: data.amortization_method,
+          interest_recalculation_enabled: data.interest_recalculation_enabled,
+          compounding_enabled: data.compounding_enabled,
+          
+          // Grace period and tolerance settings
+          grace_period_type: data.grace_period_type,
+          grace_period_duration: data.grace_period_duration ? parseFloat(data.grace_period_duration) : 0,
+          arrears_tolerance_amount: data.arrears_tolerance_amount ? parseFloat(data.arrears_tolerance_amount) : 0,
+          arrears_tolerance_days: data.arrears_tolerance_days ? parseInt(data.arrears_tolerance_days) : 0,
+          moratorium_period: data.moratorium_period ? parseInt(data.moratorium_period) : 0,
+          
+          // Prepayment and reschedule settings
+          pre_closure_interest_calculation_rule: data.pre_closure_interest_calculation_rule,
+          advance_payments_adjustment_type: data.advance_payments_adjustment_type,
+          reschedule_strategy_method: data.reschedule_strategy_method,
+          
+          // Fee amounts
+          processing_fee_amount: data.processing_fee_amount ? parseFloat(data.processing_fee_amount) : 0,
+          processing_fee_percentage: data.processing_fee_percentage ? parseFloat(data.processing_fee_percentage) : 0,
+          late_payment_penalty_amount: data.late_payment_penalty_amount ? parseFloat(data.late_payment_penalty_amount) : 0,
+          late_payment_penalty_percentage: data.late_payment_penalty_percentage ? parseFloat(data.late_payment_penalty_percentage) : 0,
+          early_repayment_penalty_amount: data.early_repayment_penalty_amount ? parseFloat(data.early_repayment_penalty_amount) : 0,
+          early_repayment_penalty_percentage: data.early_repayment_penalty_percentage ? parseFloat(data.early_repayment_penalty_percentage) : 0,
+          
+          // Explicitly include all accounting fields
+          accounting_type: data.accounting_type,
+          loan_portfolio_account_id: data.loan_portfolio_account_id || null,
+          interest_receivable_account_id: data.interest_receivable_account_id || null,
+          fee_receivable_account_id: data.fee_receivable_account_id || null,
+          penalty_receivable_account_id: data.penalty_receivable_account_id || null,
+          interest_income_account_id: data.interest_income_account_id || null,
+          fee_income_account_id: data.fee_income_account_id || null,
+          penalty_income_account_id: data.penalty_income_account_id || null,
+          provision_account_id: data.provision_account_id || null,
+          writeoff_expense_account_id: data.writeoff_expense_account_id || null,
+          overpayment_liability_account_id: data.overpayment_liability_account_id || null,
+          suspended_income_account_id: data.suspended_income_account_id || null,
+          fund_source_account_id: data.fund_source_account_id || null,
+          principal_payment_account_id: data.principal_payment_account_id || null,
+          interest_payment_account_id: data.interest_payment_account_id || null,
+          fee_payment_account_id: data.fee_payment_account_id || null,
+          penalty_payment_account_id: data.penalty_payment_account_id || null,
+        };
+        
+        const created: any = await createLoanProductMutation.mutateAsync(createPayload);
+        if (created?.id) {
+          await saveAdvancedRef.current?.(created.id);
+        }
       }
       
       form.reset();
@@ -443,7 +529,7 @@ export const LoanProductForm = ({ open, onOpenChange, tenantId, editingProduct }
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-4">
-                <LoanProductAdvancedTab form={form} tenantId={tenantId} />
+                <LoanProductAdvancedTab form={form} tenantId={tenantId} productId={editingProduct?.id} productType="loan" onRegisterSave={(fn) => { saveAdvancedRef.current = fn; }} />
               </TabsContent>
             </Tabs>
 

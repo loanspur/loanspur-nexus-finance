@@ -1,0 +1,39 @@
+name: microfinance-platform-static
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: your-username/loanspur-nexus-finance
+    branch: dev_branch
+    deploy_on_push: true
+  # CRITICAL: Use static site instead of container
+  static_site:
+    build_command: npm run build
+    output_dir: dist
+    index_document: index.html
+    error_document: index.html
+  routes:
+  # CRITICAL: Catch-all route for SPA
+  - path: /
+  - path: /{path:.*}
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: VITE_SUPABASE_URL
+    value: https://woqesvsopdgoikpatzxp.supabase.co
+  - key: VITE_SUPABASE_ANON_KEY
+    value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI
+
+domains:
+- domain: loanspurcbs.com
+  type: PRIMARY
+  wildcard: true
+- domain: loanspur.online
+  type: SECONDARY
+  wildcard: true
+
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+
+databases: []

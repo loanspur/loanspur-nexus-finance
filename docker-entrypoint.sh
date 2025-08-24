@@ -1,31 +1,19 @@
 #!/bin/sh
-set -e
+# Startup script to handle nginx permissions
 
-# Replace placeholder domain in nginx config with actual domain from environment
-if [ -n "$DOMAIN_NAME" ]; then
-    sed -i "s/yourdomain\.com/$DOMAIN_NAME/g" /etc/nginx/nginx.conf
-fi
+# Create necessary directories if they don't exist
+mkdir -p /var/cache/nginx /var/log/nginx /var/run
 
-# Create SSL certificate directory if it doesn't exist
-mkdir -p /etc/ssl/certs /etc/ssl/private
+# Set proper permissions
+chown -R nextjs:nodejs /var/cache/nginx
+chown -R nextjs:nodejs /var/log/nginx
+chown -R nextjs:nodejs /var/run
+chown -R nextjs:nodejs /usr/share/nginx/html
 
-# If SSL certificates are provided via environment or volume, copy them
-if [ -f "/ssl/wildcard.crt" ] && [ -f "/ssl/wildcard.key" ]; then
-    cp /ssl/wildcard.crt /etc/ssl/certs/
-    cp /ssl/wildcard.key /etc/ssl/private/
-    chmod 644 /etc/ssl/certs/wildcard.crt
-    chmod 600 /etc/ssl/private/wildcard.key
-else
-    # Generate self-signed certificate for development
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /etc/ssl/private/wildcard.key \
-        -out /etc/ssl/certs/wildcard.crt \
-        -subj "/CN=*.${DOMAIN_NAME:-localhost}" \
-        -addext "subjectAltName=DNS:*.${DOMAIN_NAME:-localhost},DNS:${DOMAIN_NAME:-localhost}"
-fi
+# Set proper permissions
+chmod -R 755 /var/cache/nginx
+chmod -R 755 /var/log/nginx
+chmod -R 755 /var/run
 
-# Test nginx configuration
-nginx -t
-
-# Execute the main command
-exec "$@"
+# Start nginx
+exec nginx -g "daemon off;"

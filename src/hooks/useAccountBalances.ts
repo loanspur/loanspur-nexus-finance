@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-
+import { useEffect } from 'react';
 export interface AccountBalance {
   id: string;
   tenant_id: string;
@@ -23,6 +23,25 @@ export interface AccountBalance {
 
 export const useAccountBalances = (balanceDate?: string) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'account_balances', filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['account-balances', profile.tenant_id, balanceDate] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, balanceDate, queryClient]);
 
   return useQuery({
     queryKey: ['account-balances', profile?.tenant_id, balanceDate],
@@ -58,6 +77,32 @@ export const useAccountBalances = (balanceDate?: string) => {
 
 export const useCurrentAccountBalances = () => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chart_of_accounts', filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['current-account-balances', profile.tenant_id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'account_balances', filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['current-account-balances', profile.tenant_id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
   
   return useQuery({
     queryKey: ['current-account-balances', profile?.tenant_id],

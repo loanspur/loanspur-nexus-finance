@@ -1,0 +1,39 @@
+# Multi-stage build for React app (nginx as root)
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev dependencies needed for build)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the app (this requires vite which is in devDependencies)
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy built app to nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx-digitalocean.conf /etc/nginx/nginx.conf
+
+# Create nginx user and group (for file ownership)
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Set ownership of app files to non-root user
+RUN chown -R nextjs:nodejs /usr/share/nginx/html
+
+# Expose port
+EXPOSE 8080
+
+# Start nginx as root (nginx needs root for system operations)
+CMD ["nginx", "-g", "daemon off;"]

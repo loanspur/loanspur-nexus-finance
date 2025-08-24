@@ -7,10 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Receipt, ArrowLeft, Banknote, PiggyBank, Undo2 } from "lucide-react";
-import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
 import { useToast } from "@/hooks/use-toast";
 import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+
 
 interface LoanDisbursementDialogProps {
   open: boolean;
@@ -27,13 +30,17 @@ export const LoanDisbursementDialog = ({
 }: LoanDisbursementDialogProps) => {
   const { toast } = useToast();
   const { formatAmount } = useCurrency();
-  const processDisbursement = useProcessLoanDisbursement();
+  const transactionManager = useLoanTransactionManager();
   const { data: loanProducts = [] } = useLoanProducts();
 
-  // Create a simple undo approval function for now
+  // Undo disbursement -> back to approval stage
   const handleUndoApproval = async () => {
-    // This would call the actual undo approval API
-    throw new Error("Undo approval functionality needs to be implemented");
+    await transactionManager.mutateAsync({
+      type: 'reversal',
+      loan_id: loanData.id,
+      amount: 0,
+      transaction_date: new Date().toISOString().split('T')[0],
+    });
   };
 
   // Early return if no loan data
@@ -46,6 +53,7 @@ export const LoanDisbursementDialog = ({
   const [selectedPaymentMapping, setSelectedPaymentMapping] = useState('');
   const [disbursementMethod, setDisbursementMethod] = useState<'direct' | 'savings' | 'undo'>('direct');
   const [selectedSavingsAccount, setSelectedSavingsAccount] = useState('');
+  const [disbursementDate, setDisbursementDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Generate unique receipt number on dialog open
   useEffect(() => {
@@ -56,6 +64,15 @@ export const LoanDisbursementDialog = ({
     }
   }, [open, receiptNumber]);
 
+  // When dialog opens, default date to application/creation date if present
+  useEffect(() => {
+    if (open) {
+      const today = new Date().toISOString().split('T')[0];
+      const base = getLoanCreationDate();
+      setDisbursementDate(base && new Date(base) <= new Date(today) ? base : today);
+    }
+  }, [open, loanData]);
+
   // Reset form when dialog closes
   useEffect(() => {
     if (!open) {
@@ -63,58 +80,116 @@ export const LoanDisbursementDialog = ({
       setSelectedPaymentMapping('');
       setDisbursementMethod('direct');
       setSelectedSavingsAccount('');
+      setDisbursementDate(new Date().toISOString().split('T')[0]);
     }
   }, [open]);
 
-  // Get loan product payment mappings
-  const getLoanProduct = () => {
-    return loanProducts.find(p => p.id === loanData?.loan_product_id);
-  };
+  // Load payment mappings from product_fund_source_mappings with mapped accounting ledgers
+  const [paymentOptions, setPaymentOptions] = useState<Array<{ id: string; code: string; name: string; account_id: string; account_name?: string }>>([]);
+  useEffect(() => {
+    const load = async () => {
+      if (!loanData?.loan_product_id) return;
+      
+      // Get mappings with accounting ledger information
+      const { data: mappings } = await supabase
+        .from('product_fund_source_mappings')
+        .select(`
+          channel_id, 
+          channel_name, 
+          account_id,
+          chart_of_accounts!inner(account_name, account_code)
+        `)
+        .eq('product_id', loanData.loan_product_id)
+        .eq('product_type', 'loan');
+        
+      if (!mappings || mappings.length === 0) { 
+        setPaymentOptions([]); 
+        return; 
+      }
+      
+      // Get payment types for the mapped channels
+      const channelIds = mappings.map(m => m.channel_id);
+      const { data: pts } = await supabase
+        .from('payment_types')
+        .select('*')
+        .in('id', channelIds);
+        
+      // Combine payment types with accounting ledger information
+      const options = (pts || [])
+        .filter((pt) => typeof pt.code === 'string' && pt.code.trim().length > 0)
+        .map((pt) => {
+          const mapping = mappings.find(m => m.channel_id === pt.id);
+          return {
+            id: pt.id,
+            code: pt.code.toLowerCase(),
+            name: pt.name,
+            account_id: mapping?.account_id || '',
+            account_name: mapping?.chart_of_accounts?.account_name
+          };
+        })
+        .filter(opt => opt.account_id); // Only include options with valid accounting mapping
+        
+      setPaymentOptions(options);
+    };
+    load();
+  }, [loanData?.loan_product_id]);
 
-  const getPaymentMappings = () => {
-    const product = getLoanProduct();
-    // For now return default payment methods until we implement the mappings properly
-    return [
-      { paymentType: 'Bank Transfer', payment_type: 'Bank Transfer' },
-      { paymentType: 'Cash', payment_type: 'Cash' },
-      { paymentType: 'M-Pesa', payment_type: 'M-Pesa' },
-      { paymentType: 'Check', payment_type: 'Check' }
-    ];
-  };
-
-  // Get client's savings accounts for transfer option
-  const getClientSavingsAccounts = () => {
-    // This would need to be implemented to fetch client's savings accounts
-    // For now returning empty array
-    return [];
-  };
+// Fetch client's savings accounts
+const { data: savingsAccounts = [], isLoading: isLoadingSavings } = useQuery({
+  queryKey: ['client-savings-accounts', loanData.client_id],
+  queryFn: async () => {
+    if (!loanData?.client_id) return [];
+    const { data, error } = await supabase
+      .from('savings_accounts')
+      .select('id, account_number, account_balance, savings_products(name)')
+      .eq('client_id', loanData.client_id)
+      .eq('is_active', true);
+    if (error) throw error;
+    return data || [];
+  },
+  enabled: !!loanData?.client_id && open,
+});
 
   const getDisbursementAmount = () => {
     return loanData.final_approved_amount || loanData.requested_amount || loanData.principal_amount || 0;
   };
 
-  const isFormValid = () => {
-    if (disbursementMethod === 'undo') return true;
-    if (disbursementMethod === 'savings') {
-      return receiptNumber && selectedPaymentMapping && selectedSavingsAccount;
-    }
-    return receiptNumber && selectedPaymentMapping;
+  const getLoanCreationDate = () => {
+    const d = loanData?.created_date || loanData?.submitted_on_date || loanData?.created_at;
+    return d ? String(d).slice(0, 10) : undefined;
+  };
+  const getLoanApprovalDate = () => {
+    const d = loanData?.approved_on_date || loanData?.approval_date || loanData?.approved_at;
+    return d ? String(d).slice(0, 10) : undefined;
+  };
+  const getMinDisbursementDate = () => {
+    // Allow backdating to the loan application/creation date
+    const c = getLoanCreationDate();
+    return c || undefined;
   };
 
+const isFormValid = () => {
+  if (disbursementMethod === 'undo') return true;
+  if (disbursementMethod === 'savings') {
+    const targetSavingsId = loanData?.linked_savings_account_id || selectedSavingsAccount;
+    return Boolean(targetSavingsId && disbursementDate);
+  }
+  return Boolean(receiptNumber && selectedPaymentMapping && disbursementDate);
+};
   const handleSubmit = async () => {
     if (disbursementMethod === 'undo') {
       try {
         await handleUndoApproval();
         toast({
           title: "Success",
-          description: "Loan approval has been undone successfully",
+          description: "Disbursement has been undone and application returned to approval",
         });
         onOpenChange(false);
         onSuccess?.();
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error.message || "Failed to undo approval",
+          description: error.message || "Failed to undo disbursement",
           variant: "destructive"
         });
       }
@@ -124,50 +199,78 @@ export const LoanDisbursementDialog = ({
     if (!isFormValid()) {
       toast({
         title: "Validation Error",
-        description: disbursementMethod === 'savings' 
-          ? "Please fill in all required fields and select a savings account"
+        description: disbursementMethod === 'savings'
+          ? "Loan must have a linked savings account to disburse to savings"
           : "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
-    // Check if disbursing to savings but no savings account selected
-    if (disbursementMethod === 'savings' && !selectedSavingsAccount) {
+    // If disbursing to savings, ensure a savings account is available (linked or selected)
+    const targetSavingsIdPre = loanData?.linked_savings_account_id || selectedSavingsAccount;
+    if (disbursementMethod === 'savings' && !targetSavingsIdPre) {
       toast({
-        title: "Validation Error",
-        description: "Please select a savings account for disbursement",
+        title: "Missing savings account",
+        description: "Select a savings account or link one to disburse to savings.",
         variant: "destructive"
       });
       return;
     }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const disbursementDateIso = new Date(disbursementDate + 'T00:00:00').toISOString();
 
-    const disbursementData: any = {
-      loan_application_id: loanData.id,
-      disbursed_amount: getDisbursementAmount(),
-      disbursement_date: new Date().toISOString(),
-      disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : 'bank_transfer',
-      reference_number: receiptNumber,
-      ...(disbursementMethod === 'savings' && { savings_account_id: selectedSavingsAccount })
-    };
+    const creationMin = getLoanCreationDate();
+    if (creationMin && new Date(disbursementDate) < new Date(creationMin)) {
+      toast({
+        title: "Invalid date",
+        description: `Disbursement date must be on or after application date (${creationMin})`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (new Date(disbursementDate) > new Date(todayStr)) {
+      toast({
+        title: "Invalid date",
+        description: "Disbursement date cannot be in the future",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    processDisbursement.mutate(disbursementData, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: `Loan ${disbursementMethod === 'savings' ? 'disbursed to savings account' : 'disbursement processed'} successfully`,
-        });
-        onOpenChange(false);
-        onSuccess?.();
-      },
-      onError: (error) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to process disbursement",
-          variant: "destructive"
-        });
-      }
-    });
+const targetSavingsId = loanData?.linked_savings_account_id || selectedSavingsAccount;
+const disbursementData: any = {
+  loan_application_id: loanData.id,
+  disbursed_amount: getDisbursementAmount(),
+  disbursement_date: disbursementDateIso,
+  disbursement_method: disbursementMethod === 'savings' ? 'transfer_to_savings' : (selectedPaymentMapping || 'bank_transfer'),
+  ...(disbursementMethod === 'direct' ? { reference_number: receiptNumber } : {}),
+  ...(disbursementMethod === 'savings' && targetSavingsId ? { savings_account_id: targetSavingsId } : {})
+};
+
+    try {
+      await transactionManager.mutateAsync({
+        type: 'disbursement',
+        loan_id: loanData.id,
+        amount: getDisbursementAmount(),
+        transaction_date: disbursementDate,
+        disbursement_method: disbursementMethod === 'savings' ? 'cash' : 'bank_transfer',
+        reference_number: disbursementMethod === 'direct' ? receiptNumber : undefined,
+      });
+
+      toast({
+        title: "Success",
+        description: `${disbursementMethod === 'savings' ? 'disbursed to savings account' : 'disbursement processed'} successfully`,
+      });
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process disbursement",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -184,39 +287,6 @@ export const LoanDisbursementDialog = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Loan Summary Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Disbursement Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-muted-foreground">Client</Label>
-                  <div className="font-medium">
-                    {loanData.clients?.first_name || loanData.client?.first_name || 'N/A'} {loanData.clients?.last_name || loanData.client?.last_name || ''}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Loan Product</Label>
-                  <div className="font-medium">{loanData.loan_products?.name}</div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Disbursement Amount</Label>
-                  <div className="font-bold text-green-600 text-lg">
-                    {formatAmount(getDisbursementAmount())}
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                    Ready for Disbursement
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Disbursement Options */}
           <Card>
             <CardHeader>
@@ -246,7 +316,7 @@ export const LoanDisbursementDialog = ({
                   className="flex flex-col items-center gap-2 h-auto py-4"
                 >
                   <Undo2 className="h-5 w-5" />
-                  <span className="text-sm">Undo Approval</span>
+                  <span className="text-sm">Undo Disbursement</span>
                 </Button>
               </div>
             </CardContent>
@@ -259,59 +329,106 @@ export const LoanDisbursementDialog = ({
                 <CardTitle className="text-base">Disbursement Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Receipt Number */}
+                {/* Disbursement Date */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Receipt className="h-4 w-4" />
-                    Receipt Number (Unique)
-                  </Label>
+                  <Label>Disbursement Date</Label>
                   <Input
-                    value={receiptNumber}
-                    onChange={(e) => setReceiptNumber(e.target.value)}
-                    placeholder="Unique receipt number"
-                    className="font-mono"
+                    type="date"
+                    value={disbursementDate}
+                    min={getMinDisbursementDate()}
+                    max={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setDisbursementDate(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">You can backdate to the application date; future dates are not allowed.</p>
                 </div>
 
-                {/* Payment Method from Product Mappings */}
-                <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <Select value={selectedPaymentMapping} onValueChange={setSelectedPaymentMapping}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getPaymentMappings().map((mapping: any, index: number) => (
-                        <SelectItem key={index} value={mapping.paymentType || mapping.payment_type}>
-                          {mapping.paymentType || mapping.payment_type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Savings Account Selection - Only show if disbursing to savings */}
-                {disbursementMethod === 'savings' && (
+                {/* Receipt Number - show only for direct disbursement */}
+                {disbursementMethod === 'direct' && (
                   <div className="space-y-2">
-                    <Label>Savings Account</Label>
-                    <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount}>
+                    <Label className="flex items-center gap-2">
+                      <Receipt className="h-4 w-4" />
+                      Receipt Number (Unique)
+                    </Label>
+                    <Input
+                      value={receiptNumber}
+                      onChange={(e) => setReceiptNumber(e.target.value)}
+                      placeholder="Unique receipt number"
+                      className="font-mono"
+                    />
+                  </div>
+                )}
+
+                {/* Payment Method from Product Mappings (Direct disbursement only) */}
+                {disbursementMethod === 'direct' && (
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <Select 
+                      value={selectedPaymentMapping} 
+                      onValueChange={setSelectedPaymentMapping} 
+                      disabled={!loanData?.loan_product_id}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select savings account" />
+                        <SelectValue placeholder={paymentOptions.length === 0 && loanData?.loan_product_id ? "Loading payment methods..." : "Select payment method"} />
                       </SelectTrigger>
-                      <SelectContent>
-                        {getClientSavingsAccounts().length === 0 ? (
-                          <SelectItem value="" disabled>
-                            No savings accounts found. Client must have a savings account.
-                          </SelectItem>
+                      <SelectContent className="z-50 bg-background">
+                        {!loanData?.loan_product_id ? (
+                          <SelectItem value="no-product" disabled>No loan product selected</SelectItem>
+                        ) : paymentOptions.length === 0 ? (
+                          <SelectItem value="loading" disabled>Loading payment methods...</SelectItem>
                         ) : (
-                          getClientSavingsAccounts().map((account: any) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.account_number} - {account.account_name}
+                          paymentOptions.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.code}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{opt.name}</span>
+                                {opt.account_name && (
+                                  <span className="text-xs text-muted-foreground">
+                                    → {opt.account_name}
+                                  </span>
+                                )}
+                              </div>
                             </SelectItem>
                           ))
                         )}
                       </SelectContent>
                     </Select>
+                  </div>
+                )}
+
+                {/* Savings Account Selection (for savings disbursement) */}
+                {disbursementMethod === 'savings' && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <PiggyBank className="h-4 w-4" />
+                      Target Savings Account
+                    </Label>
+                    {loanData?.linked_savings_account_id ? (
+                      <div className="p-3 rounded-md bg-muted">
+                        <p className="text-sm font-medium">Linked Savings Account</p>
+                        <p className="text-xs text-muted-foreground">
+                          Funds will be transferred to the linked savings account
+                        </p>
+                      </div>
+                    ) : (
+                      <Select value={selectedSavingsAccount} onValueChange={setSelectedSavingsAccount}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select savings account" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-background">
+                          {isLoadingSavings ? (
+                            <SelectItem value="loading" disabled>Loading accounts...</SelectItem>
+                          ) : savingsAccounts.length === 0 ? (
+                            <SelectItem value="no-accounts" disabled>No active savings accounts found</SelectItem>
+                          ) : (
+                            savingsAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                {account.account_number} - {account.savings_products?.name} 
+                                ({formatAmount(account.account_balance || 0)})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -330,15 +447,15 @@ export const LoanDisbursementDialog = ({
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={!isFormValid() || processDisbursement.isPending}
+              disabled={!isFormValid() || transactionManager.isPending}
               className={`flex-1 ${disbursementMethod === 'undo' ? 'bg-destructive hover:bg-destructive/90' : 'bg-gradient-primary'}`}
             >
-              {processDisbursement.isPending ? (
+              {transactionManager.isPending ? (
                 "Processing..."
               ) : disbursementMethod === 'undo' ? (
                 <>
                   <Undo2 className="h-4 w-4 mr-2" />
-                  Undo Approval
+                  Undo Disbursement
                 </>
               ) : (
                 <>

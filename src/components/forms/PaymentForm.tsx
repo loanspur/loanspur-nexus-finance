@@ -15,7 +15,11 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/useLoanAccounting";
+import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+import { supabase } from "@/integrations/supabase/client";
+import { useFeeStructures } from "@/hooks/useFeeManagement";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { StatusHelpers } from "@/lib/status-management";
 
 const paymentSchema = z.object({
   amount: z.string().min(1, "Amount is required").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
@@ -30,6 +34,7 @@ const paymentSchema = z.object({
   externalTransactionId: z.string().optional(),
   mpesaReceiptNumber: z.string().optional(),
   transactionDate: z.date().optional(),
+  loanFeeId: z.string().optional(),
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -44,8 +49,13 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   const { toast } = useToast();
   const { profile } = useAuth();
   
-  // Accounting hooks
-  const loanRepaymentAccounting = useLoanRepaymentAccounting();
+  // Unified transaction manager
+  const transactionManager = useLoanTransactionManager();
+
+  // Fee structures for loan fee mapping
+  const { data: feeStructures = [] } = useFeeStructures();
+  const loanFeeStructures = feeStructures.filter((fee) => fee.fee_type === 'loan' && fee.is_active);
+
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -55,35 +65,42 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
       transactionType: "loan_repayment",
       description: "",
       transactionDate: new Date(),
+      loanFeeId: "",
     },
   });
 
   const onSubmit = async (data: PaymentFormData) => {
+    if (isSubmitting) return; // Prevent double submission
+    
     setIsSubmitting(true);
     try {
       const amount = Number(data.amount);
       const transactionDate = data.transactionDate ? format(data.transactionDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
 
-      // Create accounting entries based on transaction type
-      switch (data.transactionType) {
-        case 'loan_repayment':
-          if (data.loanId) {
-            await loanRepaymentAccounting.mutateAsync({
-              loan_id: data.loanId,
-              payment_amount: amount,
-              principal_amount: amount, // For now, treating full amount as principal
-              interest_amount: 0,
-              payment_date: transactionDate,
-              payment_reference: data.externalTransactionId,
-            });
-          }
-          break;
-          
-        case 'savings_deposit':
-        case 'savings_withdrawal':
-          // Savings accounting integration will be handled by SavingsTransactionForm
-          break;
+      // Use unified transaction manager for all loan-related transactions
+      if (data.transactionType === 'loan_repayment' && data.loanId) {
+        await transactionManager.mutateAsync({
+          type: 'repayment',
+          loan_id: data.loanId,
+          amount: amount,
+          principal_amount: amount, // For now, treating full amount as principal
+          interest_amount: 0,
+          transaction_date: transactionDate,
+          reference_number: data.externalTransactionId,
+          payment_method: data.paymentType,
+        });
+      } else if (data.transactionType === 'fee_payment' && data.loanId) {
+        await transactionManager.mutateAsync({
+          type: 'charge',
+          loan_id: data.loanId,
+          charge_type: 'fee',
+          amount: amount,
+          transaction_date: transactionDate,
+          description: data.description || 'Loan fee charge',
+          fee_structure_id: data.loanFeeId,
+        });
       }
+      // Note: savings transactions still handled separately
       
       toast({
         title: "Payment Processed",
@@ -92,14 +109,18 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
       
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Payment processing error:', error);
       toast({
         title: "Error",
-        description: "Failed to process payment. Please try again.",
+        description: error.message || "Failed to process payment. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      // Only update state if component is still mounted
+      if (typeof setIsSubmitting === 'function') {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -236,6 +257,37 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
                 )}
               />
             </div>
+
+            {form.watch("transactionType") === "fee_payment" && (
+              <FormField
+                control={form.control}
+                name="loanFeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Loan Fee</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select loan fee" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {loanFeeStructures.length === 0 ? (
+                          <SelectItem value="no-fees" disabled>No loan fees configured</SelectItem>
+                        ) : (
+                          loanFeeStructures.map((fee) => (
+                            <SelectItem key={fee.id} value={fee.id}>
+                              {fee.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {form.watch("paymentType") === "mpesa" && (
               <FormField

@@ -6,7 +6,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
   Plus, 
-  Eye, 
   CreditCard, 
   DollarSign, 
   CheckCircle,
@@ -14,6 +13,8 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ClientLoansTabProps {
@@ -38,28 +39,63 @@ export const ClientLoansTab = ({
   onLoanWorkflow
 }: ClientLoansTabProps) => {
   const { formatAmount } = useCurrency();
+  const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
+    try {
+      if (!value) return 'N/A';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'N/A';
+      return format(d, fmt);
+    } catch {
+      return 'N/A';
+    }
+  };
   const getVisibleLoansAndApplications = () => {
     const rejectedClosedStatuses = ['rejected', 'closed'];
     
     if (showClosedLoans) {
-      // Show only rejected/closed loans and applications
-      const filteredLoans = loans.filter(loan => rejectedClosedStatuses.includes(loan.status?.toLowerCase()));
+      // Show only rejected/closed loans and applications (including derived closed status)
+      const filteredLoans = loans.filter(loan => {
+        const unified = getUnifiedLoanStatus(loan);
+        return StatusHelpers.isClosed(unified.status);
+      });
       const filteredApplications = loanApplications.filter(app => rejectedClosedStatuses.includes(app.status?.toLowerCase()));
       return { loans: filteredLoans, applications: filteredApplications };
     } else {
-      // Show all except rejected/closed loans and applications
-      const filteredLoans = loans.filter(loan => !rejectedClosedStatuses.includes(loan.status?.toLowerCase()));
+      // Show all except rejected/closed loans and applications (including derived closed status)
+      const filteredLoans = loans.filter(loan => {
+        const unified = getUnifiedLoanStatus(loan);
+        return !StatusHelpers.isClosed(unified.status);
+      });
       const filteredApplications = loanApplications.filter(app => !rejectedClosedStatuses.includes(app.status?.toLowerCase()));
       return { loans: filteredLoans, applications: filteredApplications };
     }
   };
 
-  const { loans: visibleLoans, applications: visibleApplications } = getVisibleLoansAndApplications();
+  const { loans: visibleLoans, applications: visibleApplicationsRaw } = getVisibleLoansAndApplications();
+  
+  // If a loan is already active/disbursed for an application, hide that application row
+  const activeLoanAppIds = new Set(
+    visibleLoans
+      .filter((l) => ['active', 'disbursed'].includes((l.status || '').toLowerCase()))
+      .map((l) => l.application_id)
+      .filter(Boolean)
+  );
+  const visibleApplications = visibleApplicationsRaw.filter((a) => !activeLoanAppIds.has(a.id));
+  
+  // Deduplicate: if an approved/pending_disbursement loan exists for an application, show only the application row
+  const applicationIds = new Set(visibleApplications.map((a) => a.id));
+  const dedupedLoans = visibleLoans.filter((loan) => {
+    const status = (loan.status || '').toLowerCase();
+    if (['approved', 'pending_disbursement'].includes(status) && loan.application_id && applicationIds.has(loan.application_id)) {
+      return false; // hide duplicate loan record to keep one source of truth
+    }
+    return true;
+  });
   
   // Combine loans and applications for single row display
   const allVisibleItems = [
     ...visibleApplications.map(app => ({ ...app, type: 'application' })),
-    ...visibleLoans.map(loan => ({ ...loan, type: 'loan' }))
+    ...dedupedLoans.map(loan => ({ ...loan, type: 'loan' }))
   ];
 
   const getStatusBadge = (status: string, type: 'loan' | 'application') => {
@@ -82,6 +118,9 @@ export const ClientLoansTab = ({
     } else {
       switch (statusLower) {
         case 'active':
+          return <Badge variant="outline" className="border-green-500 text-green-600">Active</Badge>;
+        case 'disbursed':
+          // Treat disbursed as active for viewing and actions
           return <Badge variant="outline" className="border-green-500 text-green-600">Active</Badge>;
         case 'overdue':
           return <Badge variant="destructive" className="bg-red-600 hover:bg-red-700"><AlertTriangle className="w-3 h-3 mr-1" />Overdue</Badge>;
@@ -120,25 +159,29 @@ export const ClientLoansTab = ({
             size="sm"
             onClick={() => onProcessDisbursement(item)}
             className="bg-gradient-primary"
+            disabled={activeLoanAppIds.has(item.id)}
           >
             <DollarSign className="h-4 w-4 mr-1" />
             Disburse
           </Button>
         );
       }
+    } else {
+      // Loan actions
+      actions.push(
+        <Button 
+          key="view"
+          size="sm" 
+          variant="outline"
+          onClick={() => onViewLoanDetails(item)}
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
+          <CheckCircle className="h-4 w-4 mr-1" />
+          View Details
+        </Button>
+      );
     }
 
-    // Show view button for both loans and applications
-    actions.push(
-      <Button 
-        key="view"
-        size="sm" 
-        variant="outline"
-        onClick={() => onViewLoanDetails(item)}
-      >
-        <Eye className="h-4 w-4" />
-      </Button>
-    );
 
     return actions;
   };
@@ -200,7 +243,27 @@ export const ClientLoansTab = ({
                             }
                           </p>
                         </div>
-                        {getStatusBadge(item.status, item.type)}
+                         {(() => {
+                           const unified = getUnifiedLoanStatus(item);
+                           return (
+                             <div className="flex items-center gap-2">
+                               <LoanStatusBadge 
+                                 status={unified.status} 
+                                 size="sm" 
+                               />
+                               {unified.derived.daysInArrears && (
+                                 <span className="text-xs text-red-600 font-medium">
+                                   {unified.derived.daysInArrears} days overdue
+                                 </span>
+                               )}
+                               {unified.derived.overpaidAmount && (
+                                 <div className="text-xs text-purple-600 font-medium">
+                                   Excess: {formatAmount(unified.derived.overpaidAmount)}
+                                 </div>
+                               )}
+                             </div>
+                           );
+                         })()}
                       </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -227,20 +290,21 @@ export const ClientLoansTab = ({
                             {item.type === 'application' ? 'Applied' : 'Created'}
                           </p>
                           <p className="font-medium">
-                            {format(new Date(
+                            {safeFormatDate(
                               item.type === 'application' 
-                                ? item.submitted_at || item.created_at
-                                : item.created_at
-                            ), 'MMM dd, yyyy')}
+                                ? (item.submitted_at || item.created_at)
+                                : item.created_at,
+                              'MMM dd, yyyy'
+                            )}
                           </p>
                         </div>
                         {item.loan_products && (
-                          <div>
-                            <p className="text-muted-foreground">Interest Rate</p>
-                            <p className="font-medium">
-                              {item.loan_products.default_nominal_interest_rate}%
-                            </p>
-                          </div>
+                            <div>
+                                <p className="text-muted-foreground">Interest Rate</p>
+                                <p className="font-medium">
+                                  {(item.interest_rate ? item.interest_rate * 100 : item.loan_products.default_nominal_interest_rate).toFixed(2)}% p.a.
+                                </p>
+                            </div>
                         )}
                         {/* Show processing info for applications */}
                         {item.type === 'application' && item.reviewed_by_profile && (

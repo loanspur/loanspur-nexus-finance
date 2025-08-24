@@ -33,6 +33,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { LoanAccountStatusView } from "./LoanAccountStatusView";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 
 interface Client {
   id: string;
@@ -188,8 +189,9 @@ export const CleanClientDetailsDialog = ({ client, open, onOpenChange }: CleanCl
     }))
   ].filter(account => {
     if (hideClosedAccounts) {
-      const closedStatuses = ['rejected', 'closed', 'fully_paid', 'written_off', 'withdrawn'];
-      return !closedStatuses.includes(account.status?.toLowerCase());
+      // Use unified status system to determine if account is closed
+      const unified = getUnifiedLoanStatus(account);
+      return !StatusHelpers.isClosed(unified.status);
     }
     return true;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

@@ -1,6 +1,7 @@
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { TenantProfileManagement } from "@/components/tenant/TenantProfileManagement";
 import { SystemCodesManagement } from "@/components/tenant/SystemCodesManagement";
+import { LoanMigrationPanel } from "@/components/loan/LoanMigrationPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -65,9 +66,7 @@ const SettingsPage = () => {
       value: "data",
       label: "Data Management",
       icon: Database,
-      description: "Data import, export, and backup settings",
-      disabled: true,
-      badge: "Coming Soon"
+      description: "Loan migration and data synchronization"
     },
     {
       value: "users",
@@ -162,9 +161,19 @@ const SettingsPage = () => {
             <SystemCodesManagement />
           </TabsContent>
 
+          <TabsContent value="data" className="space-y-6 mt-0">
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold">Data Management</h2>
+              <p className="text-sm text-muted-foreground">
+                Synchronize existing loans with the unified transaction management system.
+              </p>
+            </div>
+            <LoanMigrationPanel />
+          </TabsContent>
+
           {/* Placeholder content for coming soon tabs */}
           {settingsTabs
-            .filter(tab => tab.disabled)
+            .filter(tab => tab.disabled && tab.value !== 'data')
             .map((tab) => {
               const IconComponent = tab.icon;
               return (

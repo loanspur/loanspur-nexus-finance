@@ -21,10 +21,30 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { LoanStatusBadge } from "@/components/loan/LoanStatusBadge";
+import { getDerivedLoanStatus } from "@/lib/loan-status";
+import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
+import { LoanDetailsDialog } from "@/components/loan/LoanDetailsDialog";
+import { LoanWorkflowDialog } from "@/components/loan/LoanWorkflowDialog";
 
 const ClientLoansPage = () => {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("created");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [selectedLoan, setSelectedLoan] = useState<any | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
+
+  const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
+    try {
+      if (!value) return 'N/A';
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return 'N/A';
+      return format(d, fmt);
+    } catch {
+      return 'N/A';
+    }
+  };
 
   // Fetch loan applications for this client
   const { data: loanApplications = [], isLoading } = useQuery({
@@ -45,6 +65,8 @@ const ClientLoansPage = () => {
       return data;
     },
     enabled: !!profile?.id,
+    staleTime: 30000, // Cache for 30 seconds to prevent unnecessary refetches
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Fetch actual loans for this client
@@ -67,12 +89,18 @@ const ClientLoansPage = () => {
       return data;
     },
     enabled: !!profile?.id,
+    staleTime: 30000, // Cache for 30 seconds to prevent unnecessary refetches
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Categorize loans by status
   const createdLoans = loans.filter(loan => ['approved', 'active', 'disbursed', 'pending_disbursement'].includes(loan.status));
   const pendingLoans = loanApplications.filter(app => ['pending', 'under_review'].includes(app.status));
-  const closedLoans = loans.filter(loan => ['closed', 'written_off', 'fully_paid', 'rejected', 'withdrawn'].includes(loan.status));
+  // Use unified status system to filter closed loans
+  const closedLoans = loans.filter(loan => {
+    const unified = getUnifiedLoanStatus(loan);
+    return StatusHelpers.isClosed(unified.status);
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -82,11 +110,12 @@ const ClientLoansPage = () => {
         return <Badge variant="outline" className="text-blue-600 border-blue-600"><Eye className="w-3 h-3 mr-1" />Under Review</Badge>;
       case 'approved':
         return <Badge variant="default" className="bg-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
-      case 'active':
-        return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
-      case 'disbursed':
-        return <Badge variant="default" className="bg-blue-600"><DollarSign className="w-3 h-3 mr-1" />Disbursed</Badge>;
-      case 'pending_disbursement':
+        case 'active':
+          return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
+        case 'disbursed':
+          // Treat disbursed loans as active for display and actions
+          return <Badge variant="default"><TrendingUp className="w-3 h-3 mr-1" />Active</Badge>;
+        case 'pending_disbursement':
         return <Badge variant="outline" className="text-blue-600 border-blue-600"><Clock className="w-3 h-3 mr-1" />Pending Disbursement</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
@@ -163,7 +192,20 @@ const ClientLoansPage = () => {
 
     // Common actions for all types
     buttons.push(
-      <Button key="view" variant="outline" size="sm">
+      <Button
+        key="view"
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          if (type === 'loan') {
+            setSelectedLoan(loan);
+            setDetailsOpen(true);
+          } else {
+            setSelectedApplication(loan);
+            setWorkflowOpen(true);
+          }
+        }}
+      >
         <Eye className="w-4 h-4 mr-1" />
         View Details
       </Button>
@@ -264,9 +306,9 @@ const ClientLoansPage = () => {
                             KES {(loan.outstanding_balance || loan.principal_amount)?.toLocaleString()}
                           </span>
                         </TableCell>
-                        <TableCell>{getStatusBadge(loan.status)}</TableCell>
+                        <TableCell><LoanStatusBadge status={getDerivedLoanStatus(loan).status} /></TableCell>
                         <TableCell>
-                          {loan.disbursement_date ? format(new Date(loan.disbursement_date), 'MMM dd, yyyy') : 'Pending'}
+                          {loan.disbursement_date ? safeFormatDate(loan.disbursement_date, 'MMM dd, yyyy') : 'Pending'}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
@@ -318,8 +360,8 @@ const ClientLoansPage = () => {
                         <TableCell>{application.loan_products?.name || 'N/A'}</TableCell>
                         <TableCell>KES {application.requested_amount?.toLocaleString()}</TableCell>
                         <TableCell className="capitalize">{application.purpose?.replace(/_/g, ' ')}</TableCell>
-                        <TableCell>{getStatusBadge(application.status)}</TableCell>
-                        <TableCell>{format(new Date(application.created_at), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell><LoanStatusBadge status={getDerivedLoanStatus(application).status} /></TableCell>
+                        <TableCell>{safeFormatDate(application.created_at, 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
                             {getActionButtons(application, 'application')}
@@ -374,9 +416,9 @@ const ClientLoansPage = () => {
                              KES {loan.principal_amount?.toLocaleString()}
                            </span>
                          </TableCell>
-                         <TableCell>{getStatusBadge(loan.status)}</TableCell>
+                         <TableCell><LoanStatusBadge status={getDerivedLoanStatus(loan).status} /></TableCell>
                          <TableCell>
-                           {loan.updated_at ? format(new Date(loan.updated_at), 'MMM dd, yyyy') : 'N/A'}
+                           {safeFormatDate(loan.updated_at, 'MMM dd, yyyy')}
                          </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
@@ -392,6 +434,29 @@ const ClientLoansPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {selectedLoan && (
+        <LoanDetailsDialog
+          loan={selectedLoan}
+          clientName={`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim() || 'Client'}
+          open={detailsOpen}
+          onOpenChange={(open) => {
+            setDetailsOpen(open);
+            if (!open) setSelectedLoan(null);
+          }}
+        />
+      )}
+
+      {selectedApplication && (
+        <LoanWorkflowDialog
+          loanApplication={selectedApplication}
+          open={workflowOpen}
+          onOpenChange={(open) => {
+            setWorkflowOpen(open);
+            if (!open) setSelectedApplication(null);
+          }}
+        />
+      )}
     </div>
   );
 };

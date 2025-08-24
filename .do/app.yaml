@@ -3,9 +3,10 @@ services:
 - name: web
   source_dir: /
   github:
-    repo: your-username/your-repo-name
-    branch: main
+    repo: your-username/loanspur-nexus-finance
+    branch: dev_branch
     deploy_on_push: true
+    # Note: Replace 'your-username' with your actual GitHub username
   dockerfile_path: Dockerfile
   instance_count: 1
   instance_size_slug: basic-xxs
@@ -13,7 +14,10 @@ services:
   health_check:
     http_path: /
   routes:
+  # CRITICAL: Catch-all route for SPA
   - path: /
+  # CRITICAL: Handle all subdomain routes
+  - path: /{path:.*}
   envs:
   - key: NODE_ENV
     value: production
@@ -23,10 +27,17 @@ services:
     value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI
   - key: PORT
     value: "8080"
+  - key: DOMAIN_NAME
+    value: loanspurcbs.com
+  - key: DEV_DOMAIN_NAME
+    value: loanspur.online
 
 domains:
-- domain: yourdomain.com
+- domain: loanspurcbs.com
   type: PRIMARY
+  wildcard: true
+- domain: loanspur.online
+  type: SECONDARY
   wildcard: true
 
 alerts:

@@ -17,6 +17,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isDevelopment, seedDatabase } from '@/lib/dev-utils';
 import { DatabaseHealthCheck } from './DatabaseHealthCheck';
+import { SuperAdminLoginTest } from './SuperAdminLoginTest';
+import { DeploymentStatus } from './DeploymentStatus';
 import { 
   Code2, 
   Database, 
@@ -28,7 +30,9 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  Activity
+  Activity,
+  Shield,
+  Globe
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -152,6 +156,42 @@ export const DevToolsBar = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <DatabaseHealthCheck />
+                </DialogContent>
+              </Dialog>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full text-xs h-8">
+                    <Globe className="w-3 h-3 mr-2" />
+                    Deployment Status
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-base">Deployment Status</DialogTitle>
+                    <DialogDescription className="text-sm">
+                      Check if the application is properly deployed
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DeploymentStatus />
+                </DialogContent>
+              </Dialog>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full text-xs h-8">
+                    <Shield className="w-3 h-3 mr-2" />
+                    Super Admin Test
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-base">Super Admin Login Test</DialogTitle>
+                    <DialogDescription className="text-sm">
+                      Test super admin authentication and profile status
+                    </DialogDescription>
+                  </DialogHeader>
+                  <SuperAdminLoginTest />
                 </DialogContent>
               </Dialog>
 

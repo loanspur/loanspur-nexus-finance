@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { useEffect } from 'react';
 
 // Types
 export interface JournalEntry {
@@ -11,6 +12,7 @@ export interface JournalEntry {
   transaction_date: string;
   reference_type?: string;
   reference_id?: string;
+  office_id?: string;
   description: string;
   total_amount: number;
   status: 'draft' | 'posted' | 'reversed';
@@ -29,7 +31,7 @@ export interface JournalEntryLine {
   description?: string;
   debit_amount: number;
   credit_amount: number;
-  line_order: number;
+  line_order?: number;
   created_at: string;
   account?: {
     account_name: string;
@@ -113,19 +115,66 @@ export interface ClosingEntry {
   updated_at: string;
 }
 
-// Journal Entries Hooks
+// Enhanced Journal Entries Hooks with Real-time Updates and Pagination
 export const useJournalEntries = (filters?: {
   dateFrom?: string;
   dateTo?: string;
   status?: string;
   searchTerm?: string;
+  officeId?: string;
+  page?: number;
+  pageSize?: number;
 }) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for journal entries
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('journal-entries-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entries',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        (payload) => {
+          console.log('Journal entry updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'journal_entry_lines',
+        },
+        (payload) => {
+          console.log('Journal entry lines updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['journal-entries', profile?.tenant_id, filters],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      if (!profile?.tenant_id) return { data: [], count: 0 };
+
+      const page = filters?.page || 1;
+      const pageSize = filters?.pageSize || 10;
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
       let query = supabase
         .from('journal_entries')
@@ -138,9 +187,10 @@ export const useJournalEntries = (filters?: {
               account_code
             )
           )
-        `)
+        `, { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
-        .order('transaction_date', { ascending: false });
+        .order('transaction_date', { ascending: false })
+        .range(from, to);
 
       if (filters?.dateFrom) {
         query = query.gte('transaction_date', filters.dateFrom);
@@ -154,10 +204,13 @@ export const useJournalEntries = (filters?: {
       if (filters?.searchTerm) {
         query = query.or(`description.ilike.%${filters.searchTerm}%,entry_number.ilike.%${filters.searchTerm}%`);
       }
+      if (filters?.officeId && filters.officeId !== 'all') {
+        query = query.eq('office_id', filters.officeId);
+      }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as JournalEntry[];
+      return { data: data as JournalEntry[], count: count || 0 };
     },
     enabled: !!profile?.tenant_id,
   });
@@ -174,6 +227,7 @@ export const useCreateJournalEntry = () => {
       description: string;
       reference_type?: string;
       reference_id?: string;
+      office_id?: string;
       lines: Array<{
         account_id: string;
         description?: string;
@@ -206,7 +260,9 @@ export const useCreateJournalEntry = () => {
           description: data.description,
           reference_type: data.reference_type || null,
           reference_id: data.reference_id && data.reference_id.trim() !== '' ? data.reference_id : null,
+          office_id: data.office_id || null,
           total_amount: totalDebit,
+          status: 'posted',
           created_by: profile.id,
         })
         .select()
@@ -216,6 +272,7 @@ export const useCreateJournalEntry = () => {
 
       // Create journal entry lines
       const lines = data.lines.map((line) => ({
+        tenant_id: profile.tenant_id, // Include tenant_id for RLS policy
         journal_entry_id: journalEntry.id,
         account_id: line.account_id,
         description: line.description,
@@ -248,14 +305,57 @@ export const useCreateJournalEntry = () => {
   });
 };
 
-// Account Balances Hook
-export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo?: string) => {
+// Enhanced Account Balances Hook with Real-time Updates and Pagination
+export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo?: string, page = 1, pageSize = 10) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for account balances
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('account-balances-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'account_balances',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        (payload) => {
+          console.log('Account balance updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chart_of_accounts',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        (payload) => {
+          console.log('Chart of accounts updated:', payload);
+          queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
-    queryKey: ['account-balances', profile?.tenant_id, accountId, dateFrom, dateTo],
+    queryKey: ['account-balances', profile?.tenant_id, accountId, dateFrom, dateTo, page, pageSize],
     queryFn: async () => {
-      if (!profile?.tenant_id) return [];
+      if (!profile?.tenant_id) return { data: [], count: 0 };
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
       let query = supabase
         .from('account_balances')
@@ -266,9 +366,10 @@ export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo
             account_code,
             account_type
           )
-        `)
+        `, { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
-        .order('balance_date', { ascending: false });
+        .order('balance_date', { ascending: false })
+        .range(from, to);
 
       if (accountId) {
         query = query.eq('account_id', accountId);
@@ -280,9 +381,9 @@ export const useAccountBalances = (accountId?: string, dateFrom?: string, dateTo
         query = query.lte('balance_date', dateTo);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as AccountBalance[];
+      return { data: data as AccountBalance[], count: count || 0 };
     },
     enabled: !!profile?.tenant_id,
   });

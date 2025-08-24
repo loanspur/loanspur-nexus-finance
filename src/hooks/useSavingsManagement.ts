@@ -2,7 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-
+import { useEffect } from 'react';
+import { useSavingsInterestPostingAccounting } from '@/hooks/useSavingsAccounting';
+import { calculateDailyInterest } from '@/lib/interest-calculation';
 export interface SavingsTransaction {
   id: string;
   tenant_id: string;
@@ -13,6 +15,8 @@ export interface SavingsTransaction {
   transaction_date: string;
   description?: string;
   reference_number?: string;
+  payment_method?: string;
+  method?: string;
   processed_by?: string;
   created_at: string;
 }
@@ -33,6 +37,34 @@ export interface InterestPosting {
 
 // Savings Transactions Hook
 export const useSavingsTransactions = (accountId?: string) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!accountId) return;
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_transactions', filter: `savings_account_id=eq.${accountId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['savings-transactions', accountId] });
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'savings_accounts', filter: `id=eq.${accountId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [accountId, queryClient]);
+
   return useQuery({
     queryKey: ['savings-transactions', accountId],
     queryFn: async () => {
@@ -45,7 +77,11 @@ export const useSavingsTransactions = (accountId?: string) => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as SavingsTransaction[];
+      const normalized = (data || []).map((row: any) => ({
+        ...row,
+        payment_method: row?.payment_method ?? row?.method ?? undefined,
+      }));
+      return normalized as SavingsTransaction[];
     },
     enabled: !!accountId,
   });
@@ -54,6 +90,25 @@ export const useSavingsTransactions = (accountId?: string) => {
 // All Savings Transactions for Tenant
 export const useAllSavingsTransactions = () => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'savings_transactions', filter: `tenant_id=eq.${profile.tenant_id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['all-savings-transactions', profile.tenant_id] });
+          queryClient.invalidateQueries({ queryKey: ['savings-accounts'] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['all-savings-transactions', profile?.tenant_id],
@@ -115,10 +170,16 @@ export const useProcessSavingsTransaction = () => {
       const { data, error } = await supabase
         .from('savings_transactions')
         .insert([{
-          ...transaction,
           tenant_id: profile.tenant_id,
+          savings_account_id: transaction.savings_account_id,
+          transaction_type: transaction.transaction_type,
+          amount: transaction.amount,
           balance_after: newBalance,
+          transaction_date: transaction.transaction_date,
+          description: transaction.description,
+          reference_number: transaction.reference_number,
           processed_by: profile.id,
+          method: (transaction as any).method ?? transaction.payment_method,
         }])
         .select()
         .single();
@@ -192,7 +253,9 @@ export const useCalculateInterest = () => {
 
       const averageBalance = account.account_balance || 0;
       const days = Math.ceil((new Date(periodEnd).getTime() - new Date(periodStart).getTime()) / (1000 * 60 * 60 * 24));
-      const interestAmount = (averageBalance * interestRate / 100 * days) / 365;
+      // Use standardized interest calculation for savings
+      const dailyInterest = calculateDailyInterest(averageBalance, interestRate, 365);
+      const interestAmount = dailyInterest * days;
 
       // Create interest posting record
       const { data: posting, error: postingError } = await supabase
@@ -235,6 +298,7 @@ export const useCalculateInterest = () => {
 export const usePostInterest = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const interestAccounting = useSavingsInterestPostingAccounting();
 
   return useMutation({
     mutationFn: async (postingId: string) => {
@@ -272,6 +336,28 @@ export const usePostInterest = () => {
         .eq('id', postingId);
 
       if (updateError) throw updateError;
+
+      // Create accounting journal entry for interest posting (best-effort)
+      try {
+        const { data: acct, error: acctErr } = await supabase
+          .from('savings_accounts')
+          .select('account_number, savings_product_id')
+          .eq('id', posting.savings_account_id)
+          .single();
+        if (!acctErr && acct) {
+          await interestAccounting.mutateAsync({
+            savings_account_id: posting.savings_account_id,
+            savings_product_id: acct.savings_product_id,
+            amount: posting.interest_amount,
+            transaction_date: posting.posting_date,
+            account_number: acct.account_number,
+            period_start: posting.period_start,
+            period_end: posting.period_end,
+          } as any);
+        }
+      } catch (e) {
+        console.warn('Savings interest accounting failed:', e);
+      }
 
       return transaction;
     },

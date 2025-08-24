@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
+import { useEffect } from 'react';
 
 export interface ChartOfAccount {
   id: string;
@@ -20,6 +21,32 @@ export interface ChartOfAccount {
 
 export const useChartOfAccounts = () => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for chart of accounts
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+
+    const channel = supabase
+      .channel('chart-of-accounts-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chart_of_accounts',
+          filter: `tenant_id=eq.${profile.tenant_id}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.tenant_id, queryClient]);
 
   return useQuery({
     queryKey: ['chart-of-accounts', profile?.tenant_id],

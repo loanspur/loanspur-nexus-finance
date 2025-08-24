@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, User, FileText, Building, CreditCard, Users,
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateClient } from "@/hooks/useSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
 // Step Components
 import { KYCInformationStep } from "./steps/KYCInformationStep";
@@ -19,84 +20,121 @@ import { BankingInformationStep } from "./steps/BankingInformationStep";
 import { EmploymentBusinessStep } from "./steps/EmploymentBusinessStep";
 import { NextOfKinStep } from "./steps/NextOfKinStep";
 import { DocumentUploadStep } from "./steps/DocumentUploadStep";
-import { SavingsAccountStep } from "./steps/SavingsAccountStep";
+
 import { ReviewStep } from "./steps/ReviewStep";
 
 // Enhanced validation schema
-const clientOnboardingSchema = z.object({
-  // KYC Information (client_number will be auto-generated)
-  client_number: z.string().optional(),
-  first_name: z.string().min(2, "First name must be at least 2 characters"),
-  middle_name: z.string().optional(),
-  last_name: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().optional().refine((val) => {
-    if (!val || val === '') return true;
-    return z.string().email().safeParse(val).success;
-  }, "Invalid email format"),
-  phone: z.string()
-    .min(10, "Phone number must be at least 10 digits")
-    .regex(/^[\+]?[0-9\s\-\(\)]{10,15}$/, "Invalid phone number format"),
-  date_of_birth: z.string().min(1, "Date of birth is required"),
-  place_of_birth: z.string().optional(),
-  nationality: z.string().optional(),
-  gender: z.string().optional(),
-  address: z.string().optional(),
-  
-  // National ID (moved to KYC section and made required)
-  national_id: z.string().min(1, "National ID is required").regex(/^[0-9]{8}$/, "National ID must be 8 digits"),
-  account_opening_date: z.string().min(1, "Account opening date is required"),
-  passport_number: z.string().optional().refine((val) => {
-    if (!val) return true;
-    return /^[A-Z0-9]{6,12}$/.test(val);
-  }, "Invalid passport number format"),
-  driving_license_number: z.string().optional(),
-  
-  // Office and Loan Officer Assignment
-  office_id: z.string().min(1, "Office selection is required"),
-  loan_officer_id: z.string().optional(),
-  
-  // Banking Information
-  bank_name: z.string().optional(),
-  bank_account_number: z.string().optional().refine((val) => {
-    if (!val) return true;
-    return /^[0-9]{10,16}$/.test(val);
-  }, "Bank account number must be 10-16 digits"),
-  bank_branch: z.string().optional(),
-  
-  // Employment/Business Information
-  income_source_type: z.enum(["employment", "business"]).optional(),
-  
-  // Employment fields
-  occupation: z.string().optional(),
-  employer_name: z.string().optional(),
-  employer_address: z.string().optional(),
-  job_title: z.string().optional(),
-  employment_start_date: z.string().optional(),
-  monthly_income: z.string().optional(),
-  
-  // Business fields
-  business_name: z.string().optional(),
-  business_type: z.string().optional(),
-  business_registration_number: z.string().optional(),
-  business_address: z.string().optional(),
-  
-  // Next of Kin Information (array support) - All fields optional
-  next_of_kin: z.array(z.object({
-    name: z.string().optional(),
-    relationship: z.string().optional(),
-    phone: z.string().optional(),
-    email: z.union([
-      z.string().email("Invalid email format"),
-      z.literal("")
-    ]).optional(),
+const clientOnboardingSchema = z
+  .object({
+    // KYC Information (client_number will be auto-generated)
+    client_number: z.string().optional(),
+    first_name: z.string().min(2, "First name must be at least 2 characters"),
+    middle_name: z.string().optional(),
+    last_name: z.string().min(2, "Last name must be at least 2 characters"),
+    email: z.string().optional().refine((val) => {
+      if (!val || val === '') return true;
+      return z.string().email().safeParse(val).success;
+    }, "Invalid email format"),
+    phone: z
+      .string()
+      .min(10, "Phone number must be at least 10 digits")
+      .regex(/^[\+]?[^A-Za-z]{10,15}$/, "Invalid phone number format"),
+    date_of_birth: z.string().min(1, "Date of birth is required"),
+    place_of_birth: z.string().optional(),
+    nationality: z.string().optional(),
+    gender: z.string().optional(),
     address: z.string().optional(),
-  })).default([]),
-  
-  // Savings Account
-  create_savings_account: z.boolean().default(false),
-  savings_product_id: z.string().optional(),
-  initial_deposit: z.string().optional(),
-});
+
+    // National ID (moved to KYC section and made required)
+    national_id: z
+      .string()
+      .min(1, "National ID is required")
+      .regex(/^[0-9]{8}$/, "National ID must be 8 digits"),
+    account_opening_date: z.string().min(1, "Account opening date is required"),
+    office_opening_date: z.string().optional(),
+    passport_number: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val) return true;
+        return /^[A-Z0-9]{6,12}$/.test(val);
+      }, "Invalid passport number format"),
+    driving_license_number: z.string().optional(),
+
+    // Office and Loan Officer Assignment
+    office_id: z.string().min(1, "Office selection is required"),
+    loan_officer_id: z.string().optional(),
+
+    // Banking Information
+    bank_name: z.string().optional(),
+    bank_account_number: z
+      .string()
+      .optional()
+      .refine((val) => {
+        if (!val) return true;
+        return /^[0-9]{10,16}$/.test(val);
+      }, "Bank account number must be 10-16 digits"),
+    bank_branch: z.string().optional(),
+
+    // Employment/Business Information
+    income_source_type: z.enum(["employment", "business"]).optional(),
+
+    // Employment fields
+    occupation: z.string().optional(),
+    employer_name: z.string().optional(),
+    employer_address: z.string().optional(),
+    job_title: z.string().optional(),
+    employment_start_date: z.string().optional(),
+    monthly_income: z.string().optional(),
+
+    // Business fields
+    business_name: z.string().optional(),
+    business_type: z.string().optional(),
+    business_registration_number: z.string().optional(),
+    business_address: z.string().optional(),
+
+    // Next of Kin Information (array support) - All fields optional
+    next_of_kin: z
+      .array(
+        z.object({
+          name: z.string().optional(),
+          relationship: z.string().optional(),
+          phone: z.string().optional(),
+          email: z.union([z.string().email("Invalid email format"), z.literal("")]).optional(),
+          address: z.string().optional(),
+        })
+      )
+      .default([]),
+    // Savings account step removed from onboarding
+  })
+  .superRefine((data, ctx) => {
+    // Opening date must not be in the future
+    if (data.account_opening_date) {
+      const openDate = new Date(data.account_opening_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (openDate > today) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["account_opening_date"],
+          message: "Opening date cannot be in the future",
+        });
+      }
+
+      // Must be on or after office opening date when available
+      if (data.office_opening_date) {
+        const officeDate = new Date(data.office_opening_date);
+        officeDate.setHours(0, 0, 0, 0);
+        if (openDate < officeDate) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["account_opening_date"],
+            message: "Opening date must be on or after the office opening date",
+          });
+        }
+      }
+    }
+  });
 
 type ClientOnboardingData = z.infer<typeof clientOnboardingSchema>;
 
@@ -111,14 +149,13 @@ const steps = [
   { id: 'employment_business', title: 'Income Source', icon: Building, description: 'Income details' },
   { id: 'next_of_kin', title: 'Next of Kin', icon: Users, description: 'Emergency contact' },
   { id: 'documents', title: 'Document Upload', icon: Upload, description: 'Upload documents' },
-  { id: 'savings', title: 'Savings Account', icon: CheckCircle, description: 'Account setup' },
   { id: 'review', title: 'Review', icon: Eye, description: 'Review details' },
 ];
 
 export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFormProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadedDocuments, setUploadedDocuments] = useState<string[]>([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState<any[]>([]);
   const { toast } = useToast();
   const { profile } = useAuth();
   const createClientMutation = useCreateClient();
@@ -165,9 +202,9 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       business_registration_number: "",
       business_address: "",
       next_of_kin: [],
-      create_savings_account: false,
-      savings_product_id: "",
-      initial_deposit: "",
+      office_opening_date: "",
+      
+      
     },
   });
 
@@ -288,6 +325,7 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
         email: data.email || null,
         phone: data.phone,
         date_of_birth: data.date_of_birth,
+        account_opening_date: data.account_opening_date,
         place_of_birth: data.place_of_birth || null,
         nationality: data.nationality || null,
         gender: data.gender || null,
@@ -332,17 +370,38 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
       const result = await createClientMutation.mutateAsync(clientData);
       console.log('Client created successfully:', result);
 
+      // If documents were uploaded during onboarding, persist them now
+      try {
+        if (uploadedDocuments.length && (result as any)?.id) {
+          const docsToInsert = uploadedDocuments.map((doc: any) => ({
+            tenant_id: profile?.tenant_id,
+            client_id: (result as any).id,
+            document_name: doc.fileName,
+            document_type: doc.type,
+            description: null,
+            file_url: doc.storagePath,
+            file_size: doc.size,
+            mime_type: doc.mime,
+            is_verified: false,
+            is_required: false,
+            uploaded_by: (profile as any)?.id || null,
+          }));
+          const { error: docError } = await supabase.from('client_documents').insert(docsToInsert);
+          if (docError) {
+            console.error('Failed to save documents:', docError);
+            toast({ title: 'Documents not saved', description: 'Client was created, but documents failed to save.', variant: 'destructive' });
+          }
+        }
+      } catch (docEx) {
+        console.error('Error inserting documents:', docEx);
+      }
+
       // Show success message
       toast({
         title: "Client Created Successfully",
         description: `Client ${data.first_name} ${data.last_name} has been created and is pending approval. The client will need to be approved and then activated before they can access services.`,
         variant: "default",
       });
-
-      // TODO: Handle additional features if needed
-      // - Save additional next of kin contacts (beyond the first one)
-      // - Create savings account if requested
-      // - Upload documents to storage and link to client
 
       form.reset();
       setCurrentStep(0);
@@ -391,14 +450,6 @@ export const ClientOnboardingForm = ({ open, onOpenChange }: ClientOnboardingFor
             {...commonProps} 
             uploadedDocuments={uploadedDocuments}
             setUploadedDocuments={setUploadedDocuments}
-          />
-        );
-      case 'savings':
-        return (
-          <SavingsAccountStep 
-            {...commonProps} 
-            onSubmit={form.handleSubmit(onSubmit)}
-            isSubmitting={isSubmitting}
           />
         );
       case 'review':
