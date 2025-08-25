@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useCreateJournalEntry } from './useAccounting';
-import { allocateRepayment, type RepaymentStrategyType, type LoanBalances } from '@/lib/loan-repayment-strategy';
+import { allocateRepayment, type RepaymentStrategyType, type LoanBalances } from '@/lib/mifos-interest-calculation';
 import { getDerivedLoanStatus } from '@/lib/loan-status';
 import { generateLoanSchedule } from '@/lib/loan-schedule-generator';
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { harmonizeLoanCalculations, HarmonizedLoanCalculation } from '@/lib/loan-calculation-harmonizer';
+import { harmonizeLoanCalculations, HarmonizedLoanCalculation } from '@/lib/mifos-interest-calculation';
 import { useToast } from './use-toast';
 
 /**

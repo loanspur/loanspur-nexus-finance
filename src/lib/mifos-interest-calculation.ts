@@ -456,3 +456,244 @@ export function convertMifosScheduleToDatabase(
     payment_status: 'unpaid'
   }));
 }
+
+/**
+ * Repayment Strategy Types
+ */
+export type RepaymentStrategyType = 
+  | 'penalties_fees_interest_principal'
+  | 'fees_interest_principal'
+  | 'interest_principal'
+  | 'principal_only'
+  | 'custom';
+
+/**
+ * Loan Balances Interface
+ */
+export interface LoanBalances {
+  outstandingPrincipal: number;
+  unpaidInterest: number;
+  unpaidFees: number;
+  unpaidPenalties: number;
+}
+
+/**
+ * Repayment Allocation Result
+ */
+export interface RepaymentAllocation {
+  principal: number;
+  interest: number;
+  fees: number;
+  penalties: number;
+}
+
+/**
+ * Allocate repayment amount according to specified strategy
+ * This function determines how a payment should be distributed across
+ * principal, interest, fees, and penalties based on the repayment strategy
+ */
+export function allocateRepayment(
+  paymentAmount: number,
+  loanBalances: LoanBalances,
+  strategy: RepaymentStrategyType
+): RepaymentAllocation {
+  let remainingAmount = paymentAmount;
+  const allocation: RepaymentAllocation = {
+    principal: 0,
+    interest: 0,
+    fees: 0,
+    penalties: 0
+  };
+
+  switch (strategy) {
+    case 'penalties_fees_interest_principal':
+      // 1. Pay penalties first
+      if (remainingAmount > 0 && loanBalances.unpaidPenalties > 0) {
+        allocation.penalties = Math.min(remainingAmount, loanBalances.unpaidPenalties);
+        remainingAmount -= allocation.penalties;
+      }
+      
+      // 2. Pay fees
+      if (remainingAmount > 0 && loanBalances.unpaidFees > 0) {
+        allocation.fees = Math.min(remainingAmount, loanBalances.unpaidFees);
+        remainingAmount -= allocation.fees;
+      }
+      
+      // 3. Pay interest
+      if (remainingAmount > 0 && loanBalances.unpaidInterest > 0) {
+        allocation.interest = Math.min(remainingAmount, loanBalances.unpaidInterest);
+        remainingAmount -= allocation.interest;
+      }
+      
+      // 4. Pay principal
+      if (remainingAmount > 0 && loanBalances.outstandingPrincipal > 0) {
+        allocation.principal = Math.min(remainingAmount, loanBalances.outstandingPrincipal);
+        remainingAmount -= allocation.principal;
+      }
+      break;
+
+    case 'fees_interest_principal':
+      // 1. Pay fees first
+      if (remainingAmount > 0 && loanBalances.unpaidFees > 0) {
+        allocation.fees = Math.min(remainingAmount, loanBalances.unpaidFees);
+        remainingAmount -= allocation.fees;
+      }
+      
+      // 2. Pay interest
+      if (remainingAmount > 0 && loanBalances.unpaidInterest > 0) {
+        allocation.interest = Math.min(remainingAmount, loanBalances.unpaidInterest);
+        remainingAmount -= allocation.interest;
+      }
+      
+      // 3. Pay principal
+      if (remainingAmount > 0 && loanBalances.outstandingPrincipal > 0) {
+        allocation.principal = Math.min(remainingAmount, loanBalances.outstandingPrincipal);
+        remainingAmount -= allocation.principal;
+      }
+      break;
+
+    case 'interest_principal':
+      // 1. Pay interest first
+      if (remainingAmount > 0 && loanBalances.unpaidInterest > 0) {
+        allocation.interest = Math.min(remainingAmount, loanBalances.unpaidInterest);
+        remainingAmount -= allocation.interest;
+      }
+      
+      // 2. Pay principal
+      if (remainingAmount > 0 && loanBalances.outstandingPrincipal > 0) {
+        allocation.principal = Math.min(remainingAmount, loanBalances.outstandingPrincipal);
+        remainingAmount -= allocation.principal;
+      }
+      break;
+
+    case 'principal_only':
+      // Pay only principal
+      if (remainingAmount > 0 && loanBalances.outstandingPrincipal > 0) {
+        allocation.principal = Math.min(remainingAmount, loanBalances.outstandingPrincipal);
+        remainingAmount -= allocation.principal;
+      }
+      break;
+
+    case 'custom':
+      // For custom strategies, return zero allocation
+      // The calling code should handle custom allocation logic
+      break;
+
+    default:
+      // Default to penalties_fees_interest_principal
+      return allocateRepayment(paymentAmount, loanBalances, 'penalties_fees_interest_principal');
+  }
+
+  return allocation;
+}
+
+/**
+ * Harmonized Loan Calculation Interface
+ * Used for ensuring consistency across loan display components
+ */
+export interface HarmonizedLoanCalculation {
+  calculatedOutstanding: number;
+  correctedInterestRate: number;
+  daysInArrears: number;
+  scheduleConsistent: boolean;
+  totalScheduledAmount: number;
+  totalPaidAmount: number;
+  lastPaymentDate?: Date;
+  nextPaymentDate?: Date;
+}
+
+/**
+ * Harmonize loan calculations to ensure consistency
+ * This function validates and corrects loan data for display purposes
+ */
+export function harmonizeLoanCalculations(loan: any): HarmonizedLoanCalculation {
+  // Calculate outstanding balance from schedules if available
+  let calculatedOutstanding = Number(loan.outstanding_balance || 0);
+  let totalScheduledAmount = 0;
+  let totalPaidAmount = 0;
+  let daysInArrears = 0;
+  let scheduleConsistent = true;
+
+  // If loan has schedules, calculate from them for accuracy
+  if (loan.loan_schedules && Array.isArray(loan.loan_schedules)) {
+    totalScheduledAmount = loan.loan_schedules.reduce((sum: number, schedule: any) => 
+      sum + Number(schedule.total_amount || 0), 0);
+    
+    totalPaidAmount = loan.loan_schedules.reduce((sum: number, schedule: any) => 
+      sum + Number(schedule.paid_amount || 0), 0);
+    
+    calculatedOutstanding = totalScheduledAmount - totalPaidAmount;
+    
+    // Check for schedule consistency
+    const expectedOutstanding = Number(loan.outstanding_balance || 0);
+    const difference = Math.abs(calculatedOutstanding - expectedOutstanding);
+    scheduleConsistent = difference < 0.01; // Allow for rounding differences
+  }
+
+  // Calculate days in arrears
+  if (loan.loan_schedules && Array.isArray(loan.loan_schedules)) {
+    const today = new Date();
+    const overdueSchedules = loan.loan_schedules.filter((schedule: any) => {
+      const dueDate = new Date(schedule.due_date);
+      return dueDate < today && Number(schedule.outstanding_amount || 0) > 0;
+    });
+
+    if (overdueSchedules.length > 0) {
+      const mostOverdue = overdueSchedules.reduce((latest: any, current: any) => {
+        const latestDate = new Date(latest.due_date);
+        const currentDate = new Date(current.due_date);
+        return currentDate < latestDate ? current : latest;
+      });
+      
+      const dueDate = new Date(mostOverdue.due_date);
+      const timeDiff = today.getTime() - dueDate.getTime();
+      daysInArrears = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    }
+  }
+
+  // Get corrected interest rate (ensure it's within valid range)
+  let correctedInterestRate = Number(loan.interest_rate || 0);
+  if (correctedInterestRate < 0) correctedInterestRate = 0;
+  if (correctedInterestRate > 100) correctedInterestRate = 100;
+
+  // Find last and next payment dates
+  let lastPaymentDate: Date | undefined;
+  let nextPaymentDate: Date | undefined;
+
+  if (loan.loan_schedules && Array.isArray(loan.loan_schedules)) {
+    const paidSchedules = loan.loan_schedules.filter((schedule: any) => 
+      Number(schedule.paid_amount || 0) > 0);
+    
+    if (paidSchedules.length > 0) {
+      const lastPaid = paidSchedules.reduce((latest: any, current: any) => {
+        const latestDate = new Date(latest.due_date);
+        const currentDate = new Date(current.due_date);
+        return currentDate > latestDate ? current : latest;
+      });
+      lastPaymentDate = new Date(lastPaid.due_date);
+    }
+
+    const unpaidSchedules = loan.loan_schedules.filter((schedule: any) => 
+      Number(schedule.outstanding_amount || 0) > 0);
+    
+    if (unpaidSchedules.length > 0) {
+      const nextDue = unpaidSchedules.reduce((earliest: any, current: any) => {
+        const earliestDate = new Date(earliest.due_date);
+        const currentDate = new Date(current.due_date);
+        return currentDate < earliestDate ? current : earliest;
+      });
+      nextPaymentDate = new Date(nextDue.due_date);
+    }
+  }
+
+  return {
+    calculatedOutstanding,
+    correctedInterestRate,
+    daysInArrears,
+    scheduleConsistent,
+    totalScheduledAmount,
+    totalPaidAmount,
+    lastPaymentDate,
+    nextPaymentDate
+  };
+}

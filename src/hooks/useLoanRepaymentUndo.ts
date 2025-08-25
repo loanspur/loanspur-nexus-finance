@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { useCreateJournalEntry } from './useAccounting';
-import { harmonizeLoanCalculations } from '@/lib/loan-calculation-harmonizer';
+import { harmonizeLoanCalculations } from '@/lib/mifos-interest-calculation';
 
 export interface LoanRepaymentUndoData {
   paymentId: string;

@@ -11,7 +11,7 @@ import { useMifosIntegration } from './useMifosIntegration';
 import { defaultQueryOptions } from './useOptimizedQueries';
 import { useCreateJournalEntry } from './useAccounting';
 import { generateMifosLoanSchedule, validateMifosLoanParams, convertMifosScheduleToDatabase } from '@/lib/mifos-interest-calculation';
-import { allocateRepayment } from '@/lib/loan-repayment-strategy';
+import { allocateRepayment } from '@/lib/mifos-interest-calculation';
 import { getDerivedLoanStatus } from '@/lib/loan-status';
 import { calculateFeeAmount } from '@/lib/fee-calculation';
 
