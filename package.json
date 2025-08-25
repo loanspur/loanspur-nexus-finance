@@ -8,12 +8,11 @@
     "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --port 8080 --host",
     "serve": "node dev-server.js",
     "start": "npm run build && npm run serve",
-    "docker:build": "docker build -t loanspur-app .",
-    "docker:run": "docker run -p 8080:8080 loanspur-app",
-    "docker:build:run": "npm run docker:build && npm run docker:run"
+    "deploy:simple": "npm run build && npm run preview",
+    "deploy:local": "npm run build && npx serve dist -s -l 8080"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
