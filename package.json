@@ -12,7 +12,11 @@
     "serve": "node dev-server.js",
     "start": "npm run build && npm run serve",
     "deploy:simple": "npm run build && npm run preview",
-    "deploy:local": "npm run build && npx serve dist -s -l 8080"
+    "deploy:local": "npm run build && npx serve dist -s -l 8080",
+    "migrate:loans": "node scripts/migrate-existing-loans.js",
+    "migrate:loans:dry-run": "node scripts/migrate-existing-loans.js --dry-run",
+    "migrate:loans:force": "node scripts/migrate-existing-loans.js --force",
+    "verify:migration": "node scripts/verify-migration.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
