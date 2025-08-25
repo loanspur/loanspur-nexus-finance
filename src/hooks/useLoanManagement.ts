@@ -566,7 +566,7 @@ export const useLoanApprovals = () => {
   });
 };
 
-// Approve/Reject Loan Application
+// Approve/Reject Loan Application - FIXED VERSION
 export const useProcessLoanApproval = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -583,10 +583,12 @@ export const useProcessLoanApproval = () => {
       approval_date?: string;
       conditions?: string;
     }) => {
-      if (!profile?.tenant_id) throw new Error('No tenant ID available');
+      if (!profile?.tenant_id || !profile?.id) {
+        throw new Error('No user context');
+      }
 
-      // Get loan application details with product information
-      const { data: loanApplication, error: fetchError } = await supabase
+      // Get current loan application
+      const { data: loanApp, error: loanError } = await supabase
         .from('loan_applications')
         .select(`
           *,
@@ -602,173 +604,34 @@ export const useProcessLoanApproval = () => {
         .eq('id', approval.loan_application_id)
         .single();
       
-      if (fetchError || !loanApplication) throw new Error('Loan application not found');
+      if (loanError || !loanApp) throw new Error('Loan application not found');
 
-      // Validate approval amounts against product limits
-      if (approval.action === 'approve') {
-        const product = loanApplication.loan_products;
-        const approvedAmount = approval.approved_amount || loanApplication.requested_amount;
-        const approvedTerm = approval.approved_term || loanApplication.requested_term;
-
-        console.log('Validating approval against product limits:', {
-          product: product?.name,
-          approvedAmount,
-          limits: { min: product?.min_principal, max: product?.max_principal },
-          approvedTerm,
-          termLimits: { min: product?.min_term, max: product?.max_term }
-        });
-
-        if (product?.min_principal && approvedAmount < product.min_principal) {
-          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) is below product minimum (${product.min_principal.toLocaleString()})`);
-        }
-
-        if (product?.max_principal && approvedAmount > product.max_principal) {
-          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) exceeds product maximum (${product.max_principal.toLocaleString()})`);
-        }
-
-        if (product?.min_term && approvedTerm < product.min_term) {
-          throw new Error(`Approved term (${approvedTerm} months) is below product minimum (${product.min_term} months)`);
-        }
-
-        if (product?.max_term && approvedTerm > product.max_term) {
-          throw new Error(`Approved term (${approvedTerm} months) exceeds product maximum (${product.max_term} months)`);
-        }
-      }
-
-      // Create approval record
-      const { data: approvalData, error: approvalError } = await supabase
-        .from('loan_approvals')
-        .insert([{
-          tenant_id: profile.tenant_id,
-          loan_application_id: approval.loan_application_id,
-          approver_id: profile.id,
-          action: approval.action,
-          status: approval.action === 'approve' ? 'approved' : 'rejected',
-          comments: approval.comments,
-          approved_amount: approval.approved_amount,
-          approved_term: approval.approved_term,
-          approved_interest_rate: approval.approved_interest_rate,
-          conditions: approval.conditions,
-        }])
-        .select()
+      // Check if approval workflow is required
+      const { data: workflow, error: workflowError } = await supabase
+        .from('approval_workflows')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('action_type', 'loan_approval')
+        .eq('is_active', true)
         .single();
-      
-      if (approvalError) throw approvalError;
 
-      // Update loan application status
-      let newStatus: string;
-      if (approval.action === 'approve') {
-        newStatus = 'pending_disbursement';
-      } else if (approval.action === 'reject') {
-        newStatus = 'rejected';
-      } else if (approval.action === 'undo_approval') {
-        newStatus = 'pending';
-      } else {
-        newStatus = 'under_review';
+      // If no workflow exists, use simple approval
+      if (workflowError || !workflow) {
+        return await processSimpleApproval(approval, loanApp, profile);
       }
 
-      const { error: updateError } = await supabase
-        .from('loan_applications')
-        .update({
-          status: newStatus,
-          reviewed_by: profile.id,
-          reviewed_at: new Date().toISOString(),
-          approval_notes: approval.comments,
-          final_approved_amount: approval.approved_amount,
-          final_approved_term: approval.approved_term,
-          final_approved_interest_rate: approval.approved_interest_rate,
-        })
-        .eq('id', approval.loan_application_id);
-
-      if (updateError) throw updateError;
-
-      // If approved, create loan record immediately (idempotent - skip if already exists)
-      if (approval.action === 'approve') {
-        // Check if loan already exists for this application
-        const { data: existingLoan, error: checkError } = await supabase
-          .from('loans')
-          .select('id, status')
-          .eq('application_id', approval.loan_application_id)
-          .maybeSingle();
-        
-        if (checkError && checkError.code !== 'PGRST116') throw checkError;
-        
-        // Only create loan if none exists
-        if (!existingLoan) {
-          const loanNumber = `LN-${Date.now()}`;
-          
-          // Get full loan product details for snapshot preservation
-          const { data: productSnapshot, error: productError } = await supabase
-            .from('loan_products')
-            .select('*')
-            .eq('id', loanApplication.loan_product_id)
-            .single();
-
-          if (productError) throw new Error('Failed to fetch loan product details for snapshot');
-          
-          const { data: loanData, error: loanError } = await supabase
-            .from('loans')
-            .insert([{
-              tenant_id: profile.tenant_id,
-              client_id: loanApplication.client_id,
-              loan_product_id: loanApplication.loan_product_id,
-              application_id: approval.loan_application_id, // Link back to application
-              loan_number: loanNumber,
-              principal_amount: approval.approved_amount || loanApplication.requested_amount,
-               // Store interest rate as decimal (0.067 for 6.7%)
-               interest_rate: (() => {
-                 const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
-                 // Ensure it's stored as decimal - if it's a percentage, convert it
-                 return r > 1 ? r / 100 : r;
-               })(),
-              term_months: approval.approved_term || loanApplication.requested_term,
-              outstanding_balance: approval.approved_amount || loanApplication.requested_amount,
-              status: 'pending_disbursement',
-              loan_officer_id: profile.id,
-              loan_product_snapshot: productSnapshot, // Preserve product details at loan creation
-               // CRITICAL: Store original creation terms to prevent product updates from affecting loans
-               creation_interest_rate: (() => {
-                 const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
-                 return r > 1 ? r / 100 : r; // Store as decimal
-               })(),
-               creation_term_months: approval.approved_term || loanApplication.requested_term,
-               creation_principal: approval.approved_amount || loanApplication.requested_amount,
-               // Enhanced MiFos X settings persistence
-               creation_days_in_year_type: productSnapshot?.days_in_year_type || '365',
-               creation_days_in_month_type: productSnapshot?.days_in_month_type || 'actual',
-               creation_amortization_method: productSnapshot?.amortization_method || 'equal_installments',
-               creation_interest_recalculation_enabled: productSnapshot?.interest_recalculation_enabled || false,
-               creation_compounding_enabled: productSnapshot?.compounding_enabled || false,
-               creation_reschedule_strategy_method: productSnapshot?.reschedule_strategy_method || 'reduce_emi',
-               creation_pre_closure_interest_calculation_rule: productSnapshot?.pre_closure_interest_calculation_rule || 'till_pre_close_date',
-               creation_advance_payments_adjustment_type: productSnapshot?.advance_payments_adjustment_type || 'reduce_emi',
-            }])
-            .select()
-            .single();
-          
-          if (loanError) throw loanError;
-        }
-      }
-
-      // If undoing approval, delete any pending loan records
-      if (approval.action === 'undo_approval') {
-        const { error: deleteLoanError } = await supabase
-          .from('loans')
-          .delete()
-          .eq('application_id', approval.loan_application_id)
-          .eq('status', 'pending_disbursement');
-        
-        if (deleteLoanError) console.warn('Error deleting pending loan:', deleteLoanError);
-      }
-
-      return approvalData;
+      // Use multi-level approval workflow
+      return await processMultiLevelApproval(approval, loanApp, profile, workflow);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['loan-applications'] });
       queryClient.invalidateQueries({ queryKey: ['loan-approvals'] });
+      queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
+      
       toast({
         title: "Success",
-        description: "Loan approval processed successfully",
+        description: result.message || "Loan approval processed successfully",
       });
     },
     onError: (error: any) => {
@@ -780,6 +643,322 @@ export const useProcessLoanApproval = () => {
     },
   });
 };
+
+// Helper function for simple approval (no workflow)
+async function processSimpleApproval(
+  approval: any,
+  loanApp: any,
+  profile: any
+) {
+  // Validate approval amounts against product limits
+  if (approval.action === 'approve') {
+    const product = loanApp.loan_products;
+    const approvedAmount = approval.approved_amount || loanApp.requested_amount;
+    const approvedTerm = approval.approved_term || loanApp.requested_term;
+
+    if (product?.min_principal && approvedAmount < product.min_principal) {
+      throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) is below product minimum (${product.min_principal.toLocaleString()})`);
+    }
+
+    if (product?.max_principal && approvedAmount > product.max_principal) {
+      throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) exceeds product maximum (${product.max_principal.toLocaleString()})`);
+    }
+
+    if (product?.min_term && approvedTerm < product.min_term) {
+      throw new Error(`Approved term (${approvedTerm} months) is below product minimum (${product.min_term} months)`);
+    }
+
+    if (product?.max_term && approvedTerm > product.max_term) {
+      throw new Error(`Approved term (${approvedTerm} months) exceeds product maximum (${product.max_term} months)`);
+    }
+  }
+
+  // Create approval record
+  const { data: approvalData, error: approvalError } = await supabase
+    .from('loan_approvals')
+    .insert([{
+      tenant_id: profile.tenant_id,
+      loan_application_id: approval.loan_application_id,
+      approver_id: profile.id,
+      action: approval.action,
+      status: approval.action === 'approve' ? 'approved' : 'rejected',
+      comments: approval.comments,
+      approved_amount: approval.approved_amount,
+      approved_term: approval.approved_term,
+      approved_interest_rate: approval.approved_interest_rate,
+      conditions: approval.conditions,
+    }])
+    .select()
+    .single();
+  
+  if (approvalError) throw approvalError;
+
+  // Update loan application status
+  let newStatus: string;
+  if (approval.action === 'approve') {
+    newStatus = 'pending_disbursement';
+  } else if (approval.action === 'reject') {
+    newStatus = 'rejected';
+  } else if (approval.action === 'undo_approval') {
+    newStatus = 'pending';
+  } else {
+    newStatus = 'under_review';
+  }
+
+  const { error: updateError } = await supabase
+    .from('loan_applications')
+    .update({
+      status: newStatus,
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+      approval_notes: approval.comments,
+      final_approved_amount: approval.approved_amount,
+      final_approved_term: approval.approved_term,
+      final_approved_interest_rate: approval.approved_interest_rate,
+    })
+    .eq('id', approval.loan_application_id);
+
+  if (updateError) throw updateError;
+
+  // If approved, create loan record
+  if (approval.action === 'approve') {
+    await createLoanRecord(loanApp, approval, profile);
+  }
+
+  // If undoing approval, delete any pending loan records
+  if (approval.action === 'undo_approval') {
+    const { error: deleteLoanError } = await supabase
+      .from('loans')
+      .delete()
+      .eq('application_id', approval.loan_application_id)
+      .eq('status', 'pending_disbursement');
+    
+    if (deleteLoanError) console.warn('Error deleting pending loan:', deleteLoanError);
+  }
+
+  return { ...approvalData, message: "Loan approval processed successfully" };
+}
+
+// Helper function for multi-level approval workflow
+async function processMultiLevelApproval(
+  approval: any,
+  loanApp: any,
+  profile: any,
+  workflow: any
+) {
+  // Check if user has approval authority for this workflow
+  const { data: userRole, error: roleError } = await supabase
+    .from('approval_workflow_roles')
+    .select('*')
+    .eq('workflow_id', workflow.id)
+    .eq('tenant_id', profile.tenant_id)
+    .eq('role', profile.role)
+    .single();
+
+  if (roleError || !userRole) {
+    throw new Error('You do not have approval authority for this loan');
+  }
+
+  // Check if approval request exists
+  const { data: approvalRequest, error: requestError } = await supabase
+    .from('approval_requests')
+    .select('*')
+    .eq('workflow_id', workflow.id)
+    .eq('record_id', approval.loan_application_id)
+    .eq('status', 'pending')
+    .single();
+
+  if (requestError || !approvalRequest) {
+    throw new Error('No pending approval request found for this loan');
+  }
+
+  // Check if user has already approved this request
+  const { data: existingAction, error: actionError } = await supabase
+    .from('approval_actions')
+    .select('*')
+    .eq('approval_request_id', approvalRequest.id)
+    .eq('approver_id', profile.id)
+    .maybeSingle();
+
+  if (actionError) throw actionError;
+  if (existingAction) {
+    throw new Error('You have already acted on this approval request');
+  }
+
+  // Create approval action
+  const { data: action, error: actionCreateError } = await supabase
+    .from('approval_actions')
+    .insert([{
+      approval_request_id: approvalRequest.id,
+      approver_id: profile.id,
+      action: approval.action === 'approve' ? 'approved' : 'rejected',
+      comments: approval.comments,
+      approval_level: userRole.approval_level,
+      tenant_id: profile.tenant_id,
+    }])
+    .select()
+    .single();
+
+  if (actionCreateError) throw actionCreateError;
+
+  // Count total approvals for this request
+  const { data: allActions, error: countError } = await supabase
+    .from('approval_actions')
+    .select('action')
+    .eq('approval_request_id', approvalRequest.id)
+    .eq('action', 'approved');
+
+  if (countError) throw countError;
+
+  const approvalCount = allActions?.length || 0;
+  const rejectionCount = await getRejectionCount(approvalRequest.id);
+
+  // Determine new status based on workflow rules
+  let newRequestStatus = 'pending';
+  let newApplicationStatus = loanApp.status;
+
+  if (rejectionCount > 0) {
+    newRequestStatus = 'rejected';
+    newApplicationStatus = 'rejected';
+  } else if (approvalCount >= workflow.minimum_approvers) {
+    newRequestStatus = 'approved';
+    newApplicationStatus = 'pending_disbursement';
+  }
+
+  // Update approval request status
+  const { error: updateRequestError } = await supabase
+    .from('approval_requests')
+    .update({
+      status: newRequestStatus,
+      completed_at: newRequestStatus !== 'pending' ? new Date().toISOString() : null,
+    })
+    .eq('id', approvalRequest.id);
+
+  if (updateRequestError) throw updateRequestError;
+
+  // Update loan application status
+  const { error: updateAppError } = await supabase
+    .from('loan_applications')
+    .update({
+      status: newApplicationStatus,
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+      approval_notes: approval.comments,
+      final_approved_amount: approval.approved_amount,
+      final_approved_term: approval.approved_term,
+      final_approved_interest_rate: approval.approved_interest_rate,
+    })
+    .eq('id', approval.loan_application_id);
+
+  if (updateAppError) throw updateAppError;
+
+  // Create loan record if fully approved
+  if (newApplicationStatus === 'pending_disbursement') {
+    await createLoanRecord(loanApp, approval, profile);
+  }
+
+  // Create loan approval record for audit trail
+  const { error: approvalRecordError } = await supabase
+    .from('loan_approvals')
+    .insert([{
+      tenant_id: profile.tenant_id,
+      loan_application_id: approval.loan_application_id,
+      approver_id: profile.id,
+      action: approval.action,
+      status: approval.action === 'approve' ? 'approved' : 'rejected',
+      comments: approval.comments,
+      approved_amount: approval.approved_amount,
+      approved_term: approval.approved_term,
+      approved_interest_rate: approval.approved_interest_rate,
+      conditions: approval.conditions,
+    }]);
+
+  if (approvalRecordError) console.warn('Error creating approval record:', approvalRecordError);
+
+  const message = newApplicationStatus === 'pending_disbursement' 
+    ? `Loan approved! ${approvalCount}/${workflow.minimum_approvers} approvals received. Ready for disbursement.`
+    : newApplicationStatus === 'rejected'
+    ? 'Loan rejected. No further approvals needed.'
+    : `Approval recorded. ${approvalCount}/${workflow.minimum_approvers} approvals received.`;
+
+  return { ...action, message };
+}
+
+// Helper function to get rejection count
+async function getRejectionCount(approvalRequestId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('approval_actions')
+    .select('action')
+    .eq('approval_request_id', approvalRequestId)
+    .eq('action', 'rejected');
+
+  if (error) throw error;
+  return data?.length || 0;
+}
+
+// Helper function to create loan record
+async function createLoanRecord(loanApp: any, approval: any, profile: any) {
+  // Check if loan already exists for this application
+  const { data: existingLoan, error: checkError } = await supabase
+    .from('loans')
+    .select('id, status')
+    .eq('application_id', approval.loan_application_id)
+    .maybeSingle();
+  
+  if (checkError && checkError.code !== 'PGRST116') throw checkError;
+  
+  // Only create loan if none exists
+  if (!existingLoan) {
+    const loanNumber = `LN-${Date.now()}`;
+    
+    // Get full loan product details for snapshot preservation
+    const { data: productSnapshot, error: productError } = await supabase
+      .from('loan_products')
+      .select('*')
+      .eq('id', loanApp.loan_product_id)
+      .single();
+
+    if (productError) throw new Error('Failed to fetch loan product details for snapshot');
+    
+    const { data: loanData, error: loanError } = await supabase
+      .from('loans')
+      .insert([{
+        tenant_id: profile.tenant_id,
+        client_id: loanApp.client_id,
+        loan_product_id: loanApp.loan_product_id,
+        application_id: approval.loan_application_id,
+        loan_number: loanNumber,
+        principal_amount: approval.approved_amount || loanApp.requested_amount,
+        interest_rate: (() => {
+          const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+          return r > 1 ? r / 100 : r;
+        })(),
+        term_months: approval.approved_term || loanApp.requested_term,
+        outstanding_balance: approval.approved_amount || loanApp.requested_amount,
+        status: 'pending_disbursement',
+        loan_officer_id: profile.id,
+        loan_product_snapshot: productSnapshot,
+        creation_interest_rate: (() => {
+          const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
+          return r > 1 ? r / 100 : r;
+        })(),
+        creation_term_months: approval.approved_term || loanApp.requested_term,
+        creation_principal: approval.approved_amount || loanApp.requested_amount,
+        creation_days_in_year_type: productSnapshot?.days_in_year_type || '365',
+        creation_days_in_month_type: productSnapshot?.days_in_month_type || 'actual',
+        creation_amortization_method: productSnapshot?.amortization_method || 'equal_installments',
+        creation_interest_recalculation_enabled: productSnapshot?.interest_recalculation_enabled || false,
+        creation_compounding_enabled: productSnapshot?.compounding_enabled || false,
+        creation_reschedule_strategy_method: productSnapshot?.reschedule_strategy_method || 'reduce_emi',
+        creation_pre_closure_interest_calculation_rule: productSnapshot?.pre_closure_interest_calculation_rule || 'till_pre_close_date',
+        creation_advance_payments_adjustment_type: productSnapshot?.advance_payments_adjustment_type || 'reduce_emi',
+      }])
+      .select()
+      .single();
+    
+    if (loanError) throw loanError;
+  }
+}
 
 // Loan Disbursements Hook
 export const useLoanDisbursements = () => {
