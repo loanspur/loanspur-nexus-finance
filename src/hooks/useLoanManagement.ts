@@ -7,6 +7,7 @@ import { defaultQueryOptions } from './useOptimizedQueries';
 import { useLoanDisbursementAccounting, useLoanChargeAccounting } from './useLoanAccounting';
 import { calculateFeeAmount } from '@/lib/fee-calculation';
 import { generateLoanSchedule } from '@/lib/loan-schedule-generator';
+import { generateMifosLoanSchedule, validateMifosLoanParams } from '@/lib/mifos-interest-calculation';
 import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
 export interface LoanApplication {
   id: string;
@@ -376,7 +377,7 @@ export const useLoanSchedules = (loanId?: string) => {
   });
 };
 
-// Generate Loan Schedule
+// Generate Loan Schedule using Mifos X standards
 export const useGenerateLoanSchedule = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -387,47 +388,76 @@ export const useGenerateLoanSchedule = () => {
       principal, 
       interestRate, 
       termMonths, 
-      startDate 
+      startDate,
+      repaymentFrequency = 'monthly',
+      calculationMethod = 'reducing_balance',
+      daysInYearType = '365',
+      daysInMonthType = 'actual',
+      amortizationMethod = 'equal_installments',
+      gracePeriodDays = 0,
+      gracePeriodType = 'none'
     }: { 
       loanId: string; 
       principal: number; 
       interestRate: number; 
       termMonths: number; 
       startDate: string;
+      repaymentFrequency?: 'daily' | 'weekly' | 'monthly';
+      calculationMethod?: 'reducing_balance' | 'flat_rate' | 'declining_balance';
+      daysInYearType?: '360' | '365' | 'actual';
+      daysInMonthType?: '30' | 'actual';
+      amortizationMethod?: 'equal_installments' | 'equal_principal';
+      gracePeriodDays?: number;
+      gracePeriodType?: 'none' | 'principal_only' | 'interest_only' | 'principal_and_interest';
     }) => {
-      // Use unified interest calculation library
-      const interestResult = calculateReducingBalanceInterest({
+      // Convert frequency to Mifos X format
+      const mifosFrequency = repaymentFrequency === 'daily' ? 'daily' : 
+                            repaymentFrequency === 'weekly' ? 'weekly' : 'monthly';
+      
+      // Convert calculation method to Mifos X format
+      const mifosInterestType = calculationMethod === 'flat_rate' ? 'flat_rate' : 'declining_balance';
+      
+      // Calculate term in periods based on frequency
+      const termInPeriods = repaymentFrequency === 'daily' ? termMonths : 
+                           repaymentFrequency === 'weekly' ? Math.ceil((termMonths / 12) * 52) : termMonths;
+
+      // Prepare Mifos X parameters
+      const mifosParams = {
         principal,
-        annualRate: interestRate,
-        termInMonths: termMonths,
-        calculationMethod: 'reducing_balance'
-      });
-      const monthlyPayment = interestResult.monthlyPayment;
+        annualInterestRate: interestRate * 100, // Convert decimal to percentage
+        termInPeriods,
+        repaymentFrequency: mifosFrequency,
+        interestType: mifosInterestType,
+        amortizationType: amortizationMethod,
+        daysInYearType,
+        daysInMonthType,
+        disbursementDate: new Date(startDate),
+        gracePeriodDays,
+        gracePeriodType
+      };
 
-      const schedules: Omit<LoanSchedule, 'id' | 'created_at'>[] = [];
-      let remainingBalance = principal;
-
-      for (let i = 1; i <= termMonths; i++) {
-        const interestAmount = calculateMonthlyInterest(remainingBalance, interestRate);
-        const principalAmount = monthlyPayment - interestAmount;
-        const dueDate = new Date(startDate);
-        dueDate.setMonth(dueDate.getMonth() + i);
-
-        remainingBalance -= principalAmount;
-
-        schedules.push({
-          loan_id: loanId,
-          installment_number: i,
-          due_date: dueDate.toISOString().split('T')[0],
-          principal_amount: principalAmount,
-          interest_amount: interestAmount,
-          fee_amount: 0,
-          total_amount: monthlyPayment,
-          paid_amount: 0,
-          outstanding_amount: monthlyPayment,
-          payment_status: 'unpaid'
-        });
+      // Validate parameters
+      const validation = validateMifosLoanParams(mifosParams);
+      if (!validation.valid) {
+        throw new Error(`Invalid loan parameters: ${validation.errors.join(', ')}`);
       }
+
+      // Generate schedule using Mifos X system
+      const mifosResult = generateMifosLoanSchedule(mifosParams);
+      
+      // Convert to database format
+      const schedules = mifosResult.schedule.map(entry => ({
+          loan_id: loanId,
+        installment_number: entry.installmentNumber,
+        due_date: entry.dueDate.toISOString().split('T')[0],
+        principal_amount: entry.principalAmount,
+        interest_amount: entry.interestAmount,
+        fee_amount: entry.feeAmount,
+        total_amount: entry.totalAmount,
+          paid_amount: 0,
+        outstanding_amount: entry.totalAmount,
+          payment_status: 'unpaid'
+      }));
 
       const { data, error } = await supabase
         .from('loan_schedules')
@@ -1409,6 +1439,7 @@ export const useProcessLoanDisbursement = () => {
               .single();
 
             if (!loanError && loanDetails) {
+              // Use Mifos X-based schedule generation
               const scheduleParams = {
                 loanId: existingLoan.id,
                 principal: Number(loanDetails.principal_amount || disbursement.disbursed_amount),
@@ -1417,6 +1448,11 @@ export const useProcessLoanDisbursement = () => {
                 disbursementDate: disbursement.disbursement_date,
                 repaymentFrequency: (loanProduct.repayment_frequency || 'monthly') as 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly',
                 calculationMethod: (loanProduct.interest_calculation_method || 'reducing_balance') as 'reducing_balance' | 'flat_rate' | 'declining_balance',
+                daysInYearType: (loanProduct.days_in_year_type || '365') as '360' | '365' | 'actual',
+                daysInMonthType: (loanProduct.days_in_month_type || 'actual') as '30' | 'actual',
+                amortizationMethod: (loanProduct.amortization_method || 'equal_installments') as 'equal_installments' | 'equal_principal',
+                gracePeriodDays: loanProduct.grace_period_duration || 0,
+                gracePeriodType: (loanProduct.grace_period_type || 'none') as 'none' | 'principal_only' | 'interest_only' | 'principal_and_interest'
               };
 
               const schedule = generateLoanSchedule(scheduleParams);

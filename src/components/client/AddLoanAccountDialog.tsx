@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CreditCard, CalendarIcon, Upload, Plus, Trash2, Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { useLoanPurposes } from "@/hooks/useLoanPurposes";
 import { useCollateralTypes } from "@/hooks/useCollateralTypes";
@@ -87,6 +87,7 @@ export const AddLoanAccountDialog = ({
   const [repaymentSchedule, setRepaymentSchedule] = useState<any[]>([]);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { useCreateLoanApplication } = useUnifiedLoanManagement();
   const createLoanApplication = useCreateLoanApplication();
 
   const [collateralItems, setCollateralItems] = useState([{ type: "", description: "", value: "" }]);

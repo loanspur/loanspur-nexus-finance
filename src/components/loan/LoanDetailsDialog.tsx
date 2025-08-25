@@ -36,8 +36,7 @@ import { TransactionStatement } from "@/components/statements/TransactionStateme
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLoanSchedules } from "@/hooks/useLoanManagement";
-import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -113,7 +112,9 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [recoveryMethod, setRecoveryMethod] = useState<string>('cash');
 
   // Hooks
-  const transactionManager = useLoanTransactionManager();
+  const { useProcessLoanTransaction, useLoanSchedules } = useUnifiedLoanManagement();
+  const transactionManager = useProcessLoanTransaction();
+  const { data: schedules, isLoading: schedulesLoading } = useLoanSchedules(loan.id);
   const repayAccounting = useLoanRepaymentAccounting();
   const chargeAccounting = useLoanChargeAccounting();
   const createJournal = useCreateJournalEntry();

@@ -271,18 +271,18 @@ export const EnhancedLoanWorkflowDialog = ({
   });
 
   // Handle approval submission
-  const onApprovalSubmit = async (data: ApprovalData) => {
-    try {
+const onApprovalSubmit = async (data: ApprovalData) => {
+  try {
       // Process local approval
-      await processApproval.mutateAsync({
-        loan_application_id: loanApplication.id,
-        action: data.action,
-        approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
-        approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
-        approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
-        approval_date: data.approval_date,
-        conditions: data.conditions,
-      });
+    await processApproval.mutateAsync({
+      loan_application_id: loanApplication.id,
+      action: data.action,
+      approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
+      approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
+      approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
+      approval_date: data.approval_date,
+      conditions: data.conditions,
+    });
 
       // Sync to Mifos X if enabled and configured
       if (data.sync_to_mifos && mifosConfig && loanApplication.mifos_loan_id && data.action === 'approve') {
@@ -293,13 +293,13 @@ export const EnhancedLoanWorkflowDialog = ({
           expectedDisbursementDate: format(new Date(), 'yyyy-MM-dd'),
         });
       }
-      
-      onOpenChange(false);
-      onSuccess?.();
-    } catch (error) {
-      console.error('Error processing approval:', error);
-    }
-  };
+    
+    onOpenChange(false);
+    onSuccess?.();
+  } catch (error) {
+    console.error('Error processing approval:', error);
+  }
+};
 
   // Handle disbursement submission
   const onDisbursementSubmit = async (data: DisbursementData) => {
@@ -538,17 +538,17 @@ export const EnhancedLoanWorkflowDialog = ({
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={getStatusColor(loanApplication.status)}>
-                {getStatusIcon(loanApplication.status)}
-                {loanApplication.status.replace('_', ' ').toUpperCase()}
-              </Badge>
+                    {getStatusIcon(loanApplication.status)}
+                    {loanApplication.status.replace('_', ' ').toUpperCase()}
+                  </Badge>
               {mifosConfig && (
                 <Badge variant="outline">
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Mifos X Connected
                 </Badge>
               )}
-            </div>
-          </div>
+                  </div>
+                </div>
 
           {/* Tabs */}
           <Tabs value={currentTab} onValueChange={setCurrentTab}>
@@ -572,7 +572,7 @@ export const EnhancedLoanWorkflowDialog = ({
                     <div className="flex justify-between">
                       <span>Amount:</span>
                       <span className="font-semibold">{formatAmount(loanApplication.requested_amount)}</span>
-                    </div>
+                      </div>
                     <div className="flex justify-between">
                       <span>Term:</span>
                       <span>{loanApplication.requested_term} months</span>
@@ -584,38 +584,38 @@ export const EnhancedLoanWorkflowDialog = ({
                     <div className="flex justify-between">
                       <span>Product:</span>
                       <span>{product?.name}</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                      </div>
+              </CardContent>
+            </Card>
 
                 {loan && (
-                  <Card>
-                    <CardHeader>
+            <Card>
+              <CardHeader>
                       <CardTitle>Loan Status</CardTitle>
-                    </CardHeader>
+              </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span>Outstanding:</span>
                         <span className="font-semibold">{formatAmount(outstandingBalance)}</span>
-                      </div>
+                  </div>
                       <div className="flex justify-between">
                         <span>Total Paid:</span>
                         <span>{formatAmount(totalPaid)}</span>
-                      </div>
+                  </div>
                       <div className="flex justify-between">
                         <span>Total Scheduled:</span>
                         <span>{formatAmount(totalScheduled)}</span>
-                      </div>
+                </div>
                       <div className="flex justify-between">
                         <span>Status:</span>
                         <Badge variant={getStatusColor(loan.status)}>
                           {loan.status.replace('_', ' ').toUpperCase()}
                         </Badge>
-                      </div>
+                  </div>
                     </CardContent>
                   </Card>
                 )}
-              </div>
+                </div>
 
               {schedules.length > 0 && (
                 <Card>
@@ -631,23 +631,23 @@ export const EnhancedLoanWorkflowDialog = ({
                           <Badge variant={schedule.payment_status === 'paid' ? 'default' : 'secondary'}>
                             {schedule.payment_status}
                           </Badge>
-                        </div>
+                            </div>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                </div>
+              </CardContent>
+            </Card>
               )}
-            </TabsContent>
+          </TabsContent>
 
             {/* Approval Tab */}
             <TabsContent value="approval">
-              <Card>
-                <CardHeader>
+                  <Card>
+<CardHeader>
                   <CardTitle>Loan Approval</CardTitle>
-                  <CardDescription>
+  <CardDescription>
                     Review and approve the loan application
-                  </CardDescription>
-                </CardHeader>
+  </CardDescription>
+</CardHeader>
                 <CardContent>
                   <Form {...approvalForm}>
                     <form onSubmit={approvalForm.handleSubmit(onApprovalSubmit)} className="space-y-4">
@@ -666,7 +666,7 @@ export const EnhancedLoanWorkflowDialog = ({
                               <SelectContent>
                                 <SelectItem value="approve">Approve</SelectItem>
                                 <SelectItem value="reject">Reject</SelectItem>
-                                <SelectItem value="request_changes">Request Changes</SelectItem>
+                                    <SelectItem value="request_changes">Request Changes</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -675,76 +675,76 @@ export const EnhancedLoanWorkflowDialog = ({
                       />
 
                       <div className="grid grid-cols-3 gap-4">
-                        <FormField
-                          control={approvalForm.control}
+                          <FormField
+                            control={approvalForm.control}
                           name="approved_amount"
-                          render={({ field }) => (
-                            <FormItem>
+                            render={({ field }) => (
+                              <FormItem>
                               <FormLabel>Approved Amount</FormLabel>
-                              <FormControl>
+                                <FormControl>
                                 <Input {...field} type="number" step="0.01" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <FormField
-                          control={approvalForm.control}
+                                <FormField
+                                  control={approvalForm.control}
                           name="approved_term"
-                          render={({ field }) => (
-                            <FormItem>
+                                  render={({ field }) => (
+                                    <FormItem>
                               <FormLabel>Approved Term (months)</FormLabel>
-                              <FormControl>
+                                      <FormControl>
                                 <Input {...field} type="number" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
 
-                        <FormField
-                          control={approvalForm.control}
+                                <FormField
+                                  control={approvalForm.control}
                           name="approved_interest_rate"
-                          render={({ field }) => (
-                            <FormItem>
+                                  render={({ field }) => (
+                                    <FormItem>
                               <FormLabel>Interest Rate (%)</FormLabel>
-                              <FormControl>
+                                      <FormControl>
                                 <Input {...field} type="number" step="0.01" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
                       </div>
 
-                      <FormField
-                        control={approvalForm.control}
+                                <FormField
+                                  control={approvalForm.control}
                         name="approval_date"
-                        render={({ field }) => (
-                          <FormItem>
+                                  render={({ field }) => (
+                                    <FormItem>
                             <FormLabel>Approval Date</FormLabel>
-                            <FormControl>
+                                      <FormControl>
                               <Input {...field} type="date" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
 
-                      <FormField
-                        control={approvalForm.control}
-                        name="conditions"
-                        render={({ field }) => (
-                          <FormItem>
+                              <FormField
+                                control={approvalForm.control}
+                                name="conditions"
+                                render={({ field }) => (
+                                  <FormItem>
                             <FormLabel>Conditions (optional)</FormLabel>
-                            <FormControl>
+                                    <FormControl>
                               <Textarea {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
                       {mifosConfig && (
                         <FormField
@@ -776,21 +776,21 @@ export const EnhancedLoanWorkflowDialog = ({
                           {processApproval.isPending ? "Processing..." : "Submit Approval"}
                         </Button>
                       </div>
-                    </form>
-                  </Form>
+                </form>
+              </Form>
                 </CardContent>
               </Card>
-            </TabsContent>
+          </TabsContent>
 
             {/* Disbursement Tab */}
             <TabsContent value="disbursement">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Loan Disbursement</CardTitle>
-                  <CardDescription>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Loan Disbursement</CardTitle>
+                      <CardDescription>
                     Process loan disbursement
-                  </CardDescription>
-                </CardHeader>
+                      </CardDescription>
+                    </CardHeader>
                 <CardContent>
                   <Form {...disbursementForm}>
                     <form onSubmit={disbursementForm.handleSubmit(onDisbursementSubmit)} className="space-y-4">
@@ -850,30 +850,30 @@ export const EnhancedLoanWorkflowDialog = ({
                       />
 
                       {disbursementForm.watch('disbursement_method') === 'transfer_to_savings' && (
-                        <FormField
-                          control={disbursementForm.control}
-                          name="savings_account_id"
-                          render={({ field }) => (
-                            <FormItem>
+                              <FormField
+                                control={disbursementForm.control}
+                                name="savings_account_id"
+                                render={({ field }) => (
+                                  <FormItem>
                               <FormLabel>Savings Account</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select savings account" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select savings account" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
                                   {savingsAccounts.map((account: any) => (
-                                    <SelectItem key={account.id} value={account.id}>
+                                          <SelectItem key={account.id} value={account.id}>
                                       {account.account_number} - {formatAmount(account.account_balance)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
                       )}
 
                       {mifosConfig && (
@@ -928,59 +928,59 @@ export const EnhancedLoanWorkflowDialog = ({
                         </Button>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                            )}
+                          </CardContent>
+                        </Card>
             </TabsContent>
 
             {/* Repayment Tab */}
             <TabsContent value="repayment">
               <Card>
-                <CardHeader>
+                          <CardHeader>
                   <CardTitle>Loan Repayment</CardTitle>
                   <CardDescription>
                     Record loan repayment
                   </CardDescription>
-                </CardHeader>
+                          </CardHeader>
                 <CardContent>
                   {loan ? (
                     <Form {...repaymentForm}>
                       <form onSubmit={repaymentForm.handleSubmit(onRepaymentSubmit)} className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
-                          <FormField
+                            <FormField
                             control={repaymentForm.control}
                             name="payment_amount"
-                            render={({ field }) => (
-                              <FormItem>
+                              render={({ field }) => (
+                                <FormItem>
                                 <FormLabel>Payment Amount</FormLabel>
-                                <FormControl>
+                                  <FormControl>
                                   <Input {...field} type="number" step="0.01" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                          <FormField
+                            <FormField
                             control={repaymentForm.control}
                             name="payment_date"
-                            render={({ field }) => (
-                              <FormItem>
+                              render={({ field }) => (
+                                <FormItem>
                                 <FormLabel>Payment Date</FormLabel>
-                                <FormControl>
+                                  <FormControl>
                                   <Input {...field} type="date" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                         </div>
 
-                        <FormField
+                            <FormField
                           control={repaymentForm.control}
                           name="payment_method"
-                          render={({ field }) => (
-                            <FormItem>
+                              render={({ field }) => (
+                                <FormItem>
                               <FormLabel>Payment Method</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
@@ -1006,13 +1006,13 @@ export const EnhancedLoanWorkflowDialog = ({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Reference Number (optional)</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
                         {mifosConfig && (
                           <FormField
@@ -1054,36 +1054,36 @@ export const EnhancedLoanWorkflowDialog = ({
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                          </CardContent>
+                        </Card>
             </TabsContent>
 
             {/* Write-off Tab */}
             <TabsContent value="writeoff">
               <Card>
-                <CardHeader>
+                          <CardHeader>
                   <CardTitle>Loan Write-off</CardTitle>
                   <CardDescription>
                     Write off the loan as bad debt
                   </CardDescription>
-                </CardHeader>
-                <CardContent>
+                          </CardHeader>
+                          <CardContent>
                   {loan ? (
                     <Form {...writeOffForm}>
                       <form onSubmit={writeOffForm.handleSubmit(onWriteOffSubmit)} className="space-y-4">
-                        <FormField
+                            <FormField
                           control={writeOffForm.control}
                           name="write_off_reason"
-                          render={({ field }) => (
-                            <FormItem>
+                              render={({ field }) => (
+                                <FormItem>
                               <FormLabel>Write-off Reason</FormLabel>
-                              <FormControl>
+                                  <FormControl>
                                 <Textarea {...field} placeholder="Enter reason for write-off" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
@@ -1139,14 +1139,14 @@ export const EnhancedLoanWorkflowDialog = ({
 
                         <div className="flex justify-end gap-2">
                           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                            Cancel
-                          </Button>
+                          Cancel
+                        </Button>
                           <Button type="submit" variant="destructive">
                             Write Off Loan
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
+                        </Button>
+                      </div>
+                </form>
+              </Form>
                   ) : (
                     <div className="text-center py-8">
                       <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -1157,7 +1157,7 @@ export const EnhancedLoanWorkflowDialog = ({
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+          </TabsContent>
 
             {/* Documents Tab */}
             <TabsContent value="documents">

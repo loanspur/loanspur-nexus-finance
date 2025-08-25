@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -103,6 +103,7 @@ interface LoanApplicationFormProps {
 export const LoanApplicationForm = ({ children }: LoanApplicationFormProps) => {
   const [open, setOpen] = useState(false);
   const { profile } = useAuth();
+  const { useCreateLoanApplication } = useUnifiedLoanManagement();
   const createLoanApplication = useCreateLoanApplication();
   const createApprovalRequest = useCreateApprovalRequest();
   

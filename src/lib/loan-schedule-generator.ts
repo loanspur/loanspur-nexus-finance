@@ -1,5 +1,10 @@
 import { addMonths, addWeeks, addDays, format } from 'date-fns';
-import { calculateDailyInterestForDate, calculateMonthlyInterest } from './interest-calculation';
+import { 
+  generateMifosLoanSchedule, 
+  MifosInterestParams, 
+  convertMifosScheduleToDatabase,
+  validateMifosLoanParams 
+} from './mifos-interest-calculation';
 
 export interface LoanScheduleParams {
   loanId: string;
@@ -16,6 +21,8 @@ export interface LoanScheduleParams {
   daysInYearType?: '360' | '365' | 'actual';
   daysInMonthType?: '30' | 'actual';
   amortizationMethod?: 'equal_installments' | 'equal_principal';
+  gracePeriodDays?: number;
+  gracePeriodType?: 'none' | 'principal_only' | 'interest_only' | 'principal_and_interest';
 }
 
 export interface LoanScheduleEntry {
@@ -28,9 +35,13 @@ export interface LoanScheduleEntry {
   total_amount: number;
   paid_amount: number;
   outstanding_amount: number;
-  payment_status: 'unpaid';
+  payment_status: string;
 }
 
+/**
+ * Generate loan schedule using Mifos X standards
+ * This function now uses the unified Mifos X interest calculation system
+ */
 export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEntry[] {
   const {
     loanId,
@@ -45,136 +56,141 @@ export function generateLoanSchedule(params: LoanScheduleParams): LoanScheduleEn
     installmentFees = [],
     daysInYearType = '365',
     daysInMonthType = 'actual',
-    amortizationMethod = 'equal_installments'
+    amortizationMethod = 'equal_installments',
+    gracePeriodDays = 0,
+    gracePeriodType = 'none'
   } = params;
 
-  const schedule: LoanScheduleEntry[] = [];
-  const startDate = new Date(disbursementDate);
+  // Convert frequency to Mifos X format
+  const mifosFrequency = convertFrequencyToMifos(repaymentFrequency);
   
-  // CRITICAL: Interest rate should be in decimal format (e.g., 0.12 for 12%)
-  // The interestRate parameter should already be normalized before this function
-  let normalizedRate = interestRate;
+  // Convert calculation method to Mifos X format
+  const mifosInterestType = convertCalculationMethodToMifos(calculationMethod);
   
-  // Safety check: if rate is suspiciously high, it might be in wrong format
-  if (normalizedRate > 0.5) { // More than 50% is unusual for normal loans
-    console.warn(`Very high interest rate detected: ${interestRate}. Double-check rate format.`);
-  }
-  
-  // Calculate number of payments based on frequency and term
-  const paymentsPerYear = getPaymentsPerYear(repaymentFrequency);
-  let totalPayments;
-  
-  // For daily frequency, use termMonths as days directly
-  if (repaymentFrequency === 'daily') {
-    totalPayments = termMonths; // termMonths represents days for daily frequency
-  } else {
-    totalPayments = Math.ceil((termMonths / 12) * paymentsPerYear);
-  }
-  
-  // Calculate periodic rate using MiFos X compatible days convention
-  const daysInYear = getDaysInYear(daysInYearType, startDate);
-  const periodicRate = calculatePeriodicRate(normalizedRate, repaymentFrequency, daysInYear, paymentsPerYear);
+  // Calculate term in periods based on frequency
+  const termInPeriods = calculateTermInPeriods(termMonths, repaymentFrequency);
 
-  // Calculate first payment date
-  let nextPaymentDate = firstPaymentDate ? new Date(firstPaymentDate) : getNextPaymentDate(startDate, repaymentFrequency);
-  
-  let remainingBalance = principal;
+  // Prepare Mifos X parameters
+  const mifosParams: MifosInterestParams = {
+    principal,
+    annualInterestRate: interestRate * 100, // Convert decimal to percentage
+    termInPeriods,
+    repaymentFrequency: mifosFrequency,
+    interestType: mifosInterestType,
+    amortizationType: amortizationMethod,
+    daysInYearType,
+    daysInMonthType,
+    disbursementDate: new Date(disbursementDate),
+    firstPaymentDate: firstPaymentDate ? new Date(firstPaymentDate) : undefined,
+    gracePeriodDays,
+    gracePeriodType
+  };
 
-  for (let i = 1; i <= totalPayments; i++) {
-    let principalAmount = 0;
-    let interestAmount = 0;
-
-    if (calculationMethod === 'reducing_balance' || calculationMethod === 'declining_balance') {
-      // Reducing/Declining balance method with amortization options
-      if (periodicRate > 0) {
-        if (amortizationMethod === 'equal_installments') {
-          // Equal total payments (PMT calculation)
-          const monthlyPayment = calculateMonthlyPayment(principal, periodicRate, totalPayments);
-          // Use unified interest calculation for reducing balance
-          interestAmount = calculateMonthlyInterest(remainingBalance, normalizedRate * 100);
-          principalAmount = monthlyPayment - interestAmount;
-        } else if (amortizationMethod === 'equal_principal') {
-          // Equal principal payments
-          principalAmount = principal / totalPayments;
-          // Use unified interest calculation for flat rate equal principal
-          interestAmount = calculateMonthlyInterest(remainingBalance, normalizedRate * 100);
-        }
-        
-        // Ensure principal doesn't exceed remaining balance for last payment
-        if (i === totalPayments || principalAmount > remainingBalance) {
-          principalAmount = remainingBalance;
-          // Interest should be calculated on remaining balance before payment, not on principal amount
-          interestAmount = remainingBalance * periodicRate;
-        }
-      } else {
-        // Zero interest rate
-        principalAmount = principal / totalPayments;
-        interestAmount = 0;
-      }
-    } else if (calculationMethod === 'flat_rate') {
-      // Flat rate method - interest calculated on original principal
-      principalAmount = principal / totalPayments;
-      
-      // Use unified daily interest calculation from the library
-      // Convert decimal rate back to percentage for the unified function
-      const annualRatePercentage = normalizedRate * 100;
-      interestAmount = calculateDailyInterestForDate(principal, annualRatePercentage, nextPaymentDate);
-      
-      // For flat rate, daily interest stays constant for each payment period
-      if (repaymentFrequency !== 'daily') {
-        // For non-daily frequencies, multiply by the payment period
-        const daysInPeriod = getPaymentPeriodDays(repaymentFrequency);
-        interestAmount = interestAmount * daysInPeriod;
-      }
-    } else {
-      // Default to equal principal installments
-      principalAmount = principal / totalPayments;
-      // Use unified interest calculation for flat rate
-      interestAmount = calculateMonthlyInterest(remainingBalance, normalizedRate * 100);
-    }
-
-    // Round amounts to 2 decimal places
-    principalAmount = Math.round(principalAmount * 100) / 100;
-    interestAmount = Math.round(interestAmount * 100) / 100;
-
-    // Calculate fees for this installment
-    let feeAmount = 0;
-    
-    // Add disbursement fees to first installment only
-    if (i === 1) {
-      feeAmount += disbursementFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
-    }
-    
-    // Add per-installment fees
-    feeAmount += installmentFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
-    
-    feeAmount = Math.round(feeAmount * 100) / 100;
-
-    const totalAmount = principalAmount + interestAmount + feeAmount;
-    remainingBalance = Math.max(0, remainingBalance - principalAmount);
-
-    const scheduleEntry: LoanScheduleEntry = {
-      loan_id: loanId,
-      installment_number: i,
-      due_date: format(nextPaymentDate, 'yyyy-MM-dd'),
-      principal_amount: principalAmount,
-      interest_amount: interestAmount,
-      fee_amount: feeAmount,
-      total_amount: totalAmount,
-      paid_amount: 0,
-      outstanding_amount: totalAmount,
-      payment_status: 'unpaid' as const,
-    };
-
-    schedule.push(scheduleEntry);
-
-    // Calculate next payment date
-    nextPaymentDate = getNextPaymentDate(nextPaymentDate, repaymentFrequency);
+  // Validate parameters
+  const validation = validateMifosLoanParams(mifosParams);
+  if (!validation.valid) {
+    throw new Error(`Invalid loan parameters: ${validation.errors.join(', ')}`);
   }
 
-  return schedule;
+  // Generate schedule using Mifos X system
+  const mifosResult = generateMifosLoanSchedule(mifosParams);
+  
+  // Convert to database format
+  const schedule = convertMifosScheduleToDatabase(mifosResult.schedule, loanId);
+
+  // Add fees to the schedule
+  const scheduleWithFees = addFeesToSchedule(schedule, disbursementFees, installmentFees);
+
+  return scheduleWithFees;
 }
 
+/**
+ * Convert frequency to Mifos X format
+ */
+function convertFrequencyToMifos(frequency: string): 'daily' | 'weekly' | 'monthly' {
+  switch (frequency) {
+    case 'daily':
+      return 'daily';
+    case 'weekly':
+    case 'bi-weekly':
+      return 'weekly';
+    case 'monthly':
+    case 'quarterly':
+      return 'monthly';
+    default:
+      return 'monthly';
+  }
+}
+
+/**
+ * Convert calculation method to Mifos X format
+ */
+function convertCalculationMethodToMifos(method: string): 'declining_balance' | 'flat_rate' {
+  switch (method) {
+    case 'reducing_balance':
+    case 'declining_balance':
+      return 'declining_balance';
+    case 'flat_rate':
+      return 'flat_rate';
+    default:
+      return 'declining_balance';
+  }
+}
+
+/**
+ * Calculate term in periods based on frequency
+ */
+function calculateTermInPeriods(termMonths: number, frequency: string): number {
+  switch (frequency) {
+    case 'daily':
+      return termMonths; // termMonths represents days for daily frequency
+    case 'weekly':
+      return Math.ceil((termMonths / 12) * 52); // 52 weeks per year
+    case 'bi-weekly':
+      return Math.ceil((termMonths / 12) * 26); // 26 bi-weeks per year
+    case 'monthly':
+      return termMonths;
+    case 'quarterly':
+      return Math.ceil(termMonths / 3); // 4 quarters per year
+    default:
+      return termMonths;
+  }
+}
+
+/**
+ * Add fees to the schedule
+ */
+function addFeesToSchedule(
+  schedule: LoanScheduleEntry[],
+  disbursementFees: Array<{ name: string; amount: number; charge_time_type: string }>,
+  installmentFees: Array<{ name: string; amount: number; charge_time_type: string }>
+): LoanScheduleEntry[] {
+  if (schedule.length === 0) return schedule;
+
+  const updatedSchedule = [...schedule];
+
+  // Add disbursement fees to first installment
+  const totalDisbursementFees = disbursementFees.reduce((sum, fee) => sum + fee.amount, 0);
+  if (totalDisbursementFees > 0 && updatedSchedule.length > 0) {
+    updatedSchedule[0].fee_amount += totalDisbursementFees;
+    updatedSchedule[0].total_amount += totalDisbursementFees;
+    updatedSchedule[0].outstanding_amount += totalDisbursementFees;
+  }
+
+  // Add installment fees to all installments
+  const totalInstallmentFees = installmentFees.reduce((sum, fee) => sum + fee.amount, 0);
+  if (totalInstallmentFees > 0) {
+    updatedSchedule.forEach(entry => {
+      entry.fee_amount += totalInstallmentFees;
+      entry.total_amount += totalInstallmentFees;
+      entry.outstanding_amount += totalInstallmentFees;
+    });
+  }
+
+  return updatedSchedule;
+}
+
+// Legacy functions for backward compatibility
 function getPaymentsPerYear(frequency: string): number {
   switch (frequency) {
     case 'daily':
@@ -192,68 +208,28 @@ function getPaymentsPerYear(frequency: string): number {
   }
 }
 
-function getNextPaymentDate(currentDate: Date, frequency: string): Date {
-  switch (frequency) {
-    case 'daily':
-      return addDays(currentDate, 1);
-    case 'weekly':
-      return addWeeks(currentDate, 1);
-    case 'bi-weekly':
-      return addWeeks(currentDate, 2);
-    case 'monthly':
-      return addMonths(currentDate, 1);
-    case 'quarterly':
-      return addMonths(currentDate, 3);
-    default:
-      return addMonths(currentDate, 1);
-  }
-}
-
-function calculateMonthlyPayment(principal: number, periodicRate: number, totalPayments: number): number {
-  if (periodicRate === 0) {
-    return principal / totalPayments;
-  }
-  
-  return (principal * periodicRate * Math.pow(1 + periodicRate, totalPayments)) / 
-         (Math.pow(1 + periodicRate, totalPayments) - 1);
-}
-
-// Enhanced helper functions for MiFos X compatibility
-function getDaysInYear(daysInYearType: string, referenceDate: Date): number {
+function getDaysInYear(daysInYearType: string, startDate: Date): number {
   switch (daysInYearType) {
     case '360':
       return 360;
     case '365':
       return 365;
     case 'actual':
-      const year = referenceDate.getFullYear();
-      return (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 366 : 365;
+      const year = startDate.getFullYear();
+      return ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) ? 366 : 365;
     default:
       return 365;
   }
 }
 
 function calculatePeriodicRate(annualRate: number, frequency: string, daysInYear: number, paymentsPerYear: number): number {
-  // CRITICAL: Ensure proper periodic rate calculation
-  // annualRate should be in decimal format (e.g., 0.12 for 12% annual)
+  const annualRateDecimal = annualRate;
   
-  console.log(`Calculating periodic rate: annual=${annualRate}, frequency=${frequency}, daysInYear=${daysInYear}, paymentsPerYear=${paymentsPerYear}`);
-  
-  let periodicRate;
   if (frequency === 'daily') {
-    periodicRate = annualRate / daysInYear;
+    return annualRateDecimal / daysInYear;
   } else {
-    periodicRate = annualRate / paymentsPerYear;
+    return annualRateDecimal / paymentsPerYear;
   }
-  
-  console.log(`Calculated periodic rate: ${periodicRate} (${(periodicRate * 100).toFixed(4)}%)`);
-  
-  // Safety check: periodic rate should be reasonable
-  if (periodicRate > 0.1) { // More than 10% per period is suspicious
-    console.error(`WARNING: Very high periodic rate calculated: ${periodicRate}. Check input data.`);
-  }
-  
-  return periodicRate;
 }
 
 function getPaymentPeriodDays(frequency: string): number {
@@ -271,6 +247,23 @@ function getPaymentPeriodDays(frequency: string): number {
   }
 }
 
+function getNextPaymentDate(startDate: Date, frequency: string): Date {
+  switch (frequency) {
+    case 'daily':
+      return addDays(startDate, 1);
+    case 'weekly':
+      return addWeeks(startDate, 1);
+    case 'bi-weekly':
+      return addWeeks(startDate, 2);
+    case 'monthly':
+      return addMonths(startDate, 1);
+    case 'quarterly':
+      return addMonths(startDate, 3);
+    default:
+      return addMonths(startDate, 1);
+  }
+}
+
 // Helper function to recalculate outstanding amounts after payments
 export function recalculateScheduleOutstanding(
   schedule: LoanScheduleEntry[],
@@ -279,14 +272,16 @@ export function recalculateScheduleOutstanding(
   const updatedSchedule = [...schedule];
   
   payments.forEach(payment => {
-    if (payment.schedule_id) {
-      const scheduleIndex = updatedSchedule.findIndex(s => s.loan_id === payment.schedule_id);
-      if (scheduleIndex >= 0) {
-        const entry = updatedSchedule[scheduleIndex];
-        entry.paid_amount += payment.principal_amount + payment.interest_amount + payment.fee_amount;
-        entry.outstanding_amount = Math.max(0, entry.total_amount - entry.paid_amount);
-        entry.payment_status = entry.outstanding_amount === 0 ? 'paid' as any : 
-                              entry.paid_amount > 0 ? 'partial' as any : 'unpaid';
+    const scheduleEntry = updatedSchedule.find(entry => entry.installment_number === parseInt(payment.schedule_id || '0'));
+    if (scheduleEntry) {
+      const totalPaid = payment.principal_amount + payment.interest_amount + payment.fee_amount;
+      scheduleEntry.paid_amount = Math.min(scheduleEntry.total_amount, totalPaid);
+      scheduleEntry.outstanding_amount = Math.max(0, scheduleEntry.total_amount - scheduleEntry.paid_amount);
+      
+      if (scheduleEntry.outstanding_amount === 0) {
+        scheduleEntry.payment_status = 'paid';
+      } else if (scheduleEntry.paid_amount > 0) {
+        scheduleEntry.payment_status = 'partial';
       }
     }
   });
