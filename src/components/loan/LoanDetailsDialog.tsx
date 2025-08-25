@@ -284,7 +284,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [earlyFeeId, setEarlyFeeId] = useState<string>('');
 
   // Derived status: in_arrears and overpaid
-  const { data: schedules = [] } = useLoanSchedules(loan?.id);
+  // Note: schedules is already declared above from useLoanSchedules hook
 
   const { data: payments = [] } = useQuery({
     queryKey: ['loan-payments', loan?.id],
