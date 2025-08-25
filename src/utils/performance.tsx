@@ -155,7 +155,7 @@ export const withPerformanceMeasure = <P extends object>(
   Component: React.ComponentType<P>,
   componentName: string
 ) => {
-  return React.forwardRef<any, P>((props, ref) => {
+  return React.forwardRef<React.ElementRef<typeof Component>, P>((props, ref) => {
     usePerformanceMeasure(componentName);
     return <Component {...props} ref={ref} />;
   });

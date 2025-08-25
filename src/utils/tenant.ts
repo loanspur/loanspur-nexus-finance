@@ -4,7 +4,7 @@ export interface TenantInfo {
   id: string;
   name: string;
   slug: string;
-  subdomain: string;
+  subdomain: string | null;
   domain?: string | null;
   logo_url?: string | null;
   status: 'active' | 'suspended' | 'cancelled';
@@ -17,7 +17,7 @@ export interface TenantInfo {
 export function getBaseDomain(hostname?: string): string {
   const h = (hostname || (typeof window !== 'undefined' ? window.location.hostname : '')).split(':')[0];
   // If we're on the dev domain, return it; otherwise default to production
-  if (h === 'loanspur.online' || h.endsWith('.loanspur.online')) return 'loanspur.online';
+  if (h && (h === 'loanspur.online' || h.endsWith('.loanspur.online'))) return 'loanspur.online';
   return 'loanspurcbs.com';
 }
 
@@ -25,41 +25,41 @@ export function getSubdomainFromHostname(hostname: string): string | null {
   // Remove port if present
   const cleanHostname = hostname.split(':')[0];
   
-  if (import.meta.env.VITE_IS_DEVELOPMENT === 'true') {
-  console.log('Subdomain detection - hostname:', hostname, 'cleanHostname:', cleanHostname);
-}
+  if (import.meta.env['VITE_IS_DEVELOPMENT'] === 'true') {
+    console.log('Subdomain detection - hostname:', hostname, 'cleanHostname:', cleanHostname);
+  }
   
   // Check if it's a main domain or localhost
-  if (cleanHostname === 'loanspurcbs.com' || 
+  if (cleanHostname && (cleanHostname === 'loanspurcbs.com' || 
       cleanHostname === 'loanspur.online' ||
       cleanHostname === 'localhost' || 
       cleanHostname.includes('127.0.0.1') ||
-      cleanHostname.includes('lovableproject.com')) {
-    if (import.meta.env.VITE_IS_DEVELOPMENT === 'true') {
-  console.log('Detected as main domain/localhost, returning null');
-}
+      cleanHostname.includes('lovableproject.com'))) {
+    if (import.meta.env['VITE_IS_DEVELOPMENT'] === 'true') {
+      console.log('Detected as main domain/localhost, returning null');
+    }
     return null;
   }
   
   // Extract subdomain from known base domains
-  if (cleanHostname.endsWith('.loanspurcbs.com')) {
+  if (cleanHostname && cleanHostname.endsWith('.loanspurcbs.com')) {
     const subdomain = cleanHostname.replace('.loanspurcbs.com', '');
-    if (import.meta.env.VITE_IS_DEVELOPMENT === 'true') {
-  console.log('Extracted subdomain (prod):', subdomain);
-}
+    if (import.meta.env['VITE_IS_DEVELOPMENT'] === 'true') {
+      console.log('Extracted subdomain (prod):', subdomain);
+    }
     return subdomain === 'www' ? null : subdomain;
   }
-  if (cleanHostname.endsWith('.loanspur.online')) {
+  if (cleanHostname && cleanHostname.endsWith('.loanspur.online')) {
     const subdomain = cleanHostname.replace('.loanspur.online', '');
-    if (import.meta.env.VITE_IS_DEVELOPMENT === 'true') {
-  console.log('Extracted subdomain (dev):', subdomain);
-}
+    if (import.meta.env['VITE_IS_DEVELOPMENT'] === 'true') {
+      console.log('Extracted subdomain (dev):', subdomain);
+    }
     return subdomain === 'www' ? null : subdomain;
   }
   
-  if (import.meta.env.VITE_IS_DEVELOPMENT === 'true') {
-  console.log('No subdomain pattern matched, returning null');
-}
+  if (import.meta.env['VITE_IS_DEVELOPMENT'] === 'true') {
+    console.log('No subdomain pattern matched, returning null');
+  }
   return null;
 }
 

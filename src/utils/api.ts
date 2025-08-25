@@ -33,10 +33,10 @@ export class ApiClient {
     return ApiClient.instance;
   }
 
-  async get<T>(endpoint: string, config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
+  async get<T>(endpoint: string, _config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(endpoint)
+        .from(endpoint as any)
         .select('*');
 
       if (error) {
@@ -49,10 +49,10 @@ export class ApiClient {
     }
   }
 
-  async post<T>(endpoint: string, payload: any, config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, payload: any, _config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(endpoint)
+        .from(endpoint as any)
         .insert(payload)
         .select()
         .single();
@@ -67,10 +67,10 @@ export class ApiClient {
     }
   }
 
-  async put<T>(endpoint: string, id: string, payload: any, config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, id: string, payload: any, _config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(endpoint)
+        .from(endpoint as any)
         .update(payload)
         .eq('id', id)
         .select()
@@ -86,10 +86,10 @@ export class ApiClient {
     }
   }
 
-  async delete<T>(endpoint: string, id: string, config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
+  async delete<T>(endpoint: string, id: string, _config?: Partial<ApiConfig>): Promise<ApiResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(endpoint)
+        .from(endpoint as any)
         .delete()
         .eq('id', id)
         .select()

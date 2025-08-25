@@ -18,7 +18,7 @@ export interface SSLCertificateInfo {
 export async function checkSSLCertificate(domain: string): Promise<SSLCertificateInfo | null> {
   try {
     // For client-side SSL checking, we'll use a proxy service or make a simple HTTPS request
-    const response = await fetch(`https://${domain}`, {
+    await fetch(`https://${domain}`, {
       mode: 'no-cors',
       method: 'HEAD',
     });
