@@ -111,6 +111,11 @@ export class MifosService {
     return this.makeRequest('/loanproducts');
   }
 
+  // Get specific loan product by ID
+  async getLoanProduct(productId: number): Promise<any> {
+    return this.makeRequest(`/loanproducts/${productId}`);
+  }
+
   async getPaymentTypes(): Promise<any[]> {
     return this.makeRequest('/paymenttypes');
   }
@@ -118,6 +123,60 @@ export class MifosService {
   async getStaff(officeId?: number): Promise<any[]> {
     const endpoint = officeId ? `/staff?officeId=${officeId}` : '/staff';
     return this.makeRequest(endpoint);
+  }
+
+  // Record loan repayment
+  async recordRepayment(
+    loanId: number,
+    repaymentData: {
+      transactionAmount: number;
+      transactionDate: string;
+      paymentTypeId: number;
+      accountNumber?: string;
+      checkNumber?: string;
+      routingCode?: string;
+      receiptNumber?: string;
+      bankNumber?: string;
+      locale: string;
+      dateFormat: string;
+    }
+  ): Promise<MifosApiResponse> {
+    return this.makeRequest(`/loans/${loanId}/transactions?command=repayment`, 'POST', repaymentData);
+  }
+
+  // Write off loan
+  async writeOffLoan(
+    loanId: number,
+    writeOffData: {
+      writeOffReasonId: number;
+      writeOffDate: string;
+      locale: string;
+      dateFormat: string;
+    }
+  ): Promise<MifosApiResponse> {
+    return this.makeRequest(`/loans/${loanId}?command=writeoff`, 'POST', writeOffData);
+  }
+
+  // Undo disbursement
+  async undoDisbursement(
+    loanId: number,
+    undoData: {
+      transactionDate: string;
+      locale: string;
+      dateFormat: string;
+    }
+  ): Promise<MifosApiResponse> {
+    return this.makeRequest(`/loans/${loanId}/transactions?command=undodisbursal`, 'POST', undoData);
+  }
+
+  // Get loan schedule
+  async getLoanSchedule(loanId: number): Promise<any> {
+    return this.makeRequest(`/loans/${loanId}/schedule`);
+  }
+
+  // Get loan transactions
+  async getLoanTransactions(loanId: number): Promise<any> {
+    return this.makeRequest(`/loans/${loanId}/transactions`);
   }
 
   // Validate configuration

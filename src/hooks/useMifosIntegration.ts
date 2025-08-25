@@ -5,6 +5,179 @@ import { createMifosService, getMifosConfigFromTenant } from '@/services/mifosSe
 import { useToast } from '@/hooks/use-toast';
 import { MifosLoanApplication, MifosLoanDisbursement } from '@/types/mifos';
 
+// Enhanced Mifos X Product Constraint Validation
+export interface MifosProductConstraints {
+  principal: {
+    min: number;
+    max: number;
+    default: number;
+  };
+  numberOfRepayments: {
+    min: number;
+    max: number;
+    default: number;
+  };
+  interestRatePerPeriod: {
+    min: number;
+    max: number;
+    default: number;
+  };
+  loanTermFrequency: {
+    min: number;
+    max: number;
+    default: number;
+  };
+  charges: Array<{
+    id: number;
+    name: string;
+    amount: number;
+    chargeTimeType: string;
+    chargeCalculationType: string;
+  }>;
+  accountingRule: {
+    id: number;
+    code: string;
+    value: string;
+  };
+}
+
+// Validate loan application against Mifos X product constraints
+export const validateMifosProductConstraints = async (
+  mifosConfig: any,
+  productMifosId: number,
+  loanData: {
+    principal: number;
+    numberOfRepayments: number;
+    interestRatePerPeriod: number;
+    loanTermFrequency: number;
+  }
+): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    const mifosService = createMifosService(mifosConfig);
+    
+    // Fetch product details from Mifos X
+    const product = await mifosService.getLoanProduct(productMifosId);
+    
+    if (!product) {
+      errors.push('Product not found in Mifos X');
+      return { valid: false, errors, warnings };
+    }
+
+    // Validate principal amount
+    if (loanData.principal < product.principal.min) {
+      errors.push(`Principal amount (${loanData.principal}) is below minimum (${product.principal.min})`);
+    }
+    if (loanData.principal > product.principal.max) {
+      errors.push(`Principal amount (${loanData.principal}) exceeds maximum (${product.principal.max})`);
+    }
+
+    // Validate number of repayments
+    if (loanData.numberOfRepayments < product.numberOfRepayments.min) {
+      errors.push(`Number of repayments (${loanData.numberOfRepayments}) is below minimum (${product.numberOfRepayments.min})`);
+    }
+    if (loanData.numberOfRepayments > product.numberOfRepayments.max) {
+      errors.push(`Number of repayments (${loanData.numberOfRepayments}) exceeds maximum (${product.numberOfRepayments.max})`);
+    }
+
+    // Validate interest rate
+    if (loanData.interestRatePerPeriod < product.interestRatePerPeriod.min) {
+      errors.push(`Interest rate (${loanData.interestRatePerPeriod}%) is below minimum (${product.interestRatePerPeriod.min}%)`);
+    }
+    if (loanData.interestRatePerPeriod > product.interestRatePerPeriod.max) {
+      errors.push(`Interest rate (${loanData.interestRatePerPeriod}%) exceeds maximum (${product.interestRatePerPeriod.max}%)`);
+    }
+
+    // Validate loan term frequency
+    if (product.loanTermFrequency && product.loanTermFrequency.min && loanData.loanTermFrequency < product.loanTermFrequency.min) {
+      errors.push(`Loan term (${loanData.loanTermFrequency}) is below minimum (${product.loanTermFrequency.min})`);
+    }
+    if (product.loanTermFrequency && product.loanTermFrequency.max && loanData.loanTermFrequency > product.loanTermFrequency.max) {
+      errors.push(`Loan term (${loanData.loanTermFrequency}) exceeds maximum (${product.loanTermFrequency.max})`);
+    }
+
+    // Check for warnings (non-blocking issues)
+    if (loanData.principal !== product.principal.default) {
+      warnings.push(`Principal amount differs from product default (${product.principal.default})`);
+    }
+    if (loanData.interestRatePerPeriod !== product.interestRatePerPeriod.default) {
+      warnings.push(`Interest rate differs from product default (${product.interestRatePerPeriod.default}%)`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+
+  } catch (error: any) {
+    errors.push(`Failed to validate against Mifos X constraints: ${error.message}`);
+    return { valid: false, errors, warnings };
+  }
+};
+
+// Sync product constraints from Mifos X to local database
+export const syncMifosProductConstraints = async (
+  mifosConfig: any,
+  localProductId: string
+): Promise<{ success: boolean; updatedFields: string[] }> => {
+  try {
+    const mifosService = createMifosService(mifosConfig);
+    
+    // Get local product to find Mifos ID
+    const { data: localProduct, error: localError } = await supabase
+      .from('loan_products')
+      .select('mifos_product_id')
+      .eq('id', localProductId)
+      .single();
+
+    if (localError || !localProduct?.mifos_product_id) {
+      throw new Error('Local product not found or no Mifos ID configured');
+    }
+
+    // Fetch product from Mifos X
+    const mifosProduct = await mifosService.getLoanProduct(localProduct.mifos_product_id);
+    
+    if (!mifosProduct) {
+      throw new Error('Product not found in Mifos X');
+    }
+
+    // Update local product with Mifos constraints
+    const updateData: any = {
+      min_principal: mifosProduct.principal.min,
+      max_principal: mifosProduct.principal.max,
+      default_principal: mifosProduct.principal.default,
+      min_term: mifosProduct.numberOfRepayments.min,
+      max_term: mifosProduct.numberOfRepayments.max,
+      default_term: mifosProduct.numberOfRepayments.default,
+      min_nominal_interest_rate: mifosProduct.interestRatePerPeriod.min,
+      max_nominal_interest_rate: mifosProduct.interestRatePerPeriod.max,
+      default_nominal_interest_rate: mifosProduct.interestRatePerPeriod.default,
+      last_mifos_sync: new Date().toISOString()
+    };
+
+    const { error: updateError } = await supabase
+      .from('loan_products')
+      .update(updateData)
+      .eq('id', localProductId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return {
+      success: true,
+      updatedFields: Object.keys(updateData)
+    };
+
+  } catch (error: any) {
+    console.error('Failed to sync Mifos product constraints:', error);
+    throw error;
+  }
+};
+
 export const useMifosIntegration = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
@@ -61,179 +234,6 @@ export const useMifosIntegration = () => {
       });
     },
   });
-
-  // Enhanced Mifos X Product Constraint Validation
-  export interface MifosProductConstraints {
-    principal: {
-      min: number;
-      max: number;
-      default: number;
-    };
-    numberOfRepayments: {
-      min: number;
-      max: number;
-      default: number;
-    };
-    interestRatePerPeriod: {
-      min: number;
-      max: number;
-      default: number;
-    };
-    loanTermFrequency: {
-      min: number;
-      max: number;
-      default: number;
-    };
-    charges: Array<{
-      id: number;
-      name: string;
-      amount: number;
-      chargeTimeType: string;
-      chargeCalculationType: string;
-    }>;
-    accountingRule: {
-      id: number;
-      code: string;
-      value: string;
-    };
-  }
-
-  // Validate loan application against Mifos X product constraints
-  export const validateMifosProductConstraints = async (
-    mifosConfig: any,
-    productMifosId: number,
-    loanData: {
-      principal: number;
-      numberOfRepayments: number;
-      interestRatePerPeriod: number;
-      loanTermFrequency: number;
-    }
-  ): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> => {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    try {
-      const mifosService = createMifosService(mifosConfig);
-      
-      // Fetch product details from Mifos X
-      const product = await mifosService.getLoanProduct(productMifosId);
-      
-      if (!product) {
-        errors.push('Product not found in Mifos X');
-        return { valid: false, errors, warnings };
-      }
-
-      // Validate principal amount
-      if (loanData.principal < product.principal.min) {
-        errors.push(`Principal amount (${loanData.principal}) is below minimum (${product.principal.min})`);
-      }
-      if (loanData.principal > product.principal.max) {
-        errors.push(`Principal amount (${loanData.principal}) exceeds maximum (${product.principal.max})`);
-      }
-
-      // Validate number of repayments
-      if (loanData.numberOfRepayments < product.numberOfRepayments.min) {
-        errors.push(`Number of repayments (${loanData.numberOfRepayments}) is below minimum (${product.numberOfRepayments.min})`);
-      }
-      if (loanData.numberOfRepayments > product.numberOfRepayments.max) {
-        errors.push(`Number of repayments (${loanData.numberOfRepayments}) exceeds maximum (${product.numberOfRepayments.max})`);
-      }
-
-      // Validate interest rate
-      if (loanData.interestRatePerPeriod < product.interestRatePerPeriod.min) {
-        errors.push(`Interest rate (${loanData.interestRatePerPeriod}%) is below minimum (${product.interestRatePerPeriod.min}%)`);
-      }
-      if (loanData.interestRatePerPeriod > product.interestRatePerPeriod.max) {
-        errors.push(`Interest rate (${loanData.interestRatePerPeriod}%) exceeds maximum (${product.interestRatePerPeriod.max}%)`);
-      }
-
-      // Validate loan term frequency
-      if (product.loanTermFrequency && product.loanTermFrequency.min && loanData.loanTermFrequency < product.loanTermFrequency.min) {
-        errors.push(`Loan term (${loanData.loanTermFrequency}) is below minimum (${product.loanTermFrequency.min})`);
-      }
-      if (product.loanTermFrequency && product.loanTermFrequency.max && loanData.loanTermFrequency > product.loanTermFrequency.max) {
-        errors.push(`Loan term (${loanData.loanTermFrequency}) exceeds maximum (${product.loanTermFrequency.max})`);
-      }
-
-      // Check for warnings (non-blocking issues)
-      if (loanData.principal !== product.principal.default) {
-        warnings.push(`Principal amount differs from product default (${product.principal.default})`);
-      }
-      if (loanData.interestRatePerPeriod !== product.interestRatePerPeriod.default) {
-        warnings.push(`Interest rate differs from product default (${product.interestRatePerPeriod.default}%)`);
-      }
-
-      return {
-        valid: errors.length === 0,
-        errors,
-        warnings
-      };
-
-    } catch (error: any) {
-      errors.push(`Failed to validate against Mifos X constraints: ${error.message}`);
-      return { valid: false, errors, warnings };
-    }
-  };
-
-  // Sync product constraints from Mifos X to local database
-  export const syncMifosProductConstraints = async (
-    mifosConfig: any,
-    localProductId: string
-  ): Promise<{ success: boolean; updatedFields: string[] }> => {
-    try {
-      const mifosService = createMifosService(mifosConfig);
-      
-      // Get local product to find Mifos ID
-      const { data: localProduct, error: localError } = await supabase
-        .from('loan_products')
-        .select('mifos_product_id')
-        .eq('id', localProductId)
-        .single();
-
-      if (localError || !localProduct?.mifos_product_id) {
-        throw new Error('Local product not found or no Mifos ID configured');
-      }
-
-      // Fetch product from Mifos X
-      const mifosProduct = await mifosService.getLoanProduct(localProduct.mifos_product_id);
-      
-      if (!mifosProduct) {
-        throw new Error('Product not found in Mifos X');
-      }
-
-      // Update local product with Mifos constraints
-      const updateData: any = {
-        min_principal: mifosProduct.principal.min,
-        max_principal: mifosProduct.principal.max,
-        default_principal: mifosProduct.principal.default,
-        min_term: mifosProduct.numberOfRepayments.min,
-        max_term: mifosProduct.numberOfRepayments.max,
-        default_term: mifosProduct.numberOfRepayments.default,
-        min_nominal_interest_rate: mifosProduct.interestRatePerPeriod.min,
-        max_nominal_interest_rate: mifosProduct.interestRatePerPeriod.max,
-        default_nominal_interest_rate: mifosProduct.interestRatePerPeriod.default,
-        last_mifos_sync: new Date().toISOString()
-      };
-
-      const { error: updateError } = await supabase
-        .from('loan_products')
-        .update(updateData)
-        .eq('id', localProductId);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      return {
-        success: true,
-        updatedFields: Object.keys(updateData)
-      };
-
-    } catch (error: any) {
-      console.error('Failed to sync Mifos product constraints:', error);
-      throw error;
-    }
-  };
 
   // Enhanced createMifosLoanApplication with constraint validation
   const createMifosLoanApplicationWithValidation = useMutation({
@@ -297,7 +297,7 @@ export const useMifosIntegration = () => {
       if (response.resourceId) {
         await supabase
           .from('loan_applications')
-          .update({ mifos_loan_id: response.resourceId })
+          .update({ mifos_loan_id: response.resourceId } as any)
           .eq('id', data.loanApplicationId);
       }
 
