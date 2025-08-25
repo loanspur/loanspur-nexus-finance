@@ -7,7 +7,7 @@ interface Tenant {
   name: string;
   subdomain: string;
   domain: string;
-  is_active: boolean;
+  status: 'active' | 'suspended' | 'cancelled'; 
   settings: any;
   created_at: string;
   updated_at: string;
@@ -53,7 +53,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         .from('tenants')
         .select('*')
         .eq('subdomain', subdomain.toLowerCase())
-        .eq('is_active', true)
+        .eq('status', 'active')
         .single();
 
       if (tenantError) {
