@@ -16,15 +16,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle, XCircle, Clock, Banknote, AlertTriangle, Undo2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Banknote, AlertTriangle, Undo2, RefreshCw, FileText, Shield, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval, useProcessLoanDisbursement, useUpdateLoanApplicationDetails } from "@/hooks/useLoanManagement";
+import { useProcessLoanApproval, useProcessLoanDisbursement, useUpdateLoanApplicationDetails, useUndoLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useMifosIntegration } from "@/hooks/useMifosIntegration";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateFeeAmount, formatFeeDisplay } from "@/lib/fee-calculation";
 import { NewLoanDialog } from "@/components/client/dialogs/NewLoanDialog";
+
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes', 'undo_approval']),
   approved_amount: z.string().optional(),
@@ -32,6 +34,7 @@ const approvalSchema = z.object({
   approved_interest_rate: z.string().optional(),
   approval_date: z.string().min(1, "Approval date is required"),
   conditions: z.string().optional(),
+  sync_to_mifos: z.boolean().optional(),
 });
 
 const disbursementSchema = z.object({
@@ -43,10 +46,28 @@ const disbursementSchema = z.object({
   bank_name: z.string().optional(),
   mpesa_phone: z.string().optional(),
   savings_account_id: z.string().optional(),
+  sync_to_mifos: z.boolean().optional(),
+});
+
+const repaymentSchema = z.object({
+  payment_amount: z.string().min(1, "Payment amount is required"),
+  payment_date: z.string().min(1, "Payment date is required"),
+  payment_method: z.string().min(1, "Payment method is required"),
+  reference_number: z.string().optional(),
+  sync_to_mifos: z.boolean().optional(),
+});
+
+const writeOffSchema = z.object({
+  write_off_reason: z.string().min(1, "Write-off reason is required"),
+  write_off_date: z.string().min(1, "Write-off date is required"),
+  write_off_amount: z.string().min(1, "Write-off amount is required"),
+  sync_to_mifos: z.boolean().optional(),
 });
 
 type ApprovalData = z.infer<typeof approvalSchema>;
 type DisbursementData = z.infer<typeof disbursementSchema>;
+type RepaymentData = z.infer<typeof repaymentSchema>;
+type WriteOffData = z.infer<typeof writeOffSchema>;
 
 interface EnhancedLoanWorkflowDialogProps {
   loanApplication: any;
@@ -68,6 +89,17 @@ export const EnhancedLoanWorkflowDialog = ({
   const { formatAmount } = useCurrency();
   const processApproval = useProcessLoanApproval();
   const processDisbursement = useProcessLoanDisbursement();
+  const undoDisbursement = useUndoLoanDisbursement();
+  
+  // Mifos X integration
+  const { 
+    mifosConfig, 
+    approveMifosLoan, 
+    disburseMifosLoan, 
+    recordMifosRepayment, 
+    writeOffMifosLoan,
+    undoMifosDisbursement 
+  } = useMifosIntegration();
 
   // Guard clause to prevent null reference errors
   if (!loanApplication) {
@@ -98,89 +130,361 @@ export const EnhancedLoanWorkflowDialog = ({
         .from('fee_structures')
         .select('id, name, calculation_type, amount, min_amount, max_amount, fee_type, charge_time_type')
         .eq('tenant_id', profile!.tenant_id)
+        .eq('fee_type', 'loan')
         .eq('is_active', true);
       if (error) throw error;
-      // Prefer fees that are for loans
-      return (data || []).filter((f: any) => (f.fee_type || '').toLowerCase().includes('loan'));
+      return data;
     },
-    enabled: !!profile?.tenant_id && open,
+    enabled: !!profile?.tenant_id && !!loanApplication.loan_product_id && open,
   });
 
-  // Local edit state
-  const [editTerm, setEditTerm] = useState<number | undefined>(loanApplication.requested_term);
-  const [editSavingsId, setEditSavingsId] = useState<string | undefined>(loanApplication.linked_savings_account_id || undefined);
-  const [editCharges, setEditCharges] = useState<any[]>(loanApplication.selected_charges || []);
-  const [selectedChargeId, setSelectedChargeId] = useState<string>('');
-  const [customChargeAmount, setCustomChargeAmount] = useState<string>('');
+  // Fetch loan product details
+  const { data: product } = useQuery({
+    queryKey: ['loan-product', loanApplication.loan_product_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loan_products')
+        .select('*')
+        .eq('id', loanApplication.loan_product_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loanApplication.loan_product_id && open,
+  });
 
-  const updateLoan = useUpdateLoanApplicationDetails();
+  // Fetch client details
+  const { data: client } = useQuery({
+    queryKey: ['client', loanApplication.client_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', loanApplication.client_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loanApplication.client_id && open,
+  });
 
+  // Fetch loan details if application is approved
+  const { data: loan } = useQuery({
+    queryKey: ['loan', loanApplication.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('loans')
+        .select('*')
+        .eq('application_id', loanApplication.id)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!loanApplication.id && open && ['approved', 'pending_disbursement', 'disbursed', 'active'].includes(loanApplication.status),
+  });
+
+  // Fetch loan schedules if loan exists
+  const { data: schedules = [] } = useQuery({
+    queryKey: ['loan-schedules', loan?.id],
+    queryFn: async () => {
+      if (!loan?.id) return [];
+      const { data, error } = await supabase
+        .from('loan_schedules')
+        .select('*')
+        .eq('loan_id', loan.id)
+        .order('installment_number');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id && open,
+  });
+
+  // Fetch loan payments if loan exists
+  const { data: payments = [] } = useQuery({
+    queryKey: ['loan-payments', loan?.id],
+    queryFn: async () => {
+      if (!loan?.id) return [];
+      const { data, error } = await supabase
+        .from('loan_payments')
+        .select('*')
+        .eq('loan_id', loan.id)
+        .order('payment_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!loan?.id && open,
+  });
+
+  // Calculate outstanding balance
+  const outstandingBalance = loan ? (loan.outstanding_balance || 0) : 0;
+  const totalPaid = payments.reduce((sum, payment) => sum + (payment.payment_amount || 0), 0);
+  const totalScheduled = schedules.reduce((sum, schedule) => sum + (schedule.total_amount || 0), 0);
+
+  // Form handlers
   const approvalForm = useForm<ApprovalData>({
     resolver: zodResolver(approvalSchema),
     defaultValues: {
       action: 'approve',
-      approved_amount: loanApplication.requested_amount?.toString(),
-      approved_term: loanApplication.requested_term?.toString(),
-      approved_interest_rate: loanApplication.requested_interest_rate?.toString() || loanApplication.loan_products?.default_nominal_interest_rate?.toString(),
+      approved_amount: loanApplication.requested_amount?.toString() || '',
+      approved_term: loanApplication.requested_term?.toString() || '',
+      approved_interest_rate: product?.default_nominal_interest_rate?.toString() || '',
       approval_date: format(new Date(), 'yyyy-MM-dd'),
+      conditions: '',
+      sync_to_mifos: !!mifosConfig,
     },
   });
 
   const disbursementForm = useForm<DisbursementData>({
     resolver: zodResolver(disbursementSchema),
     defaultValues: {
-      disbursement_method: 'mpesa',
-      disbursed_amount: loanApplication.final_approved_amount?.toString() || loanApplication.requested_amount?.toString(),
+      disbursement_method: 'bank_transfer',
+      disbursed_amount: loanApplication.requested_amount?.toString() || '',
       disbursement_date: format(new Date(), 'yyyy-MM-dd'),
+      bank_account_name: '',
+      bank_account_number: '',
+      bank_name: '',
+      mpesa_phone: '',
+      savings_account_id: '',
+      sync_to_mifos: !!mifosConfig,
     },
   });
 
-  // Fetch related client and product if not embedded
-  const { data: fallbackClient } = useQuery({
-    queryKey: ['loan-client', loanApplication.client_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('first_name,last_name,client_number,phone,email')
-        .eq('id', loanApplication.client_id)
-        .maybeSingle();
+  const repaymentForm = useForm<RepaymentData>({
+    resolver: zodResolver(repaymentSchema),
+    defaultValues: {
+      payment_amount: outstandingBalance.toString(),
+      payment_date: format(new Date(), 'yyyy-MM-dd'),
+      payment_method: 'cash',
+      reference_number: '',
+      sync_to_mifos: !!mifosConfig,
+    },
+  });
+
+  const writeOffForm = useForm<WriteOffData>({
+    resolver: zodResolver(writeOffSchema),
+    defaultValues: {
+      write_off_reason: '',
+      write_off_date: format(new Date(), 'yyyy-MM-dd'),
+      write_off_amount: outstandingBalance.toString(),
+      sync_to_mifos: !!mifosConfig,
+    },
+  });
+
+  // Handle approval submission
+  const onApprovalSubmit = async (data: ApprovalData) => {
+    try {
+      // Process local approval
+      await processApproval.mutateAsync({
+        loan_application_id: loanApplication.id,
+        action: data.action,
+        approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
+        approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
+        approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
+        approval_date: data.approval_date,
+        conditions: data.conditions,
+      });
+
+      // Sync to Mifos X if enabled and configured
+      if (data.sync_to_mifos && mifosConfig && loanApplication.mifos_loan_id && data.action === 'approve') {
+        await approveMifosLoan.mutateAsync({
+          mifosLoanId: loanApplication.mifos_loan_id,
+          approvedOnDate: data.approval_date,
+          approvedLoanAmount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
+          expectedDisbursementDate: format(new Date(), 'yyyy-MM-dd'),
+        });
+      }
+      
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error processing approval:', error);
+    }
+  };
+
+  // Handle disbursement submission
+  const onDisbursementSubmit = async (data: DisbursementData) => {
+    try {
+      // Process local disbursement
+      await processDisbursement.mutateAsync({
+        loan_application_id: loanApplication.id,
+        disbursed_amount: parseFloat(data.disbursed_amount),
+        disbursement_date: data.disbursement_date,
+        disbursement_method: data.disbursement_method,
+        bank_account_name: data.bank_account_name,
+        bank_account_number: data.bank_account_number,
+        bank_name: data.bank_name,
+        mpesa_phone: data.mpesa_phone,
+        savings_account_id: data.savings_account_id,
+      });
+
+      // Sync to Mifos X if enabled and configured
+      if (data.sync_to_mifos && mifosConfig && loanApplication.mifos_loan_id) {
+        await disburseMifosLoan.mutateAsync({
+          mifosLoanId: loanApplication.mifos_loan_id,
+          disbursementData: {
+            transactionDate: data.disbursement_date,
+            transactionAmount: parseFloat(data.disbursed_amount),
+            paymentTypeId: 1, // Default payment type
+            locale: 'en',
+            dateFormat: 'yyyy-MM-dd'
+          }
+        });
+      }
+      
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error processing disbursement:', error);
+    }
+  };
+
+  // Handle repayment submission
+  const onRepaymentSubmit = async (data: RepaymentData) => {
+    try {
+      if (!loan) {
+        toast({
+          title: "Error",
+          description: "No active loan found for repayment",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Process local repayment using transaction manager
+      // This would need to be implemented in the transaction manager
+      // For now, we'll use a direct approach
+      const { error } = await supabase
+        .from('loan_payments')
+        .insert({
+          tenant_id: profile?.tenant_id,
+          loan_id: loan.id,
+          payment_amount: parseFloat(data.payment_amount),
+          principal_amount: parseFloat(data.payment_amount), // Simplified allocation
+          interest_amount: 0,
+          payment_date: data.payment_date,
+          payment_method: data.payment_method,
+          reference_number: data.reference_number,
+          processed_by: profile?.id,
+        });
+
       if (error) throw error;
-      return data || null;
-    },
-    enabled: !loanApplication.clients && !!loanApplication.client_id && open,
-  });
 
-  const { data: fallbackProduct } = useQuery({
-    queryKey: ['loan-product', loanApplication.loan_product_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('loan_products')
-        .select('name,short_name,currency_code,default_nominal_interest_rate,repayment_frequency')
-        .eq('id', loanApplication.loan_product_id)
-        .maybeSingle();
-      if (error) throw error;
-      return data || null;
-    },
-    enabled: !!loanApplication.loan_product_id && open && (!loanApplication.loan_products || !loanApplication.loan_products.repayment_frequency),
-  });
+      // Update loan outstanding balance
+      const newOutstanding = Math.max(0, outstandingBalance - parseFloat(data.payment_amount));
+      await supabase
+        .from('loans')
+        .update({ 
+          outstanding_balance: newOutstanding,
+          status: newOutstanding <= 0 ? 'closed' : 'active'
+        })
+        .eq('id', loan.id);
 
-  const displayClient = loanApplication.clients || fallbackClient || {};
-  const displayProduct = loanApplication.loan_products || fallbackProduct || ({} as any);
+      // Sync to Mifos X if enabled and configured
+      if (data.sync_to_mifos && mifosConfig && loan.mifos_loan_id) {
+        await recordMifosRepayment.mutateAsync({
+          mifosLoanId: loan.mifos_loan_id,
+          paymentAmount: parseFloat(data.payment_amount),
+          paymentDate: data.payment_date,
+          paymentTypeId: 1, // Default payment type
+          receiptNumber: data.reference_number,
+        });
+      }
 
-  const productRepaymentFrequency = loanApplication.loan_products?.repayment_frequency ?? fallbackProduct?.repayment_frequency;
-  const frequency = (loanApplication.term_frequency || loanApplication.repayment_frequency || productRepaymentFrequency || 'monthly') as string;
-  const termUnit = ((): string => {
-    const f = (frequency || '').toString().toLowerCase().replace(/[-_]/g, '');
-    if (f.includes('day')) return 'days'; // day, days, daily
-    if (f.includes('week')) return 'weeks'; // week, weekly, biweekly -> still show weeks
-    if (f.includes('fortnight')) return 'fortnights';
-    if (f.includes('month')) return 'months';
-    if (f.includes('quarter')) return 'quarters';
-    if (f.includes('year') || f.includes('annual')) return 'years';
-    return 'months';
-  })();
+      toast({
+        title: "Success",
+        description: "Repayment recorded successfully",
+      });
+      
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error processing repayment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process repayment",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const displayInterestRate = loanApplication.interest_rate ?? loanApplication.requested_interest_rate ?? displayProduct?.default_nominal_interest_rate;
+  // Handle write-off submission
+  const onWriteOffSubmit = async (data: WriteOffData) => {
+    try {
+      if (!loan) {
+        toast({
+          title: "Error",
+          description: "No active loan found for write-off",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update loan status to written off
+      await supabase
+        .from('loans')
+        .update({ 
+          status: 'written_off',
+          outstanding_balance: 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', loan.id);
+
+      // Sync to Mifos X if enabled and configured
+      if (data.sync_to_mifos && mifosConfig && loan.mifos_loan_id) {
+        await writeOffMifosLoan.mutateAsync({
+          mifosLoanId: loan.mifos_loan_id,
+          writeOffReasonId: 1, // Default reason
+          writeOffDate: data.write_off_date,
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: "Loan written off successfully",
+      });
+      
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error processing write-off:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process write-off",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle undo disbursement
+  const handleUndoDisbursement = async () => {
+    try {
+      await undoDisbursement.mutateAsync({
+        loan_application_id: loanApplication.id
+      });
+
+      // Sync to Mifos X if configured
+      if (mifosConfig && loanApplication.mifos_loan_id) {
+        await undoMifosDisbursement.mutateAsync({
+          mifosLoanId: loanApplication.mifos_loan_id,
+          transactionDate: format(new Date(), 'yyyy-MM-dd'),
+        });
+      }
+
+      toast({
+        title: "Success",
+        description: "Disbursement undone successfully",
+      });
+      
+      onSuccess?.();
+    } catch (error) {
+      console.error('Error undoing disbursement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to undo disbursement",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -190,9 +494,13 @@ export const EnhancedLoanWorkflowDialog = ({
       case 'pending_disbursement':
         return 'default';
       case 'disbursed':
+      case 'active':
         return 'default';
       case 'rejected':
+      case 'written_off':
         return 'destructive';
+      case 'closed':
+        return 'default';
       default:
         return 'secondary';
     }
@@ -205,419 +513,160 @@ export const EnhancedLoanWorkflowDialog = ({
       case 'approved':
       case 'pending_disbursement':
       case 'disbursed':
+      case 'active':
+      case 'closed':
         return <CheckCircle className="h-4 w-4" />;
       case 'rejected':
+      case 'written_off':
         return <XCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
     }
   };
 
-const onApprovalSubmit = async (data: ApprovalData) => {
-  try {
-    await processApproval.mutateAsync({
-      loan_application_id: loanApplication.id,
-      action: data.action,
-      approved_amount: data.approved_amount ? parseFloat(data.approved_amount) : undefined,
-      approved_term: data.approved_term ? parseInt(data.approved_term) : undefined,
-      approved_interest_rate: data.approved_interest_rate ? parseFloat(data.approved_interest_rate) : undefined,
-      approval_date: data.approval_date,
-      conditions: data.conditions,
-    });
-    
-    onOpenChange(false);
-    onSuccess?.();
-  } catch (error) {
-    console.error('Error processing approval:', error);
-  }
-};
-
-  const onDisbursementSubmit = async (data: DisbursementData) => {
-    try {
-      // Validate savings account if disbursing to savings
-      if (data.disbursement_method === 'transfer_to_savings' && !data.savings_account_id) {
-        toast({
-          title: "Validation Error",
-          description: "Please select a savings account for transfer",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Check if client has savings account when disbursing to savings
-      if (data.disbursement_method === 'transfer_to_savings' && savingsAccounts.length === 0) {
-        toast({
-          title: "Disbursement Error",
-          description: "Client does not have an active savings account. Please create one first or choose a different disbursement method.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await processDisbursement.mutateAsync({
-        loan_application_id: loanApplication.id,
-        disbursed_amount: parseFloat(data.disbursed_amount),
-        disbursement_date: data.disbursement_date,
-        disbursement_method: data.disbursement_method,
-        bank_account_name: data.bank_account_name,
-        bank_account_number: data.bank_account_number,
-        bank_name: data.bank_name,
-        mpesa_phone: data.mpesa_phone,
-        savings_account_id: data.savings_account_id,
-      });
-      
-      onOpenChange(false);
-      onSuccess?.();
-    } catch (error) {
-      console.error('Error processing disbursement:', error);
-    }
-  };
-
-  // Use status helpers for cleaner logic
-  const canApprove = ['pending', 'under_review'].includes(loanApplication.status);
-  const canDisburse = ['pending_disbursement', 'approved'].includes(loanApplication.status);
-  const canUndoApproval = loanApplication.status === 'pending_disbursement' || loanApplication.status === 'approved';
-  const isCompleted = loanApplication.status === 'disbursed';
-
-   const activeStage = (loanApplication.status === 'pending' || loanApplication.status === 'under_review')
-     ? 'details'
-     : (canUndoApproval ? 'approve' : (canDisburse ? 'disburse' : 'details'));
-
-  useEffect(() => {
-    if (open) {
-      setCurrentTab(activeStage);
-    }
-  }, [open, activeStage, loanApplication.status]);
-
-  const currentAction = approvalForm.watch('action');
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Loan Workflow Management</h2>
+              <p className="text-muted-foreground">
+                Application #{loanApplication.application_number} - {client?.first_name} {client?.last_name}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={getStatusColor(loanApplication.status)}>
+                {getStatusIcon(loanApplication.status)}
+                {loanApplication.status.replace('_', ' ').toUpperCase()}
+              </Badge>
+              {mifosConfig && (
+                <Badge variant="outline">
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Mifos X Connected
+                </Badge>
+              )}
+            </div>
+          </div>
 
-          <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-            <TabsList className="w-full flex gap-2">
-              <TabsTrigger value="details">Application Details</TabsTrigger>
-              
-              {(canApprove || canUndoApproval || isCompleted) && (
-                <TabsTrigger value="approve" disabled={!canApprove && !canUndoApproval && !isCompleted}>
-                  {canApprove ? 'Approval' : canUndoApproval ? 'Approved' : 'Approved'}
-                </TabsTrigger>
-              )}
-              {(canDisburse || isCompleted) && (
-                <TabsTrigger value="disburse" disabled={!canDisburse && !isCompleted}>
-                  {canDisburse ? 'Disbursement' : 'Disbursed'}
-                </TabsTrigger>
-              )}
+          {/* Tabs */}
+          <Tabs value={currentTab} onValueChange={setCurrentTab}>
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="approval">Approval</TabsTrigger>
+              <TabsTrigger value="disbursement">Disbursement</TabsTrigger>
+              <TabsTrigger value="repayment">Repayment</TabsTrigger>
+              <TabsTrigger value="writeoff">Write-off</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
             </TabsList>
 
-
-          <TabsContent value="details" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Application Details
-                  <Badge variant={getStatusColor(loanApplication.status)} className="flex items-center gap-1">
-                    {getStatusIcon(loanApplication.status)}
-                    {loanApplication.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {(canApprove || canUndoApproval) && (
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setModifyOpen(true)}
-                      disabled={isCompleted}
-                    >
-                      Update/Modify
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => { setCurrentTab('approve'); approvalForm.setValue('action', 'approve'); }}
-                      disabled={!canApprove && !canUndoApproval}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => { setCurrentTab('approve'); approvalForm.setValue('action', 'reject'); }}
-                      disabled={!canApprove}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                )}
-                {/* Client & Product Information */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Client Information</h4>
-                      <div className="space-y-1">
-                        <div className="font-medium">
-                          {displayClient?.first_name} {displayClient?.last_name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Client: {displayClient?.client_number}
-                        </div>
-                        {displayClient?.phone && (
-                          <div className="text-xs text-muted-foreground">
-                            Phone: {displayClient?.phone}
-                          </div>
-                        )}
-                        {displayClient?.email && (
-                          <div className="text-xs text-muted-foreground">
-                            Email: {displayClient?.email}
-                          </div>
-                        )}
-                      </div>
+            {/* Details Tab */}
+            <TabsContent value="details" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Application Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Amount:</span>
+                      <span className="font-semibold">{formatAmount(loanApplication.requested_amount)}</span>
                     </div>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium text-sm text-muted-foreground mb-2">Loan Product</h4>
-                      <div className="space-y-1">
-                        <div className="font-medium">{displayProduct?.name}</div>
-                        {displayProduct?.short_name && (
-                          <div className="text-xs text-muted-foreground">
-                            Code: {displayProduct?.short_name}
-                          </div>
-                        )}
-                        <div className="text-xs text-muted-foreground">
-                          Currency: {displayProduct?.currency_code || 'KES'}
-                        </div>
-                      </div>
+                    <div className="flex justify-between">
+                      <span>Term:</span>
+                      <span>{loanApplication.requested_term} months</span>
                     </div>
-                  </div>
-                </div>
-
-                {/* Loan Request Details */}
-                <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-3">Loan Request Details</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <span className="text-muted-foreground text-sm">Requested Amount</span>
-                      <div className="font-medium text-lg text-primary">
-                        {formatAmount(loanApplication.requested_amount)}
-                      </div>
+                    <div className="flex justify-between">
+                      <span>Purpose:</span>
+                      <span>{loanApplication.purpose}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground text-sm">Requested Term</span>
-                      <div className="font-medium text-lg">{loanApplication.requested_term}</div>
+                    <div className="flex justify-between">
+                      <span>Product:</span>
+                      <span>{product?.name}</span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground text-sm">Interest Rate</span>
-                      <div className="font-medium text-lg">
-                        {displayInterestRate ?? 'TBD'}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="edit" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit Loan Details</CardTitle>
-                <CardDescription>Update term, link savings, and manage fees</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <FormLabel>Loan Term ({termUnit})</FormLabel>
-                    <Input
-                      type="number"
-                      value={editTerm ?? ''}
-                      onChange={(e) => setEditTerm(e.target.value ? parseInt(e.target.value) : undefined)}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <FormLabel>Linked Savings Account</FormLabel>
-                    <Select value={editSavingsId} onValueChange={setEditSavingsId}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select savings account (optional)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">None</SelectItem>
-                        {savingsAccounts.map((s: any) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.account_number} - {s.savings_products?.name} (Bal: {formatAmount(s.account_balance || 0)})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <FormLabel>Add Fee/Charge</FormLabel>
-                  <div className="grid grid-cols-3 gap-3">
-                    <Select value={selectedChargeId} onValueChange={setSelectedChargeId}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a fee" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableCharges.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name} ({c.calculation_type === 'percentage' ? `${c.amount}%` : `KES ${Number(c.amount).toLocaleString()}`})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      placeholder="Custom amount (optional)"
-                      value={customChargeAmount}
-                      onChange={(e) => setCustomChargeAmount(e.target.value)}
-                      type="number"
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        const sel = availableCharges.find((a: any) => a.id === selectedChargeId);
-                        if (!sel) return;
-                        const amt = customChargeAmount ? Number(customChargeAmount) : Number(sel.amount);
-                        const newItem = { ...sel, amount: amt };
-                        setEditCharges((prev) => {
-                          if (prev.some((p: any) => p.id === newItem.id)) return prev;
-                          return [...prev, newItem];
-                        });
-                        setSelectedChargeId('');
-                        setCustomChargeAmount('');
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </div>
-
-                {editCharges.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-muted-foreground">Selected Charges</h4>
-                    <div className="space-y-2">
-                      {editCharges.map((c: any) => {
-                        const calc = calculateFeeAmount(
-                          {
-                            id: c.id,
-                            name: c.name,
-                            calculation_type: c.calculation_type,
-                            amount: Number(c.amount),
-                            min_amount: c.min_amount ?? null,
-                            max_amount: c.max_amount ?? null,
-                            fee_type: c.fee_type,
-                            charge_time_type: c.charge_time_type,
-                          } as any,
-                          Number(loanApplication.final_approved_amount ?? loanApplication.requested_amount ?? 0)
-                        );
-                        return (
-                          <div key={c.id} className="flex items-center justify-between rounded border p-2">
-                            <div>
-                              <div className="text-sm font-medium">{c.name}</div>
-                              <div className="text-xs text-muted-foreground">{formatFeeDisplay(calc)}</div>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => setEditCharges((prev) => prev.filter((x: any) => x.id !== c.id))}>Remove</Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setEditTerm(loanApplication.requested_term);
-                      setEditSavingsId(loanApplication.linked_savings_account_id || undefined);
-                      setEditCharges(loanApplication.selected_charges || []);
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={async () => {
-                      await updateLoan.mutateAsync({
-                        loan_application_id: loanApplication.id,
-                        requested_term: typeof editTerm === 'number' ? editTerm : undefined,
-                        linked_savings_account_id: editSavingsId || null,
-                        selected_charges: editCharges,
-                      });
-                    }}
-                  >
-                    Save Changes
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="approve" className="space-y-4">
-            {isCompleted ? (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Application Processed</h3>
-                    <p className="text-muted-foreground">
-                      This loan application has been processed and completed.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Form {...approvalForm}>
-                <form onSubmit={approvalForm.handleSubmit(onApprovalSubmit)} className="space-y-4">
+                {loan && (
                   <Card>
-<CardHeader>
-  <CardTitle>Loan Approval Management</CardTitle>
-  <CardDescription>
-    Approve, reject, or manage the loan application
-  </CardDescription>
-  {profile && (
-    <div className="text-xs text-muted-foreground mt-1">
-      Action by: {profile.first_name} {profile.last_name} ({profile.email})
-    </div>
-  )}
-</CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardHeader>
+                      <CardTitle>Loan Status</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Outstanding:</span>
+                        <span className="font-semibold">{formatAmount(outstandingBalance)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Paid:</span>
+                        <span>{formatAmount(totalPaid)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Scheduled:</span>
+                        <span>{formatAmount(totalScheduled)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status:</span>
+                        <Badge variant={getStatusColor(loan.status)}>
+                          {loan.status.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {schedules.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Repayment Schedule</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {schedules.map((schedule: any) => (
+                        <div key={schedule.id} className="flex justify-between items-center p-2 border rounded">
+                          <span>Installment {schedule.installment_number}</span>
+                          <span>{formatAmount(schedule.total_amount)}</span>
+                          <Badge variant={schedule.payment_status === 'paid' ? 'default' : 'secondary'}>
+                            {schedule.payment_status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Approval Tab */}
+            <TabsContent value="approval">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Loan Approval</CardTitle>
+                  <CardDescription>
+                    Review and approve the loan application
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...approvalForm}>
+                    <form onSubmit={approvalForm.handleSubmit(onApprovalSubmit)} className="space-y-4">
                       <FormField
                         control={approvalForm.control}
                         name="action"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Action *</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormLabel>Action</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select action" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {canApprove && (
-                                  <>
-                                    <SelectItem value="approve">Approve Application</SelectItem>
-                                    <SelectItem value="reject">Reject Application</SelectItem>
-                                    <SelectItem value="request_changes">Request Changes</SelectItem>
-                                  </>
-                                )}
-                                {canUndoApproval && (
-                                  <SelectItem value="undo_approval">
-                                    <div className="flex items-center gap-2">
-                                      <Undo2 className="h-4 w-4" />
-                                      Undo Approval
-                                    </div>
-                                  </SelectItem>
-                                )}
+                                <SelectItem value="approve">Approve</SelectItem>
+                                <SelectItem value="reject">Reject</SelectItem>
+                                <SelectItem value="request_changes">Request Changes</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -625,152 +674,135 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                         )}
                       />
 
-                      {currentAction !== 'undo_approval' && (
-                        <>
-                          <FormField
-                            control={approvalForm.control}
-                            name="approval_date"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Approval Date *</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          {currentAction === 'approve' && (
-                            <>
-                              <div className="grid grid-cols-3 gap-4">
-                                <FormField
-                                  control={approvalForm.control}
-                                  name="approved_amount"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Approved Amount</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={approvalForm.control}
-                                  name="approved_term"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Approved Term ({termUnit})</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={approvalForm.control}
-                                  name="approved_interest_rate"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Approved Interest Rate (%)</FormLabel>
-                                      <FormControl>
-                                        <Input type="number" step="0.01" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-
-                              <FormField
-                                control={approvalForm.control}
-                                name="conditions"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Approval Conditions</FormLabel>
-                                    <FormControl>
-                                      <Textarea 
-                                        placeholder="Any conditions for this approval..."
-                                        {...field} 
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </>
+                      <div className="grid grid-cols-3 gap-4">
+                        <FormField
+                          control={approvalForm.control}
+                          name="approved_amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Approved Amount</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="number" step="0.01" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
-                        </>
+                        />
+
+                        <FormField
+                          control={approvalForm.control}
+                          name="approved_term"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Approved Term (months)</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="number" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={approvalForm.control}
+                          name="approved_interest_rate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Interest Rate (%)</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="number" step="0.01" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={approvalForm.control}
+                        name="approval_date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Approval Date</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={approvalForm.control}
+                        name="conditions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Conditions (optional)</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {mifosConfig && (
+                        <FormField
+                          control={approvalForm.control}
+                          name="sync_to_mifos"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                  Sync to Mifos X
+                                </FormLabel>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
                       )}
 
-
-                      <div className="flex justify-end gap-3 pt-4">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => onOpenChange(false)}
-                        >
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                           Cancel
                         </Button>
-                        <Button 
-                          type="submit" 
-                          disabled={processApproval.isPending}
-                          className={
-                            currentAction === 'approve' 
-                              ? "bg-green-600 hover:bg-green-700" 
-                              : currentAction === 'reject' 
-                                ? "bg-red-600 hover:bg-red-700"
-                                : "bg-blue-600 hover:bg-blue-700"
-                          }
-                        >
-                          {processApproval.isPending ? "Processing..." : `${currentAction?.replace('_', ' ')} Application`}
+                        <Button type="submit" disabled={processApproval.isPending}>
+                          {processApproval.isPending ? "Processing..." : "Submit Approval"}
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                </form>
-              </Form>
-            )}
-          </TabsContent>
-
-          <TabsContent value="disburse" className="space-y-4">
-            {isCompleted ? (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <Banknote className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Loan Disbursed</h3>
-                    <p className="text-muted-foreground">
-                      This loan has been successfully disbursed.
-                    </p>
-                  </div>
+                    </form>
+                  </Form>
                 </CardContent>
               </Card>
-            ) : (
-              <Form {...disbursementForm}>
-                <form onSubmit={disbursementForm.handleSubmit(onDisbursementSubmit)} className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Loan Disbursement</CardTitle>
-                      <CardDescription>
-                        Configure disbursement details and release funds
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+            </TabsContent>
+
+            {/* Disbursement Tab */}
+            <TabsContent value="disbursement">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Loan Disbursement</CardTitle>
+                  <CardDescription>
+                    Process loan disbursement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...disbursementForm}>
+                    <form onSubmit={disbursementForm.handleSubmit(onDisbursementSubmit)} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={disbursementForm.control}
                           name="disbursed_amount"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Disbursement Amount *</FormLabel>
+                              <FormLabel>Disbursement Amount</FormLabel>
                               <FormControl>
-                                <Input type="number" step="0.01" {...field} />
+                                <Input {...field} type="number" step="0.01" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -782,9 +814,9 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                           name="disbursement_date"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Disbursement Date *</FormLabel>
+                              <FormLabel>Disbursement Date</FormLabel>
                               <FormControl>
-                                <Input type="date" {...field} />
+                                <Input {...field} type="date" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -797,11 +829,11 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                         name="disbursement_method"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Disbursement Method *</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormLabel>Disbursement Method</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select disbursement method" />
+                                  <SelectValue placeholder="Select method" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -809,7 +841,7 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                                 <SelectItem value="mpesa">M-Pesa</SelectItem>
                                 <SelectItem value="cash">Cash</SelectItem>
                                 <SelectItem value="check">Check</SelectItem>
-                                <SelectItem value="transfer_to_savings">Transfer to Savings Account</SelectItem>
+                                <SelectItem value="transfer_to_savings">Transfer to Savings</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -818,169 +850,352 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                       />
 
                       {disbursementForm.watch('disbursement_method') === 'transfer_to_savings' && (
-                        <Card className="border-blue-200">
-                          <CardHeader>
-                            <CardTitle className="text-sm">Savings Account Selection</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            {savingsAccounts.length === 0 ? (
-                              <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                                <span className="text-sm text-yellow-800">
-                                  Client has no active savings accounts. Please create one first.
-                                </span>
+                        <FormField
+                          control={disbursementForm.control}
+                          name="savings_account_id"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Savings Account</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select savings account" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {savingsAccounts.map((account: any) => (
+                                    <SelectItem key={account.id} value={account.id}>
+                                      {account.account_number} - {formatAmount(account.account_balance)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
+                      {mifosConfig && (
+                        <FormField
+                          control={disbursementForm.control}
+                          name="sync_to_mifos"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                  Sync to Mifos X
+                                </FormLabel>
                               </div>
-                            ) : (
-                              <FormField
-                                control={disbursementForm.control}
-                                name="savings_account_id"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Select Savings Account *</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <FormControl>
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select savings account" />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        {savingsAccounts.map((account) => (
-                                          <SelectItem key={account.id} value={account.id}>
-                                            {account.account_number} - {account.savings_products?.name} 
-                                            (Balance: {formatAmount(account.account_balance || 0)})
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            )}
-                          </CardContent>
-                        </Card>
+                            </FormItem>
+                          )}
+                        />
                       )}
 
-                      {disbursementForm.watch('disbursement_method') === 'bank_transfer' && (
-                        <Card className="border-blue-200">
-                          <CardHeader>
-                            <CardTitle className="text-sm">Bank Transfer Details</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <FormField
-                              control={disbursementForm.control}
-                              name="bank_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Bank Name</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={disbursementForm.control}
-                              name="bank_account_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Account Name</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={disbursementForm.control}
-                              name="bank_account_number"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Account Number</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {disbursementForm.watch('disbursement_method') === 'mpesa' && (
-                        <Card className="border-green-200">
-                          <CardHeader>
-                            <CardTitle className="text-sm">M-Pesa Details</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <FormField
-                              control={disbursementForm.control}
-                              name="mpesa_phone"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>M-Pesa Phone Number</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="254712345678" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      <div className="flex justify-end gap-3 pt-4">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => onOpenChange(false)}
-                        >
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                           Cancel
                         </Button>
-                        <Button 
-                          type="submit" 
-                          disabled={processDisbursement.isPending}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {processDisbursement.isPending ? "Processing..." : "Disburse Loan"}
+                        <Button type="submit" disabled={processDisbursement.isPending}>
+                          {processDisbursement.isPending ? "Processing..." : "Process Disbursement"}
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                </form>
-              </Form>
-            )}
-          </TabsContent>
-        </Tabs>
+                    </form>
+                  </Form>
 
-        <NewLoanDialog
-           open={modifyOpen}
-           onOpenChange={setModifyOpen}
-           clientId={loanApplication.client_id}
-           initialData={{
-             loan_product_id: loanApplication.loan_product_id,
-             requested_amount: loanApplication.requested_amount,
-             requested_term: loanApplication.requested_term,
-             term_frequency: (loanApplication.term_frequency as any) || (loanApplication.loan_products?.repayment_frequency as any) || 'monthly',
-             purpose: loanApplication.purpose || '',
-             interest_rate: (loanApplication.requested_interest_rate ?? loanApplication.interest_rate ?? loanApplication.loan_products?.default_nominal_interest_rate ?? 0) as number,
-             fund_source_id: (loanApplication as any).fund_source_id || '',
-             loan_officer_id: (loanApplication as any).loan_officer_id || 'unassigned',
-             linked_savings_account_id: loanApplication.linked_savings_account_id || undefined,
-             // Persist dates from application
-             submit_date: (loanApplication as any).submitted_at ? (loanApplication as any).submitted_at.slice(0,10) : undefined,
-             disbursement_date: (loanApplication as any).expected_disbursement_date ? (loanApplication as any).expected_disbursement_date.slice(0,10) : undefined,
-             // Persist selected charges if any
-             selected_charges: (loanApplication as any).selected_charges || [],
-           }}
-           onApplicationCreated={() => {
-             setModifyOpen(false);
-           }}
-         />
+                  {loan && loan.status === 'disbursed' && (
+                    <div className="mt-4 p-4 border rounded-lg bg-muted">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold">Disbursement Actions</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Loan has been disbursed. You can undo the disbursement if needed.
+                          </p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          onClick={handleUndoDisbursement}
+                          disabled={undoDisbursement.isPending}
+                        >
+                          <Undo2 className="h-4 w-4 mr-2" />
+                          {undoDisbursement.isPending ? "Processing..." : "Undo Disbursement"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Repayment Tab */}
+            <TabsContent value="repayment">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Loan Repayment</CardTitle>
+                  <CardDescription>
+                    Record loan repayment
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loan ? (
+                    <Form {...repaymentForm}>
+                      <form onSubmit={repaymentForm.handleSubmit(onRepaymentSubmit)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={repaymentForm.control}
+                            name="payment_amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Payment Amount</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="number" step="0.01" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={repaymentForm.control}
+                            name="payment_date"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Payment Date</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="date" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={repaymentForm.control}
+                          name="payment_method"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Payment Method</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select method" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="cash">Cash</SelectItem>
+                                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                                  <SelectItem value="mpesa">M-Pesa</SelectItem>
+                                  <SelectItem value="check">Check</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={repaymentForm.control}
+                          name="reference_number"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Reference Number (optional)</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {mifosConfig && (
+                          <FormField
+                            control={repaymentForm.control}
+                            name="sync_to_mifos"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>
+                                    Sync to Mifos X
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit">
+                            Record Repayment
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        No active loan found. Please approve and disburse the loan first.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Write-off Tab */}
+            <TabsContent value="writeoff">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Loan Write-off</CardTitle>
+                  <CardDescription>
+                    Write off the loan as bad debt
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loan ? (
+                    <Form {...writeOffForm}>
+                      <form onSubmit={writeOffForm.handleSubmit(onWriteOffSubmit)} className="space-y-4">
+                        <FormField
+                          control={writeOffForm.control}
+                          name="write_off_reason"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Write-off Reason</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Enter reason for write-off" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={writeOffForm.control}
+                            name="write_off_amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Write-off Amount</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="number" step="0.01" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={writeOffForm.control}
+                            name="write_off_date"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Write-off Date</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="date" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {mifosConfig && (
+                          <FormField
+                            control={writeOffForm.control}
+                            name="sync_to_mifos"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>
+                                    Sync to Mifos X
+                                  </FormLabel>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit" variant="destructive">
+                            Write Off Loan
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  ) : (
+                    <div className="text-center py-8">
+                      <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        No active loan found. Please approve and disburse the loan first.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Documents & Attachments</CardTitle>
+                  <CardDescription>
+                    Manage loan-related documents
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 border rounded-lg">
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <h4 className="font-semibold">Application Documents</h4>
+                      <p className="text-sm text-muted-foreground">KYC, ID, etc.</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <Shield className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <h4 className="font-semibold">Collateral Documents</h4>
+                      <p className="text-sm text-muted-foreground">Property, vehicle, etc.</p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <h4 className="font-semibold">Guarantor Documents</h4>
+                      <p className="text-sm text-muted-foreground">Guarantor KYC</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 text-center">
+                    <Button variant="outline">
+                      Upload Documents
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );

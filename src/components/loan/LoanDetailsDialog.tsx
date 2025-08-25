@@ -747,12 +747,30 @@ const getStatusColor = (status: string) => {
 
   const submitRepayment = async () => {
     try {
-      await processAndUpdateLoan(Number(repayAmount), toISO(repayDate), repayMethod, repayRef);
-      toast({ title: 'Repayment recorded' });
+      if (!repayAmount || repayAmount <= 0) {
+        toast({ title: 'Invalid amount', description: 'Please enter a valid repayment amount', variant: 'destructive' });
+        return;
+      }
+
+      await transactionManager.mutateAsync({
+        type: 'repayment',
+        loan_id: loan.id,
+        amount: repayAmount,
+        principal_amount: 0, // Let strategy allocate
+        interest_amount: 0, // Let strategy allocate
+        transaction_date: toISO(repayDate),
+        reference_number: repayRef || `REPAY-${Date.now()}`,
+        payment_method: repayMethod,
+        description: `Loan repayment - ${loan.loan_number}`,
+        use_strategy_allocation: true // Use product repayment strategy
+      });
+
+      toast({ title: 'Repayment recorded successfully' });
       setRepayOpen(false);
       setRepayAmount(0);
       setRepayRef('');
     } catch (e: any) {
+      console.error('Repayment error:', e);
       toast({ title: 'Repayment failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -761,6 +779,12 @@ const getStatusColor = (status: string) => {
     try {
       let payoff = Number(earlyAmount || outstanding);
       const dateISO = toISO(earlyDate);
+
+      // Validate amount
+      if (payoff <= 0) {
+        toast({ title: 'Invalid amount', description: 'Please enter a valid payoff amount', variant: 'destructive' });
+        return;
+      }
 
       // If an early payoff fee is selected, charge it (income journals) and include in payoff
       if (earlyFeeId && earlyFeeAmount > 0) {
@@ -775,10 +799,27 @@ const getStatusColor = (status: string) => {
         payoff += Number(earlyFeeAmount);
       }
 
-      await processAndUpdateLoan(payoff, dateISO, earlyMethod, 'EARLY-SETTLEMENT');
-      toast({ title: 'Loan closed', description: 'Early repayment processed.' });
+      // Process the early repayment using the transaction manager
+      await transactionManager.mutateAsync({
+        type: 'repayment',
+        loan_id: loan.id,
+        amount: payoff,
+        principal_amount: payoff, // Full amount as principal for early payoff
+        interest_amount: 0,
+        transaction_date: dateISO,
+        reference_number: 'EARLY-SETTLEMENT',
+        payment_method: earlyMethod,
+        description: 'Early loan settlement',
+        use_strategy_allocation: false // Override strategy for early payoff
+      });
+
+      toast({ title: 'Loan closed', description: 'Early repayment processed successfully.' });
       setEarlyRepayOpen(false);
+      setEarlyAmount(0);
+      setEarlyFeeId('');
+      setEarlyFeeAmount(0);
     } catch (e: any) {
+      console.error('Early repayment error:', e);
       toast({ title: 'Early repayment failed', description: e.message, variant: 'destructive' });
     }
   };
@@ -1565,8 +1606,16 @@ const getStatusColor = (status: string) => {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Amount</Label>
-                <Input type="number" value={repayAmount} onChange={(e) => setRepayAmount(Number(e.target.value))} />
+                <Label>Amount *</Label>
+                <Input 
+                  type="number" 
+                  value={repayAmount || ''} 
+                  onChange={(e) => setRepayAmount(Number(e.target.value) || 0)}
+                  placeholder="Enter repayment amount"
+                  min="0"
+                  step="0.01"
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label>Payment Method</Label>
@@ -1589,7 +1638,7 @@ const getStatusColor = (status: string) => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Date</Label>
+                <Label>Payment Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start">
@@ -1602,12 +1651,17 @@ const getStatusColor = (status: string) => {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label>Reference (optional)</Label>
-                <Input value={repayRef} onChange={(e) => setRepayRef(e.target.value)} />
+                <Label>Reference Number (optional)</Label>
+                <Input value={repayRef} onChange={(e) => setRepayRef(e.target.value)} placeholder="Transaction reference" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setRepayOpen(false)}>Cancel</Button>
-                <Button onClick={submitRepayment}>Submit</Button>
+                <Button 
+                  onClick={submitRepayment} 
+                  disabled={!repayAmount || repayAmount <= 0}
+                >
+                  Record Repayment
+                </Button>
               </div>
             </div>
           </DialogContent>
