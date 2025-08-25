@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/mifos-interest-calculation";
 
 const calculatorSchema = z.object({
   principal: z.number().min(1, "Principal amount must be greater than 0"),

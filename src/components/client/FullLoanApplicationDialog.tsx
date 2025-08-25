@@ -62,7 +62,7 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/mifos-interest-calculation";
 
 const loanApplicationSchema = z.object({
   client_id: z.string().min(1, "Client is required"),

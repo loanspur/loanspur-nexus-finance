@@ -2,7 +2,7 @@ import { UseFormReturn } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { calculateMonthlyInterest, calculateReducingBalanceInterest, calculateFlatRateInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest, calculateFlatRateInterest } from "@/lib/mifos-interest-calculation";
 import {
   FormControl,
   FormField,

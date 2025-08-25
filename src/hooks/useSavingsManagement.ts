@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import { useSavingsInterestPostingAccounting } from '@/hooks/useSavingsAccounting';
-import { calculateDailyInterest } from '@/lib/interest-calculation';
+import { calculateDailyInterest } from '@/lib/mifos-interest-calculation';
 export interface SavingsTransaction {
   id: string;
   tenant_id: string;

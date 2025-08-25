@@ -8,7 +8,7 @@ import { useLoanDisbursementAccounting, useLoanChargeAccounting } from './useLoa
 import { calculateFeeAmount } from '@/lib/fee-calculation';
 import { generateLoanSchedule } from '@/lib/loan-schedule-generator';
 import { generateMifosLoanSchedule, validateMifosLoanParams } from '@/lib/mifos-interest-calculation';
-import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/mifos-interest-calculation";
 export interface LoanApplication {
   id: string;
   tenant_id: string;

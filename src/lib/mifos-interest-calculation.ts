@@ -101,6 +101,79 @@ function calculatePeriodicRate(
 }
 
 /**
+ * Calculate daily interest for savings accounts
+ * This is a simple daily interest calculation used for savings products
+ */
+export function calculateDailyInterest(
+  principal: number,
+  annualInterestRate: number,
+  daysInYear: number = 365
+): number {
+  if (principal <= 0 || annualInterestRate <= 0) return 0;
+  
+  const dailyRate = (annualInterestRate / 100) / daysInYear;
+  return principal * dailyRate;
+}
+
+/**
+ * Calculate reducing balance interest for loans
+ * This is a legacy function for backward compatibility
+ */
+export function calculateReducingBalanceInterest(params: {
+  principal: number;
+  annualRate: number;
+  termInMonths: number;
+  calculationMethod?: string;
+}): {
+  monthlyPayment: number;
+  totalInterest: number;
+  totalPayment: number;
+} {
+  const { principal, annualRate, termInMonths } = params;
+  
+  if (principal <= 0 || annualRate <= 0 || termInMonths <= 0) {
+    return { monthlyPayment: 0, totalInterest: 0, totalPayment: 0 };
+  }
+  
+  const monthlyRate = (annualRate / 100) / 12;
+  const monthlyPayment = (principal * monthlyRate * Math.pow(1 + monthlyRate, termInMonths)) / 
+                        (Math.pow(1 + monthlyRate, termInMonths) - 1);
+  const totalPayment = monthlyPayment * termInMonths;
+  const totalInterest = totalPayment - principal;
+  
+  return { monthlyPayment, totalInterest, totalPayment };
+}
+
+/**
+ * Calculate monthly interest for loans
+ * This is a legacy function for backward compatibility
+ */
+export function calculateMonthlyInterest(
+  principal: number,
+  annualInterestRate: number
+): number {
+  if (principal <= 0 || annualInterestRate <= 0) return 0;
+  
+  const monthlyRate = (annualInterestRate / 100) / 12;
+  return principal * monthlyRate;
+}
+
+/**
+ * Calculate flat rate interest for loans
+ * This is a legacy function for backward compatibility
+ */
+export function calculateFlatRateInterest(
+  principal: number,
+  annualInterestRate: number,
+  termInMonths: number
+): number {
+  if (principal <= 0 || annualInterestRate <= 0 || termInMonths <= 0) return 0;
+  
+  const totalInterest = (principal * (annualInterestRate / 100) * termInMonths) / 12;
+  return totalInterest;
+}
+
+/**
  * Calculate days between two dates
  */
 function getDaysBetween(startDate: Date, endDate: Date): number {
@@ -145,7 +218,7 @@ function calculateDecliningBalanceInterest(
 /**
  * Calculate interest for flat rate method
  */
-function calculateFlatRateInterest(
+function calculateFlatRateInterestForPeriod(
   principal: number,
   annualRate: number,
   totalPeriods: number,
@@ -211,7 +284,7 @@ export function generateMifosLoanSchedule(params: MifosInterestParams): MifosInt
         principalAmount = periodicPayment - interestAmount;
       } else {
         // Flat rate with equal installments
-        interestAmount = calculateFlatRateInterest(principal, annualInterestRate, termInPeriods, i);
+        interestAmount = calculateFlatRateInterestForPeriod(principal, annualInterestRate, termInPeriods, i);
         const totalPayment = (principal + (interestAmount * termInPeriods)) / termInPeriods;
         principalAmount = totalPayment - interestAmount;
       }

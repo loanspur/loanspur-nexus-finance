@@ -33,7 +33,7 @@ import { useCollateralTypes } from "@/hooks/useCollateralTypes";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { FormDescription } from "@/components/ui/form";
 import { format, addDays, addWeeks, addMonths } from "date-fns";
-import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/interest-calculation";
+import { calculateMonthlyInterest, calculateReducingBalanceInterest } from "@/lib/mifos-interest-calculation";
 import { calculateFeeAmount, calculateTotalFees, formatFeeDisplay, getFeeWarningMessage, type FeeStructure } from "@/lib/fee-calculation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 

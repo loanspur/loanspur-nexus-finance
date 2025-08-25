@@ -53,7 +53,7 @@ import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
 import { useLoanDisplayData } from "@/hooks/useHarmonizedLoanData";
-import { calculateReducingBalanceInterest } from "@/lib/interest-calculation";
+import { calculateReducingBalanceInterest } from "@/lib/mifos-interest-calculation";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
   try {

@@ -61,7 +61,7 @@ import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLoansTab } from "@/components/client/ClientLoansTab";
 import { useToast } from "@/hooks/use-toast";
 import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
-import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/interest-calculation";
+import { calculateReducingBalanceInterest, calculateMonthlyInterest } from "@/lib/mifos-interest-calculation";
 import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 
 interface Client {
