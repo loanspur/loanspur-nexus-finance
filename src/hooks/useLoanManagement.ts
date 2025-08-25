@@ -656,72 +656,72 @@ async function processSimpleApproval(
     const approvedAmount = approval.approved_amount || loanApp.requested_amount;
     const approvedTerm = approval.approved_term || loanApp.requested_term;
 
-    if (product?.min_principal && approvedAmount < product.min_principal) {
-      throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) is below product minimum (${product.min_principal.toLocaleString()})`);
-    }
+        if (product?.min_principal && approvedAmount < product.min_principal) {
+          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) is below product minimum (${product.min_principal.toLocaleString()})`);
+        }
 
-    if (product?.max_principal && approvedAmount > product.max_principal) {
-      throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) exceeds product maximum (${product.max_principal.toLocaleString()})`);
-    }
+        if (product?.max_principal && approvedAmount > product.max_principal) {
+          throw new Error(`Approved amount (${approvedAmount.toLocaleString()}) exceeds product maximum (${product.max_principal.toLocaleString()})`);
+        }
 
-    if (product?.min_term && approvedTerm < product.min_term) {
-      throw new Error(`Approved term (${approvedTerm} months) is below product minimum (${product.min_term} months)`);
-    }
+        if (product?.min_term && approvedTerm < product.min_term) {
+          throw new Error(`Approved term (${approvedTerm} months) is below product minimum (${product.min_term} months)`);
+        }
 
-    if (product?.max_term && approvedTerm > product.max_term) {
-      throw new Error(`Approved term (${approvedTerm} months) exceeds product maximum (${product.max_term} months)`);
-    }
-  }
+        if (product?.max_term && approvedTerm > product.max_term) {
+          throw new Error(`Approved term (${approvedTerm} months) exceeds product maximum (${product.max_term} months)`);
+        }
+      }
 
-  // Create approval record
-  const { data: approvalData, error: approvalError } = await supabase
-    .from('loan_approvals')
-    .insert([{
-      tenant_id: profile.tenant_id,
-      loan_application_id: approval.loan_application_id,
-      approver_id: profile.id,
-      action: approval.action,
-      status: approval.action === 'approve' ? 'approved' : 'rejected',
-      comments: approval.comments,
-      approved_amount: approval.approved_amount,
-      approved_term: approval.approved_term,
-      approved_interest_rate: approval.approved_interest_rate,
-      conditions: approval.conditions,
-    }])
-    .select()
-    .single();
-  
-  if (approvalError) throw approvalError;
+      // Create approval record
+      const { data: approvalData, error: approvalError } = await supabase
+        .from('loan_approvals')
+        .insert([{
+          tenant_id: profile.tenant_id,
+          loan_application_id: approval.loan_application_id,
+          approver_id: profile.id,
+          action: approval.action,
+          status: approval.action === 'approve' ? 'approved' : 'rejected',
+          comments: approval.comments,
+          approved_amount: approval.approved_amount,
+          approved_term: approval.approved_term,
+          approved_interest_rate: approval.approved_interest_rate,
+          conditions: approval.conditions,
+        }])
+        .select()
+        .single();
+      
+      if (approvalError) throw approvalError;
 
-  // Update loan application status
-  let newStatus: string;
-  if (approval.action === 'approve') {
-    newStatus = 'pending_disbursement';
-  } else if (approval.action === 'reject') {
-    newStatus = 'rejected';
-  } else if (approval.action === 'undo_approval') {
-    newStatus = 'pending';
-  } else {
-    newStatus = 'under_review';
-  }
+      // Update loan application status
+      let newStatus: string;
+      if (approval.action === 'approve') {
+        newStatus = 'pending_disbursement';
+      } else if (approval.action === 'reject') {
+        newStatus = 'rejected';
+      } else if (approval.action === 'undo_approval') {
+        newStatus = 'pending';
+      } else {
+        newStatus = 'under_review';
+      }
 
-  const { error: updateError } = await supabase
-    .from('loan_applications')
-    .update({
-      status: newStatus,
-      reviewed_by: profile.id,
-      reviewed_at: new Date().toISOString(),
-      approval_notes: approval.comments,
-      final_approved_amount: approval.approved_amount,
-      final_approved_term: approval.approved_term,
-      final_approved_interest_rate: approval.approved_interest_rate,
-    })
-    .eq('id', approval.loan_application_id);
+      const { error: updateError } = await supabase
+        .from('loan_applications')
+        .update({
+          status: newStatus,
+          reviewed_by: profile.id,
+          reviewed_at: new Date().toISOString(),
+          approval_notes: approval.comments,
+          final_approved_amount: approval.approved_amount,
+          final_approved_term: approval.approved_term,
+          final_approved_interest_rate: approval.approved_interest_rate,
+        })
+        .eq('id', approval.loan_application_id);
 
-  if (updateError) throw updateError;
+      if (updateError) throw updateError;
 
   // If approved, create loan record
-  if (approval.action === 'approve') {
+      if (approval.action === 'approve') {
     await createLoanRecord(loanApp, approval, profile);
   }
 
@@ -909,7 +909,7 @@ async function createLoanRecord(loanApp: any, approval: any, profile: any) {
   
   // Only create loan if none exists
   if (!existingLoan) {
-    const loanNumber = `LN-${Date.now()}`;
+        const loanNumber = `LN-${Date.now()}`;
     
     // Get full loan product details for snapshot preservation
     const { data: productSnapshot, error: productError } = await supabase
@@ -919,15 +919,15 @@ async function createLoanRecord(loanApp: any, approval: any, profile: any) {
       .single();
 
     if (productError) throw new Error('Failed to fetch loan product details for snapshot');
-    
-    const { data: loanData, error: loanError } = await supabase
-      .from('loans')
-      .insert([{
-        tenant_id: profile.tenant_id,
+        
+        const { data: loanData, error: loanError } = await supabase
+          .from('loans')
+          .insert([{
+            tenant_id: profile.tenant_id,
         client_id: loanApp.client_id,
         loan_product_id: loanApp.loan_product_id,
         application_id: approval.loan_application_id,
-        loan_number: loanNumber,
+            loan_number: loanNumber,
         principal_amount: approval.approved_amount || loanApp.requested_amount,
         interest_rate: (() => {
           const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
@@ -935,8 +935,8 @@ async function createLoanRecord(loanApp: any, approval: any, profile: any) {
         })(),
         term_months: approval.approved_term || loanApp.requested_term,
         outstanding_balance: approval.approved_amount || loanApp.requested_amount,
-        status: 'pending_disbursement',
-        loan_officer_id: profile.id,
+            status: 'pending_disbursement',
+            loan_officer_id: profile.id,
         loan_product_snapshot: productSnapshot,
         creation_interest_rate: (() => {
           const r = Number(approval.approved_interest_rate ?? productSnapshot?.default_nominal_interest_rate ?? 10);
@@ -952,12 +952,12 @@ async function createLoanRecord(loanApp: any, approval: any, profile: any) {
         creation_reschedule_strategy_method: productSnapshot?.reschedule_strategy_method || 'reduce_emi',
         creation_pre_closure_interest_calculation_rule: productSnapshot?.pre_closure_interest_calculation_rule || 'till_pre_close_date',
         creation_advance_payments_adjustment_type: productSnapshot?.advance_payments_adjustment_type || 'reduce_emi',
-      }])
-      .select()
-      .single();
-    
-    if (loanError) throw loanError;
-  }
+          }])
+          .select()
+          .single();
+        
+        if (loanError) throw loanError;
+      }
 }
 
 // Loan Disbursements Hook
@@ -1079,17 +1079,17 @@ export const useProcessLoanDisbursement = () => {
 
       // If fees must be collected via transfer, ensure a valid savings account is available
       if (totalTransferFees > 0) {
-        if (disbursement.disbursement_method === 'transfer_to_savings') {
+      if (disbursement.disbursement_method === 'transfer_to_savings') {
           savingsAccountIdForFees = disbursement.savings_account_id;
           if (!savingsAccountIdForFees) {
-            throw new Error('Please select a savings account to complete disbursement to savings.');
-          }
+          throw new Error('Please select a savings account to complete disbursement to savings.');
+        }
           // Validate ownership/active
           const { data: sa, error: saErr } = await supabase
-            .from('savings_accounts')
-            .select('id, client_id, is_active')
+          .from('savings_accounts')
+          .select('id, client_id, is_active')
             .eq('id', savingsAccountIdForFees)
-            .single();
+          .single();
           if (saErr || !sa) throw new Error('Savings account not found.');
           if (sa.client_id !== application.client_id) throw new Error('Selected savings account does not belong to the loan\'s client.');
           if (!sa.is_active) throw new Error('Selected savings account is not active.');
@@ -1403,7 +1403,7 @@ export const useProcessLoanDisbursement = () => {
           } else {
             // Get loan details for schedule generation
             const { data: loanDetails, error: loanError } = await supabase
-              .from('loans')
+        .from('loans')
               .select('principal_amount, interest_rate, term_months')
               .eq('id', existingLoan.id)
               .single();
@@ -1443,17 +1443,17 @@ export const useProcessLoanDisbursement = () => {
       }
 
       // Mark application as disbursed after successful loan activation
-       const { error: applicationUpdateError } = await supabase
-         .from('loan_applications')
-         .update({
-           status: 'disbursed'
-         })
-         .eq('id', disbursement.loan_application_id);
- 
-       if (applicationUpdateError) {
-         console.error('Error updating loan application to disbursed status:', applicationUpdateError);
-         throw applicationUpdateError;
-       }
+      const { error: applicationUpdateError } = await supabase
+        .from('loan_applications')
+        .update({
+          status: 'disbursed'
+        })
+        .eq('id', disbursement.loan_application_id);
+
+      if (applicationUpdateError) {
+        console.error('Error updating loan application to disbursed status:', applicationUpdateError);
+        throw applicationUpdateError;
+      }
        console.log('Disbursement completed successfully, loan is active and application marked disbursed');
 
       return { loan: existingLoan, disbursement: disbursementData };

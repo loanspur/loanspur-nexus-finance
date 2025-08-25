@@ -1,7 +1,6 @@
-// src/utils/performance.ts - Performance monitoring utilities
-import { logger } from './logger';
+import React from 'react';
 
-export interface PerformanceMetric {
+interface PerformanceMetric {
   name: string;
   duration: number;
   timestamp: Date;
@@ -11,48 +10,56 @@ export interface PerformanceMetric {
 
 class PerformanceMonitor {
   private metrics: PerformanceMetric[] = [];
-  private isDevelopment = import.meta.env.VITE_IS_DEVELOPMENT === 'true';
+  private isDevelopment = import.meta.env.DEV;
 
-  // Measure function execution time
-  async measure<T>(
-    name: string,
-    fn: () => Promise<T>,
+  // Start timing an operation
+  startTimer(operationName: string): () => void {
+    const startTime = performance.now();
+    
+    return () => {
+      const duration = performance.now() - startTime;
+      this.recordMetric(operationName, duration);
+    };
+  }
+
+  // Measure an async operation
+  async measureAsync<T>(
+    operationName: string,
+    operation: () => Promise<T>,
     context?: string,
     metadata?: Record<string, any>
   ): Promise<T> {
-    const start = performance.now();
+    const startTime = performance.now();
     
     try {
-      const result = await fn();
-      const duration = performance.now() - start;
-      
-      this.recordMetric(name, duration, context, metadata);
+      const result = await operation();
+      const duration = performance.now() - startTime;
+      this.recordMetric(operationName, duration, context, metadata);
       return result;
     } catch (error) {
-      const duration = performance.now() - start;
-      this.recordMetric(name, duration, context, { ...metadata, error: true });
+      const duration = performance.now() - startTime;
+      this.recordMetric(`${operationName} (failed)`, duration, context, { ...metadata, error: error instanceof Error ? error.message : 'Unknown error' });
       throw error;
     }
   }
 
-  // Measure synchronous function execution time
+  // Measure a sync operation
   measureSync<T>(
-    name: string,
-    fn: () => T,
+    operationName: string,
+    operation: () => T,
     context?: string,
     metadata?: Record<string, any>
   ): T {
-    const start = performance.now();
+    const startTime = performance.now();
     
     try {
-      const result = fn();
-      const duration = performance.now() - start;
-      
-      this.recordMetric(name, duration, context, metadata);
+      const result = operation();
+      const duration = performance.now() - startTime;
+      this.recordMetric(operationName, duration, context, metadata);
       return result;
     } catch (error) {
-      const duration = performance.now() - start;
-      this.recordMetric(name, duration, context, { ...metadata, error: true });
+      const duration = performance.now() - startTime;
+      this.recordMetric(`${operationName} (failed)`, duration, context, { ...metadata, error: error instanceof Error ? error.message : 'Unknown error' });
       throw error;
     }
   }
@@ -76,7 +83,7 @@ class PerformanceMonitor {
 
     // Log slow operations in development
     if (this.isDevelopment && duration > 1000) {
-      logger.warn(`Slow operation detected: ${name} took ${duration.toFixed(2)}ms`, context, metadata);
+      console.warn(`Slow operation detected: ${name} took ${duration.toFixed(2)}ms`, context, metadata);
     }
 
     // Keep only last 1000 metrics to prevent memory leaks

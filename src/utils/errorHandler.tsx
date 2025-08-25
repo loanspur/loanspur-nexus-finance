@@ -1,16 +1,11 @@
-// src/utils/errorHandler.ts - Centralized error handling
-import { logger } from './logger';
+import React from 'react';
 
-export class AppError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number = 500,
-    public context?: string
-  ) {
-    super(message);
-    this.name = 'AppError';
-  }
+export interface AppError {
+  message: string;
+  code: string;
+  statusCode: number;
+  context?: string;
+  timestamp: Date;
 }
 
 export interface ErrorResponse {
@@ -23,19 +18,50 @@ export interface ErrorResponse {
   };
 }
 
-export const handleApiError = (error: unknown, context?: string): AppError => {
-  // Log the error
-  logger.error('API Error occurred', context, error);
+export class AppError extends Error {
+  public code: string;
+  public statusCode: number;
+  public context?: string;
+  public timestamp: Date;
 
-  if (error instanceof AppError) {
-    return error;
+  constructor(
+    message: string,
+    code: string,
+    statusCode: number,
+    context?: string
+  ) {
+    super(message);
+    this.name = 'AppError';
+    this.code = code;
+    this.statusCode = statusCode;
+    this.context = context;
+    this.timestamp = new Date();
   }
-  
+}
+
+// Simple logger for development
+const logger = {
+  error: (message: string, context?: string, data?: any) => {
+    if (import.meta.env.DEV) {
+      console.error(`[${context || 'ErrorHandler'}] ${message}`, data);
+    }
+  },
+  warn: (message: string, context?: string, data?: any) => {
+    if (import.meta.env.DEV) {
+      console.warn(`[${context || 'ErrorHandler'}] ${message}`, data);
+    }
+  },
+  info: (message: string, context?: string, data?: any) => {
+    if (import.meta.env.DEV) {
+      console.info(`[${context || 'ErrorHandler'}] ${message}`, data);
+    }
+  }
+};
+
+export const handleApiError = (error: any, context?: string): AppError => {
   // Handle Supabase errors
-  if (error && typeof error === 'object' && 'code' in error) {
-    const supabaseError = error as { code: string; message: string };
-    
-    switch (supabaseError.code) {
+  if (error?.code) {
+    switch (error.code) {
       case 'PGRST116':
         return new AppError('Resource not found', 'NOT_FOUND', 404, context);
       case '23505':
@@ -49,7 +75,7 @@ export const handleApiError = (error: unknown, context?: string): AppError => {
       case '42501':
         return new AppError('Insufficient permissions', 'PERMISSION_DENIED', 403, context);
       default:
-        return new AppError(supabaseError.message, 'DATABASE_ERROR', 500, context);
+        return new AppError(error.message || 'Database error', 'DATABASE_ERROR', 500, context);
     }
   }
   
@@ -100,7 +126,7 @@ export const withErrorBoundary = <P extends object>(
     render() {
       if (this.state.hasError) {
         if (fallback) {
-          return <fallback error={this.state.error!} />;
+          return React.createElement(fallback, { error: this.state.error! });
         }
         return (
           <div className="p-4 text-center">

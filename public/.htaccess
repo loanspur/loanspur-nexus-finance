@@ -1,20 +1,30 @@
-# React Router SPA Configuration
-# This ensures all routes are handled by index.html
-
+# CRITICAL: Handle React Router SPA routing
 RewriteEngine On
+RewriteBase /
+
+# Handle static assets
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^.*$ - [L]
 
 # Handle React Router routes
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
+RewriteRule ^.*$ /index.html [L]
 
 # Security headers
 Header always set X-Frame-Options DENY
-Header always set X-XSS-Protection "1; mode=block"
 Header always set X-Content-Type-Options nosniff
+Header always set X-XSS-Protection "1; mode=block"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-# Cache static assets
-<FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$">
+# Cache control for static assets
+<FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# No cache for HTML files
+<FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
 </FilesMatch>

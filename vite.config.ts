@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // CRITICAL: Add this for development SPA routing
+    historyApiFallback: true,
   },
   plugins: [
     react(),
@@ -39,5 +41,10 @@ export default defineConfig(({ mode }) => ({
       },
     },
     chunkSizeWarningLimit: 1500,
+  },
+  // CRITICAL: Add this for production builds
+  preview: {
+    port: 8080,
+    host: "::",
   },
 }));

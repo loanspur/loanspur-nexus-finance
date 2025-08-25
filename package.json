@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "npx serve dist -s -l 8080",
+    "serve": "node dev-server.js",
+    "start": "npm run build && npm run serve",
     "docker:build": "docker build -t loanspur-app .",
     "docker:run": "docker run -p 8080:8080 loanspur-app",
     "docker:build:run": "npm run docker:build && npm run docker:run"
