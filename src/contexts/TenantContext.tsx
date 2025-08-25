@@ -35,7 +35,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       setLoading(true);
       setError(null);
-
+      
       // Enhanced subdomain validation
       if (!subdomain || subdomain.length < 2) {
         setError('Invalid subdomain');
@@ -71,7 +71,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      setCurrentTenant(tenant);
+            setCurrentTenant(tenant);
       setIsSubdomainTenant(true);
       
       // Debug logging
@@ -83,7 +83,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
 
-    } catch (err) {
+        } catch (err) {
       console.error('Error fetching tenant:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsSubdomainTenant(false);
@@ -133,10 +133,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   return (
     <TenantContext.Provider value={{
-      currentTenant,
-      loading,
-      error,
-      isSubdomainTenant,
+        currentTenant,
+        loading,
+        error,
+        isSubdomainTenant,
       refreshTenant
     }}>
       {children}
