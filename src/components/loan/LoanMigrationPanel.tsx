@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { useLoanDataMigration, useLoanMigrationValidation } from '@/hooks/useLoanDataMigration';
+import { useUnifiedLoanManagement } from '@/hooks/useUnifiedLoanManagement';
 import { LoanHarmonizationManager } from './LoanHarmonizationManager';
 import { 
   Database, 
@@ -21,6 +21,7 @@ import {
 
 export const LoanMigrationPanel = () => {
   const [showDetails, setShowDetails] = useState(false);
+  const { useLoanDataMigration, useLoanMigrationValidation } = useUnifiedLoanManagement();
   const migrationMutation = useLoanDataMigration();
   const { data: validation, refetch: refetchValidation, isLoading: isValidating } = useLoanMigrationValidation();
 

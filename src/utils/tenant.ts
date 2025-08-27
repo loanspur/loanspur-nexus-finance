@@ -16,6 +16,12 @@ export interface TenantInfo {
  */
 export function getBaseDomain(hostname?: string): string {
   const h = (hostname || (typeof window !== 'undefined' ? window.location.hostname : '')).split(':')[0];
+  
+  // Handle localhost for development
+  if (h && (h === 'localhost' || h.endsWith('.localhost'))) {
+    return 'localhost';
+  }
+  
   // If we're on the dev domain, return it; otherwise default to production
   if (h && (h === 'loanspur.online' || h.endsWith('.loanspur.online'))) return 'loanspur.online';
   return 'loanspurcbs.com';
@@ -29,7 +35,19 @@ export function getSubdomainFromHostname(hostname: string): string | null {
     console.log('Subdomain detection - hostname:', hostname, 'cleanHostname:', cleanHostname);
   }
   
-  // Check if it's a main domain or localhost
+  // Handle localhost subdomains (e.g., umoja-magharibi.localhost)
+  if (cleanHostname && cleanHostname.includes('.localhost')) {
+    const parts = cleanHostname.split('.');
+    if (parts.length >= 2 && parts[parts.length - 1] === 'localhost') {
+      const subdomain = parts.slice(0, -1).join('.');
+      if (import.meta.env['VITE_IS_DEVELOPMENT'] === 'true') {
+        console.log('Extracted localhost subdomain:', subdomain);
+      }
+      return subdomain === 'www' ? null : subdomain;
+    }
+  }
+  
+  // Check if it's a main domain or plain localhost
   if (cleanHostname && (cleanHostname === 'loanspurcbs.com' || 
       cleanHostname === 'loanspur.online' ||
       cleanHostname === 'localhost' || 
@@ -113,6 +131,13 @@ export async function getTenantBySubdomain(subdomain: string): Promise<TenantInf
  */
 export function buildSubdomainUrl(subdomain: string, path: string = '', baseDomain?: string): string {
   const domain = baseDomain || getBaseDomain();
+  
+  // Handle localhost for development
+  if (domain === 'localhost') {
+    const baseUrl = 'http://' + (subdomain ? `${subdomain}.` : '') + domain;
+    return baseUrl + (path.startsWith('/') ? path : '/' + path);
+  }
+  
   const baseUrl = 'https://' + (subdomain ? `${subdomain}.` : '') + domain;
   return baseUrl + (path.startsWith('/') ? path : '/' + path);
 }

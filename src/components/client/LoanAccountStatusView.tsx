@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
 import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { useLoanDisplayData } from "@/hooks/useHarmonizedLoanData";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 
 interface LoanAccount {
   id: string;
@@ -61,6 +61,7 @@ export const LoanAccountStatusView = ({
 }: LoanAccountStatusViewProps) => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { formatAmount: formatCurrency } = useCurrency();
+  const { useLoanDisplayData } = useUnifiedLoanManagement();
 
   // Enhanced account item component with harmonized data
   const AccountItem = ({ account }: { account: LoanAccount }) => {

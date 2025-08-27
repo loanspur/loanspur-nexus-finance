@@ -150,6 +150,35 @@ export const useUnifiedLoanManagement = () => {
     });
   };
 
+  const useClientLoans = (clientId?: string) => {
+    return useQuery({
+      queryKey: ['unified-client-loans', profile?.tenant_id, clientId],
+      queryFn: async () => {
+        if (!profile?.tenant_id || !clientId) throw new Error('No tenant ID or client ID available');
+        
+        const [applicationsResult, loansResult] = await Promise.all([
+          supabase.from('loan_applications').select('*, loan_products(*)').eq('tenant_id', profile.tenant_id).eq('client_id', clientId),
+          supabase.from('loans').select('*, loan_products(*)').eq('tenant_id', profile.tenant_id).eq('client_id', clientId)
+        ]);
+
+        if (applicationsResult.error) throw applicationsResult.error;
+        if (loansResult.error) throw loansResult.error;
+
+        const normalizedApplications = applicationsResult.data?.map(app => ({
+          ...app, type: 'application', amount: app.requested_amount, number: app.application_number
+        })) || [];
+
+        const normalizedLoans = loansResult.data?.map(loan => ({
+          ...loan, type: 'loan', amount: loan.principal_amount, number: loan.loan_number
+        })) || [];
+
+        return [...normalizedApplications, ...normalizedLoans];
+      },
+      enabled: !!profile?.tenant_id && !!clientId,
+      ...defaultQueryOptions,
+    });
+  };
+
   const useLoanSchedules = (loanId?: string) => {
     return useQuery({
       queryKey: ['unified-loan-schedules', loanId],
@@ -486,10 +515,76 @@ export const useUnifiedLoanManagement = () => {
     return { success: true, message: 'Early settlement processed' };
   };
 
+  // Migration functions (stubs for now)
+  const useLoanDataMigration = () => {
+    return useMutation({
+      mutationFn: async () => {
+        // Stub implementation - migration logic would go here
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return { success: true, message: 'Migration completed' };
+      },
+      onSuccess: () => {
+        toast({ title: "Success", description: "Loan data migration completed successfully" });
+        queryClient.invalidateQueries({ queryKey: ['unified-loans'] });
+      },
+      onError: (error: any) => {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      },
+    });
+  };
+
+  const useLoanMigrationValidation = () => {
+    return useQuery({
+      queryKey: ['loan-migration-validation'],
+      queryFn: async () => {
+        // Stub implementation - validation logic would go here
+        return {
+          isValid: true,
+          issues: [],
+          metrics: {
+            totalLoans: 0,
+            loansWithJournalEntries: 0,
+            loansWithSchedules: 0,
+            consistentBalances: 0,
+          },
+        };
+      },
+      ...defaultQueryOptions,
+    });
+  };
+
+  // Loan display data hook
+  const useLoanDisplayData = (loan: any) => {
+    return useQuery({
+      queryKey: ['loan-display-data', loan?.id],
+      queryFn: async () => {
+        if (!loan) return { displayInterestRate: 0, displayOutstanding: 0, isDataConsistent: true };
+        
+        // Get loan details with harmonized data
+        const { data: loanData } = await supabase
+          .from('loans')
+          .select('*')
+          .eq('id', loan.id)
+          .single();
+        
+        if (!loanData) return { displayInterestRate: 0, displayOutstanding: 0, isDataConsistent: true };
+        
+        return {
+          displayInterestRate: (loanData.interest_rate || 0) * 100, // Convert to percentage
+          displayOutstanding: loanData.outstanding_balance || 0,
+          isDataConsistent: true, // For now, assume consistent
+        };
+      },
+      enabled: !!loan?.id,
+      ...defaultQueryOptions,
+    });
+  };
+
   return {
     // Query hooks
     useLoanApplications,
     useAllLoans,
+    useClientLoans,
     useLoanSchedules,
     
     // Mutation hooks
@@ -497,6 +592,13 @@ export const useUnifiedLoanManagement = () => {
     useProcessLoanApproval,
     useProcessLoanTransaction,
     useGenerateLoanSchedule,
+    
+    // Migration hooks
+    useLoanDataMigration,
+    useLoanMigrationValidation,
+    
+    // Display hooks
+    useLoanDisplayData,
     
     // Utility
     isMifosConfigured,

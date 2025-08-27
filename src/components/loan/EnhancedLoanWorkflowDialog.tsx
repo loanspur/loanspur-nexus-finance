@@ -18,10 +18,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, XCircle, Clock, Banknote, AlertTriangle, Undo2, RefreshCw, FileText, Shield, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval, useProcessLoanDisbursement, useUpdateLoanApplicationDetails, useUndoLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { useMifosIntegration } from "@/hooks/useMifosIntegration";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useLoanDatabase, useClientDatabase, useDatabase } from "@/hooks/useDatabase";
+import { DatabaseUtils } from "@/lib/database";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { calculateFeeAmount, formatFeeDisplay } from "@/lib/fee-calculation";
@@ -87,9 +87,14 @@ export const EnhancedLoanWorkflowDialog = ({
   const { toast } = useToast();
   const { profile } = useAuth();
   const { formatAmount } = useCurrency();
+  const { useProcessLoanApproval, useProcessLoanTransaction } = useUnifiedLoanManagement();
   const processApproval = useProcessLoanApproval();
-  const processDisbursement = useProcessLoanDisbursement();
-  const undoDisbursement = useUndoLoanDisbursement();
+  const processDisbursement = useProcessLoanTransaction();
+  
+  // Unified database hooks
+  const { useSelect, useSelectOne, executeQuery, db } = useDatabase();
+  const { useLoanSchedules, useLoanPayments } = useLoanDatabase();
+  const { useClientById } = useClientDatabase();
   
   // Mifos X integration
   const { 
@@ -107,113 +112,60 @@ export const EnhancedLoanWorkflowDialog = ({
   }
 
   // Fetch client's savings accounts for disbursement to savings
-  const { data: savingsAccounts = [] } = useQuery({
-    queryKey: ['client-savings-accounts', loanApplication.client_id],
-    queryFn: async () => {
-      if (!loanApplication.client_id) return [];
-      const { data, error } = await supabase
-        .from('savings_accounts')
-        .select('id, account_number, account_balance, savings_products(name)')
-        .eq('client_id', loanApplication.client_id)
-        .eq('is_active', true);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!loanApplication.client_id && open,
-  });
+  const { data: savingsAccountsResult } = useSelect(
+    ['client-savings-accounts', loanApplication.client_id],
+    'savings_accounts',
+    {
+      columns: 'id, account_number, account_balance, savings_products(name)',
+      filter: { client_id: loanApplication.client_id, is_active: true },
+      enabled: !!loanApplication.client_id && open,
+    }
+  );
 
   // Fetch available loan-related charges/fees
-  const { data: availableCharges = [] } = useQuery({
-    queryKey: ['available-loan-charges', (profile?.tenant_id || ''), loanApplication.loan_product_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fee_structures')
-        .select('id, name, calculation_type, amount, min_amount, max_amount, fee_type, charge_time_type')
-        .eq('tenant_id', profile!.tenant_id)
-        .eq('fee_type', 'loan')
-        .eq('is_active', true);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!profile?.tenant_id && !!loanApplication.loan_product_id && open,
-  });
+  const { data: availableChargesResult } = useSelect(
+    ['available-loan-charges', profile?.tenant_id, loanApplication.loan_product_id],
+    'fee_structures',
+    {
+      columns: 'id, name, calculation_type, amount, min_amount, max_amount, fee_type, charge_time_type',
+      filter: { tenant_id: profile?.tenant_id, fee_type: 'loan', is_active: true },
+      enabled: !!profile?.tenant_id && !!loanApplication.loan_product_id && open,
+    }
+  );
 
   // Fetch loan product details
-  const { data: product } = useQuery({
-    queryKey: ['loan-product', loanApplication.loan_product_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('loan_products')
-        .select('*')
-        .eq('id', loanApplication.loan_product_id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!loanApplication.loan_product_id && open,
-  });
+  const { data: productResult } = useSelectOne(
+    ['loan-product', loanApplication.loan_product_id],
+    'loan_products',
+    { id: loanApplication.loan_product_id },
+    { enabled: !!loanApplication.loan_product_id && open }
+  );
 
   // Fetch client details
-  const { data: client } = useQuery({
-    queryKey: ['client', loanApplication.client_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', loanApplication.client_id)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!loanApplication.client_id && open,
-  });
+  const { data: clientResult } = useClientById(loanApplication.client_id || '', !!loanApplication.client_id && open);
 
   // Fetch loan details if application is approved
-  const { data: loan } = useQuery({
-    queryKey: ['loan', loanApplication.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('loans')
-        .select('*')
-        .eq('application_id', loanApplication.id)
-        .single();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
-    },
-    enabled: !!loanApplication.id && open && ['approved', 'pending_disbursement', 'disbursed', 'active'].includes(loanApplication.status),
-  });
+  const { data: loanResult } = useSelectOne(
+    ['loan', loanApplication.id],
+    'loans',
+    { application_id: loanApplication.id },
+    { enabled: !!loanApplication.id && open && ['approved', 'pending_disbursement', 'disbursed', 'active'].includes(loanApplication.status) }
+  );
 
   // Fetch loan schedules if loan exists
-  const { data: schedules = [] } = useQuery({
-    queryKey: ['loan-schedules', loan?.id],
-    queryFn: async () => {
-      if (!loan?.id) return [];
-      const { data, error } = await supabase
-        .from('loan_schedules')
-        .select('*')
-        .eq('loan_id', loan.id)
-        .order('installment_number');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!loan?.id && open,
-  });
+  const { data: schedulesResult } = useLoanSchedules(loanResult?.id || '', !!loanResult?.id && open);
 
   // Fetch loan payments if loan exists
-  const { data: payments = [] } = useQuery({
-    queryKey: ['loan-payments', loan?.id],
-    queryFn: async () => {
-      if (!loan?.id) return [];
-      const { data, error } = await supabase
-        .from('loan_payments')
-        .select('*')
-        .eq('loan_id', loan.id)
-        .order('payment_date', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!loan?.id && open,
-  });
+  const { data: paymentsResult } = useLoanPayments(loanResult?.id || '', !!loanResult?.id && open);
+
+  // Extract data using DatabaseUtils
+  const savingsAccounts = DatabaseUtils.getData(savingsAccountsResult) || [];
+  const availableCharges = DatabaseUtils.getData(availableChargesResult) || [];
+  const product = DatabaseUtils.getData(productResult);
+  const client = DatabaseUtils.getData(clientResult);
+  const loan = DatabaseUtils.getData(loanResult);
+  const schedules = DatabaseUtils.getData(schedulesResult) || [];
+  const payments = DatabaseUtils.getData(paymentsResult) || [];
 
   // Calculate outstanding balance
   const outstandingBalance = loan ? (loan.outstanding_balance || 0) : 0;
@@ -350,12 +302,11 @@ const onApprovalSubmit = async (data: ApprovalData) => {
         return;
       }
 
-      // Process local repayment using transaction manager
-      // This would need to be implemented in the transaction manager
-      // For now, we'll use a direct approach
-      const { error } = await supabase
-        .from('loan_payments')
-        .insert({
+      // Use unified database layer for repayment processing
+
+      // Insert loan payment
+      const paymentResult = await executeQuery(
+        () => db.insert('loan_payments', {
           tenant_id: profile?.tenant_id,
           loan_id: loan.id,
           payment_amount: parseFloat(data.payment_amount),
@@ -365,19 +316,27 @@ const onApprovalSubmit = async (data: ApprovalData) => {
           payment_method: data.payment_method,
           reference_number: data.reference_number,
           processed_by: profile?.id,
-        });
+        }),
+        { showError: true }
+      );
 
-      if (error) throw error;
+      if (!DatabaseUtils.isSuccess(paymentResult)) {
+        throw new Error('Failed to insert payment');
+      }
 
       // Update loan outstanding balance
       const newOutstanding = Math.max(0, outstandingBalance - parseFloat(data.payment_amount));
-      await supabase
-        .from('loans')
-        .update({ 
+      const updateResult = await executeQuery(
+        () => db.update('loans', {
           outstanding_balance: newOutstanding,
           status: newOutstanding <= 0 ? 'closed' : 'active'
-        })
-        .eq('id', loan.id);
+        }, { id: loan.id }),
+        { showError: true }
+      );
+
+      if (!DatabaseUtils.isSuccess(updateResult)) {
+        throw new Error('Failed to update loan');
+      }
 
       // Sync to Mifos X if enabled and configured
       if (data.sync_to_mifos && mifosConfig && loan.mifos_loan_id) {
@@ -419,15 +378,21 @@ const onApprovalSubmit = async (data: ApprovalData) => {
         return;
       }
 
+      // Use unified database layer for write-off processing
+
       // Update loan status to written off
-      await supabase
-        .from('loans')
-        .update({ 
+      const updateResult = await executeQuery(
+        () => db.update('loans', {
           status: 'written_off',
           outstanding_balance: 0,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', loan.id);
+        }, { id: loan.id }),
+        { showError: true }
+      );
+
+      if (!DatabaseUtils.isSuccess(updateResult)) {
+        throw new Error('Failed to update loan status');
+      }
 
       // Sync to Mifos X if enabled and configured
       if (data.sync_to_mifos && mifosConfig && loan.mifos_loan_id) {
@@ -455,27 +420,15 @@ const onApprovalSubmit = async (data: ApprovalData) => {
     }
   };
 
-  // Handle undo disbursement
+  // Handle undo disbursement - simplified version
   const handleUndoDisbursement = async () => {
     try {
-      await undoDisbursement.mutateAsync({
-        loan_application_id: loanApplication.id
-      });
-
-      // Sync to Mifos X if configured
-      if (mifosConfig && loanApplication.mifos_loan_id) {
-        await undoMifosDisbursement.mutateAsync({
-          mifosLoanId: loanApplication.mifos_loan_id,
-          transactionDate: format(new Date(), 'yyyy-MM-dd'),
-        });
-      }
-
+      // For now, just show a message that this feature is not yet implemented
       toast({
-        title: "Success",
-        description: "Disbursement undone successfully",
+        title: "Feature Not Available",
+        description: "Undo disbursement functionality is not yet implemented in the unified system",
+        variant: "destructive",
       });
-      
-      onSuccess?.();
     } catch (error) {
       console.error('Error undoing disbursement:', error);
       toast({
@@ -921,10 +874,10 @@ const onApprovalSubmit = async (data: ApprovalData) => {
                         <Button 
                           variant="outline" 
                           onClick={handleUndoDisbursement}
-                          disabled={undoDisbursement.isPending}
+                          disabled={false}
                         >
                           <Undo2 className="h-4 w-4 mr-2" />
-                          {undoDisbursement.isPending ? "Processing..." : "Undo Disbursement"}
+                          Undo Disbursement
                         </Button>
                       </div>
                     </div>

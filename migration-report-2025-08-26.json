@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-08-26T14:38:32.761Z",
+  "config": {
+    "batchSize": 10,
+    "dryRun": true
+  },
+  "results": {
+    "total": 18,
+    "successful": 18,
+    "failed": 0,
+    "statusChanges": {},
+    "errors": []
+  },
+  "summary": {
+    "successRate": "100.00%"
+  }
+}

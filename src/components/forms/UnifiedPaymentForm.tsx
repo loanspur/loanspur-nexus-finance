@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useLoanTransactionManager, type LoanTransactionData } from "@/hooks/useLoanTransactionManager";
+import { useLoanTransactionManager, type LoanTransactionData } from "@/hooks/useUnifiedLoanManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 

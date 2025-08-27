@@ -12,7 +12,7 @@ import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+import { useLoanTransactionManager } from "@/hooks/useUnifiedLoanManagement";
 
 interface EnhancedLoanDisbursementDialogProps {
   open: boolean;

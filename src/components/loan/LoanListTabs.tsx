@@ -13,7 +13,7 @@ import {
   Eye,
   CreditCard
 } from "lucide-react";
-import { useAllLoans } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
 import { BulkLoanActions } from "./BulkLoanActions";
 import { LoanWorkflowDialog } from "./LoanWorkflowDialog";
@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { getUnifiedLoanStatus, StatusHelpers } from "@/lib/status-management";
 
 export const LoanListTabs = () => {
+  const { useAllLoans } = useUnifiedLoanManagement();
   const { data: allLoans, isLoading, error } = useAllLoans();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedApplication, setSelectedApplication] = useState<any>(null);

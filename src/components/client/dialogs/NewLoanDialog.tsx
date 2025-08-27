@@ -23,7 +23,7 @@ import { CreditCard, DollarSign, Calendar, Percent, FileText, User, Building, Sh
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { useMifosIntegration } from "@/hooks/useMifosIntegration";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
@@ -70,6 +70,7 @@ interface NewLoanDialogProps {
 export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreated, initialData }: NewLoanDialogProps) => {
   const { profile } = useAuth();
   const { toast } = useToast();
+  const { useCreateLoanApplication } = useUnifiedLoanManagement();
   const createLoanApplication = useCreateLoanApplication();
   const { createMifosLoanApplication, mifosConfig, isLoadingConfig } = useMifosIntegration();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -135,11 +136,9 @@ export const NewLoanDialog = ({ open, onOpenChange, clientId, onApplicationCreat
          linked_savings_account_id: initialData.linked_savings_account_id || "none",
          submit_date: (initialData as any).submit_date
            || (initialData as any).submitted_at?.slice(0,10)
-           || form.getValues('submit_date')
            || format(new Date(), 'yyyy-MM-dd'),
          disbursement_date: (initialData as any).disbursement_date 
            || (initialData as any).expected_disbursement_date?.slice(0,10)
-           || form.getValues('disbursement_date')
            || format(new Date(), 'yyyy-MM-dd'),
          product_charges: Array.isArray((initialData as any).product_charges) ? (initialData as any).product_charges : [],
          collateral_ids: Array.isArray((initialData as any).collateral_ids) ? (initialData as any).collateral_ids : [],

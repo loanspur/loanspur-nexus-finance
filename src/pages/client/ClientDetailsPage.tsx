@@ -52,7 +52,7 @@ import { EditEmploymentDialog } from "@/components/client/dialogs/EditEmployment
 import { EditBusinessDialog } from "@/components/client/dialogs/EditBusinessDialog";
 import { EditNextOfKinDialog } from "@/components/client/dialogs/EditNextOfKinDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 
 interface Client {
   id: string;
@@ -93,7 +93,8 @@ const ClientDetailsPageRefactored = () => {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const processDisbursement = useProcessLoanDisbursement();
+  const { useProcessLoanTransaction } = useUnifiedLoanManagement();
+  const processDisbursement = useProcessLoanTransaction();
   
   const [client, setClient] = useState<Client | null>(null);
   const [loans, setLoans] = useState<any[]>([]);

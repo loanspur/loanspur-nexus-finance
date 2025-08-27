@@ -19,7 +19,7 @@ import {
   FileText,
   AlertCircle
 } from "lucide-react";
-import { useLoanApplications } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { LoanWorkflowDialog } from "./LoanWorkflowDialog";
 import { format } from "date-fns";
 
@@ -29,6 +29,7 @@ interface LoanWorkflowManagementProps {
 }
 
 export const LoanWorkflowManagement = ({ clientId, viewMode = 'all' }: LoanWorkflowManagementProps) => {
+  const { useLoanApplications } = useUnifiedLoanManagement();
   const { data: loanApplications, isLoading, error } = useLoanApplications();
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isWorkflowDialogOpen, setIsWorkflowDialogOpen] = useState(false);

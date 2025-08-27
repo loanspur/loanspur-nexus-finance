@@ -51,12 +51,39 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      const { data: tenant, error: tenantError } = await supabase
+      // Try to find tenant by subdomain first, then by slug as fallback
+      let tenant = null;
+      let tenantError = null;
+      
+      // First attempt: Look for tenant by subdomain
+      const { data: subdomainTenant, error: subdomainError } = await supabase
         .from('tenants')
         .select('*')
         .eq('subdomain', subdomain.toLowerCase())
         .eq('status', 'active')
         .single();
+      
+      if (subdomainTenant) {
+        tenant = subdomainTenant;
+      } else if (subdomainError && subdomainError.code === 'PGRST116') {
+        // If no tenant found by subdomain, try by slug
+        const { data: slugTenant, error: slugError } = await supabase
+          .from('tenants')
+          .select('*')
+          .eq('slug', subdomain.toLowerCase())
+          .eq('status', 'active')
+          .single();
+        
+        if (slugTenant) {
+          tenant = slugTenant;
+          // If tenant found by slug but subdomain is null, we can use it
+          // The subdomain detection is working, just the column value is missing
+        } else {
+          tenantError = slugError;
+        }
+      } else {
+        tenantError = subdomainError;
+      }
 
       if (tenantError) {
         console.error('Tenant fetch error:', tenantError);
@@ -66,9 +93,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       if (!tenant) {
+        console.error('No tenant found for subdomain:', subdomain);
         setError('Tenant not found');
         setIsSubdomainTenant(false);
         return;
+      }
+
+      // Debug logging
+      if (import.meta.env.DEV) {
+        console.log('Tenant found:', {
+          subdomain,
+          tenantId: tenant.id,
+          tenantName: tenant.name,
+          tenantSlug: tenant.slug,
+          tenantSubdomain: tenant.subdomain,
+          foundBy: tenant.subdomain === subdomain.toLowerCase() ? 'subdomain' : 'slug'
+        });
       }
 
             setCurrentTenant(tenant);

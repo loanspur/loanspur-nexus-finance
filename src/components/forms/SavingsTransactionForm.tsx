@@ -47,7 +47,7 @@ import {
 } from "@/hooks/useSavingsAccounting";
 import { useLoanRepaymentAccounting } from "@/hooks/useLoanAccounting";
 import { useClients } from "@/hooks/useSupabase";
-import { useClientLoans } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSavingsAccount } from "@/hooks/useSavingsAccount";
@@ -176,6 +176,7 @@ export const SavingsTransactionForm = ({
   const watchedCustomChargeAmount = form.watch("customChargeAmount");
   const watchedTransferClientId = form.watch("transferClientId");
   const watchedTransferAccountType = form.watch("transferAccountType");
+  const { useClientLoans } = useUnifiedLoanManagement();
   const { data: clientLoans = [] } = useClientLoans(watchedTransferClientId);
 
   const selectedClient = clients.find((c: any) => c.id === watchedTransferClientId);

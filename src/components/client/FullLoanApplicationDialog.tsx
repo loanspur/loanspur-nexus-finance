@@ -33,7 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -109,6 +109,7 @@ export const FullLoanApplicationDialog = ({
 }: FullLoanApplicationDialogProps) => {
   const { profile } = useAuth();
   const { toast } = useToast();
+  const { useCreateLoanApplication } = useUnifiedLoanManagement();
   const createLoanApplication = useCreateLoanApplication();
   const createApprovalRequest = useCreateApprovalRequest();
   const [currentTab, setCurrentTab] = useState<string>("basic");

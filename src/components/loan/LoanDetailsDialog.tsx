@@ -52,7 +52,6 @@ import { useLoanRepaymentAccounting, useLoanChargeAccounting } from "@/hooks/use
 import { useCreateJournalEntry } from "@/hooks/useAccounting";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { calculateFeeAmount } from "@/lib/fee-calculation";
-import { useLoanDisplayData } from "@/hooks/useHarmonizedLoanData";
 import { calculateReducingBalanceInterest } from "@/lib/mifos-interest-calculation";
 
 const safeFormatDate = (value?: any, fmt = 'MMM dd, yyyy') => {
@@ -112,7 +111,7 @@ export const LoanDetailsDialog = ({ loan, clientName, open, onOpenChange }: Loan
   const [recoveryMethod, setRecoveryMethod] = useState<string>('cash');
 
   // Hooks
-  const { useProcessLoanTransaction, useLoanSchedules } = useUnifiedLoanManagement();
+  const { useProcessLoanTransaction, useLoanSchedules, useLoanDisplayData } = useUnifiedLoanManagement();
   const transactionManager = useProcessLoanTransaction();
   const { data: schedules, isLoading: schedulesLoading } = useLoanSchedules(loan.id);
   const repayAccounting = useLoanRepaymentAccounting();
@@ -1272,7 +1271,7 @@ const getStatusColor = (status: string) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {schedules.length === 0 ? (
+                    {!schedules || schedules.length === 0 ? (
                       <div className="text-center space-y-4 py-8">
                         <p className="text-muted-foreground">No repayment schedule available.</p>
                         <Button 
@@ -1359,7 +1358,7 @@ const getStatusColor = (status: string) => {
                              </tr>
                            </thead>
                            <tbody>
-                             {schedules.map((schedule: any) => (
+                             {(schedules || []).map((schedule: any) => (
                                <tr key={schedule.id} className={`border-b ${
                                  schedule.payment_status === 'paid' ? 'bg-green-50' : 
                                  schedule.payment_status === 'overdue' ? 'bg-red-50' : 
@@ -1385,27 +1384,27 @@ const getStatusColor = (status: string) => {
                                </tr>
                              ))}
                              {/* Totals Row */}
-                             {schedules.length > 0 && (
+                             {schedules && schedules.length > 0 && (
                                <tr className="border-t-2 border-primary bg-primary/5 font-semibold">
                                  <td className="p-3 text-sm font-bold">TOTALS</td>
                                  <td className="p-3 text-sm"></td>
                                  <td className="p-3 text-sm font-bold">
-                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0), 0))}
+                                   {formatCurrency((schedules || []).reduce((sum: number, s: any) => sum + Number(s.principal_amount || 0), 0))}
                                  </td>
                                  <td className="p-3 text-sm font-bold">
-                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.interest_amount || 0), 0))}
+                                   {formatCurrency((schedules || []).reduce((sum: number, s: any) => sum + Number(s.interest_amount || 0), 0))}
                                  </td>
                                  <td className="p-3 text-sm font-bold">
-                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.fee_amount || 0), 0))}
+                                   {formatCurrency((schedules || []).reduce((sum: number, s: any) => sum + Number(s.fee_amount || 0), 0))}
                                  </td>
                                  <td className="p-3 text-sm font-bold">
-                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0))}
+                                   {formatCurrency((schedules || []).reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0))}
                                  </td>
                                  <td className="p-3 text-sm font-bold text-green-600">
-                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.paid_amount || 0), 0))}
+                                   {formatCurrency((schedules || []).reduce((sum: number, s: any) => sum + Number(s.paid_amount || 0), 0))}
                                  </td>
                                  <td className="p-3 text-sm font-bold">
-                                   {formatCurrency(schedules.reduce((sum: number, s: any) => sum + Number(s.outstanding_amount || 0), 0))}
+                                   {formatCurrency((schedules || []).reduce((sum: number, s: any) => sum + Number(s.outstanding_amount || 0), 0))}
                                  </td>
                                  <td className="p-3 text-sm"></td>
                                </tr>
@@ -1430,7 +1429,7 @@ const getStatusColor = (status: string) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {documents.length === 0 ? (
+                    {!documents || documents.length === 0 ? (
                       <div className="text-center py-12">
                         <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <div className="text-lg font-medium text-muted-foreground mb-2">
@@ -1441,7 +1440,7 @@ const getStatusColor = (status: string) => {
                         </div>
                       </div>
                     ) : (
-                      documents.map((doc, index) => (
+                      (documents || []).map((doc, index) => (
                         <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="flex items-center gap-3">
                             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -1486,7 +1485,7 @@ const getStatusColor = (status: string) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {loanCharges.length === 0 ? (
+                    {!loanCharges || loanCharges.length === 0 ? (
                       <div className="text-center py-8">
                         <FileWarning className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                         <p className="text-sm text-muted-foreground">No charges recorded for this loan yet.</p>

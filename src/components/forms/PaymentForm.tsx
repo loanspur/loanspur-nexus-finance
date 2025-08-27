@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeeStructures } from "@/hooks/useFeeManagement";
 import { getDerivedLoanStatus } from "@/lib/loan-status";
@@ -50,7 +50,8 @@ export const PaymentForm = ({ open, onOpenChange }: PaymentFormProps) => {
   const { profile } = useAuth();
   
   // Unified transaction manager
-  const transactionManager = useLoanTransactionManager();
+  const { useProcessLoanTransaction } = useUnifiedLoanManagement();
+  const transactionManager = useProcessLoanTransaction();
 
   // Fee structures for loan fee mapping
   const { data: feeStructures = [] } = useFeeStructures();

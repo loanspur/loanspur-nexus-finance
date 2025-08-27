@@ -12,7 +12,7 @@ import { useLoanProducts } from "@/hooks/useSupabase";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 
 
 interface LoanDisbursementDialogProps {
@@ -30,7 +30,8 @@ export const LoanDisbursementDialog = ({
 }: LoanDisbursementDialogProps) => {
   const { toast } = useToast();
   const { formatAmount } = useCurrency();
-  const transactionManager = useLoanTransactionManager();
+  const { useProcessLoanTransaction } = useUnifiedLoanManagement();
+  const transactionManager = useProcessLoanTransaction();
   const { data: loanProducts = [] } = useLoanProducts();
 
   // Undo disbursement -> back to approval stage

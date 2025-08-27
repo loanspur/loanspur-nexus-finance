@@ -5,9 +5,9 @@
  * This script helps migrate to the unified loan management system
  */
 
-const fs = require('fs');
-const path = require('path');
-const glob = require('glob');
+import fs from 'fs';
+import path from 'path';
+import { glob } from 'glob';
 
 // Files that should be removed (redundant)
 const REDUNDANT_FILES = [

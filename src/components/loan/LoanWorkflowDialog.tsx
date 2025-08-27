@@ -17,8 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, Clock, Banknote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval } from "@/hooks/useLoanManagement";
-import { useLoanTransactionManager } from "@/hooks/useLoanTransactionManager";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 
 const approvalSchema = z.object({
   action: z.enum(['approve', 'reject', 'request_changes']),
@@ -94,8 +93,9 @@ export const LoanWorkflowDialog = ({
 }: LoanWorkflowDialogProps) => {
   const [currentTab, setCurrentTab] = useState("details");
   const { toast } = useToast();
+  const { useProcessLoanApproval, useProcessLoanTransaction } = useUnifiedLoanManagement();
   const processApproval = useProcessLoanApproval();
-  const transactionManager = useLoanTransactionManager();
+  const transactionManager = useProcessLoanTransaction();
 
   // Guard clause to prevent null reference errors
   if (!loanApplication) {

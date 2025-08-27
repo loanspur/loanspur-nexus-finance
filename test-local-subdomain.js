@@ -14,6 +14,15 @@ const mockWindow = {
 function getSubdomainFromHostname(hostname) {
   const cleanHostname = hostname.split(':')[0];
   
+  // Handle localhost subdomains (e.g., umoja-magharibi.localhost)
+  if (cleanHostname && cleanHostname.includes('.localhost')) {
+    const parts = cleanHostname.split('.');
+    if (parts.length >= 2 && parts[parts.length - 1] === 'localhost') {
+      const subdomain = parts.slice(0, -1).join('.');
+      return subdomain === 'www' ? null : subdomain;
+    }
+  }
+  
   if (cleanHostname === 'loanspurcbs.com' || 
       cleanHostname === 'loanspur.online' ||
       cleanHostname === 'localhost' || 
@@ -42,7 +51,10 @@ async function testLocalSubdomain() {
       'xyz-sacco.loanspur.online',
       'community-bank.loanspur.online',
       'loanspur.online',
-      'localhost:3000'
+      'localhost:3000',
+      'umoja-magharibi.localhost',
+      'test.localhost',
+      'dev.localhost'
     ];
     
     testHostnames.forEach(hostname => {
@@ -56,7 +68,7 @@ async function testLocalSubdomain() {
     const SUPABASE_URL = "https://woqesvsopdgoikpatzxp.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvcWVzdnNvcGRnb2lrcGF0enhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1MjQ0NDMsImV4cCI6MjA2NzEwMDQ0M30.rIFhs-PZ24UZBOzE4nx1Ev8Pyp__7rMt5N-7kWNUeDI";
     
-    const testSubdomains = ['abc-microfinance', 'xyz-sacco', 'community-bank'];
+    const testSubdomains = ['abc-microfinance', 'xyz-sacco', 'community-bank', 'umoja-magharibi', 'test', 'dev'];
     
     for (const subdomain of testSubdomains) {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/tenants?subdomain=eq.${subdomain}&status=eq.active&select=id,name,subdomain,domain,status`, {

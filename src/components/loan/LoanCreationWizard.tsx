@@ -28,7 +28,7 @@ import { EnhancedCollateralDetailsStep } from "./wizard-steps/EnhancedCollateral
 import { GuarantorInformationStep } from "./wizard-steps/GuarantorInformationStep";
 import { DocumentUploadStep } from "./wizard-steps/DocumentUploadStep";
 import { ReviewAndSubmitStep } from "./wizard-steps/ReviewAndSubmitStep";
-import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useCreateLoanApplication } from "@/hooks/useUnifiedLoanManagement";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 

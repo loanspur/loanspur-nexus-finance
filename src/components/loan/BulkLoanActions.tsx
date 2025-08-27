@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useProcessLoanApproval, useProcessLoanDisbursement } from "@/hooks/useLoanManagement";
+import { useUnifiedLoanManagement } from "@/hooks/useUnifiedLoanManagement";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UnifiedStatusBadge } from "@/components/ui/unified-status-badge";
 
@@ -25,8 +25,9 @@ export const BulkLoanActions = ({ loans, actionType, onSuccess }: BulkLoanAction
   const [selectedLoans, setSelectedLoans] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { useProcessLoanApproval, useProcessLoanTransaction } = useUnifiedLoanManagement();
   const processApproval = useProcessLoanApproval();
-  const processDisbursement = useProcessLoanDisbursement();
+  const processDisbursement = useProcessLoanTransaction();
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {

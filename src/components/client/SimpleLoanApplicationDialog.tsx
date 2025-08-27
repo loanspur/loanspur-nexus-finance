@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useCreateLoanApplication } from "@/hooks/useLoanManagement";
+import { useCreateLoanApplication } from "@/hooks/useUnifiedLoanManagement";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
